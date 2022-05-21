@@ -1,0 +1,8 @@
+.asetup.save
+
+*.root
+*.pdf
+*.png
+*.log
+
+.vscode/
