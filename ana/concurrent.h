@@ -55,7 +55,7 @@ public:
 
   // apply a method to all nodes
   template <typename F, typename... Args>
-  void in_seq(F f, const concurrent<Args>&... args) const;
+  void apply(F f, const concurrent<Args>&... args) const;
 
   // check common value of function call from all nodes
   template <typename F, typename... Args>
@@ -133,7 +133,7 @@ size_t ana::concurrent<T>::concurrency() const
 
 template <typename T>
 template <typename F, typename... Args>
-void ana::concurrent<T>::in_seq(F f, const concurrent<Args>&... args) const
+void ana::concurrent<T>::apply(F f, const concurrent<Args>&... args) const
 {
   assert( ((concurrency()==args.concurrency())&&...) );
   for(size_t i=0 ; i<concurrency() ; ++i) {

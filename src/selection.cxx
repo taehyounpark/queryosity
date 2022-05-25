@@ -51,17 +51,29 @@ std::string ana::selection::path() const
 	return ( channels.size() ? str::join(channels,"/")+"/"+this->name() : this->name() );
 }
 
+std::string ana::selection::full_path() const
+{
+	std::vector<std::string> presels;
+	const selection* presel = this->get_previous();
+	while (presel) {
+		presels.push_back(presel->name());
+		presel = presel->get_previous();
+	}
+	std::reverse(presels.begin(),presels.end());
+	return ( presels.size() ? str::ensure_trailing(str::join(presels,"/"),"/")+this->name() : this->name() );
+}
+
 void ana::selection::initialize()
 {
-	m_selectionDecision->initialize();
+	m_decision->initialize();
 }
 
 void ana::selection::execute()
 {
-	m_selectionDecision->execute();
+	m_decision->execute();
 }
 
 void ana::selection::finalize()
 {
-	m_selectionDecision->finalize();
+	m_decision->finalize();
 }

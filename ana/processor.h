@@ -17,7 +17,7 @@ class table::processor : public routine, public variable::computation<T>, public
 {
 
 public:
-	processor(std::shared_ptr<table::Range<T>> dataRange, double scale);
+	processor(table::reader<T>& reader, double scale);
 	virtual ~processor() = default;
 
 public:
@@ -33,9 +33,9 @@ public:
 }
 
 template <typename T>
-ana::table::processor<T>::processor(std::shared_ptr<table::Range<T>> dataRange, double scale) :
+ana::table::processor<T>::processor(table::reader<T>& reader, double scale) :
   routine(),
-	variable::computation<T>(dataRange),
+	variable::computation<T>(reader),
 	counter::experiment(scale)
 {}
 
@@ -85,29 +85,33 @@ template <typename T>
 void ana::table::processor<T>::process()
 {
 	// start
+	this->m_reader->begin();
 	this->initialize();
 
 	// per-entry
-	while (this->m_dataRange->next_entry()) {
+	while (this->m_reader->next()) {
 		this->execute();
 	}
 
 	// finish
 	this->finalize();
+	this->m_reader->end();
 }
 
 template <typename T>
 void ana::table::processor<T>::process(table::progress& progress)
 {
 	// start
+	this->m_reader->begin();
 	this->initialize();
 
 	// per-entry
-	while (this->m_dataRange->next_entry()) {
+	while (this->m_reader->next()) {
 		this->execute();
 		++progress;
 	}
 
 	// finish
 	this->finalize();
+	this->m_reader->end();
 }

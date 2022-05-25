@@ -12,93 +12,65 @@ class sample
 {
 
 public:
-  // using reader_type = decltype(std::declval<T>().open_range(std::declval<const ana::table::range&>()));
-  using reader_type = typename decltype(std::declval<T>().open_range())::element_type;
+  using dataset_type = T;
+  // using reader_type = typename decltype(std::declval<T>().open_reader(std::declval<const table::range&>()))::element_type;
+  using reader_type = table::read_t<T>;
 
 public:
-  sample(long long maxEntries=-1);
+  sample(std::unique_ptr<T> dataset);
+  template <typename... Args>
+  sample(Args&&... args);
   virtual ~sample() = default;
 
-  void open(std::unique_ptr<T> data);
-
-  template <typename... Args>
-  void open(Args... args);
-
+  void open(long long max_entries=-1);
   void scale(double w);
 
-  const table::partition& getpartition() const;
-  long long getEntries() const;
+  long long get_entries() const;
   double get_weight() const;
 
-private:
-  void prepare(long long maxEntries=-1);
-
 protected:
-  long long                       m_maxEntries;
   double                          m_scale;
   std::unique_ptr<T>              m_dataset;
   table::partition                m_partition;
-  concurrent<reader_type>         m_dataRanges;
-  concurrent<table::processor<T>> m_dataprocessors;
+  concurrent<reader_type>         m_readers;
+  concurrent<table::processor<reader_type>> m_processors;
 
 };
 
 }
 
 template <typename T>
-ana::sample<T>::sample(long long maxEntries) :
-  m_maxEntries(maxEntries),
-  m_scale(1.0)
+ana::sample<T>::sample(std::unique_ptr<T> dataset) :
+  m_scale(1.0),
+  m_dataset(std::move(dataset))
 {}
 
 template <typename T>
-void ana::sample<T>::open(std::unique_ptr<T> data)
-{
-  m_dataset = std::move(data);
-
-  // partition data
-	m_partition = m_dataset->partition_data().truncate(m_maxEntries).merge(ana::multithread::concurrency());
-
-  // normalize data
-  m_scale /= m_dataset->normalize_data();
-
-  // data ranges
-  m_dataRanges.clear();
-  for (unsigned int slot=0 ; slot<m_partition.size() ; ++slot) {
-    m_dataRanges.add(m_dataset->open_range());
-	}
-
-  // data range processors
-  m_dataprocessors.clear();
-  for (size_t slot=0 ; slot<m_partition.size(); ++slot) {
-    m_dataprocessors.add(std::make_shared<table::processor<T>>(m_dataRanges.slot(slot),m_scale));
-  }
-}
+template <typename... Args>
+ana::sample<T>::sample(Args&&... args) :
+  m_scale(1.0),
+  m_dataset(std::make_unique<T>(args...))
+{}
 
 template <typename T>
-template <typename... Args>
-void ana::sample<T>::open(Args... args)
+void ana::sample<T>::open(long long max_entries)
 {
-  m_dataset = std::make_unique<T>(args...);
-
   // partition data
-	m_partition = m_dataset->partition_data().truncate(m_maxEntries).merge(ana::multithread::concurrency());
+	m_partition = m_dataset->allocate().truncate(max_entries).merge(ana::multithread::concurrency());
 
   // normalize data
-  m_scale /= m_dataset->normalize_data();
+  m_scale /= m_dataset->normalize();
 
-  // data ranges
-  m_dataRanges.clear();
-  for (unsigned int slot=0 ; slot<m_partition.size() ; ++slot) {
-    auto dataRange = m_dataset->open_range();
-    m_dataRanges.add(dataRange);
+  // open readers & processors
+  m_readers.clear();
+  m_processors.clear();
+  for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
+    auto reader = m_dataset->open_reader(m_partition.part(islot));
+    m_readers.add(reader);
+    auto processor = std::make_shared<table::processor<reader_type>>(*reader,m_scale);
+    m_processors.add(processor);
 	}
 
-  // data range processors
-  m_dataprocessors.clear();
-  for (size_t slot=0 ; slot<m_partition.size(); ++slot) {
-    m_dataprocessors.add(std::make_shared<table::processor<T>>(m_dataRanges.slot(slot),m_scale));
-  }
 }
 
 template <typename T>
@@ -108,13 +80,7 @@ void ana::sample<T>::scale(double s)
 }
 
 template <typename T>
-const ana::table::partition& ana::sample<T>::getpartition() const
-{
-  return m_partition;
-}
-
-template <typename T>
-long long ana::sample<T>::getEntries() const
+long long ana::sample<T>::get_entries() const
 {
   return m_partition.total().entries();
 }

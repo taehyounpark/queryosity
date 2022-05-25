@@ -20,8 +20,8 @@ class variable::computation
 {
 
 public:
-	computation(std::shared_ptr<table::Range<T>> dataRange);
-	~computation() = default;
+	computation(table::reader<T>& reader);
+	virtual ~computation() = default;
 
 public:
 	template <typename Col, typename... Args>
@@ -40,32 +40,28 @@ protected:
 	void add(variable& column);
 
 protected:
+	table::reader<T>* m_reader;
 	std::vector<variable*> m_columns;
-	std::shared_ptr<table::Range<T>> m_dataRange;
 
 };
 
 }
 
-#include "ana/Reader.h"
 #include "ana/constant.h"
 #include "ana/equation.h"
 
 template <typename T>
-ana::variable::computation<T>::computation(std::shared_ptr<table::Range<T>> dataRange) :
-	m_dataRange(dataRange)
+ana::variable::computation<T>::computation(table::reader<T>& reader) :
+	m_reader(&reader)
 {}
 
 template <typename T>
 template <typename Val, typename... Args>
 std::shared_ptr<ana::column<Val>> ana::variable::computation<T>::read(const std::string& name, const Args&... args)
 {
-	// auto rdr = std::make_shared<typename column<Val>::template Reader<T>>(name,args...);
-	// rdr->setData(*m_dataRange);
-	// auto rdr = m_dataRange->read_column<Val>(name, args...);
-	// this->add(*rdr);
-	// return rdr;
-	return nullptr;
+	auto rdr = m_reader->template read_column<Val>(name, args...);
+	this->add(*rdr);
+	return rdr;
 }
 
 template <typename T>

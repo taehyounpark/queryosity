@@ -20,7 +20,7 @@ class column : public variable, public cell<T>
 {
 
 public:
-  using value_type = typename cell<T>::value_type;
+  using data_type = typename cell<T>::data_type;
 
 public:
   column(const std::string& name);
@@ -32,9 +32,6 @@ public:
 
 public:
   class constant;
-
-  template <typename Dat>
-  class Reader;
 
   class calculation;
 

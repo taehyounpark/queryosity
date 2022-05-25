@@ -14,15 +14,6 @@ class sample;
 namespace table
 {
 
-using FilePath = std::string;
-using FileList = std::vector<std::string>;
-
-template<typename Dat>
-using Range = typename Dat::Range;
-
-template<typename Dat, typename Val>
-using Reader = typename Dat::template Reader<Val>;
-
 struct range
 {
 	range();
@@ -35,7 +26,7 @@ struct range
 	long long entries() const;
 
 	size_t    slot;
-	long long start;
+	long long begin;
 	long long end;
 };
 
@@ -64,7 +55,7 @@ public:
 	progress(long long total);
 	~progress() = default;
 
-	void      start();
+	void      reset();
 	progress& operator++();
 
 	double percent() const;
@@ -84,31 +75,16 @@ public:
 	dataset() = default;
 	~dataset() = default;
 
-	// partition data
-	partition partition_data();
-	partition allocate();
+	// get dataset partition & normalization
+	virtual partition allocate();
+	virtual double normalize() const;
 
-	// (optional) calculateion data normalization factor
-	double normalize_data() const;
-	double normalize() const;
+	// read data for range
+  decltype(auto) open_reader(const range& part) const;
 
-	// open data range for each range
-  decltype(auto) open_range() const;
-
-	// open data range for each range
-  // decltype(auto) allocate_range(const range& p) const;
-
-	// initialize & finalze run
-	void start_run();
-	void start();
-
-	void end_run();
-	void end();
-
-	// getters
-	const partition& getpartition();	
-	long long getEntries() const;
-	double    get_weight() const;
+	// run dataset
+	virtual void start();
+	virtual void finish();
 
 };
 
@@ -117,72 +93,27 @@ class reader
 {
 
 public:
-	reader() = default;
+	reader(const range& part);
 	~reader() = default;
 
 	// open data range for each range
 	template<typename U, typename... Args>
   decltype(auto) read_column(const std::string& name, Args&&... args) const;
 
-	template<typename U>
-	void connectcolumn(U& column);
+	virtual void begin();
+	virtual bool next() = 0;
+	virtual void end();
 
-	void start_range(const range& range);
-
-	bool next_entry();
-
-	void end_range();
-	void end();
-	
 protected:
 	range m_part;
 
 };
 
 template<typename T>
-class Column
-{
-
-public:
-	Column() = default;
-	~Column() = default;
-
-	template<typename U>
-	void setData(U& dataRange)
-	{
-		dataRange.connectcolumn(*static_cast<T*>(this));
-	}
-
-	void open_column() const
-	{
-		static_cast<const T*>(this)->open();
-	}
-	void open() const
-	{}
-
-	void next_entry() const
-	{
-		static_cast<const T*>(this)->next();
-	}
-	void next() const
-	{}
-
-	decltype(auto) get_entry() const
-	{
-		return static_cast<const T*>(this)->entry();
-	}
-
-	void close_column() const
-	{
-		static_cast<const T*>(this)->close();
-	}
-	void close() const
-	{}
-
-};
+class processor;
 
 template<typename T>
-class processor;
+using read_t = typename decltype(std::declval<T>().open_reader(std::declval<const table::range&>()))::element_type;
 
 }
 
@@ -191,39 +122,9 @@ class processor;
 #include "ana/column.h"
 
 template<typename T>
-ana::table::partition ana::table::dataset<T>::partition_data()
-{
-	return static_cast<T*>(this)->allocate();
-}
-
-template<typename T>
-double ana::table::dataset<T>::normalize_data() const
-{
-	return static_cast<const T*>(this)->normalize();
-}
-
-template<typename T>
 double ana::table::dataset<T>::normalize() const
 {
 	return 1.0;
-}
-
-template<typename T>
-void ana::table::dataset<T>::start_run()
-{
-  static_cast<T*>(this)->start();
-}
-
-template<typename T>
-void ana::table::dataset<T>::end_run()
-{
-  static_cast<T*>(this)->end();
-}
-
-template<typename T>
-decltype(auto) ana::table::dataset<T>::open_range() const
-{
-	return static_cast<const T*>(this)->open();
 }
 
 template<typename T>
@@ -231,40 +132,30 @@ void ana::table::dataset<T>::start()
 {}
 
 template<typename T>
-void ana::table::dataset<T>::end()
+void ana::table::dataset<T>::finish()
 {}
 
 template<typename T>
-template<typename U>
-void ana::table::reader<T>::connectcolumn(U& column)
+decltype(auto) ana::table::dataset<T>::open_reader(const range& part) const
 {
-	static_cast<T*>(this)->connect(column);
-}
-
-// template<typename T>
-// template<typename U, typename... Args>
-// decltype(auto) ana::table::reader<T>::read_column(const std::string& name, Args&&... args)
-// {
-// 	return static_cast<T*>(this)->read(name, std::forward<Args>(args)...);
-// }
-
-template<typename T>
-void ana::table::reader<T>::start_range(const range& range)
-{
-	static_cast<T*>(this)->start(std::cref(range));
+	return static_cast<const T*>(this)->open(part);
 }
 
 template<typename T>
-bool ana::table::reader<T>::next_entry()
+ana::table::reader<T>::reader(const ana::table::range& part) :
+	m_part(part)
+{}
+
+template<typename T>
+template<typename U, typename... Args>
+decltype(auto) ana::table::reader<T>::read_column(const std::string& name, Args&&... args) const
 {
-	return static_cast<T*>(this)->next();
+	return static_cast<const T*>(this)->template read<U>(name, std::forward<Args>(args)...);
 }
 
 template<typename T>
-void ana::table::reader<T>::end_range()
-{
-	static_cast<T*>(this)->end();
-}
+void ana::table::reader<T>::begin()
+{}
 
 template<typename T>
 void ana::table::reader<T>::end()

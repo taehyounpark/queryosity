@@ -30,16 +30,19 @@ public:
 	virtual ~counter() = default;
 
 	void set_selection(const selection& selection);
-	std::string path() const;
 
-	void applyScale(double scale);
+	void set_scale(double scale);
 	void use_weight(bool use=true);
 
 	virtual void initialize() override;
 	virtual void execute() override;
 	virtual void finalize() override;
 
-	virtual void merge_counter(const counter& incoming) = 0;
+	virtual void count(double w) = 0;
+	virtual void merge_result(const counter& incoming) = 0;
+
+	std::string path() const;
+	std::string full_path() const;
 
 protected:
 	const selection* m_selection;
@@ -57,25 +60,17 @@ public:
 	virtual ~implementation() = default;
 
 	// --------------------------------------------------------------------------
-	// CRPT implementation
+	// CRPT dispatch
 
 	template <typename... Vars>
 	void fill_columns(Vars&... vars);
 
-	decltype(auto) getResult() const;
-
-	template <typename U>
-	void outputResult(U&& dest);
+	decltype(auto) get_result() const;
 
 	// --------------------------------------------------------------------------
-	// CRPT implementation + virtual interface
+	// virtual -> CRTP dispatch
 
-	virtual void merge_counter(const counter& incoming) override;
-
-	// --------------------------------------------------------------------------
-	// virtual interface
-
-	virtual void execute() override;
+	virtual void merge_result(const counter& incoming) override;
 
 };
 
@@ -129,28 +124,15 @@ void ana::counter::implementation<T>::fill_columns(Vars&... vars)
 }
 
 template <typename T>
-decltype(auto) ana::counter::implementation<T>::getResult() const
+decltype(auto) ana::counter::implementation<T>::get_result() const
 {
 	return static_cast<const T*>(this)->result();
 }
 
 template <typename T>
-template <typename U>
-void ana::counter::implementation<T>::outputResult(U&& dest)
+void ana::counter::implementation<T>::merge_result(const counter& incoming)
 {
-	static_cast<T*>(this)->output(std::forward<U>(dest));
-}
-
-template <typename T>
-void ana::counter::implementation<T>::merge_counter(const counter& incoming)
-{
-	static_cast<T*>(this)->merge(static_cast<const T&>(incoming).getResult());
-}
-
-template <typename T>
-void ana::counter::implementation<T>::execute()
-{
-	if (m_selection->passed_cut()) static_cast<T*>(this)->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
+	static_cast<T*>(this)->merge(static_cast<const T&>(incoming).get_result());
 }
 
 template <typename T>

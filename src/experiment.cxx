@@ -7,12 +7,12 @@ ana::counter::experiment::experiment(double norm) :
 	m_norm(norm)
 {}
 
-void ana::counter::experiment::addcounter(ana::counter& cnt)
+void ana::counter::experiment::add(ana::counter& cnt)
 {
 	m_counters.push_back(&cnt);
 }
 
-void ana::counter::experiment::clearcounters()
+void ana::counter::experiment::clear_counters()
 {
 	m_counters.clear();
 }

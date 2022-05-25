@@ -6,37 +6,37 @@
 
 ana::table::range::range() :
 	slot(0),
-	start(0),
+	begin(0),
 	end(-1)
 {}
 
-ana::table::range::range(size_t slot, long long start, long long end) :
+ana::table::range::range(size_t slot, long long begin, long long end) :
 	slot(slot),
-	start(start),
+	begin(begin),
 	end(end)
 {}
 
 long long ana::table::range::entries() const
 {
-	return end-start;
+	return end-begin;
 }
 
 ana::table::range ana::table::range::operator+(const range& next)
 {
-	assert(this->end==next.start);
-	return range(this->slot,this->start,next.end);
+	assert(this->end==next.begin);
+	return range(this->slot,this->begin,next.end);
 }
 
 ana::table::range& ana::table::range::operator+=(const range& next)
 {
-	assert(this->end==next.start);
+	assert(this->end==next.begin);
 	this->end=next.end;
 	return *this;
 }
 
-void ana::table::partition::add(size_t islot, long long start, long long end)
+void ana::table::partition::add(size_t islot, long long begin, long long end)
 {
-	this->parts.push_back(range(islot,start,end));
+	this->parts.push_back(range(islot,begin,end));
 }
 
 void ana::table::partition::add(const range& part)
@@ -76,8 +76,8 @@ ana::table::partition ana::table::partition::truncate(long long max_entries) con
 	if (max_entries<0) return *this;
 	partition trunced;
 	for (const auto& part : this->parts) {
-		auto part_end = max_entries >= 0 ? std::min(part.start+max_entries,part.end) : part.end;
-		trunced.parts.push_back(range(part.slot, part.start, part_end));
+		auto part_end = max_entries >= 0 ? std::min(part.begin+max_entries,part.end) : part.end;
+		trunced.parts.push_back(range(part.slot, part.begin, part_end));
 		max_entries -= part_end;
 		if (!max_entries) break;
 	}
@@ -90,7 +90,7 @@ ana::table::progress::progress(long long tot) :
 	prog.store(0);
 }
 
-void ana::table::progress::start()
+void ana::table::progress::reset()
 {
 	prog.store(0);
 }

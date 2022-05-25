@@ -21,9 +21,6 @@ public:
 
 	class cutflow;
 
-	// template <typename T>
-	// using Count = typename T::Result;
-
 public:
 	selection(const std::string& name);
   virtual ~selection() = default;
@@ -37,10 +34,13 @@ public:
 
 	void set_channel(bool channel=true);
 	bool is_channel() const noexcept;
+
 	std::string path() const;
+	std::string full_path() const;
 
 	template <typename T>
-	void setDecision(std::shared_ptr<column<T>> decision);
+	void set_decision(std::shared_ptr<column<T>> decision);
+
 	virtual bool   passed_cut() const = 0;
 	virtual double get_weight() const = 0;
 
@@ -51,10 +51,11 @@ public:
 
 private:
 	const selection* m_preselection;
-	bool m_channel;
 
-	std::shared_ptr<variable>     m_selectionDecision;
-	std::shared_ptr<cell<double>> m_selectionValue;
+	std::shared_ptr<variable>     m_decision;
+	std::shared_ptr<cell<double>> m_value;
+
+	bool m_channel;
 
 };
 
@@ -65,10 +66,10 @@ private:
 #include "ana/counter.h"
 
 template <typename T>
-void ana::selection::setDecision(std::shared_ptr<column<T>> decision)
+void ana::selection::set_decision(std::shared_ptr<column<T>> decision)
 {
 	// selection is responsible for resetting its own decision: keep variable-upcast pointer
-	m_selectionDecision = decision;
+	m_decision = decision;
 	// selection value is boolean/numerical: link to cell<double>
-	m_selectionValue = ana::value_as<double>(*decision);
+	m_value = ana::value_as<double>(*decision);
 }

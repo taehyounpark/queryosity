@@ -25,9 +25,10 @@ public:
 	template <typename Cnt>
 	std::shared_ptr<Cnt> book(const booker<Cnt>& booker);
 
+	void clear_counters();
+
 protected:
-	void addcounter(counter& cnt);
-	void clearcounters();
+	void add(counter& cnt);
 
 protected:
 	std::vector<counter*> m_counters;
@@ -48,7 +49,7 @@ template <typename Cnt>
 std::shared_ptr<Cnt> ana::counter::experiment::book(const booker<Cnt>& booker)
 {
 	auto cnt = booker.book_selection(*m_latest);
-	cnt->applyScale(m_norm);
-	this->addcounter(*cnt);
+	cnt->set_scale(m_norm);
+	this->add(*cnt);
 	return cnt;
 }

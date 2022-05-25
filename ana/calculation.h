@@ -26,8 +26,8 @@ public:
 	virtual void finalize()   override;
 
 protected:
-  void updateValue() const;
-  void resetValue();
+  void update() const;
+  void reset();
 
 protected:
   mutable T    m_value;
@@ -46,19 +46,19 @@ ana::column<T>::calculation::calculation(const std::string& name) :
 template <typename T>
 const T& ana::column<T>::calculation::value() const
 {
-  if (!m_updated) this->updateValue();
+  if (!m_updated) this->update();
   return m_value;
 }
 
 template <typename T>
-void ana::column<T>::calculation::updateValue() const
+void ana::column<T>::calculation::update() const
 {
   m_value = this->calculate();
   m_updated = true;
 }
 
 template <typename T>
-void ana::column<T>::calculation::resetValue()
+void ana::column<T>::calculation::reset()
 {
   m_updated = false;
 }
@@ -70,7 +70,7 @@ void ana::column<T>::calculation::initialize()
 template <typename T>
 void ana::column<T>::calculation::execute()
 { 
-  this->resetValue();
+  this->reset();
 }
 
 template <typename T>

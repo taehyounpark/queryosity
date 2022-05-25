@@ -20,7 +20,12 @@ std::string ana::counter::path() const
 	return str::ensure_trailing(m_selection->path(),"/")+this->name();
 }
 
-void ana::counter::applyScale(double scale)
+std::string ana::counter::full_path() const
+{
+	return str::ensure_trailing(m_selection->full_path(),"/")+this->name();
+}
+
+void ana::counter::set_scale(double scale)
 {
 	m_scale *= scale;
 }
@@ -31,10 +36,15 @@ void ana::counter::use_weight(bool use)
 }
 
 void ana::counter::initialize()
-{}
+{
+	if (!m_selection) throw std::runtime_error("no booked selection");
+}
 
 void ana::counter::execute()
-{}
+{
+	if (m_selection->passed_cut()) this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
+}
+
 
 void ana::counter::finalize()
 {}

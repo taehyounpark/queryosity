@@ -52,7 +52,7 @@ std::shared_ptr<ana::selection> ana::selection::cutflow::filter(const std::strin
 	if constexpr(sizeof...(Vars)) eqn->input_arguments(vars...);
 	auto flt = std::make_shared<Sel>(name);
 	if (m_latest) flt->set_previous(*m_latest);
-	flt->setDecision(std::static_pointer_cast<ana::column<return_type>>(eqn));
+	flt->set_decision(std::static_pointer_cast<ana::column<return_type>>(eqn));
 	this->add(*flt);
 	return flt;
 }
@@ -66,7 +66,7 @@ std::shared_ptr<ana::selection> ana::selection::cutflow::channel(const std::stri
 	if constexpr(sizeof...(Vars)) eqn->input_arguments(vars...);
 	auto flt = std::make_shared<Sel>(name);
 	flt->set_channel(true);
-	flt->setDecision(std::static_pointer_cast<ana::column<return_type>>(eqn));
+	flt->set_decision(std::static_pointer_cast<ana::column<return_type>>(eqn));
 	if (m_latest) flt->set_previous(*m_latest);
 	this->add(*flt);
 	return flt;
