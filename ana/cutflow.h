@@ -18,7 +18,7 @@ public:
 	~cutflow() = default;
 
 public:
-	cutflow& at(const selection& current) noexcept;
+	cutflow& from(const selection& current) noexcept;
 
 	template <typename Sel, typename F, typename... Vars>
 	std::shared_ptr<selection> filter(const std::string& name, F callable, Vars&... vars);

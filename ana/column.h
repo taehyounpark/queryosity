@@ -33,6 +33,8 @@ public:
 public:
   class constant;
 
+  class reader;
+
   class calculation;
 
   template <typename... Args>
