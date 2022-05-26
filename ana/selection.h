@@ -52,8 +52,8 @@ public:
 private:
 	const selection* m_preselection;
 
-	std::shared_ptr<variable>     m_decision;
-	std::shared_ptr<cell<double>> m_value;
+	std::shared_ptr<term>   m_decision;
+	ana::variable<double> m_variable;
 
 	bool m_channel;
 
@@ -68,8 +68,8 @@ private:
 template <typename T>
 void ana::selection::set_decision(std::shared_ptr<column<T>> decision)
 {
-	// selection is responsible for resetting its own decision: keep variable-upcast pointer
+	// keep decision as term
 	m_decision = decision;
-	// selection value is boolean/numerical: link to cell<double>
-	m_value = ana::value_as<double>(*decision);
+	// link value to variable<double>
+	m_variable = variable<double>(*decision);
 }

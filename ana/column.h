@@ -16,11 +16,11 @@ namespace ana
 // column<T>: column whose value of type <T> can be observed
 // -----------------------------------------------------------------------------
 template <typename T>
-class column : public variable, public cell<T>
+class column : public term, public cell<T>
 {
 
 public:
-  using data_type = typename cell<T>::data_type;
+  using value_type = typename cell<T>::value_type;
 
 public:
   column(const std::string& name);
@@ -47,7 +47,7 @@ public:
 
 template <typename T>
 ana::column<T>::column(const std::string& name) : 
-  variable(name),
+  term(name),
   cell<T>()
 {}
 

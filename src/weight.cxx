@@ -11,5 +11,5 @@ bool ana::selection::weight::passed_cut() const
 
 double ana::selection::weight::get_weight() const
 {
-	return m_preselection ? m_preselection->get_weight() * m_value->value() : m_value->value();
+	return m_preselection ? m_preselection->get_weight() * m_variable.value() : m_variable.value();
 }

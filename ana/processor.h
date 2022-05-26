@@ -13,7 +13,7 @@ namespace ana
 {
 
 template <typename T>
-class table::processor : public routine, public variable::computation<T>, public counter::experiment
+class table::processor : public routine, public term::computation<T>, public counter::experiment
 {
 
 public:
@@ -35,7 +35,7 @@ public:
 template <typename T>
 ana::table::processor<T>::processor(table::reader<T>& reader, double scale) :
   routine(),
-	variable::computation<T>(reader),
+	term::computation<T>(reader),
 	counter::experiment(scale)
 {}
 

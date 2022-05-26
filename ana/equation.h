@@ -28,7 +28,7 @@ public:
 
   // convert each input argument type
   template <typename... UArgs>
-  void input_arguments(cell<UArgs>&... args);
+  void set_arguments(cell<UArgs>&... args);
 
   virtual Ret calculate() const override;
 
@@ -68,13 +68,13 @@ void ana::column<Ret>::equation<Args...>::set_evaluation(F&& callable)
 template <typename Ret>
 template <typename... Args>
 template <typename... UArgs>
-void ana::column<Ret>::equation<Args...>::input_arguments(cell<UArgs>&... args)
+void ana::column<Ret>::equation<Args...>::set_arguments(cell<UArgs>&... args)
 {
   static_assert(sizeof...(Args)==sizeof...(UArgs));
   m_arguments = std::make_tuple(
     std::invoke(
       [](cell<UArgs>& args) -> std::shared_ptr<cell<Args>> {
-        return ana::value_as<Args>(args);
+        return ana::cell_as<Args>(args);
     },args)...
   );
 }

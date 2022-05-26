@@ -201,7 +201,7 @@ std::vector<std::string> str::tokenize_expression(std::string expression, const 
       const auto &tok = tokens[i];
       // lexertk classifies '&' as e_symbol for some reason
       if (tok.type != kSymbol || tok.value == "&" || tok.value == "|") {
-        // token is not a potential variable name, skip it
+        // token is not a potential term name, skip it
         continue;
       }
       // get a list of candidate names

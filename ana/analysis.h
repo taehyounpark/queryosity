@@ -61,13 +61,13 @@ public:
   node<selection> channel(const std::string& name, F callable, const node<Vars>&... columns);
 
 	template <typename Cnt, typename... Args>
-	node<counter::booker<Cnt>> count(const std::string& name, const Args&... arguments);
+	node<counter::manager<Cnt>> count(const std::string& name, const Args&... arguments);
 
 	template <typename Cnt>
-	node<Cnt> book(const node<counter::booker<Cnt>>& booker);
+	node<Cnt> book(const node<counter::manager<Cnt>>& manager);
 
-	bool has_variable(const std::string& name);
-	node<variable> get_variable(const std::string& name);
+	bool has_term(const std::string& name);
+	node<term> get_term(const std::string& name);
 
 	bool has_selection(const std::string& path);
 	node<selection> get_selection(const std::string& path);
@@ -90,7 +90,7 @@ protected:
   void run_processors();
 
 protected:
-	void add_variable(node<variable> var);
+	void add_term(node<term> var);
 	void add_selection(node<selection> sel);
 	void add_counter(node<counter> cnt);
 
@@ -98,7 +98,7 @@ protected:
 	bool m_analyzed;
 
 	std::vector<std::string>                       m_column_names;
-	std::unordered_map<std::string,node<variable>> m_column_map;
+	std::unordered_map<std::string,node<term>> m_column_map;
 
 	std::vector<std::string>                        m_selection_paths;
 	std::unordered_map<std::string,node<selection>> m_selection_map;
@@ -166,7 +166,7 @@ public:
   template <typename V = U, typename... Vars>
 	typename std::enable_if<std::tuple_size<decltype(std::declval<V>().get_arguments())>::value!=0, void>::type evaluate(const node<Vars>&... arguments)
 	{
-		this->apply( [] (U& defn, Vars&... args) { defn.input_arguments(args...); }, arguments... );
+		this->apply( [] (U& defn, Vars&... args) { defn.set_arguments(args...); }, arguments... );
 	}
 
   template <typename Sel, typename F, typename... Vars>
@@ -210,23 +210,23 @@ public:
 	template <typename... Cols>
 	void fill(const node<Cols>&... columns)
 	{
-		if constexpr( is_counter_booker<U>::value ) {
-			this->apply( [] (U& booker, Cols&... cols) { booker.fill_columns(cols...); }, columns... );
+		if constexpr( is_counter_manager_v<U> ) {
+			this->apply( [] (U& manager, Cols&... cols) { manager.fill_columns(cols...); }, columns... );
 		} else if constexpr( std::is_base_of_v<counter::implementation<U>, U> ) {
 			this->apply( [] (U& cnt, Cols&... cols) { cnt.fill_columns(cols...); }, columns... );
 		} else {
-			static_assert( (is_counter_booker<U>::value ||  std::is_base_of_v<counter::implementation<U>, U>), "non-counter(booker) cannot be filled with columns" );
+			static_assert( (is_counter_manager_v<U> ||  std::is_base_of_v<counter::implementation<U>, U>), "non-counter(manager) cannot be filled with columns" );
 		}
 	}
 
 	template <typename Cnt, typename V = U, std::enable_if_t<std::is_base_of_v<selection,V>>* = nullptr>
-	node<Cnt> book(const node<counter::booker<Cnt>>& booker)
+	node<Cnt> book(const node<counter::manager<Cnt>>& manager)
 	{
-		return m_analysis->at(*this).template book(booker);
+		return m_analysis->at(*this).template book(manager);
 	}
 
-	template <typename V = U, typename std::enable_if<is_counter_booker<V>::value,void>::type* = nullptr>
-	node<typename V::counterType> book(const node<selection>& filter)
+	template <typename V = U, typename std::enable_if<is_counter_manager_v<V>,void>::type* = nullptr>
+	node<typename V::implementation_type> book(const node<selection>& filter)
 	{
 		return m_analysis->at(filter).template book(*this);
 	}
@@ -279,7 +279,7 @@ template <typename Val, typename... Args>
 typename ana::analysis<T>::template node<ana::column<Val>> ana::analysis<T>::read(const std::string& name, const Args&... args)
 {
 	auto nd = node<column<Val>>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc) { return proc.template read<Val>(name,args...); } ));
-	this->add_variable(nd);
+	this->add_term(nd);
 	return nd;
 }
 
@@ -288,7 +288,7 @@ template <typename Val>
 typename ana::analysis<T>::template node<ana::column<Val>> ana::analysis<T>::constant(const std::string& name, const Val& val)
 {
 	auto nd = node<column<Val>>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc) { return proc.template constant<Val>(name,val); } ));
-	this->add_variable(nd);
+	this->add_term(nd);
   return nd;
 }
 
@@ -297,7 +297,7 @@ template <typename Def, typename... Args>
 typename ana::analysis<T>::template node<Def> ana::analysis<T>::define(const std::string& name, const Args&... arguments)
 {
 	auto nd = node<Def>(*this, this->m_processors.invoke( [&](table::processor<reader_type>& proc) { return proc.template define<Def>(name,arguments...); } ));
-	this->add_variable(nd);
+	this->add_term(nd);
 	return nd;
 }
 
@@ -306,7 +306,7 @@ template <typename F, typename... Vars>
 auto ana::analysis<T>::evaluate(const std::string& name, F callable, const node<Vars>&... columns) ->  typename analysis<T>::template node<column<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>
 {
 	auto nd = node<column<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc, Vars&... vars) { return proc.template evaluate(name,callable,vars...); }, columns... ));
-	this->add_variable(nd);
+	this->add_term(nd);
   return nd;
 }
 
@@ -330,26 +330,26 @@ typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::chann
 
 template <typename T>
 template <typename Cnt, typename... Args>
-typename ana::analysis<T>::template node<ana::counter::booker<Cnt>> ana::analysis<T>::count(const std::string& name, const Args&... arguments)
+typename ana::analysis<T>::template node<ana::counter::manager<Cnt>> ana::analysis<T>::count(const std::string& name, const Args&... arguments)
 {
-	auto nd = node<counter::booker<Cnt>>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc) { return proc.template count<Cnt>(name,arguments...); } ));
+	auto nd = node<counter::manager<Cnt>>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc) { return proc.template count<Cnt>(name,arguments...); } ));
   return nd;
 }
 
 template <typename T>
 template <typename Cnt>
-typename ana::analysis<T>::template node<Cnt> ana::analysis<T>::book(const node<counter::booker<Cnt>>& booker)
+typename ana::analysis<T>::template node<Cnt> ana::analysis<T>::book(const node<counter::manager<Cnt>>& manager)
 {
 	this->reset();
-	auto nd = node<Cnt>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc, const counter::booker<Cnt>& dlyd) { return proc.template book<Cnt>(dlyd); }, booker ));
+	auto nd = node<Cnt>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc, const counter::manager<Cnt>& dlyd) { return proc.template book<Cnt>(dlyd); }, manager ));
 	this->add_counter(nd);
   return nd;
 }
 
 template <typename T>
-typename ana::analysis<T>::template node<ana::variable> ana::analysis<T>::get_variable(const std::string& name)
+typename ana::analysis<T>::template node<ana::term> ana::analysis<T>::get_term(const std::string& name)
 {
-	if (!this->has_variable(name)) {
+	if (!this->has_term(name)) {
 		throw std::logic_error("column does not exist");
 	};
 	return m_column_map[name];
@@ -448,7 +448,7 @@ ana::analysis<T>& ana::analysis<T>::at(const node<selection>& rebase)
 }
 
 template <typename T>
-bool ana::analysis<T>::has_variable(const std::string& name)
+bool ana::analysis<T>::has_term(const std::string& name)
 {
 	return m_column_map.find(name)!=m_column_map.end();
 }
@@ -466,10 +466,10 @@ bool ana::analysis<T>::has_counter(const std::string& name)
 }
 
 template <typename T>
-void ana::analysis<T>::add_variable(typename ana::analysis<T>::template node<variable> node)
+void ana::analysis<T>::add_term(typename ana::analysis<T>::template node<term> node)
 {
 	auto name = node.name();
-	if (this->has_variable(name)) {
+	if (this->has_term(name)) {
 		throw std::logic_error("column already exists");
 	}
 	m_column_map[name] = node;

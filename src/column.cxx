@@ -1,5 +1,5 @@
 #include "ana/cell.h"
 
-ana::variable::variable(const std::string& name) :
+ana::term::term(const std::string& name) :
 	action(name)
 {}

@@ -11,6 +11,15 @@
 namespace ana
 {
 
+template <typename T>
+class column;
+
+template <typename T>
+class variable;
+
+template <typename T>
+class observable;
+
 class selection;
 
 class counter : public action
@@ -21,7 +30,7 @@ public:
 	class implementation;
 
 	template <typename T>
-	class booker;
+	class manager;
 
 	class experiment;
 
@@ -56,14 +65,18 @@ class counter::implementation : public counter
 {
 
 public:
+	template <typename... Obs>
+	class fillable;
+
+public:
 	implementation(const std::string& name);
 	virtual ~implementation() = default;
 
 	// --------------------------------------------------------------------------
 	// CRPT dispatch
 
-	template <typename... Vars>
-	void fill_columns(Vars&... vars);
+	template <typename... Vals>
+	void fill_columns(const ana::column<Vals>&... cols);
 
 	decltype(auto) get_result() const;
 
@@ -75,36 +88,87 @@ public:
 };
 
 template <typename T>
-class counter::booker
+template <typename... Obs>
+class counter::implementation<T>::fillable : public counter::implementation<T>
 {
 
 public:
-	using counterType = T;
+	using obstup_type = std::tuple<ana::variable<Obs>...>;
+
+public:
+	fillable(const std::string& name);
+	virtual ~fillable() = default;
+
+	template <typename... Vals>
+	void fill(const column<Vals>&... cols);
+
+	virtual void count(double w) override;
+	virtual void enter(ana::observable<Obs>... observables, double w) = 0;
+
+protected:
+	std::vector<obstup_type> m_fills;
+
+};
+
+template <typename T>
+class counter::manager
+{
+
+public:
+	using implementation_type = T;
 
 public:
 	template <typename... Args>
-	booker(const std::string& name, const Args&... args);
-	~booker() = default;
+	manager(const std::string& name, const Args&... args);
+	~manager() = default;
 
-	template <typename... Cols> 
-	void fill_columns( Cols&... columns );
+	template <typename... Vals> 
+	void fill_columns( const column<Vals>&... columns );
 
 	std::shared_ptr<T> book_selection(const selection& selection) const;
+
+	std::vector<std::string> booked_selection_paths() const;
+	std::vector<std::shared_ptr<T>> booked_counters() const;
+
+	// auto get_result(const std::string& path) -> typename decltype(std::declval<T>().result()) const;
+	// auto get_results() -> std::vector<typename decltype(std::declval<T>().result())> const;
 
 protected:
 	mutable std::function<std::shared_ptr<T>()>  m_call_make;
 	mutable std::vector<std::function<void(T&)>> m_call_fills;
 
+	std::vector<std::string> m_booked_selections;
+	std::unordered_map<std::string,std::shared_ptr<T>> m_booked_counter_map;
+
 };
 
-template<class T, class Enable=void>
-struct is_counter_booker: std::false_type {};
+// FUTURE: replace with concepts (C++20)
 
-template<class T>
-struct is_counter_booker<counter::booker<T>>: std::true_type {};
+template <typename Out> 
+constexpr std::true_type check_counter_implementation(const counter::implementation<Out>&);
+template <typename Out> 
+constexpr std::false_type check_counter_implementation(const Out&);
+template <typename T> 
+constexpr bool is_counter_implementation_v = decltype(check_counter_implementation(std::declval<const T&>()))::value;
+
+template <typename Out> 
+constexpr std::false_type check_counter_fillable(const Out&);
+template <typename Out, typename... Vals> 
+constexpr std::true_type check_counter_fillable(const typename counter::implementation<Out>::template fillable<Vals...>&);
+template <typename T> 
+constexpr bool is_counter_fillable_v = decltype(check_counter_fillable(std::declval<const T&>()))::value;
+
+template <typename Cnt>
+struct is_counter_manager: std::false_type {};
+template <typename Cnt>
+struct is_counter_manager<counter::manager<Cnt>>: std::true_type {};
+template <typename Cnt>
+constexpr bool is_counter_manager_v = is_counter_manager<Cnt>::value;
+
 
 }
 
+#include "ana/column.h"
 #include "ana/selection.h"
 
 template <typename T>
@@ -113,14 +177,10 @@ ana::counter::implementation<T>::implementation(const std::string& name) :
 {}
 
 template <typename T>
-template <typename... Vars>
-void ana::counter::implementation<T>::fill_columns(Vars&... vars)
+template <typename... Vals>
+void ana::counter::implementation<T>::fill_columns(const ana::column<Vals>&... cols)
 {
-	if constexpr( (std::is_base_of_v<variable,Vars> && ...) ) {
-		static_cast<T*>(this)->fill(vars...);
-	} else {
-		static_assert( (std::is_base_of_v<variable,Vars> && ...), "cannot fill counter with non-variables" );
-	}
+	static_cast<T*>(this)->fill(cols...);
 }
 
 template <typename T>
@@ -136,20 +196,48 @@ void ana::counter::implementation<T>::merge_result(const counter& incoming)
 }
 
 template <typename T>
+template <typename... Obs>
+ana::counter::implementation<T>::fillable<Obs...>::fillable(const std::string& name) :
+	counter::implementation<T>(name)
+{}
+
+template <typename T>
+template <typename... Obs>
+template <typename... Vals>
+void ana::counter::implementation<T>::fillable<Obs...>::fill(const column<Vals>&... cols)
+{
+	static_assert(sizeof...(Obs)==sizeof...(Vals), "dimension mis-match between filled variables & columns.");
+	m_fills.emplace_back(cols...);
+}
+
+template <typename T>
+template <typename... Obs>
+void ana::counter::implementation<T>::fillable<Obs...>::count(double w)
+{
+	for (unsigned int ifill=0 ; ifill<m_fills.size() ; ++ifill) {
+		std::apply(
+			[this,w](const variable<Obs>&... obs) {
+				this->enter(obs..., w);
+			}, m_fills[ifill]
+		);
+	}
+}
+
+template <typename T>
 template <typename... Args>
-ana::counter::booker<T>::booker(const std::string& name, const Args&... args) :
+ana::counter::manager<T>::manager(const std::string& name, const Args&... args) :
 	m_call_make( std::bind([](const std::string& name, const Args&... args){return std::make_shared<T>(name,args...);}, name,args...) )
 {}
 
 template <typename T>
-template <typename... Cols>
-void ana::counter::booker<T>::fill_columns(Cols&... columns)
+template <typename... Vals>
+void ana::counter::manager<T>::fill_columns(const column<Vals>&... columns)
 {
-	m_call_fills.push_back(std::bind( [](T& cnt, Cols&... cols){ cnt.fill_columns(cols...);}, std::placeholders::_1, std::ref(columns)...));
+	m_call_fills.push_back(std::bind( [](T& cnt, const column<Vals>&... cols){ cnt.fill_columns(cols...);}, std::placeholders::_1, std::ref(columns)...));
 }
 
 template <typename T>
-std::shared_ptr<T> ana::counter::booker<T>::book_selection(const selection& sel) const
+std::shared_ptr<T> ana::counter::manager<T>::book_selection(const selection& sel) const
 {
 	// call constructor
 	auto cnt = m_call_make();

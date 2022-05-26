@@ -49,7 +49,7 @@ std::shared_ptr<ana::selection> ana::selection::cutflow::filter(const std::strin
 	using return_type = typename std::invoke_result_t<F, typename std::decay_t<decltype(std::declval<Vars>().value())>...>;
 	auto eqn = std::make_shared<typename column<return_type>::template equation<typename std::decay_t<decltype(std::declval<Vars>().value())>...>>(name);
 	eqn->set_evaluation(callable);
-	if constexpr(sizeof...(Vars)) eqn->input_arguments(vars...);
+	if constexpr(sizeof...(Vars)) eqn->set_arguments(vars...);
 	auto flt = std::make_shared<Sel>(name);
 	if (m_latest) flt->set_previous(*m_latest);
 	flt->set_decision(std::static_pointer_cast<ana::column<return_type>>(eqn));
@@ -63,7 +63,7 @@ std::shared_ptr<ana::selection> ana::selection::cutflow::channel(const std::stri
 	using return_type = typename std::invoke_result_t<F, typename std::decay_t<decltype(std::declval<Vars>().value())>...>;
 	auto eqn = std::make_shared<typename column<return_type>::template equation<typename std::decay_t<decltype(std::declval<Vars>().value())>...>>(name);
 	eqn->set_evaluation(callable);
-	if constexpr(sizeof...(Vars)) eqn->input_arguments(vars...);
+	if constexpr(sizeof...(Vars)) eqn->set_arguments(vars...);
 	auto flt = std::make_shared<Sel>(name);
 	flt->set_channel(true);
 	flt->set_decision(std::static_pointer_cast<ana::column<return_type>>(eqn));
