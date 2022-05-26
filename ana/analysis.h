@@ -52,32 +52,28 @@ public:
   template <typename F, typename... Vars>
   auto evaluate(const std::string& name, F callable, const node<Vars>&... columns) -> node<column<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>;
 
-  analysis& at(const node<selection>& rebase);
-
   template <typename Sel, typename F, typename... Vars>
   node<selection> filter(const std::string& name, F callable, const node<Vars>&... columns);
 
   template <typename Sel, typename F, typename... Vars>
   node<selection> channel(const std::string& name, F callable, const node<Vars>&... columns);
 
+  analysis& from(const node<selection>& rebase);
+	node<selection> operator[](const std::string& path) const;
+
 	template <typename Cnt, typename... Args>
-	node<counter::manager<Cnt>> count(const std::string& name, const Args&... arguments);
+	node<counter::bookkeeper<Cnt>> count(const std::string& name, const Args&... arguments);
 
 	template <typename Cnt>
-	node<Cnt> book(const node<counter::manager<Cnt>>& manager);
+	node<Cnt> book(const node<counter::bookkeeper<Cnt>>& bookkeeper);
 
-	bool has_term(const std::string& name);
-	node<term> get_term(const std::string& name);
-
-	bool has_selection(const std::string& path);
-	node<selection> get_selection(const std::string& path);
-
-	bool has_counter(const std::string& name);
-	node<counter> get_counter(const std::string& name);
-
-	std::vector<std::string> list_column_names() const;
+	std::vector<std::string> list_term_names() const;
 	std::vector<std::string> list_selection_paths() const;
 	std::vector<std::string> list_counter_paths() const;
+
+	bool has_term(const std::string& name) const;
+	bool has_selection(const std::string& path) const;
+	bool has_counter(const std::string& path) const;
 
 public:
 	void analyze();
@@ -97,7 +93,7 @@ protected:
 protected:
 	bool m_analyzed;
 
-	std::vector<std::string>                       m_column_names;
+	std::vector<std::string>                   m_column_names;
 	std::unordered_map<std::string,node<term>> m_column_map;
 
 	std::vector<std::string>                        m_selection_paths;
@@ -155,11 +151,22 @@ public:
 	std::string path() const
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return this->check( [] (const selection& fltr) { return fltr.path(); } );
+			return this->check( [] (const selection& sel) { return sel.path(); } );
 		} else if constexpr(std::is_base_of_v<counter,U>) {
 			return this->check( [] (const counter& cnt) { return cnt.path(); } );
 		} else {
-			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "non-selection node has no path defined");
+			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "non-selection/counter node has no path");
+		}
+	}
+
+	std::string full_path() const
+	{
+		if constexpr(std::is_base_of_v<selection,U>) {
+			return this->check( [] (const selection& sel) { return sel.full_path(); } );
+		} else if constexpr(std::is_base_of_v<counter,U>) {
+			return this->check( [] (const counter& cnt) { return cnt.full_path(); } );
+		} else {
+			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "non-selection/counter node has no path");
 		}
 	}
 
@@ -173,9 +180,9 @@ public:
   node<selection> filter(const std::string& name, F callable, const node<Vars>&... columns)
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_analysis->at(*this).template filter<Sel>(name, callable, columns...);
+			return m_analysis->from(*this).template filter<Sel>(name, callable, columns...);
 		} else {
-			static_assert(std::is_base_of_v<selection,U>, "non-selection cannot chain filters");
+			static_assert(std::is_base_of_v<selection,U>, "non-selection cannot chain selections");
 		}
 	}
 
@@ -183,9 +190,9 @@ public:
   node<selection> channel(const std::string& name, F callable, const node<Vars>&... columns)
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_analysis->at(*this).template channel<Sel>(name, callable, columns...);
+			return m_analysis->from(*this).template channel<Sel>(name, callable, columns...);
 		} else {
-			static_assert(std::is_base_of_v<selection,U>, "non-selection cannot chain filters");
+			static_assert(std::is_base_of_v<selection,U>, "non-selection cannot chain selections");
 		}
 	}
 
@@ -210,25 +217,25 @@ public:
 	template <typename... Cols>
 	void fill(const node<Cols>&... columns)
 	{
-		if constexpr( is_counter_manager_v<U> ) {
-			this->apply( [] (U& manager, Cols&... cols) { manager.fill_columns(cols...); }, columns... );
-		} else if constexpr( std::is_base_of_v<counter::implementation<U>, U> ) {
-			this->apply( [] (U& cnt, Cols&... cols) { cnt.fill_columns(cols...); }, columns... );
+		if constexpr( is_counter_bookkeeper_v<U> ) {
+			this->apply( [] (U& bookkeeper, Cols&... cols) { bookkeeper.enter_fill(cols...); }, columns... );
+		} else if constexpr( is_counter_fillable_v<U> ) {
+			this->apply( [] (U& fillable, Cols&... cols) { fillable.enter_fill(cols...); }, columns... );
 		} else {
-			static_assert( (is_counter_manager_v<U> ||  std::is_base_of_v<counter::implementation<U>, U>), "non-counter(manager) cannot be filled with columns" );
+			static_assert( (is_counter_bookkeeper_v<U> ||  is_counter_fillable_v<U>), "non-fillable counter/bookkeeper" );
 		}
 	}
 
 	template <typename Cnt, typename V = U, std::enable_if_t<std::is_base_of_v<selection,V>>* = nullptr>
-	node<Cnt> book(const node<counter::manager<Cnt>>& manager)
+	node<Cnt> book(const node<counter::bookkeeper<Cnt>>& bookkeeper)
 	{
-		return m_analysis->at(*this).template book(manager);
+		return m_analysis->from(*this).template book(bookkeeper);
 	}
 
-	template <typename V = U, typename std::enable_if<is_counter_manager_v<V>,void>::type* = nullptr>
+	template <typename V = U, typename std::enable_if<is_counter_bookkeeper_v<V>,void>::type* = nullptr>
 	node<typename V::implementation_type> book(const node<selection>& filter)
 	{
-		return m_analysis->at(filter).template book(*this);
+		return m_analysis->from(filter).template book(*this);
 	}
 
 	template <typename V = U, std::enable_if_t<std::is_base_of_v<counter::implementation<V>,V>>* = nullptr>
@@ -236,6 +243,12 @@ public:
 	{
 		m_analysis->analyze();
 		return this->model()->get_result();
+	}
+
+	template <typename V = U, typename std::enable_if<is_counter_bookkeeper_v<V>,void>::type* = nullptr>
+	node<typename V::implementation_type> operator[](const std::string& sel_path)
+	{
+		return node<typename V::implementation_type>(*this->m_analysis, this->invoke([=](U& bookkeeper){ return bookkeeper.get_counter(sel_path); }) );
 	}
 
 protected:
@@ -330,47 +343,29 @@ typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::chann
 
 template <typename T>
 template <typename Cnt, typename... Args>
-typename ana::analysis<T>::template node<ana::counter::manager<Cnt>> ana::analysis<T>::count(const std::string& name, const Args&... arguments)
+typename ana::analysis<T>::template node<ana::counter::bookkeeper<Cnt>> ana::analysis<T>::count(const std::string& name, const Args&... arguments)
 {
-	auto nd = node<counter::manager<Cnt>>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc) { return proc.template count<Cnt>(name,arguments...); } ));
+	auto nd = node<counter::bookkeeper<Cnt>>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc) { return proc.template count<Cnt>(name,arguments...); } ));
   return nd;
 }
 
 template <typename T>
 template <typename Cnt>
-typename ana::analysis<T>::template node<Cnt> ana::analysis<T>::book(const node<counter::manager<Cnt>>& manager)
+typename ana::analysis<T>::template node<Cnt> ana::analysis<T>::book(const node<counter::bookkeeper<Cnt>>& bookkeeper)
 {
 	this->reset();
-	auto nd = node<Cnt>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc, const counter::manager<Cnt>& dlyd) { return proc.template book<Cnt>(dlyd); }, manager ));
+	auto nd = node<Cnt>(*this, this->m_processors.invoke( [=](table::processor<reader_type>& proc, const counter::bookkeeper<Cnt>& dlyd) { return proc.template book<Cnt>(dlyd); }, bookkeeper ));
 	this->add_counter(nd);
   return nd;
 }
 
 template <typename T>
-typename ana::analysis<T>::template node<ana::term> ana::analysis<T>::get_term(const std::string& name)
-{
-	if (!this->has_term(name)) {
-		throw std::logic_error("column does not exist");
-	};
-	return m_column_map[name];
-}
-
-template <typename T>
-typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::get_selection(const std::string& path)
+typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::operator[](const std::string& path) const
 {
 	if (!this->has_selection(path)) {
 		throw std::logic_error("selection does not exist");
 	};
-	return m_selection_map[path];
-}
-
-template <typename T>
-typename ana::analysis<T>::template node<ana::counter> ana::analysis<T>::get_counter(const std::string& name)
-{
-	if (!this->has_counter(name)) {
-		throw std::logic_error("counter does not exist");
-	}
-	return m_counter_map[name];
+	return m_selection_map.at(path);
 }
 
 template <typename T>
@@ -441,26 +436,26 @@ void ana::analysis<T>::run_processors()
 }
 
 template <typename T>
-ana::analysis<T>& ana::analysis<T>::at(const node<selection>& rebase)
+ana::analysis<T>& ana::analysis<T>::from(const node<selection>& rebase)
 {
-	this->m_processors.apply( [] (table::processor<reader_type>& proc, selection& fltr) { proc.at(fltr); }, rebase );	
+	this->m_processors.apply( [] (table::processor<reader_type>& proc, selection& sel) { proc.from(sel); }, rebase );	
   return *this;
 }
 
 template <typename T>
-bool ana::analysis<T>::has_term(const std::string& name)
+bool ana::analysis<T>::has_term(const std::string& name) const
 {
 	return m_column_map.find(name)!=m_column_map.end();
 }
 
 template <typename T>
-bool ana::analysis<T>::has_selection(const std::string& path)
+bool ana::analysis<T>::has_selection(const std::string& path) const
 {
 	return m_selection_map.find(path)!=m_selection_map.end();
 }
 
 template <typename T>
-bool ana::analysis<T>::has_counter(const std::string& name)
+bool ana::analysis<T>::has_counter(const std::string& name) const
 {
 	return m_counter_map.find(name)!=m_counter_map.end();
 }
@@ -499,7 +494,7 @@ void ana::analysis<T>::add_counter(typename ana::analysis<T>::template node<coun
 }
 
 template <typename T>
-std::vector<std::string> ana::analysis<T>::list_column_names() const
+std::vector<std::string> ana::analysis<T>::list_term_names() const
 {
 	return m_column_names;
 }
