@@ -6,8 +6,7 @@
 ana::counter::counter(const std::string& name) :
 	ana::action(name),
 	m_selection(nullptr),
-	m_scale(1.0),
-	m_raw(false)
+	m_scale(1.0)
 {}
 
 void ana::counter::set_selection(const selection& selection)

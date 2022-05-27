@@ -35,9 +35,7 @@ public:
 	class node;
 
 public:
-  analysis(std::unique_ptr<T> dataset);
-  template <typename... Args>
-  analysis(Args&&... args);
+  analysis(long long max_entries=-1);
   virtual ~analysis() = default;
 
   template <typename Val, typename... Args>
@@ -58,7 +56,7 @@ public:
   template <typename Sel, typename F, typename... Vars>
   node<selection> channel(const std::string& name, F callable, const node<Vars>&... columns);
 
-  analysis& from(const node<selection>& rebase);
+  analysis& at(const node<selection>& rebase);
 	node<selection> operator[](const std::string& path) const;
 
 	template <typename Cnt, typename... Args>
@@ -79,7 +77,6 @@ public:
 	void analyze();
 	void reset();
 
-	void merge_results();
 	void clear_counters();
 
 protected:
@@ -180,7 +177,7 @@ public:
   node<selection> filter(const std::string& name, F callable, const node<Vars>&... columns)
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_analysis->from(*this).template filter<Sel>(name, callable, columns...);
+			return m_analysis->at(*this).template filter<Sel>(name, callable, columns...);
 		} else {
 			static_assert(std::is_base_of_v<selection,U>, "non-selection cannot chain selections");
 		}
@@ -190,7 +187,7 @@ public:
   node<selection> channel(const std::string& name, F callable, const node<Vars>&... columns)
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_analysis->from(*this).template channel<Sel>(name, callable, columns...);
+			return m_analysis->at(*this).template channel<Sel>(name, callable, columns...);
 		} else {
 			static_assert(std::is_base_of_v<selection,U>, "non-selection cannot chain selections");
 		}
@@ -218,9 +215,9 @@ public:
 	void fill(const node<Cols>&... columns)
 	{
 		if constexpr( is_counter_bookkeeper_v<U> ) {
-			this->apply( [] (U& bookkeeper, Cols&... cols) { bookkeeper.enter_fill(cols...); }, columns... );
+			this->apply( [] (U& bookkeeper, Cols&... cols) { bookkeeper.enter(cols...); }, columns... );
 		} else if constexpr( is_counter_fillable_v<U> ) {
-			this->apply( [] (U& fillable, Cols&... cols) { fillable.enter_fill(cols...); }, columns... );
+			this->apply( [] (U& fillable, Cols&... cols) { fillable.enter(cols...); }, columns... );
 		} else {
 			static_assert( (is_counter_bookkeeper_v<U> ||  is_counter_fillable_v<U>), "non-fillable counter/bookkeeper" );
 		}
@@ -229,37 +226,39 @@ public:
 	template <typename Cnt, typename V = U, std::enable_if_t<std::is_base_of_v<selection,V>>* = nullptr>
 	node<Cnt> book(const node<counter::bookkeeper<Cnt>>& bookkeeper)
 	{
-		return m_analysis->from(*this).template book(bookkeeper);
+		return m_analysis->at(*this).template book(bookkeeper);
 	}
 
 	template <typename V = U, typename std::enable_if<is_counter_bookkeeper_v<V>,void>::type* = nullptr>
-	node<typename V::implementation_type> book(const node<selection>& filter)
+	node<typename V::counter_type> book(const node<selection>& filter)
 	{
-		return m_analysis->from(filter).template book(*this);
+		return m_analysis->at(filter).template book(*this);
 	}
 
-	template <typename V = U, std::enable_if_t<std::is_base_of_v<counter::implementation<V>,V>>* = nullptr>
-	decltype(auto) result()
+	template <typename V = U, typename std::enable_if<is_counter_bookkeeper_v<V>,void>::type* = nullptr>
+	node<typename V::counter_type> operator[](const std::string& sel_path)
+	{
+		return node<typename V::counter_type>(*this->m_analysis, this->invoke([=](U& bookkeeper){ return bookkeeper.get_counter(sel_path); }) );
+	}
+
+	// template <typename V = U>
+	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
+	decltype(std::declval<V>().result()) result()
 	{
 		m_analysis->analyze();
-		return this->model()->get_result();
-	}
-
-	template <typename V = U, typename std::enable_if<is_counter_bookkeeper_v<V>,void>::type* = nullptr>
-	node<typename V::implementation_type> operator[](const std::string& sel_path)
-	{
-		return node<typename V::implementation_type>(*this->m_analysis, this->invoke([=](U& bookkeeper){ return bookkeeper.get_counter(sel_path); }) );
+		this->merge_results();
+		return this->model()->result();
 	}
 
 protected:
+	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
 	void merge_results()
 	{
-		if constexpr(std::is_base_of_v<counter,U>) {
-			for (size_t islot=1 ; islot<this->concurrency() ; ++islot) {
-				this->model()->merge_result(*this->slot(islot));
-			}
-		} else {
-			static_assert(std::is_base_of_v<counter,U>,"non-counter cannot be merged");
+		auto model = this->model();
+		for (size_t islot=1 ; islot<this->concurrency() ; ++islot) {
+			auto slot = this->slot(islot);
+			if (!slot->is_merged()) model->merge(slot->result());
+			slot->set_merged(true);
 		}
 	}
 
@@ -275,17 +274,17 @@ protected:
 // ----------------------------------------------------------------------------
 
 template <typename T>
-ana::analysis<T>::analysis(std::unique_ptr<T> dataset) :
-	sample<T>(std::move(dataset)),
+ana::analysis<T>::analysis(long long max_entries) :
+	sample<T>(max_entries),
 	m_analyzed(false)
 {}
 
-template <typename T>
-template <typename... Args>
-ana::analysis<T>::analysis(Args&&... args) :
-	sample<T>(std::forward<Args>(args)...),
-	m_analyzed(false)
-{}
+// template <typename T>
+// template <typename... Args>
+// ana::analysis<T>::analysis(Args&&... args) :
+// 	sample<T>(std::forward<Args>(args)...),
+// 	m_analyzed(false)
+// {}
 
 template <typename T>
 template <typename Val, typename... Args>
@@ -373,7 +372,6 @@ void ana::analysis<T>::analyze()
 { 
 	if (!m_analyzed) {
 		this->run_processors();
-		this->merge_results();
 		this->clear_counters();
 	}
 	m_analyzed = true;
@@ -383,14 +381,6 @@ template <typename T>
 void ana::analysis<T>::reset()
 { 
 	m_analyzed = false;
-}
-
-template <typename T>
-void ana::analysis<T>::merge_results()
-{ 
-	for (auto& counter : m_counter_map) {
-		counter.second.merge_results();
-	}
 }
 
 template <typename T>
@@ -436,9 +426,9 @@ void ana::analysis<T>::run_processors()
 }
 
 template <typename T>
-ana::analysis<T>& ana::analysis<T>::from(const node<selection>& rebase)
+ana::analysis<T>& ana::analysis<T>::at(const node<selection>& rebase)
 {
-	this->m_processors.apply( [] (table::processor<reader_type>& proc, selection& sel) { proc.from(sel); }, rebase );	
+	this->m_processors.apply( [] (table::processor<reader_type>& proc, selection& sel) { proc.at(sel); }, rebase );	
   return *this;
 }
 

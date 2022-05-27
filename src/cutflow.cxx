@@ -6,7 +6,7 @@ ana::selection::cutflow::cutflow() :
 	m_latest(nullptr)
 {}
 
-ana::selection::cutflow& ana::selection::cutflow::from(const ana::selection& sel) noexcept
+ana::selection::cutflow& ana::selection::cutflow::at(const ana::selection& sel) noexcept
 {
 	m_latest = &sel;
 	return *this;

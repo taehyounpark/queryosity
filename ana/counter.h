@@ -6,19 +6,11 @@
 #include "ana/action.h"
 #include "ana/concurrent.h"
 #include "ana/cell.h"
+#include "ana/column.h"
 #include "ana/strutils.h"
 
 namespace ana
 {
-
-template <typename T>
-class column;
-
-template <typename T>
-class variable;
-
-template <typename T>
-class observable;
 
 class selection;
 
@@ -38,25 +30,26 @@ public:
 	counter(const std::string& name);
 	virtual ~counter() = default;
 
-	void set_selection(const selection& selection);
-
 	void set_scale(double scale);
 	void use_weight(bool use=true);
+
+	void set_selection(const selection& selection);
 
 	virtual void initialize() override;
 	virtual void execute() override;
 	virtual void finalize() override;
 
 	virtual void count(double w) = 0;
-	virtual void merge_result(const counter& incoming) = 0;
 
 	std::string path() const;
 	std::string full_path() const;
 
 protected:
-	const selection* m_selection;
 	double m_scale;
 	bool   m_raw;
+
+	const selection* m_selection;
+
 
 };
 
@@ -72,18 +65,15 @@ public:
 	implementation(const std::string& name);
 	virtual ~implementation() = default;
 
-	// --------------------------------------------------------------------------
-	// CRPT dispatch
+	bool is_merged() const;
+	void set_merged(bool merged=true);
 
-	template <typename... Vals>
-	void enter_fill(const ana::column<Vals>&... cols);
+	virtual T result() const = 0;
+	virtual void merge(T res) = 0;
 
-	decltype(auto) get_result() const;
+protected:
+	bool m_merged;
 
-	// --------------------------------------------------------------------------
-	// virtual -> CRTP dispatch
-
-	virtual void merge_result(const counter& incoming) override;
 
 };
 
@@ -115,7 +105,7 @@ class counter::bookkeeper
 {
 
 public:
-	using implementation_type = T;
+	using counter_type = T;
 
 public:
 	template <typename... Args>
@@ -123,7 +113,7 @@ public:
 	~bookkeeper() = default;
 
 	template <typename... Vals> 
-	void enter_fill( const column<Vals>&... cols );
+	void enter( const column<Vals>&... cols );
 
 	std::shared_ptr<T> book_selection(const selection& sel) const;
 	std::shared_ptr<T> get_counter(const std::string& path) const;
@@ -135,21 +125,19 @@ protected:
 
 };
 
-// FUTURE: replace with concepts (C++20)
+// FUTURE (C++20): use concepts
 
 template <typename Out> 
-constexpr std::true_type check_counter_implementation(const counter::implementation<Out>&);
-template <typename Out> 
-constexpr std::false_type check_counter_implementation(const Out&);
+constexpr std::true_type check_counter_implemented(const counter::implementation<Out>&);
+constexpr std::false_type check_counter_implemented(...);
 template <typename T> 
-constexpr bool is_counter_implementation_v = decltype(check_counter_implementation(std::declval<const T&>()))::value;
+constexpr bool is_counter_implemented_v = decltype(check_counter_implemented(std::declval<T>()))::value;
 
-template <typename Out> 
-constexpr std::false_type check_counter_fillable(const Out&);
 template <typename Out, typename... Vals> 
 constexpr std::true_type check_counter_fillable(const typename counter::implementation<Out>::template fillable<Vals...>&);
+constexpr std::false_type check_counter_fillable(...);
 template <typename T> 
-constexpr bool is_counter_fillable_v = decltype(check_counter_fillable(std::declval<const T&>()))::value;
+constexpr bool is_counter_fillable_v = decltype(check_counter_fillable(std::declval<T>()))::value;
 
 template <typename Cnt>
 struct is_counter_bookkeeper: std::false_type {};
@@ -166,26 +154,20 @@ constexpr bool is_counter_bookkeeper_v = is_counter_bookkeeper<Cnt>::value;
 
 template <typename T>
 ana::counter::implementation<T>::implementation(const std::string& name) :
-	counter(name)
+	counter(name),
+	m_merged(false)
 {}
 
 template <typename T>
-template <typename... Vals>
-void ana::counter::implementation<T>::enter_fill(const ana::column<Vals>&... cols)
+bool ana::counter::implementation<T>::is_merged() const
 {
-	static_cast<T*>(this)->enter(cols...);
+	return m_merged;
 }
 
 template <typename T>
-decltype(auto) ana::counter::implementation<T>::get_result() const
+void ana::counter::implementation<T>::set_merged(bool merged)
 {
-	return static_cast<const T*>(this)->result();
-}
-
-template <typename T>
-void ana::counter::implementation<T>::merge_result(const counter& incoming)
-{
-	static_cast<T*>(this)->merge(static_cast<const T&>(incoming).get_result());
+	m_merged = merged;
 }
 
 template <typename T>
@@ -224,9 +206,9 @@ ana::counter::bookkeeper<T>::bookkeeper(const std::string& name, const Args&... 
 
 template <typename T>
 template <typename... Vals>
-void ana::counter::bookkeeper<T>::enter_fill(const column<Vals>&... columns)
+void ana::counter::bookkeeper<T>::enter(const column<Vals>&... columns)
 {
-	m_call_fills.push_back(std::bind( [](T& cnt, const column<Vals>&... cols){ cnt.enter_fill(cols...);}, std::placeholders::_1, std::ref(columns)...));
+	m_call_fills.push_back(std::bind( [](T& cnt, const column<Vals>&... cols){ cnt.enter(cols...);}, std::placeholders::_1, std::ref(columns)...));
 }
 
 template <typename T>

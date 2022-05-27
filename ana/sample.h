@@ -17,18 +17,21 @@ public:
   using reader_type = table::read_t<T>;
 
 public:
-  sample(std::unique_ptr<T> dataset);
-  template <typename... Args>
-  sample(Args&&... args);
+  sample(long long max_entries=-1);
   virtual ~sample() = default;
 
-  void open(long long max_entries=-1);
+  template <typename... Args>
+  void open(const Args&... args);
+
+  void open(std::unique_ptr<T> dataset);
+
   void scale(double w);
 
   long long get_entries() const;
   double get_weight() const;
 
 protected:
+  long long                       m_max_entries;
   double                          m_scale;
   std::unique_ptr<T>              m_dataset;
   table::partition                m_partition;
@@ -40,23 +43,19 @@ protected:
 }
 
 template <typename T>
-ana::sample<T>::sample(std::unique_ptr<T> dataset) :
-  m_scale(1.0),
-  m_dataset(std::move(dataset))
+ana::sample<T>::sample(long long max_entries) :
+  m_max_entries(max_entries),
+  m_scale(1.0)
 {}
 
 template <typename T>
 template <typename... Args>
-ana::sample<T>::sample(Args&&... args) :
-  m_scale(1.0),
-  m_dataset(std::make_unique<T>(args...))
-{}
-
-template <typename T>
-void ana::sample<T>::open(long long max_entries)
+void ana::sample<T>::open(const Args&... args)
 {
+  m_dataset = std::make_unique<T>(args...);
+
   // partition data
-	m_partition = m_dataset->allocate().truncate(max_entries).merge(ana::multithread::concurrency());
+	m_partition = m_dataset->allocate().truncate(m_max_entries).merge(ana::multithread::concurrency());
 
   // normalize data
   m_scale /= m_dataset->normalize();
@@ -70,7 +69,28 @@ void ana::sample<T>::open(long long max_entries)
     auto processor = std::make_shared<table::processor<reader_type>>(*reader,m_scale);
     m_processors.add(processor);
 	}
+}
 
+template <typename T>
+void ana::sample<T>::open(std::unique_ptr<T> dataset)
+{
+  m_dataset = std::move(dataset);
+
+  // partition data
+	m_partition = m_dataset->allocate().truncate(m_max_entries).merge(ana::multithread::concurrency());
+
+  // normalize data
+  m_scale /= m_dataset->normalize();
+
+  // open readers & processors
+  m_readers.clear();
+  m_processors.clear();
+  for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
+    auto reader = m_dataset->open_reader(m_partition.part(islot));
+    m_readers.add(reader);
+    auto processor = std::make_shared<table::processor<reader_type>>(*reader,m_scale);
+    m_processors.add(processor);
+	}
 }
 
 template <typename T>
