@@ -34,6 +34,7 @@ public:
 	void use_weight(bool use=true);
 
 	void set_selection(const selection& selection);
+	const selection* get_selection() const;
 
 	virtual void initialize() override;
 	virtual void execute() override;

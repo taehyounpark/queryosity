@@ -15,6 +15,11 @@ void ana::counter::set_selection(const selection& selection)
 	m_selection = &selection;
 }
 
+const ana::selection* ana::counter::get_selection() const
+{
+	return m_selection;
+}
+
 std::string ana::counter::path() const
 {
 	return str::ensure_trailing(m_selection->path(),"/")+this->name();
