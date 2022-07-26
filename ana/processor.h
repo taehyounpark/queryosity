@@ -13,11 +13,11 @@ namespace ana
 {
 
 template <typename T>
-class table::processor : public routine, public term::computation<T>, public counter::experiment
+class processor : public routine, public term::computation<T>, public counter::experiment
 {
 
 public:
-	processor(table::reader<T>& reader, double scale);
+	processor(input::reader<T>& reader, double scale);
 	virtual ~processor() = default;
 
 public:
@@ -26,21 +26,21 @@ public:
 	virtual void finalize() override;
 
 	void process();
-	void process(table::progress& progress);
+	void process(input::progress& progress);
 
 };
 
 }
 
 template <typename T>
-ana::table::processor<T>::processor(table::reader<T>& reader, double scale) :
+ana::processor<T>::processor(input::reader<T>& reader, double scale) :
   routine(),
 	term::computation<T>(reader),
 	counter::experiment(scale)
 {}
 
 template <typename T>
-void ana::table::processor<T>::initialize()
+void ana::processor<T>::initialize()
 {
 	for (const auto& col : this->m_columns) {
 		col->initialize();
@@ -54,7 +54,7 @@ void ana::table::processor<T>::initialize()
 }
 
 template <typename T>
-void ana::table::processor<T>::execute()
+void ana::processor<T>::execute()
 {
 	for (const auto& col : this->m_columns) {
 		col->execute();
@@ -68,7 +68,7 @@ void ana::table::processor<T>::execute()
 }
 
 template <typename T>
-void ana::table::processor<T>::finalize()
+void ana::processor<T>::finalize()
 {
 	for (const auto& col : this->m_columns) {
 		col->finalize();
@@ -82,7 +82,7 @@ void ana::table::processor<T>::finalize()
 }
 
 template <typename T>
-void ana::table::processor<T>::process()
+void ana::processor<T>::process()
 {
 	// start
 	this->m_reader->begin();
@@ -99,7 +99,7 @@ void ana::table::processor<T>::process()
 }
 
 template <typename T>
-void ana::table::processor<T>::process(table::progress& progress)
+void ana::processor<T>::process(input::progress& progress)
 {
 	// start
 	this->m_reader->begin();

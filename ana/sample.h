@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ana/concurrent.h"
-#include "ana/table.h"
+#include "ana/input.h"
 #include "ana/processor.h"
 
 namespace ana
@@ -13,8 +13,7 @@ class sample
 
 public:
   using dataset_type = T;
-  // using reader_type = typename decltype(std::declval<T>().open_reader(std::declval<const table::range&>()))::element_type;
-  using reader_type = table::read_t<T>;
+  using reader_type = input::read_t<T>;
 
 public:
   sample(long long max_entries=-1);
@@ -34,9 +33,9 @@ protected:
   long long                       m_max_entries;
   double                          m_scale;
   std::unique_ptr<T>              m_dataset;
-  table::partition                m_partition;
+  input::partition                m_partition;
   concurrent<reader_type>         m_readers;
-  concurrent<table::processor<reader_type>> m_processors;
+  concurrent<processor<reader_type>> m_processors;
 
 };
 
@@ -64,17 +63,17 @@ void ana::sample<T>::open(const Args&... args)
   m_readers.clear();
   m_processors.clear();
   for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
-    auto reader = m_dataset->open_reader(m_partition.part(islot));
-    m_readers.add(reader);
-    auto processor = std::make_shared<table::processor<reader_type>>(*reader,m_scale);
-    m_processors.add(processor);
+    auto rdr = m_dataset->open_reader(m_partition.part(islot));
+    m_readers.add(rdr);
+    auto proc = std::make_shared<processor<reader_type>>(*rdr,m_scale);
+    m_processors.add(proc);
 	}
 }
 
 template <typename T>
-void ana::sample<T>::open(std::unique_ptr<T> dataset)
+void ana::sample<T>::open(std::unique_ptr<T> ds)
 {
-  m_dataset = std::move(dataset);
+  m_dataset = std::move(ds);
 
   // partition data
 	m_partition = m_dataset->allocate().truncate(m_max_entries).merge(ana::multithread::concurrency());
@@ -86,10 +85,10 @@ void ana::sample<T>::open(std::unique_ptr<T> dataset)
   m_readers.clear();
   m_processors.clear();
   for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
-    auto reader = m_dataset->open_reader(m_partition.part(islot));
-    m_readers.add(reader);
-    auto processor = std::make_shared<table::processor<reader_type>>(*reader,m_scale);
-    m_processors.add(processor);
+    auto rdr = m_dataset->open_reader(m_partition.part(islot));
+    m_readers.add(rdr);
+    auto proc = std::make_shared<processor<reader_type>>(*rdr,m_scale);
+    m_processors.add(proc);
 	}
 }
 

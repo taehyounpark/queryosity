@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <functional>
 
-#include "ana/table.h"
+#include "ana/input.h"
 #include "ana/cell.h"
 #include "ana/column.h"
 
@@ -20,7 +20,7 @@ class term::computation
 {
 
 public:
-	computation(table::reader<T>& reader);
+	computation(input::reader<T>& reader);
 	virtual ~computation() = default;
 
 public:
@@ -40,7 +40,7 @@ protected:
 	void add(term& column);
 
 protected:
-	table::reader<T>* m_reader;
+	input::reader<T>* m_reader;
 	std::vector<term*> m_columns;
 
 };
@@ -51,7 +51,7 @@ protected:
 #include "ana/equation.h"
 
 template <typename T>
-ana::term::computation<T>::computation(table::reader<T>& reader) :
+ana::term::computation<T>::computation(input::reader<T>& reader) :
 	m_reader(&reader)
 {}
 
@@ -88,7 +88,7 @@ auto ana::term::computation<T>::evaluate(const std::string& name, F callable, Va
 {
 	auto eqn = ana::make_equation(name,std::function(callable));
 	eqn->set_evaluation(callable);
-	if constexpr(sizeof...(Vars)) eqn->set_arguments(vars...);
+	if constexpr(sizeof...(Vars)>0) eqn->set_arguments(vars...);
 	this->add(*eqn);
 	return eqn;
 }

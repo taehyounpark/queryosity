@@ -22,7 +22,10 @@ public:
 	class implementation;
 
 	template <typename T>
-	class bookkeeper;
+	class booker;
+
+	template <typename T>
+	class dumper;
 
 	class experiment;
 
@@ -42,15 +45,11 @@ public:
 
 	virtual void count(double w) = 0;
 
-	std::string path() const;
-	std::string full_path() const;
-
 protected:
 	double m_scale;
 	bool   m_raw;
 
 	const selection* m_selection;
-
 
 };
 
@@ -61,6 +60,8 @@ class counter::implementation : public counter
 public:
 	template <typename... Obs>
 	class fillable;
+
+	using result_type = T;
 
 public:
 	implementation(const std::string& name);
@@ -102,7 +103,7 @@ protected:
 };
 
 template <typename T>
-class counter::bookkeeper
+class counter::booker
 {
 
 public:
@@ -110,19 +111,38 @@ public:
 
 public:
 	template <typename... Args>
-	bookkeeper(const std::string& name, const Args&... args);
-	~bookkeeper() = default;
+	booker(const std::string& name, const Args&... args);
+	~booker() = default;
 
 	template <typename... Vals> 
 	void enter( const column<Vals>&... cols );
 
-	std::shared_ptr<T> book_selection(const selection& sel) const;
+	std::shared_ptr<T> book_selection(const selection& sel);
+
+	std::vector<std::shared_ptr<T>> list_counters() const;
 	std::shared_ptr<T> get_counter(const std::string& path) const;
 
 protected:
-	mutable std::function<std::shared_ptr<T>()>  m_call_make;
-	mutable std::vector<std::function<void(T&)>> m_call_fills;
-	mutable std::unordered_map<std::string,std::shared_ptr<T>> m_booked_counter_map;
+	std::function<std::shared_ptr<T>()>  m_call_make;
+	std::vector<std::function<void(T&)>> m_call_fills;
+	std::unordered_map<std::string,std::shared_ptr<T>> m_booked_counter_map;
+
+};
+
+template <typename T>
+class counter::dumper
+{
+
+public:
+	using counter_type = T;
+
+public:
+
+	template <typename Res, typename Out>
+	void operator()(Res&& res, Out&& out)
+	{
+		static_cast<T*>(this)->dump(std::forward<Res>(res),std::forward<Out>(out));	
+	}
 
 };
 
@@ -141,11 +161,11 @@ template <typename T>
 constexpr bool is_counter_fillable_v = decltype(check_counter_fillable(std::declval<T>()))::value;
 
 template <typename Cnt>
-struct is_counter_bookkeeper: std::false_type {};
+struct is_counter_booker: std::false_type {};
 template <typename Cnt>
-struct is_counter_bookkeeper<counter::bookkeeper<Cnt>>: std::true_type {};
+struct is_counter_booker<counter::booker<Cnt>>: std::true_type {};
 template <typename Cnt>
-constexpr bool is_counter_bookkeeper_v = is_counter_bookkeeper<Cnt>::value;
+constexpr bool is_counter_booker_v = is_counter_booker<Cnt>::value;
 
 
 }
@@ -201,19 +221,19 @@ void ana::counter::implementation<T>::fillable<Obs...>::count(double w)
 
 template <typename T>
 template <typename... Args>
-ana::counter::bookkeeper<T>::bookkeeper(const std::string& name, const Args&... args) :
-	m_call_make( std::bind([](const std::string& name, const Args&... args){return std::make_shared<T>(name,args...);}, name,args...) )
+ana::counter::booker<T>::booker(const std::string& name, const Args&... args) :
+	m_call_make(std::bind([](const std::string& name, const Args&... args){return std::make_shared<T>(name,args...);}, name,args...))
 {}
 
 template <typename T>
 template <typename... Vals>
-void ana::counter::bookkeeper<T>::enter(const column<Vals>&... columns)
+void ana::counter::booker<T>::enter(const column<Vals>&... columns)
 {
-	m_call_fills.push_back(std::bind( [](T& cnt, const column<Vals>&... cols){ cnt.enter(cols...);}, std::placeholders::_1, std::ref(columns)...));
+	m_call_fills.push_back(std::bind([](T& cnt, const column<Vals>&... cols){cnt.enter(cols...);}, std::placeholders::_1, std::ref(columns)...));
 }
 
 template <typename T>
-std::shared_ptr<T> ana::counter::bookkeeper<T>::book_selection(const selection& sel) const
+std::shared_ptr<T> ana::counter::booker<T>::book_selection(const selection& sel)
 {
 	// call constructor
 	auto cnt = m_call_make();
@@ -227,6 +247,9 @@ std::shared_ptr<T> ana::counter::bookkeeper<T>::book_selection(const selection& 
 	cnt->set_selection(sel);
 
 	// save booked selection/counter
+	if (m_booked_counter_map.find(sel.path())!=m_booked_counter_map.end()) {
+		throw std::logic_error("counter already booked at selection");
+	}
 	m_booked_counter_map[sel.path()] = cnt;
 
 	// return booked & filled cnt
@@ -234,7 +257,17 @@ std::shared_ptr<T> ana::counter::bookkeeper<T>::book_selection(const selection& 
 }
 
 template <typename T>
-std::shared_ptr<T> ana::counter::bookkeeper<T>::get_counter(const std::string& sel_path) const
+std::shared_ptr<T> ana::counter::booker<T>::get_counter(const std::string& sel_path) const
 {
-	return m_booked_counter_map[sel_path];
+	return m_booked_counter_map.at(sel_path);
+}
+
+template <typename T>
+std::vector<std::shared_ptr<T>> ana::counter::booker<T>::list_counters() const
+{
+	std::vector<std::shared_ptr<T>> booked_counters;
+	for (const auto& booked_counter : m_booked_counter_map) {
+		booked_counters.push_back(booked_counter.second);
+	}
+	return booked_counters;
 }

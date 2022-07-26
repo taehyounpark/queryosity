@@ -1,65 +1,65 @@
-#include "ana/table.h"
+#include "ana/input.h"
 
 
 #include "ana/strutils.h"
 #include "ana/vecutils.h"
 
-ana::table::range::range() :
+ana::input::range::range() :
 	slot(0),
 	begin(0),
 	end(-1)
 {}
 
-ana::table::range::range(size_t slot, long long begin, long long end) :
+ana::input::range::range(size_t slot, long long begin, long long end) :
 	slot(slot),
 	begin(begin),
 	end(end)
 {}
 
-long long ana::table::range::entries() const
+long long ana::input::range::entries() const
 {
 	return end-begin;
 }
 
-ana::table::range ana::table::range::operator+(const range& next)
+ana::input::range ana::input::range::operator+(const range& next)
 {
 	assert(this->end==next.begin);
 	return range(this->slot,this->begin,next.end);
 }
 
-ana::table::range& ana::table::range::operator+=(const range& next)
+ana::input::range& ana::input::range::operator+=(const range& next)
 {
 	assert(this->end==next.begin);
 	this->end=next.end;
 	return *this;
 }
 
-void ana::table::partition::add(size_t islot, long long begin, long long end)
+void ana::input::partition::add(size_t islot, long long begin, long long end)
 {
 	this->parts.push_back(range(islot,begin,end));
 }
 
-void ana::table::partition::add(const range& part)
+void ana::input::partition::add(const range& part)
 {
 	this->parts.push_back(part);
 }
 
-ana::table::range ana::table::partition::part(size_t islot) const
+ana::input::range ana::input::partition::part(size_t islot) const
 {
 	return this->parts[islot];
 }
 
-ana::table::range ana::table::partition::total() const
+ana::input::range ana::input::partition::total() const
 {
 	return vec::sum(this->parts);
 }
 
-size_t ana::table::partition::size() const
+size_t ana::input::partition::size() const
 {
 	return this->parts.size();
 }
 
-ana::table::partition ana::table::partition::merge(size_t max_parts) const
+ana::input::partition ana::input::partition::merge(size_t max_parts) const
 {
 	if (fixed) return *this;
 	partition merged;
@@ -70,7 +70,7 @@ ana::table::partition ana::table::partition::merge(size_t max_parts) const
 	return merged;
 }
 
-ana::table::partition ana::table::partition::truncate(long long max_entries) const
+ana::input::partition ana::input::partition::truncate(long long max_entries) const
 {
 	if (fixed) return *this;
 	if (max_entries<0) return *this;
@@ -84,29 +84,29 @@ ana::table::partition ana::table::partition::truncate(long long max_entries) con
 	return trunced;
 }
 
-ana::table::progress::progress(long long tot) : 
+ana::input::progress::progress(long long tot) : 
 	tot(tot)
 {
 	prog.store(0);
 }
 
-void ana::table::progress::reset()
+void ana::input::progress::reset()
 {
 	prog.store(0);
 }
 
-ana::table::progress& ana::table::progress::operator++()
+ana::input::progress& ana::input::progress::operator++()
 {
 	prog++;
 	return *this;
 }
 
-double ana::table::progress::percent() const
+double ana::input::progress::percent() const
 { 
 	return double(prog.load()) / double(tot) * 100.0; 
 }
 
-bool ana::table::progress::done() const 
+bool ana::input::progress::done() const 
 { 
 	return prog.load() == tot; 
 }

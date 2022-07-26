@@ -11,7 +11,7 @@ namespace ana
 template<typename T>
 class sample;
 
-namespace table
+namespace input
 {
 
 struct range
@@ -29,7 +29,6 @@ struct range
 	long long begin;
 	long long end;
 };
-
 
 struct partition
 {
@@ -110,10 +109,7 @@ protected:
 };
 
 template<typename T>
-class processor;
-
-template<typename T>
-using read_t = typename decltype(std::declval<T>().open_reader(std::declval<const table::range&>()))::element_type;
+using read_t = typename decltype(std::declval<T>().open_reader(std::declval<const input::range&>()))::element_type;
 
 }
 
@@ -122,41 +118,41 @@ using read_t = typename decltype(std::declval<T>().open_reader(std::declval<cons
 #include "ana/column.h"
 
 template<typename T>
-double ana::table::dataset<T>::normalize() const
+double ana::input::dataset<T>::normalize() const
 {
 	return 1.0;
 }
 
 template<typename T>
-void ana::table::dataset<T>::start()
+void ana::input::dataset<T>::start()
 {}
 
 template<typename T>
-void ana::table::dataset<T>::finish()
+void ana::input::dataset<T>::finish()
 {}
 
 template<typename T>
-decltype(auto) ana::table::dataset<T>::open_reader(const range& part) const
+decltype(auto) ana::input::dataset<T>::open_reader(const range& part) const
 {
 	return static_cast<const T*>(this)->open(part);
 }
 
 template<typename T>
-ana::table::reader<T>::reader(const ana::table::range& part) :
+ana::input::reader<T>::reader(const ana::input::range& part) :
 	m_part(part)
 {}
 
 template<typename T>
 template<typename U, typename... Args>
-decltype(auto) ana::table::reader<T>::read_column(const std::string& name, Args&&... args) const
+decltype(auto) ana::input::reader<T>::read_column(const std::string& name, Args&&... args) const
 {
 	return static_cast<const T*>(this)->template read<U>(name, std::forward<Args>(args)...);
 }
 
 template<typename T>
-void ana::table::reader<T>::begin()
+void ana::input::reader<T>::begin()
 {}
 
 template<typename T>
-void ana::table::reader<T>::end()
+void ana::input::reader<T>::end()
 {}
