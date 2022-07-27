@@ -24,7 +24,7 @@ class concurrent
 public:
   template <typename> friend class concurrent;
 
-  using node_type = T;
+  using model_type = T;
 
 public:
   concurrent() = default;

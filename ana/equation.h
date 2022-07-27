@@ -92,7 +92,7 @@ std::vector<std::string> ana::column<Ret>::equation<Args...>::get_argument_names
 {
   std::vector<std::string> argument_namess;
   std::apply([&argument_namess](const std::shared_ptr<cell<Args>>&... args) {
-    (argument_namess.push_back(args->name()),...);
+    (argument_namess.push_back(args->get_name()),...);
   },m_arguments);
   return argument_namess;
 }

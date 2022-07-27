@@ -35,8 +35,8 @@ public:
 	void set_channel(bool channel=true);
 	bool is_channel() const noexcept;
 
-	std::string path() const;
-	std::string full_path() const;
+	std::string get_path() const;
+	std::string get_full_path() const;
 
 	template <typename T>
 	void set_decision(std::shared_ptr<column<T>> decision);

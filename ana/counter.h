@@ -120,6 +120,7 @@ public:
 	std::shared_ptr<T> book_selection(const selection& sel);
 
 	std::vector<std::shared_ptr<T>> list_counters() const;
+	std::vector<std::string> list_selection_paths() const;
 	std::shared_ptr<T> get_counter(const std::string& path) const;
 
 protected:
@@ -139,9 +140,9 @@ public:
 public:
 
 	template <typename Res, typename Out>
-	void operator()(Res&& res, Out&& out)
+	void operator()(Res& res, Out& out)
 	{
-		static_cast<T*>(this)->dump(std::forward<Res>(res),std::forward<Out>(out));	
+		static_cast<T*>(this)->dump(res,out);	
 	}
 
 };
@@ -247,10 +248,10 @@ std::shared_ptr<T> ana::counter::booker<T>::book_selection(const selection& sel)
 	cnt->set_selection(sel);
 
 	// save booked selection/counter
-	if (m_booked_counter_map.find(sel.path())!=m_booked_counter_map.end()) {
+	if (m_booked_counter_map.find(sel.get_path())!=m_booked_counter_map.end()) {
 		throw std::logic_error("counter already booked at selection");
 	}
-	m_booked_counter_map[sel.path()] = cnt;
+	m_booked_counter_map[sel.get_path()] = cnt;
 
 	// return booked & filled cnt
 	return cnt;
@@ -270,4 +271,14 @@ std::vector<std::shared_ptr<T>> ana::counter::booker<T>::list_counters() const
 		booked_counters.push_back(booked_counter.second);
 	}
 	return booked_counters;
+}
+
+template <typename T>
+std::vector<std::string> ana::counter::booker<T>::list_selection_paths() const
+{
+	std::vector<std::string> selection_paths;
+	for (const auto& path_counter : m_booked_counter_map) {
+		selection_paths.push_back(path_counter.first);
+	}
+	return selection_paths;
 }

@@ -104,7 +104,7 @@ class analysis<T>::node : public concurrent<U>
 {
 
 public:
-	using node_type = typename concurrent<U>::node_type;
+	using model_type = typename concurrent<U>::model_type;
 
 public:
 	friend class analysis<T>;
@@ -137,24 +137,24 @@ public:
 		return *this;
 	}
 
-	std::string name() const
+	std::string get_name() const
 	{
-		return this->check( [] (const action& act) { return act.name(); } );
+		return this->check( [] (const action& act) { return act.get_name(); } );
 	}
 
-	std::string path() const
+	std::string get_path() const
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return this->check( [] (const selection& sel) { return sel.path(); } );
+			return this->check( [] (const selection& sel) { return sel.get_path(); } );
 		} else {
 			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "non-selection node has no path");
 		}
 	}
 
-	std::string full_path() const
+	std::string get_full_path() const
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return this->check( [] (const selection& sel) { return sel.full_path(); } );
+			return this->check( [] (const selection& sel) { return sel.get_full_path(); } );
 		} else {
 			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "non-selection node has no path");
 		}
@@ -234,7 +234,6 @@ public:
 		return node<typename V::counter_type>(*this->m_analysis, this->invoke([=](U& bkr){ return bkr.get_counter(sel_path); }) );
 	}
 
-	// template <typename V = U>
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
 	decltype(std::declval<V>().result()) result()
 	{
@@ -439,7 +438,7 @@ bool ana::analysis<T>::has_selection(const std::string& path) const
 template <typename T>
 void ana::analysis<T>::add_term(typename ana::analysis<T>::template node<term> node)
 {
-	auto name = node.name();
+	auto name = node.get_name();
 	if (this->has_term(name)) {
 		throw std::logic_error("column already exists");
 	}
@@ -450,7 +449,7 @@ void ana::analysis<T>::add_term(typename ana::analysis<T>::template node<term> n
 template <typename T>
 void ana::analysis<T>::add_selection(typename ana::analysis<T>::template node<selection> node)
 {
-	auto path = node.path();
+	auto path = node.get_path();
 	if (this->has_selection(path)) {
 		throw std::logic_error("selection already exists");
 	}

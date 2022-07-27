@@ -15,26 +15,29 @@ namespace ana
 struct output
 {
 
-template <typename Nd, typename Out, typename F>
-static void dump(Nd bkr, Out& out, F&& dumper);
+template <typename Dumper, typename Node, typename Dest, typename... Args>
+static void dump(Node bkr, Dest& dest, const Args&... args);
 
 };
 
 }
 
-template <typename Nd, typename Out, typename F>
-void ana::output::dump(Nd node, Out& out, F&& dumper)
+template <typename Dumper, typename Node, typename Dest, typename... Args>
+void ana::output::dump(Node node, Dest& dest, const Args&... args)
 {
+  // instantiate dmpr
+  Dumper dmpr(dest, args...);
+
   // access main booker
-  auto bkr = node.model();
+  auto selection_paths = node.check([](const typename Node::model_type& mod){return mod.list_selection_paths();});
 
   // get list of counters
-  using result_type = decltype(bkr->list_counters()[0]->result());
+  using result_type = decltype(node[""].result());
   std::vector<std::pair<std::shared_ptr<ana::counter>,result_type>> results;
-  for (const auto& cnt : bkr->list_counters()) {
-    results.emplace_back(cnt, cnt->result());
+  for (const auto& sel_path : selection_paths) {
+    results.emplace_back(node[sel_path].model(), node[sel_path].result());
   }
 
-  // run dumper on results
-  dumper(results, out);
+  // run dmpr on results
+  dmpr.dump(results);
 }
