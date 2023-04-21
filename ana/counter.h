@@ -5,8 +5,8 @@
 
 #include "ana/action.h"
 #include "ana/concurrent.h"
-#include "ana/cell.h"
 #include "ana/column.h"
+#include "ana/term.h"
 #include "ana/strutils.h"
 
 namespace ana
@@ -22,10 +22,13 @@ public:
 	class implementation;
 
 	template <typename T>
+	class logic;
+
+	template <typename T>
 	class booker;
 
 	template <typename T>
-	class dumper;
+	class reporter;
 
 	class experiment;
 
@@ -76,7 +79,6 @@ public:
 protected:
 	bool m_merged;
 
-
 };
 
 template <typename T>
@@ -92,13 +94,23 @@ public:
 	virtual ~fillable() = default;
 
 	template <typename... Vals>
-	void enter(const column<Vals>&... cols);
+	void enter(const term<Vals>&... cols);
 
 	virtual void count(double w) override;
 	virtual void fill(ana::observable<Obs>... observables, double w) = 0;
 
 protected:
 	std::vector<obstup_type> m_fills;
+
+};
+
+template <typename T, typename... Obs>
+class counter::logic<T(Obs...)> : public counter::implementation<T>::template fillable<Obs...>
+{
+
+public:
+	logic(const std::string& name);
+	virtual ~logic() = default;
 
 };
 
@@ -115,7 +127,7 @@ public:
 	~booker() = default;
 
 	template <typename... Vals> 
-	void enter( const column<Vals>&... cols );
+	void enter( const term<Vals>&... cols );
 
 	std::shared_ptr<T> book_selection(const selection& sel);
 
@@ -131,18 +143,21 @@ protected:
 };
 
 template <typename T>
-class counter::dumper
+class counter::reporter
 {
 
 public:
-	using counter_type = T;
 
-public:
-
-	template <typename Res, typename Out>
-	void operator()(Res& res, Out& out)
+	template <typename Result>
+	void record(const std::string& selection_path, std::decay_t<Result> counter_result)
 	{
-		static_cast<T*>(this)->dump(res,out);	
+		static_cast<T*>(this)->record(selection_path, counter_result);	
+	}
+
+	template <typename Destination>
+	void report(const std::string& counter_name, Destination& destination)
+	{
+		static_cast<T*>(this)->report(counter_name, destination);	
 	}
 
 };
@@ -171,7 +186,7 @@ constexpr bool is_counter_booker_v = is_counter_booker<Cnt>::value;
 
 }
 
-#include "ana/column.h"
+#include "ana/term.h"
 #include "ana/selection.h"
 
 template <typename T>
@@ -201,7 +216,7 @@ ana::counter::implementation<T>::fillable<Obs...>::fillable(const std::string& n
 template <typename T>
 template <typename... Obs>
 template <typename... Vals>
-void ana::counter::implementation<T>::fillable<Obs...>::enter(const column<Vals>&... cols)
+void ana::counter::implementation<T>::fillable<Obs...>::enter(const term<Vals>&... cols)
 {
 	static_assert(sizeof...(Obs)==sizeof...(Vals), "dimension mis-match between filled variables & columns.");
 	m_fills.emplace_back(cols...);
@@ -220,6 +235,11 @@ void ana::counter::implementation<T>::fillable<Obs...>::count(double w)
 	}
 }
 
+template <typename T, typename... Obs>
+ana::counter::logic<T(Obs...)>::logic(const std::string& name) :
+	counter::implementation<T>::template fillable<Obs...>(name)
+{}
+
 template <typename T>
 template <typename... Args>
 ana::counter::booker<T>::booker(const std::string& name, const Args&... args) :
@@ -228,9 +248,9 @@ ana::counter::booker<T>::booker(const std::string& name, const Args&... args) :
 
 template <typename T>
 template <typename... Vals>
-void ana::counter::booker<T>::enter(const column<Vals>&... columns)
+void ana::counter::booker<T>::enter(const term<Vals>&... columns)
 {
-	m_call_fills.push_back(std::bind([](T& cnt, const column<Vals>&... cols){cnt.enter(cols...);}, std::placeholders::_1, std::ref(columns)...));
+	m_call_fills.push_back(std::bind([](T& cnt, const term<Vals>&... cols){cnt.enter(cols...);}, std::placeholders::_1, std::ref(columns)...));
 }
 
 template <typename T>

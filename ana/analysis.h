@@ -10,7 +10,7 @@
 #include "ana/input.h"
 #include "ana/sample.h"
 #include "ana/column.h"
-#include "ana/cell.h"
+#include "ana/term.h"
 #include "ana/selection.h"
 #include "ana/cut.h"
 #include "ana/weight.h"
@@ -26,7 +26,6 @@ class analysis : public sample<T>
 {
 
 public:
-public:
   using dataset_type = typename sample<T>::dataset_type;
   using reader_type = typename sample<T>::reader_type;
 
@@ -39,16 +38,16 @@ public:
   virtual ~analysis() = default;
 
   template <typename Val, typename... Args>
-  node<column<Val>> read(const std::string& name, const Args&... args);
+  node<term<Val>> read(const std::string& name, const Args&... args);
 
   template <typename Val>
-  node<column<Val>> constant(const std::string& name, const Val& value);
+  node<term<Val>> constant(const std::string& name, const Val& value);
 
   template <typename Def, typename... Args>
   node<Def> define(const std::string& name, const Args&... arguments);
 
   template <typename F, typename... Vars>
-  auto evaluate(const std::string& name, F callable, const node<Vars>&... columns) -> node<column<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>;
+  auto evaluate(const std::string& name, F callable, const node<Vars>&... columns) -> node<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>;
 
   template <typename Sel, typename F, typename... Vars>
   node<selection> filter(const std::string& name, F callable, const node<Vars>&... columns);
@@ -65,10 +64,10 @@ public:
 	template <typename Cnt>
 	node<Cnt> book(const node<counter::booker<Cnt>>& booker);
 
-	std::vector<std::string> list_term_names() const;
+	std::vector<std::string> list_column_names() const;
 	std::vector<std::string> list_selection_paths() const;
 
-	bool has_term(const std::string& name) const;
+	bool has_column(const std::string& name) const;
 	bool has_selection(const std::string& path) const;
 
 public:
@@ -81,15 +80,15 @@ protected:
   void run_processors();
 
 protected:
-	void add_term(node<term> var);
+	void add_column(node<column> var);
 	void add_selection(node<selection> sel);
 	void add_counter(node<counter> cnt);
 
 protected:
 	bool m_analyzed;
 
-	std::vector<std::string>                   m_column_names;
-	std::unordered_map<std::string,node<term>> m_column_map;
+	std::vector<std::string>                     m_column_names;
+	std::unordered_map<std::string,node<column>> m_column_map;
 
 	std::vector<std::string>                        m_selection_paths;
 	std::unordered_map<std::string,node<selection>> m_selection_map;
@@ -147,7 +146,7 @@ public:
 		if constexpr(std::is_base_of_v<selection,U>) {
 			return this->check( [] (const selection& sel) { return sel.get_path(); } );
 		} else {
-			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "non-selection node has no path");
+			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "analysis node is not a selection");
 		}
 	}
 
@@ -156,7 +155,7 @@ public:
 		if constexpr(std::is_base_of_v<selection,U>) {
 			return this->check( [] (const selection& sel) { return sel.get_full_path(); } );
 		} else {
-			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "non-selection node has no path");
+			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "analysis node is not a selection");
 		}
 	}
 
@@ -280,19 +279,19 @@ ana::analysis<T>::analysis(long long max_entries) :
 
 template <typename T>
 template <typename Val, typename... Args>
-typename ana::analysis<T>::template node<ana::column<Val>> ana::analysis<T>::read(const std::string& name, const Args&... args)
+typename ana::analysis<T>::template node<ana::term<Val>> ana::analysis<T>::read(const std::string& name, const Args&... args)
 {
-	auto nd = node<column<Val>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc) { return proc.template read<Val>(name,args...); } ));
-	this->add_term(nd);
+	auto nd = node<term<Val>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc) { return proc.template read<Val>(name,args...); } ));
+	this->add_column(nd);
 	return nd;
 }
 
 template <typename T>
 template <typename Val>
-typename ana::analysis<T>::template node<ana::column<Val>> ana::analysis<T>::constant(const std::string& name, const Val& val)
+typename ana::analysis<T>::template node<ana::term<Val>> ana::analysis<T>::constant(const std::string& name, const Val& val)
 {
-	auto nd = node<column<Val>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc) { return proc.template constant<Val>(name,val); } ));
-	this->add_term(nd);
+	auto nd = node<term<Val>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc) { return proc.template constant<Val>(name,val); } ));
+	this->add_column(nd);
   return nd;
 }
 
@@ -301,16 +300,16 @@ template <typename Def, typename... Args>
 typename ana::analysis<T>::template node<Def> ana::analysis<T>::define(const std::string& name, const Args&... arguments)
 {
 	auto nd = node<Def>(*this, this->m_processors.invoke( [&](processor<reader_type>& proc) { return proc.template define<Def>(name,arguments...); } ));
-	this->add_term(nd);
+	this->add_column(nd);
 	return nd;
 }
 
 template <typename T>
 template <typename F, typename... Vars>
-auto ana::analysis<T>::evaluate(const std::string& name, F callable, const node<Vars>&... columns) ->  typename analysis<T>::template node<column<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>
+auto ana::analysis<T>::evaluate(const std::string& name, F callable, const node<Vars>&... columns) ->  typename analysis<T>::template node<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>
 {
-	auto nd = node<column<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Vars&... vars) { return proc.template evaluate(name,callable,vars...); }, columns... ));
-	this->add_term(nd);
+	auto nd = node<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Vars&... vars) { return proc.template evaluate(name,callable,vars...); }, columns... ));
+	this->add_column(nd);
   return nd;
 }
 
@@ -424,7 +423,7 @@ ana::analysis<T>& ana::analysis<T>::at(const node<selection>& rebase)
 }
 
 template <typename T>
-bool ana::analysis<T>::has_term(const std::string& name) const
+bool ana::analysis<T>::has_column(const std::string& name) const
 {
 	return m_column_map.find(name)!=m_column_map.end();
 }
@@ -436,10 +435,10 @@ bool ana::analysis<T>::has_selection(const std::string& path) const
 }
 
 template <typename T>
-void ana::analysis<T>::add_term(typename ana::analysis<T>::template node<term> node)
+void ana::analysis<T>::add_column(typename ana::analysis<T>::template node<column> node)
 {
 	auto name = node.get_name();
-	if (this->has_term(name)) {
+	if (this->has_column(name)) {
 		throw std::logic_error("column already exists");
 	}
 	m_column_map[name] = node;
@@ -464,7 +463,7 @@ void ana::analysis<T>::add_counter(typename ana::analysis<T>::template node<coun
 }
 
 template <typename T>
-std::vector<std::string> ana::analysis<T>::list_term_names() const
+std::vector<std::string> ana::analysis<T>::list_column_names() const
 {
 	return m_column_names;
 }

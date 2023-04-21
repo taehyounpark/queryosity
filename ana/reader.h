@@ -1,10 +1,10 @@
-#include "ana/column.h"
+#include "ana/term.h"
 
 namespace ana
 {
 
 template <typename T>
-class column<T>::reader : public column<T>
+class term<T>::reader : public term<T>
 {
 
 public:
@@ -19,22 +19,37 @@ protected:
 
 };
 
+template <typename T>
+class column::reader : public term<T>::reader
+{
+
+public:
+  reader(const std::string& name);
+  virtual ~reader() = default;
+
+};
+
 }
 
 template <typename T>
- ana::column<T>::reader::reader(const std::string& name) :
-  column<T>(name),
+ ana::term<T>::reader::reader(const std::string& name) :
+  term<T>(name),
   m_addr(nullptr)
 {}
 
 template <typename T>
-void ana::column<T>::reader::read(const T& val)
+ ana::column::reader<T>::reader(const std::string& name) :
+  term<T>::reader(name)
+{}
+
+template <typename T>
+void ana::term<T>::reader::read(const T& val)
 {
   m_addr = &val;
 }
 
 template <typename T>
-const T& ana::column<T>::reader::value() const
+const T& ana::term<T>::reader::value() const
 {
   return *m_addr;
 }

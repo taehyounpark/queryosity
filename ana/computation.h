@@ -9,14 +9,14 @@
 #include <functional>
 
 #include "ana/input.h"
-#include "ana/cell.h"
 #include "ana/column.h"
+#include "ana/term.h"
 
 namespace ana 
 {
 
 template <typename T>
-class term::computation
+class column::computation
 {
 
 public:
@@ -25,23 +25,23 @@ public:
 
 public:
 	template <typename Col, typename... Args>
-	std::shared_ptr<column<Col>> read(const std::string& name, const Args&... args);
+	std::shared_ptr<term<Col>> read(const std::string& name, const Args&... args);
 
 	template <typename Val>
-	std::shared_ptr<column<Val>> constant(const std::string& name, const Val& val);
+	std::shared_ptr<term<Val>> constant(const std::string& name, const Val& val);
 
 	template <typename Def, typename... Args>
 	std::shared_ptr<Def> define(const std::string& name, const Args&... vars);
 
 	template <typename F, typename... Vars>
-	auto evaluate(const std::string& name, F callable, Vars&... vars) -> std::shared_ptr<column<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>;
+	auto evaluate(const std::string& name, F callable, Vars&... vars) -> std::shared_ptr<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>;
 
 protected:
-	void add(term& column);
+	void add(column& column);
 
 protected:
 	input::reader<T>* m_reader;
-	std::vector<term*> m_columns;
+	std::vector<column*> m_columns;
 
 };
 
@@ -51,13 +51,13 @@ protected:
 #include "ana/equation.h"
 
 template <typename T>
-ana::term::computation<T>::computation(input::reader<T>& reader) :
+ana::column::computation<T>::computation(input::reader<T>& reader) :
 	m_reader(&reader)
 {}
 
 template <typename T>
 template <typename Val, typename... Args>
-std::shared_ptr<ana::column<Val>> ana::term::computation<T>::read(const std::string& name, const Args&... args)
+std::shared_ptr<ana::term<Val>> ana::column::computation<T>::read(const std::string& name, const Args&... args)
 {
 	auto rdr = m_reader->template read_column<Val>(name, args...);
 	this->add(*rdr);
@@ -66,16 +66,16 @@ std::shared_ptr<ana::column<Val>> ana::term::computation<T>::read(const std::str
 
 template <typename T>
 template <typename Val>
-std::shared_ptr<ana::column<Val>> ana::term::computation<T>::constant(const std::string& name, const Val& val)
+std::shared_ptr<ana::term<Val>> ana::column::computation<T>::constant(const std::string& name, const Val& val)
 {
-	auto cnst = std::make_shared<typename column<Val>::constant>(name,val);
+	auto cnst = std::make_shared<typename column::constant<Val>>(name,val);
 	this->add(*cnst);
 	return cnst;
 }
 
 template <typename T>
 template <typename Def, typename... Args>
-std::shared_ptr<Def> ana::term::computation<T>::define(const std::string& name, const Args&... args)
+std::shared_ptr<Def> ana::column::computation<T>::define(const std::string& name, const Args&... args)
 {
 	auto defn = std::make_shared<Def>(name, args...);
 	this->add(*defn);
@@ -84,7 +84,7 @@ std::shared_ptr<Def> ana::term::computation<T>::define(const std::string& name, 
 
 template <typename T>
 template <typename F, typename... Vars>
-auto ana::term::computation<T>::evaluate(const std::string& name, F callable, Vars&... vars) -> std::shared_ptr<ana::column<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>
+auto ana::column::computation<T>::evaluate(const std::string& name, F callable, Vars&... vars) -> std::shared_ptr<ana::term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>
 {
 	auto eqn = ana::make_equation(name,std::function(callable));
 	eqn->set_evaluation(callable);
@@ -94,7 +94,7 @@ auto ana::term::computation<T>::evaluate(const std::string& name, F callable, Va
 }
 
 template <typename T>
-void ana::term::computation<T>::add(term& column)
+void ana::column::computation<T>::add(column& column)
 {
 	m_columns.push_back(&column);
 }

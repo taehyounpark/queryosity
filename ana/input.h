@@ -115,8 +115,6 @@ using read_t = typename decltype(std::declval<T>().open_reader(std::declval<cons
 
 }
 
-#include "ana/column.h"
-
 template<typename T>
 double ana::input::dataset<T>::normalize() const
 {

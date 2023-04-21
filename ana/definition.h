@@ -5,25 +5,26 @@
 #include <functional>
 
 #include "ana/column.h"
+#include "ana/term.h"
 #include "ana/calculation.h"
 
 namespace ana
 {
 
 //------------------------------------------------------------------------------
-// definition: column<T>::calculation with input arguments <U,V,W,...>
+// defined_from: term<T>::calculation with input arguments <U,V,W,...>
 //------------------------------------------------------------------------------
 template <typename Ret>
 template <typename... Args>
-class column<Ret>::definition : public column<Ret>::calculation
+class term<Ret>::defined_from : public term<Ret>::calculation
 {
 
 public:
   using argtup_type = std::tuple<variable<Args>...>;
 
 public:
-  definition(const std::string& name);
-  virtual ~definition() = default;
+  defined_from(const std::string& name);
+  virtual ~defined_from() = default;
 
   template <typename... UArgs>
   void set_arguments(const cell<UArgs>&... args);
@@ -38,18 +39,33 @@ protected:
 
 };
 
+template <typename Ret, typename... Args>
+class column::definition<Ret(Args...)> : public term<Ret>::template defined_from<Args...>
+{
+
+public:
+  definition(const std::string& name);
+  virtual ~definition() = default;
+
+};
+
 }
 
 template <typename Ret>
 template <typename... Args>
-ana::column<Ret>::definition<Args...>::definition(const std::string& name) :
-  column<Ret>::calculation(name)
+ana::term<Ret>::defined_from<Args...>::defined_from(const std::string& name) :
+  term<Ret>::calculation(name)
+{}
+
+template <typename Ret, typename... Args>
+ana::column::definition<Ret(Args...)>::definition(const std::string& name) :
+  term<Ret>::template defined_from<Args...>(name)
 {}
 
 template <typename Ret>
 template <typename... Args>
 template <typename... UArgs>
-void ana::column<Ret>::definition<Args...>::set_arguments(const cell<UArgs>&... args)
+void ana::term<Ret>::defined_from<Args...>::set_arguments(const cell<UArgs>&... args)
 {
   static_assert(sizeof...(Args)==sizeof...(UArgs));
   m_arguments = std::make_tuple(
@@ -62,7 +78,7 @@ void ana::column<Ret>::definition<Args...>::set_arguments(const cell<UArgs>&... 
 
 template <typename Ret>
 template <typename... Args>
-auto ana::column<Ret>::definition<Args...>::get_arguments() const -> argtup_type
+auto ana::term<Ret>::defined_from<Args...>::get_arguments() const -> argtup_type
 {
   return m_arguments;
 }
@@ -70,7 +86,7 @@ auto ana::column<Ret>::definition<Args...>::get_arguments() const -> argtup_type
 // user-defined evaluation with input arguments
 template <typename Ret>
 template <typename... Args>
-Ret ana::column<Ret>::definition<Args...>::calculate() const
+Ret ana::term<Ret>::defined_from<Args...>::calculate() const
 {
   return std::apply(
     [this](const variable<Args>&... args) { 
