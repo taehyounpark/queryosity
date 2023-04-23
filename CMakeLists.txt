@@ -22,3 +22,9 @@ install(
   EXPORT anaConfig
   DESTINATION lib
 )
+
+set(SETUP ${CMAKE_CURRENT_BINARY_DIR}/setup.sh)
+file(WRITE ${SETUP} "#!/bin/bash\n")
+file(APPEND ${SETUP} "ulimit -S -s unlimited\n" )
+file(APPEND ${SETUP} "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:${ANA_LD_LIBRARY_PATH}\n")
+file(APPEND ${SETUP} "export DYLD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:${ANA_LD_LIBRARY_PATH}\n")

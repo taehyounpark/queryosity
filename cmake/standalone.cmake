@@ -17,6 +17,7 @@ set_target_properties(
   VERSION 0.1
   PUBLIC_HEADER "${anaHeaders}"
 )
+target_compile_features(ana PRIVATE cxx_std_17)
 target_link_libraries( ana Threads::Threads )
 
 # Add all targets to the build-tree export set
@@ -43,6 +44,8 @@ install(DIRECTORY
   DESTINATION lib
   )
 
-set(EXPORT_PYTHONPATH ${CMAKE_CURRENT_BINARY_DIR})
-set(EXPORT_LD_LIBRARY_PATH ${CMAKE_CURRENT_BINARY_DIR})
-set(EXPORT_ROOT_INCLUDE_PATH ${CMAKE_BINARY_DIR})
+message(${CMAKE_CURRENT_BINARY_DIR})
+
+set(ANA_PYTHONPATH ${CMAKE_CURRENT_BINARY_DIR})
+set(ANA_LD_LIBRARY_PATH ${CMAKE_CURRENT_BINARY_DIR})
+
