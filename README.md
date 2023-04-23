@@ -1,6 +1,6 @@
 # Features
 A coherent columnar data analysis interface in C++.
-- Multi-threaded processing of arbitrary dataset formats.
+- Implicit parallel processing of datasets.
 - Fast and intuitive computation of column values.
 - Systematic application of selections and/or statistical weights to entries.
 - Customizable, lazily-executed output of analysis results.

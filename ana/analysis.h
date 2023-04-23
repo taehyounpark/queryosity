@@ -49,13 +49,17 @@ public:
   template <typename F, typename... Vars>
   auto evaluate(const std::string& name, F callable, const node<Vars>&... columns) -> node<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>;
 
+  template <typename Sel, typename Var>
+  node<selection> filter(const std::string& name, const node<Var>& column);
   template <typename Sel, typename F, typename... Vars>
   node<selection> filter(const std::string& name, F callable, const node<Vars>&... columns);
 
+  template <typename Sel, typename Var>
+  node<selection> channel(const std::string& name, const node<Var>& column);
   template <typename Sel, typename F, typename... Vars>
   node<selection> channel(const std::string& name, F callable, const node<Vars>&... columns);
 
-  analysis& at(const node<selection>& rebase);
+  analysis& rebase(const node<selection>& sel);
 	node<selection> operator[](const std::string& path) const;
 
 	template <typename Cnt, typename... Args>
@@ -165,13 +169,33 @@ public:
 		this->apply( [] (U& defn, Vars&... args) { defn.set_arguments(args...); }, arguments... );
 	}
 
+  template <typename Sel, typename Var>
+  node<selection> filter(const std::string& name, const node<Var>& column)
+	{
+		if constexpr(std::is_base_of_v<selection,U>) {
+			return m_analysis->rebase(*this).template filter<Sel>(name, column);
+		} else {
+			static_assert(std::is_base_of_v<selection,U>, "filter cannot be applied to non-selection node");
+		}
+	}
+
   template <typename Sel, typename F, typename... Vars>
   node<selection> filter(const std::string& name, F callable, const node<Vars>&... columns)
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_analysis->at(*this).template filter<Sel>(name, callable, columns...);
+			return m_analysis->rebase(*this).template filter<Sel>(name, callable, columns...);
 		} else {
-			static_assert(std::is_base_of_v<selection,U>, "non-selection cannot chain selections");
+			static_assert(std::is_base_of_v<selection,U>, "filter cannot be applied to non-selection node");
+		}
+	}
+
+  template <typename Sel, typename Var>
+  node<selection> channel(const std::string& name, const node<Var>& column)
+	{
+		if constexpr(std::is_base_of_v<selection,U>) {
+			return m_analysis->rebase(*this).template channel<Sel>(name, column);
+		} else {
+			static_assert(std::is_base_of_v<selection,U>, "filter cannot be applied to non-selection node");
 		}
 	}
 
@@ -179,9 +203,9 @@ public:
   node<selection> channel(const std::string& name, F callable, const node<Vars>&... columns)
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_analysis->at(*this).template channel<Sel>(name, callable, columns...);
+			return m_analysis->rebase(*this).template channel<Sel>(name, callable, columns...);
 		} else {
-			static_assert(std::is_base_of_v<selection,U>, "non-selection cannot chain selections");
+			static_assert(std::is_base_of_v<selection,U>, "filter cannot be applied to non-selection node");
 		}
 	}
 
@@ -218,13 +242,19 @@ public:
 	template <typename Cnt, typename V = U, std::enable_if_t<std::is_base_of_v<selection,V>>* = nullptr>
 	node<Cnt> book(const node<counter::booker<Cnt>>& bkr)
 	{
-		return m_analysis->at(*this).template book(bkr);
+		return m_analysis->rebase(*this).template book(bkr);
 	}
 
 	template <typename V = U, typename std::enable_if<is_counter_booker_v<V>,void>::type* = nullptr>
 	node<typename V::counter_type> book(const node<selection>& filter)
 	{
-		return m_analysis->at(filter).template book(*this);
+		return m_analysis->rebase(filter).template book(*this);
+	}
+
+	template <typename... Ats>
+	void book(const node<Ats>&... ats)
+	{
+		(this->book(ats),...);
 	}
 
 	template <typename V = U, typename std::enable_if<is_counter_booker_v<V>,void>::type* = nullptr>
@@ -323,10 +353,28 @@ typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::filte
 }
 
 template <typename T>
+template <typename Sel, typename Var>
+typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::filter(const std::string& name, const node<Var>& column)
+{
+	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Var& var) { return proc.template filter<Sel>(name,[](typename std::decay_t<decltype(std::declval<Var>().value())> val){return val;},var); }, column ));
+	this->add_selection(nd);
+  return nd;
+}
+
+template <typename T>
 template <typename Sel, typename F, typename... Vars>
 typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::channel(const std::string& name, F callable, const node<Vars>&... columns)
 {
 	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Vars&... vars) { return proc.template channel<Sel>(name,callable,vars...); }, columns... ));
+	this->add_selection(nd);
+  return nd;
+}
+
+template <typename T>
+template <typename Sel, typename Var>
+typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::channel(const std::string& name, const node<Var>& column)
+{
+	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Var& var) { return proc.template channel<Sel>(name,[](typename std::decay_t<decltype(std::declval<Var>().value())> val){return val;},var); }, column ));
 	this->add_selection(nd);
   return nd;
 }
@@ -416,9 +464,9 @@ void ana::analysis<T>::run_processors()
 }
 
 template <typename T>
-ana::analysis<T>& ana::analysis<T>::at(const node<selection>& rebase)
+ana::analysis<T>& ana::analysis<T>::rebase(const node<selection>& sel)
 {
-	this->m_processors.apply( [] (processor<reader_type>& proc, selection& sel) { proc.at(sel); }, rebase );	
+	this->m_processors.apply( [] (processor<reader_type>& proc, selection& sel) { proc.rebase(sel); }, sel );	
   return *this;
 }
 

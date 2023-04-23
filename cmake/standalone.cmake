@@ -30,12 +30,12 @@ export(PACKAGE ana)
 set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/ana" )
 set(CONF_LIBRARY_DIRS "${PROJECT_BINARY_DIR}")
 set(CONF_LIBRARIES    ana)
-configure_file(anaConfig.cmake.in
-  "${PROJECT_BINARY_DIR}/anaConfig.cmake" @ONLY)
+configure_file(config.cmake.in
+  "${PROJECT_BINARY_DIR}/config.cmake" @ONLY)
 
-# Install the anaConfig.cmake
+# Install the config.cmake
 install(FILES
-  "${CMAKE_CURRENT_BINARY_DIR}/anaConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/config.cmake"
   DESTINATION . COMPONENT dev
   )
   

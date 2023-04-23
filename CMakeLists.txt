@@ -19,7 +19,7 @@ endif()
 # link everything together at the end
 install(
   TARGETS ana
-  EXPORT anaConfig
+  EXPORT config
   DESTINATION lib
 )
 
