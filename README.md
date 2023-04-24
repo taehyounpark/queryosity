@@ -81,16 +81,16 @@ A "counter" represents an action to be performed once per-entry, based on:
 ```
   auto higgsPtSpectrum = data.count<Histogram<1,float>>("higgsPtSpectrum", 100,0,2e6);
   higgsPtSpectrum.fill(higgsPt);
-  higgsPtSpectrum.book(cut2LOS, cut2LDF, cut2LSF);
+  higgsPtSpectrum.book(cut2los, cut2ldf, cut2lsf);
 ```
 
 The result of each counter, in this case a `shared_ptr<TH1>`, can be accessed by re-specifying the path of the booked selection:
 ```
-  auto higgsPtSpectrumAt2LOS = higgsPtSpectrum["2LOS"].result();
-  auto higgsPtSpectrumAt2LDF = higgsPtSpectrum["2LOS/2LDF"].result();
+  auto higgsPtSpectrumAt2los = higgsPtSpectrum["2los"].result();
+  auto higgsPtSpectrumAt2ldf = higgsPtSpectrum["2los/2ldf"].result();
 ```
 - `Histogram<1,float>` implements `ana::counter::logic<std::shared_ptr<Out(Fills...)>)`.
-- Since `"2LOS"` selection was marked as a channel, the later selection paths are nested as `"2LOS/2LOF"`, `"2LOS/2LDF"`, etc.
+- Since `"2los"` selection was marked as a channel, the later selection paths are nested as `"2los/2LOF"`, `"2los/2ldf"`, etc.
 
 Alternatively, all the results booked across multiple selections can be organized and dumped into as desired. 
 ```
