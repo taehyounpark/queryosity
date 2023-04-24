@@ -2,7 +2,6 @@
 
 *.root
 *.pdf
-*.png
 *.log
 
 .vscode/
