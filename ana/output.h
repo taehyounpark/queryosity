@@ -12,32 +12,33 @@
 namespace ana
 {
 
-struct output
+class output
 {
 
-template <typename Dumper, typename Node, typename Dest, typename... Args>
+public:
+template <typename Reporter, typename Node, typename Dest, typename... Args>
 static void dump(Node bkr, Dest& dest, const Args&... args);
 
 };
 
 }
 
-template <typename Dumper, typename Node, typename Dest, typename... Args>
+template <typename Reporter, typename Node, typename Dest, typename... Args>
 void ana::output::dump(Node node, Dest& dest, const Args&... args)
 {
-  // instantiate dmpr
-  Dumper dmpr(dest, args...);
+  // instantiate reporter
+  Reporter reporter(args...);
 
-  // access main booker
-  auto selection_paths = node.check([](const typename Node::model_type& mod){return mod.list_selection_paths();});
+  // get counter name and selection paths
+  // auto counter_name = node.check([](const typename Node::model_type& cntr){return cntr.get_name();});
+  auto selection_paths = node.check([](const typename Node::model_type& bkr){return bkr.list_selection_paths();});
 
-  // get list of counters
-  using result_type = decltype(node[""].result());
-  std::vector<std::pair<std::shared_ptr<ana::counter>,result_type>> results;
+  // record all results
+  using result_type = decltype(node["selection"].result());
   for (const auto& sel_path : selection_paths) {
-    results.emplace_back(node[sel_path].model(), node[sel_path].result());
+    reporter.record(sel_path, node[sel_path].result());
   }
 
-  // run dmpr on results
-  dmpr.dump(results);
+  // report results to dest
+  reporter.report(dest);
 }

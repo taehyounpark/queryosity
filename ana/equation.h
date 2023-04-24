@@ -5,6 +5,7 @@
 #include <functional>
 
 #include "ana/column.h"
+#include "ana/term.h"
 #include "ana/calculation.h"
 
 namespace ana
@@ -12,7 +13,7 @@ namespace ana
 
 template <typename Ret>
 template <typename... Args>
-class column<Ret>::equation : public column<Ret>::calculation
+class term<Ret>::evaluated_from : public term<Ret>::calculation
 {
 
 public:
@@ -20,8 +21,8 @@ public:
   using evalfunc_type = std::function<Ret(const Args&...)>;
 
 public:
-  equation(const std::string& name);
-	virtual ~equation() = default;
+  evaluated_from(const std::string& name);
+	virtual ~evaluated_from() = default;
 
   template <typename F>
 	void set_evaluation(F&& callable);
@@ -42,25 +43,38 @@ protected:
 };
 
 template <typename Ret, typename... Args>
-std::shared_ptr<typename ana::column<std::decay_t<Ret>>::template equation<std::decay_t<Args>...>> make_equation(const std::string& name, std::function<Ret(Args...)> func)
+std::shared_ptr<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>> make_equation(const std::string& name, std::function<Ret(Args...)> func)
 {
 	(void)(func);
-	auto eqn = std::make_shared<typename ana::column<std::decay_t<Ret>>::template equation<std::decay_t<Args>...>>(name);
+	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(name);
 	return eqn;
 }
+
+template <typename Ret, typename... Args>
+class column::equation<Ret(Args...)> : public term<Ret>::template evaluated_from<Args...>
+{
+public:
+  equation(const std::string& name);
+	virtual ~equation() = default;
+};
 
 }
 
 template <typename Ret>
 template <typename... Args>
-ana::column<Ret>::equation<Args...>::equation(const std::string& name) :
-	column<Ret>::calculation(name)
+ana::term<Ret>::evaluated_from<Args...>::evaluated_from(const std::string& name) :
+	term<Ret>::calculation(name)
+{}
+
+template <typename Ret, typename... Args>
+ana::column::equation<Ret(Args...)>::equation(const std::string& name) :
+	term<Ret>::template evaluated_from<Args...>(name)
 {}
 
 template <typename Ret>
 template <typename... Args>
 template <typename F>
-void ana::column<Ret>::equation<Args...>::set_evaluation(F&& callable)
+void ana::term<Ret>::evaluated_from<Args...>::set_evaluation(F&& callable)
 {
 	m_evalute = std::function<Ret(const Args&...)>(std::forward<F>(callable));
 }
@@ -68,7 +82,7 @@ void ana::column<Ret>::equation<Args...>::set_evaluation(F&& callable)
 template <typename Ret>
 template <typename... Args>
 template <typename... UArgs>
-void ana::column<Ret>::equation<Args...>::set_arguments(cell<UArgs>&... args)
+void ana::term<Ret>::evaluated_from<Args...>::set_arguments(cell<UArgs>&... args)
 {
   static_assert(sizeof...(Args)==sizeof...(UArgs));
   m_arguments = std::make_tuple(
@@ -81,14 +95,14 @@ void ana::column<Ret>::equation<Args...>::set_arguments(cell<UArgs>&... args)
 
 template <typename Ret>
 template <typename... Args>
-auto ana::column<Ret>::equation<Args...>::get_arguments() const -> argtuple_type
+auto ana::term<Ret>::evaluated_from<Args...>::get_arguments() const -> argtuple_type
 {
   return m_arguments;
 }
 
 template <typename Ret>
 template <typename... Args>
-std::vector<std::string> ana::column<Ret>::equation<Args...>::get_argument_names() const
+std::vector<std::string> ana::term<Ret>::evaluated_from<Args...>::get_argument_names() const
 {
   std::vector<std::string> argument_namess;
   std::apply([&argument_namess](const std::shared_ptr<cell<Args>>&... args) {
@@ -100,7 +114,7 @@ std::vector<std::string> ana::column<Ret>::equation<Args...>::get_argument_names
 // user-defined evaluation with input arguments
 template <typename Ret>
 template <typename... Args>
-Ret ana::column<Ret>::equation<Args...>::calculate() const
+Ret ana::term<Ret>::evaluated_from<Args...>::calculate() const
 {
   return std::apply(
     [this](const std::shared_ptr<cell<Args>>&... args) { 

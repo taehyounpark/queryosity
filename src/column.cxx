@@ -1,5 +1,5 @@
-#include "ana/cell.h"
+#include "ana/column.h"
 
-ana::term::term(const std::string& name) :
+ana::column::column(const std::string& name) :
 	action(name)
 {}

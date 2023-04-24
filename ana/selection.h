@@ -2,15 +2,13 @@
 
 #include <memory>
 
+#include "ana/column.h"
+#include "ana/term.h"
 #include "ana/action.h"
-#include "ana/cell.h"
 #include "ana/concurrent.h"
 
 namespace ana
 {
-
-template <typename T>
-class column;
 
 class selection : public action
 {
@@ -39,7 +37,7 @@ public:
 	std::string get_full_path() const;
 
 	template <typename T>
-	void set_decision(std::shared_ptr<column<T>> decision);
+	void set_decision(std::shared_ptr<term<T>> decision);
 
 	virtual bool   passed_cut() const = 0;
 	virtual double get_weight() const = 0;
@@ -52,8 +50,8 @@ public:
 private:
 	const selection* m_preselection;
 
-	std::shared_ptr<term>   m_decision;
-	ana::variable<double> m_variable;
+	std::shared_ptr<column> m_decision;
+	ana::variable<double>   m_variable;
 
 	bool m_channel;
 
@@ -61,12 +59,10 @@ private:
 
 }
 
-#include "ana/cell.h"
-#include "ana/column.h"
 #include "ana/counter.h"
 
 template <typename T>
-void ana::selection::set_decision(std::shared_ptr<column<T>> decision)
+void ana::selection::set_decision(std::shared_ptr<term<T>> decision)
 {
 	// keep decision as term
 	m_decision = decision;

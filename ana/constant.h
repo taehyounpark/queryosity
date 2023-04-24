@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ana/column.h"
+#include "ana/term.h"
 
 namespace ana
 {
@@ -9,7 +9,7 @@ namespace ana
 // constant: value set manually
 //------------------------------------------------------------------------------
 template <typename Val>
-class column<Val>::constant : public column<Val>
+class term<Val>::constant : public term<Val>
 {
 
 public:
@@ -23,17 +23,31 @@ protected:
 
 };
 
+template <typename Val>
+class column::constant : public term<Val>::constant
+{
+
+public:
+  constant(const std::string& name, const Val& val);
+  virtual ~constant() = default;
+
+};
+
 }
 
 template <typename Val>
-ana::column<Val>::constant::constant(const std::string& name, const Val& val) :
-  ana::column<Val>(name),
+ana::term<Val>::constant::constant(const std::string& name, const Val& val) :
+  ana::term<Val>(name),
   m_value(val)
 {}
 
+template <typename Val>
+ana::column::constant<Val>::constant(const std::string& name, const Val& val) :
+  ana::term<Val>::constant(name, val)
+{}
 
 template <typename Val>
-const Val& ana::column<Val>::constant::value() const
+const Val& ana::term<Val>::constant::value() const
 {
   return m_value;
 }

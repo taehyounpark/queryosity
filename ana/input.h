@@ -72,10 +72,10 @@ class dataset
 
 public:
 	dataset() = default;
-	~dataset() = default;
+	virtual ~dataset() = default;
 
 	// get dataset partition & normalization
-	virtual partition allocate();
+	partition allocate();
 	virtual double normalize() const;
 
 	// read data for range
@@ -115,7 +115,11 @@ using read_t = typename decltype(std::declval<T>().open_reader(std::declval<cons
 
 }
 
-#include "ana/column.h"
+template<typename T>
+ana::input::partition ana::input::dataset<T>::allocate()
+{
+	return static_cast<const T*>(this)->allocate();
+}
 
 template<typename T>
 double ana::input::dataset<T>::normalize() const
