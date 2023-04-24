@@ -105,9 +105,9 @@ Alternatively, all the results booked across multiple selections can be organize
 
 The performance metrics of a minimal data analysis workflow involving:
 - Input CSV file: [CERN Open Data Portal](https://opendata.cern.ch/record/700) (100k entries)
-- One custom column computation
-- One filter operation
-- One counter result output
+- One column computation
+- One selection cut
+- One histogram output
 
 On the MacBook Pro (16-inch, 2019) with the following specifications:
 - 2.3 GHz 8-Core Intel Core i9
