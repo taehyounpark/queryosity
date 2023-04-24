@@ -1,3 +1,5 @@
+#pragma once
+
 #include "ana/term.h"
 
 namespace ana
