@@ -104,7 +104,7 @@ Alternatively, all the results booked across multiple selections can be organize
 ## Benchmarks
 
 The performance metrics of a minimal data analysis workflow involving:
-- Input CSV file: [CERN Open Data Portal](https://opendata.cern.ch/record/700)
+- Input CSV file: [CERN Open Data Portal](https://opendata.cern.ch/record/700) (100k entries)
 - One custom column computation
 - One filter operation
 - One counter result output
