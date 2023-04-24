@@ -115,7 +115,7 @@ On the MacBook Pro (16-inch, 2019) with the following specifications:
 
 Results:
 
-| | ana | pandas |
-| | --- | ------ |
-| CPU | 279.398 ms | 0.0 ms |
-| RAM | MB | MB |
+| | CPU | RAM |
+| --- | ---: | ---: |
+| ana | 279.398 ms | MB |
+| pandas | ms | MB |
