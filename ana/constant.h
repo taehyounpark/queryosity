@@ -13,7 +13,7 @@ class term<Val>::constant : public term<Val>
 {
 
 public:
-  constant(const std::string& name, const Val& val);
+  constant(const Val& val);
   virtual ~constant() = default;
 
   const Val& value() const override;
@@ -28,7 +28,7 @@ class column::constant : public term<Val>::constant
 {
 
 public:
-  constant(const std::string& name, const Val& val);
+  constant(const Val& val);
   virtual ~constant() = default;
 
 };
@@ -36,14 +36,14 @@ public:
 }
 
 template <typename Val>
-ana::term<Val>::constant::constant(const std::string& name, const Val& val) :
-  ana::term<Val>(name),
+ana::term<Val>::constant::constant(const Val& val) :
+  ana::term<Val>(),
   m_value(val)
 {}
 
 template <typename Val>
-ana::column::constant<Val>::constant(const std::string& name, const Val& val) :
-  ana::term<Val>::constant(name, val)
+ana::column::constant<Val>::constant( const Val& val) :
+  ana::term<Val>::constant(val)
 {}
 
 template <typename Val>

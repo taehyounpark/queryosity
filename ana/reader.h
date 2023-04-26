@@ -16,7 +16,10 @@ public:
   virtual const T& value() const override;
   void read(const T& val);
 
+  std::string get_name() const;
+
 protected:
+  const std::string m_name;
 	const T* m_addr;
 
 };
@@ -34,14 +37,14 @@ public:
 template <typename Val>
 constexpr std::true_type check_column_reader(const typename column::reader<Val>&);
 constexpr std::false_type check_column_reader(...);
-template <typename Val>
-constexpr bool is_column_reader_v = decltype(check_column_reader(std::declval<Val>()))::value;
+template <typename Rdr>
+constexpr bool is_column_reader_v = decltype(check_column_reader(std::declval<Rdr>()))::value;
 
 }
 
 template <typename T>
  ana::term<T>::reader::reader(const std::string& name) :
-  term<T>(name),
+  term<T>(),
   m_addr(nullptr)
 {}
 
@@ -60,4 +63,10 @@ template <typename T>
 const T& ana::term<T>::reader::value() const
 {
   return *m_addr;
+}
+
+template <typename T>
+std::string ana::term<T>::reader::get_name() const
+{
+  return m_name;
 }

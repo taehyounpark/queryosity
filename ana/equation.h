@@ -21,7 +21,7 @@ public:
   using evalfunc_type = std::function<Ret(const Args&...)>;
 
 public:
-  evaluated_from(const std::string& name);
+  evaluated_from();
 	virtual ~evaluated_from() = default;
 
   template <typename F>
@@ -34,7 +34,6 @@ public:
   virtual Ret calculate() const override;
 
   auto get_arguments() const -> argtuple_type;
-  std::vector<std::string> get_argument_names() const;
 
 protected:
 	argtuple_type m_arguments;
@@ -43,10 +42,10 @@ protected:
 };
 
 template <typename Ret, typename... Args>
-std::shared_ptr<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>> make_equation(const std::string& name, std::function<Ret(Args...)> func)
+std::shared_ptr<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>> make_equation(std::function<Ret(Args...)> func)
 {
 	(void)(func);
-	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(name);
+	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>();
 	return eqn;
 }
 
@@ -54,12 +53,12 @@ template <typename Ret, typename... Args>
 class column::equation<Ret(Args...)> : public term<Ret>::template evaluated_from<Args...>
 {
 public:
-  equation(const std::string& name);
+  equation();
 	virtual ~equation() = default;
 };
 
 template <typename F>
-using equation_t = typename decltype(make_equation(std::declval<std::string>(), std::function(std::declval<F>())))::element_type;
+using equation_t = typename decltype(make_equation(std::function(std::declval<F>())))::element_type;
 
 template <typename T>
 struct is_column_equation : std::false_type {};
@@ -72,13 +71,13 @@ constexpr bool is_column_equation_v = is_column_equation<T>::value;
 
 template <typename Ret>
 template <typename... Args>
-ana::term<Ret>::evaluated_from<Args...>::evaluated_from(const std::string& name) :
-	term<Ret>::calculation(name)
+ana::term<Ret>::evaluated_from<Args...>::evaluated_from() :
+	term<Ret>::calculation()
 {}
 
 template <typename Ret, typename... Args>
-ana::column::equation<Ret(Args...)>::equation(const std::string& name) :
-	term<Ret>::template evaluated_from<Args...>(name)
+ana::column::equation<Ret(Args...)>::equation() :
+	term<Ret>::template evaluated_from<Args...>()
 {}
 
 template <typename Ret>
@@ -108,17 +107,6 @@ template <typename... Args>
 auto ana::term<Ret>::evaluated_from<Args...>::get_arguments() const -> argtuple_type
 {
   return m_arguments;
-}
-
-template <typename Ret>
-template <typename... Args>
-std::vector<std::string> ana::term<Ret>::evaluated_from<Args...>::get_argument_names() const
-{
-  std::vector<std::string> argument_namess;
-  std::apply([&argument_namess](const std::shared_ptr<cell<Args>>&... args) {
-    (argument_namess.push_back(args->get_name()),...);
-  },m_arguments);
-  return argument_namess;
 }
 
 // user-defined evaluation with input arguments

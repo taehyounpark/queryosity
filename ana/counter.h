@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <functional>
 
-#include "ana/action.h"
+#include "ana/routine.h"
 #include "ana/concurrent.h"
 #include "ana/column.h"
 #include "ana/term.h"
@@ -16,7 +16,7 @@ namespace ana
 
 class selection;
 
-class counter : public action
+class counter : public routine
 {
 
 public:
@@ -35,7 +35,7 @@ public:
 	class experiment;
 
 public:
-	counter(const std::string& name);
+	counter();
 	virtual ~counter() = default;
 
 	void set_scale(double scale);
@@ -69,7 +69,7 @@ public:
 	using result_type = T;
 
 public:
-	implementation(const std::string& name);
+	implementation();
 	virtual ~implementation() = default;
 
 	bool is_merged() const;
@@ -92,7 +92,7 @@ public:
 	using obstup_type = std::tuple<ana::variable<Obs>...>;
 
 public:
-	fillable(const std::string& name);
+	fillable();
 	virtual ~fillable() = default;
 
 	template <typename... Vals>
@@ -111,7 +111,7 @@ class counter::logic<T(Obs...)> : public counter::implementation<T>::template fi
 {
 
 public:
-	logic(const std::string& name);
+	logic();
 	virtual ~logic() = default;
 
 };
@@ -125,8 +125,10 @@ public:
 
 public:
 	template <typename... Args>
-	booker(const std::string& name, const Args&... args);
+	booker(Args&&... args);
 	~booker() = default;
+
+	// alow copy constructor
 
 	template <typename... Vals> 
 	void enter( const term<Vals>&... cols );
@@ -192,8 +194,8 @@ constexpr bool is_counter_booker_v = is_counter_booker<Cnt>::value;
 #include "ana/selection.h"
 
 template <typename T>
-ana::counter::implementation<T>::implementation(const std::string& name) :
-	counter(name),
+ana::counter::implementation<T>::implementation() :
+	counter(),
 	m_merged(false)
 {}
 
@@ -211,8 +213,8 @@ void ana::counter::implementation<T>::set_merged(bool merged)
 
 template <typename T>
 template <typename... Obs>
-ana::counter::implementation<T>::fillable<Obs...>::fillable(const std::string& name) :
-	counter::implementation<T>(name)
+ana::counter::implementation<T>::fillable<Obs...>::fillable() :
+	counter::implementation<T>()
 {}
 
 template <typename T>
@@ -238,14 +240,14 @@ void ana::counter::implementation<T>::fillable<Obs...>::count(double w)
 }
 
 template <typename T, typename... Obs>
-ana::counter::logic<T(Obs...)>::logic(const std::string& name) :
-	counter::implementation<T>::template fillable<Obs...>(name)
+ana::counter::logic<T(Obs...)>::logic() :
+	counter::implementation<T>::template fillable<Obs...>()
 {}
 
 template <typename T>
 template <typename... Args>
-ana::counter::booker<T>::booker(const std::string& name, const Args&... args) :
-	m_call_make(std::bind([](const std::string& name, const Args&... args){return std::make_shared<T>(name,args...);}, name,args...))
+ana::counter::booker<T>::booker(Args&&... args) :
+	m_call_make(std::bind([](Args&&... args){return std::make_shared<T>(std::forward<Args>(args)...);}, std::forward<Args>(args)...))
 {}
 
 template <typename T>

@@ -1,7 +1,7 @@
 #include "ana/column.h"
 
-ana::column::column(const std::string& name) :
-	ana::action(name),
+ana::column::column() :
+	ana::routine(),
 	m_required(false)
 {}
 

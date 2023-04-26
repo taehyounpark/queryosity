@@ -6,7 +6,6 @@
 
 #include "ana/routine.h"
 #include "ana/computation.h"
-#include "ana/cutflow.h"
 #include "ana/experiment.h"
 
 namespace ana
@@ -28,9 +27,16 @@ public:
 	void process();
 	void process(input::progress& progress);
 
+protected:
+	counter::experiment* m_nominal;
+	std::vector<counter::experiment*> m_variations;
+
 };
 
 }
+
+#include "ana/selection.h"
+#include "ana/counter.h"
 
 template <typename T>
 ana::processor<T>::processor(input::reader<T>& reader, double scale) :

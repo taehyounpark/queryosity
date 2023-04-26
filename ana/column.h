@@ -4,9 +4,7 @@
 #include <memory>
 #include <type_traits>
 
-#include "ana/action.h"
-#include "ana/concurrent.h"
-#include "ana/concurrent.h"
+#include "ana/routine.h"
 
 namespace ana
 {
@@ -14,7 +12,7 @@ namespace ana
 template <typename Ret>
 class term;
 
-class column : public action
+class column : public routine
 {
 
 public:
@@ -40,7 +38,7 @@ public:
   class action;
 
 public: 
-  column(const std::string& name);
+  column();
   virtual ~column() = default;
 
   void mark_required(bool required = true);
@@ -86,8 +84,8 @@ public:
 
 };
 
+// type of term<T>::value() = const T&
 template <typename Term>
-// using value_t = typename cell<T>::value_type;
 using term_value_t = decltype(std::declval<Term>().value());
 
 //------------------------------------------------------------------------------

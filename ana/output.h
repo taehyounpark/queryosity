@@ -44,7 +44,7 @@ void ana::output::dump(Node node, Dest& dest, const Args&... args)
 }
 
 // template <typename Reporter, typename Node, typename Dest, typename... Args>
-// void ana::output::dump(ana::systematic<Node> syst, Dest& dest, const Args&... args)
+// void ana::output::dump(ana::varied<Node> syst, Dest& dest, const Args&... args)
 // {
 
 // }

@@ -21,8 +21,6 @@ public:
   template <typename... Args>
   void open(const Args&... args);
 
-  void open(std::unique_ptr<T> dataset);
-
   void scale(double w);
 
   long long get_entries() const;
@@ -66,28 +64,6 @@ void ana::sample<T>::open(const Args&... args)
     m_readers.add_slot(rdr);
     auto proc = std::make_shared<processor<dataset_reader_type>>(*rdr,m_scale);
     m_processors.add_slot(proc);
-	}
-}
-
-template <typename T>
-void ana::sample<T>::open(std::unique_ptr<T> ds)
-{
-  m_dataset = std::move(ds);
-
-  // partition data
-	m_partition = m_dataset->allocate().truncate(m_max_entries).merge(ana::multithread::concurrency());
-
-  // normalize data
-  m_scale /= m_dataset->normalize();
-
-  // open readers & processors
-  m_readers.clear();
-  m_processors.clear();
-  for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
-    auto rdr = m_dataset->open_reader(m_partition.get_part(islot));
-    m_readers.add(rdr);
-    auto proc = std::make_shared<processor<dataset_reader_type>>(*rdr,m_scale);
-    m_processors.add(proc);
 	}
 }
 

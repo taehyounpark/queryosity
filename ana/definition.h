@@ -23,7 +23,7 @@ public:
   using argtup_type = std::tuple<variable<Args>...>;
 
 public:
-  defined_from(const std::string& name);
+  defined_from();
   virtual ~defined_from() = default;
 
   template <typename... UArgs>
@@ -44,7 +44,7 @@ class column::definition<Ret(Args...)> : public term<Ret>::template defined_from
 {
 
 public:
-  definition(const std::string& name);
+  definition();
   virtual ~definition() = default;
 
 };
@@ -60,13 +60,13 @@ constexpr bool is_column_definition_v = is_column_definition<T>::value;
 
 template <typename Ret>
 template <typename... Args>
-ana::term<Ret>::defined_from<Args...>::defined_from(const std::string& name) :
-  term<Ret>::calculation(name)
+ana::term<Ret>::defined_from<Args...>::defined_from() :
+  term<Ret>::calculation()
 {}
 
 template <typename Ret, typename... Args>
-ana::column::definition<Ret(Args...)>::definition(const std::string& name) :
-  term<Ret>::template defined_from<Args...>(name)
+ana::column::definition<Ret(Args...)>::definition() :
+  term<Ret>::template defined_from<Args...>()
 {}
 
 template <typename Ret>

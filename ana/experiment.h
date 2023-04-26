@@ -20,10 +20,10 @@ public:
 
 public:
 	template <typename Cnt, typename... Args>
-	std::shared_ptr<booker<Cnt>> count(const std::string& name, const Args&... args);
+	std::shared_ptr<booker<Cnt>> count(Args&&... args);
 
-	template <typename Cnt>
-	std::shared_ptr<Cnt> book(booker<Cnt>& bkr);
+	// template <typename Cnt>
+	// std::shared_ptr<Cnt> book(booker<Cnt>& bkr);
 
 	void clear_counters();
 
@@ -39,17 +39,17 @@ protected:
 }
 
 template <typename Cnt, typename... Args>
-std::shared_ptr<ana::counter::booker<Cnt>> ana::counter::experiment::count(const std::string& name, const Args&... args)
+std::shared_ptr<ana::counter::booker<Cnt>> ana::counter::experiment::count(Args&&... args)
 {
-	auto bkr = std::make_shared<booker<Cnt>>(name,args...);
+	auto bkr = std::make_shared<booker<Cnt>>(std::forward<Args>(args)...);
 	return bkr;
 }
 
-template <typename Cnt>
-std::shared_ptr<Cnt> ana::counter::experiment::book(booker<Cnt>& bkr)
-{
-	auto cnt = bkr.book_selection(*m_latest);
-	cnt->set_scale(m_norm);
-	this->add(*cnt);
-	return cnt;
-}
+// template <typename Cnt>
+// std::shared_ptr<Cnt> ana::counter::experiment::book(booker<Cnt>& bkr)
+// {
+// 	auto cnt = bkr.book_selection(*m_latest);
+// 	cnt->set_scale(m_norm);
+// 	this->add(*cnt);
+// 	return cnt;
+// }

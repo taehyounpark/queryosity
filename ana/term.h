@@ -23,7 +23,7 @@ public:
   using value_type = typename cell<T>::value_type;
 
 public:
-  term(const std::string& name);
+  term();
   virtual ~term() = default;
 
   virtual void initialize() override;
@@ -48,8 +48,8 @@ public:
 }
 
 template <typename T>
-ana::term<T>::term(const std::string& name) : 
-  column(name),
+ana::term<T>::term() : 
+  column(),
   cell<T>()
 {}
 
