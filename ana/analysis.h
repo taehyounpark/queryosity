@@ -26,19 +26,26 @@ class analysis : public sample<T>
 {
 
 public:
-  using dataset_type = typename sample<T>::dataset_type;
-  using reader_type = typename sample<T>::reader_type;
+  using dataset_reader_type = typename sample<T>::dataset_reader_type;
 
 public:
 	template <typename U>
 	class node;
 
+	class multiverse;
+
+	template <typename U>
+	class systematic;
+
 public:
   analysis(long long max_entries=-1);
   virtual ~analysis() = default;
 
-  template <typename Val, typename... Args>
-  node<term<Val>> read(const std::string& name, const Args&... args);
+	analysis(analysis const&) = delete;
+	analysis& operator=(analysis const&) = delete;
+
+  template <typename Val>
+  node<term<Val>> read(const std::string& name);
 
   template <typename Val>
   node<term<Val>> constant(const std::string& name, const Val& value);
@@ -47,7 +54,7 @@ public:
   node<Def> define(const std::string& name, const Args&... arguments);
 
   template <typename F, typename... Vars>
-  auto evaluate(const std::string& name, F callable, const node<Vars>&... columns) -> node<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>;
+  auto evaluate(const std::string& name, F callable, const node<Vars>&... columns) -> node<equation_t<F>>;
 
   template <typename Sel, typename Var>
   node<selection> filter(const std::string& name, const node<Var>& column);
@@ -74,14 +81,15 @@ public:
 	bool has_column(const std::string& name) const;
 	bool has_selection(const std::string& path) const;
 
-public:
-	void analyze();
-	void reset();
+	void remove_column(const std::string& name);
 
 	void clear_counters();
 
+	void analyze();
+	void reset();
+
 protected:
-  void run_processors();
+  void process_dataset();
 
 protected:
 	void add_column(node<column> var);
@@ -103,11 +111,11 @@ protected:
 
 template <typename T>
 template <typename U>
-class analysis<T>::node : public concurrent<U>
+class analysis<T>::node
 {
 
 public:
-	using model_type = typename concurrent<U>::model_type;
+	using action_type = U;
 
 public:
 	friend class analysis<T>;
@@ -118,37 +126,34 @@ public:
 		m_analysis(nullptr)
 	{}
 	node(analysis<T>& analysis, const concurrent<U>& action) :
-		concurrent<U>(action),
-		m_analysis(&analysis)
+		m_analysis(&analysis),
+		m_action(action)
 	{}
 	~node() = default;
 
 	template <typename V>
 	node(const node<V>& other) :
-		concurrent<U>(other),
-		m_analysis(other.m_analysis)
+		m_analysis(other.m_analysis),
+		m_action(other.m_action)
 	{}
 
 	template <typename V>
 	node& operator=(const node<V>& other)
 	{
 		m_analysis = other.m_analysis;
-		this->m_islots.clear();
-		for (size_t i=0 ; i<other.concurrency() ; ++i) {
-			this->m_islots.push_back(other.slot(i));
-		}
+		m_action = other.m_action;	
 		return *this;
 	}
 
 	std::string get_name() const
 	{
-		return this->check( [] (const action& act) { return act.get_name(); } );
+		return m_action.from_model( [] (const action& act) { return act.get_name(); } );
 	}
 
 	std::string get_path() const
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return this->check( [] (const selection& sel) { return sel.get_path(); } );
+			return m_action.from_model( [] (const selection& sel) { return sel.get_path(); } );
 		} else {
 			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "analysis node is not a selection");
 		}
@@ -157,7 +162,7 @@ public:
 	std::string get_full_path() const
 	{
 		if constexpr(std::is_base_of_v<selection,U>) {
-			return this->check( [] (const selection& sel) { return sel.get_full_path(); } );
+			return m_action.from_model( [] (const selection& sel) { return sel.get_full_path(); } );
 		} else {
 			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "analysis node is not a selection");
 		}
@@ -166,7 +171,7 @@ public:
   template <typename V = U, typename... Vars>
 	typename std::enable_if<std::tuple_size<decltype(std::declval<V>().get_arguments())>::value!=0, void>::type evaluate(const node<Vars>&... arguments)
 	{
-		this->apply( [] (U& defn, Vars&... args) { defn.set_arguments(args...); }, arguments... );
+		m_action.to_slots( [] (U& defn, Vars&... args) { defn.set_arguments(args...); }, arguments.get_action()... );
 	}
 
   template <typename Sel, typename Var>
@@ -212,7 +217,7 @@ public:
 	void weighted(bool weighted=true)
 	{
 		if constexpr(std::is_base_of_v<counter,U>) {
-			this->apply( [=] (counter& cnt) { cnt.use_weight(weighted); } );
+			m_action.to_slots( [=] (counter& cnt) { cnt.use_weight(weighted); } );
 		} else {
 			static_assert(std::is_base_of_v<counter,U>, "non-counter cannot be set to be (un-)weighted");
 		}
@@ -221,7 +226,7 @@ public:
 	void scale(double scale)
 	{
 		if constexpr(std::is_base_of_v<counter,U>) {
-			this->apply( [=] (counter& cnt) { cnt.set_scale(scale); } );
+			m_action.to_slots( [=] (counter& cnt) { cnt.set_scale(scale); } );
 		} else {
 			static_assert(std::is_base_of_v<counter,U>, "non-counter cannot be scaled");
 		}
@@ -231,9 +236,9 @@ public:
 	void fill(const node<Cols>&... columns)
 	{
 		if constexpr( is_counter_booker_v<U> ) {
-			this->apply( [] (U& bkr, Cols&... cols) { bkr.enter(cols...); }, columns... );
+			m_action.to_slots( [] (U& bkr, Cols&... cols) { bkr.enter(cols...); }, columns.get_action()... );
 		} else if constexpr( is_counter_fillable_v<U> ) {
-			this->apply( [] (U& fillable, Cols&... cols) { fillable.enter(cols...); }, columns... );
+			m_action.to_slots( [] (U& fillable, Cols&... cols) { fillable.enter(cols...); }, columns.get_action()... );
 		} else {
 			static_assert( (is_counter_booker_v<U> ||  is_counter_fillable_v<U>), "non-fillable counter" );
 		}
@@ -260,7 +265,7 @@ public:
 	template <typename V = U, typename std::enable_if<is_counter_booker_v<V>,void>::type* = nullptr>
 	node<typename V::counter_type> operator[](const std::string& sel_path)
 	{
-		return node<typename V::counter_type>(*this->m_analysis, this->invoke([=](U& bkr){ return bkr.get_counter(sel_path); }) );
+		return node<typename V::counter_type>(*m_analysis, m_action.from_slots([=](U& bkr){ return bkr.get_counter(sel_path); }) );
 	}
 
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
@@ -268,16 +273,19 @@ public:
 	{
 		m_analysis->analyze();
 		this->merge_results();
-		return this->model()->result();
+		return m_action.model()->result();
 	}
+
+	analysis<T>* get_analysis() { return m_analysis; }
+	concurrent<U> get_action() const { return m_action; }
 
 protected:
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
 	void merge_results()
 	{
-		auto model = this->model();
-		for (size_t islot=1 ; islot<this->concurrency() ; ++islot) {
-			auto slot = this->slot(islot);
+		auto model = m_action.model();
+		for (size_t islot=1 ; islot<m_action.concurrency() ; ++islot) {
+			auto slot = m_action.get_slot(islot);
 			if (!slot->is_merged()) model->merge(slot->result());
 			slot->set_merged(true);
 		}
@@ -285,6 +293,7 @@ protected:
 
 protected:
 	analysis<T>*  m_analysis;
+	concurrent<U> m_action;
 
 };
 
@@ -308,10 +317,11 @@ ana::analysis<T>::analysis(long long max_entries) :
 // {}
 
 template <typename T>
-template <typename Val, typename... Args>
-typename ana::analysis<T>::template node<ana::term<Val>> ana::analysis<T>::read(const std::string& name, const Args&... args)
+template <typename Val>
+typename ana::analysis<T>::template node<ana::term<Val>> ana::analysis<T>::read(const std::string& name)
 {
-	auto nd = node<term<Val>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc) { return proc.template read<Val>(name,args...); } ));
+	using column_reader_t = typename decltype(this->m_processors.model()->template read<Val>(name))::element_type;
+	auto nd = node<column_reader_t>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template read<Val>(name); } ));
 	this->add_column(nd);
 	return nd;
 }
@@ -320,7 +330,7 @@ template <typename T>
 template <typename Val>
 typename ana::analysis<T>::template node<ana::term<Val>> ana::analysis<T>::constant(const std::string& name, const Val& val)
 {
-	auto nd = node<term<Val>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc) { return proc.template constant<Val>(name,val); } ));
+	auto nd = node<term<Val>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template constant<Val>(name,val); } ));
 	this->add_column(nd);
   return nd;
 }
@@ -329,16 +339,16 @@ template <typename T>
 template <typename Def, typename... Args>
 typename ana::analysis<T>::template node<Def> ana::analysis<T>::define(const std::string& name, const Args&... arguments)
 {
-	auto nd = node<Def>(*this, this->m_processors.invoke( [&](processor<reader_type>& proc) { return proc.template define<Def>(name,arguments...); } ));
+	auto nd = node<Def>(*this, this->m_processors.from_slots( [&](processor<dataset_reader_type>& proc) { return proc.template define<Def>(name,arguments...); } ));
 	this->add_column(nd);
 	return nd;
 }
 
 template <typename T>
 template <typename F, typename... Vars>
-auto ana::analysis<T>::evaluate(const std::string& name, F callable, const node<Vars>&... columns) ->  typename analysis<T>::template node<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>
+auto ana::analysis<T>::evaluate(const std::string& name, F callable, const node<Vars>&... columns) ->  typename analysis<T>::template node<equation_t<F>>
 {
-	auto nd = node<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Vars&... vars) { return proc.template evaluate(name,callable,vars...); }, columns... ));
+	auto nd = node<equation_t<F>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, Vars&... vars) { return proc.template evaluate(name,callable,vars...); }, columns.get_action()... ));
 	this->add_column(nd);
   return nd;
 }
@@ -347,7 +357,7 @@ template <typename T>
 template <typename Sel, typename F, typename... Vars>
 typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::filter(const std::string& name, F callable, const node<Vars>&... columns)
 {
-	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Vars&... vars) { return proc.template filter<Sel>(name,callable,vars...); }, columns... ));
+	auto nd = node<selection>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, Vars&... vars) { return proc.template filter<Sel>(name,callable,vars...); }, columns.get_action()... ));
 	this->add_selection(nd);
   return nd;
 }
@@ -356,7 +366,7 @@ template <typename T>
 template <typename Sel, typename Var>
 typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::filter(const std::string& name, const node<Var>& column)
 {
-	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Var& var) { return proc.template filter<Sel>(name,[](typename std::decay_t<decltype(std::declval<Var>().value())> val){return val;},var); }, column ));
+	auto nd = node<selection>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, Var& var) { return proc.template filter<Sel>(name,[](typename std::decay_t<decltype(std::declval<Var>().value())> val){return val;},var); }, column.get_action() ));
 	this->add_selection(nd);
   return nd;
 }
@@ -365,7 +375,7 @@ template <typename T>
 template <typename Sel, typename F, typename... Vars>
 typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::channel(const std::string& name, F callable, const node<Vars>&... columns)
 {
-	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Vars&... vars) { return proc.template channel<Sel>(name,callable,vars...); }, columns... ));
+	auto nd = node<selection>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, Vars&... vars) { return proc.template channel<Sel>(name,callable,vars...); }, columns.get_action()... ));
 	this->add_selection(nd);
   return nd;
 }
@@ -374,7 +384,7 @@ template <typename T>
 template <typename Sel, typename Var>
 typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::channel(const std::string& name, const node<Var>& column)
 {
-	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Var& var) { return proc.template channel<Sel>(name,[](typename std::decay_t<decltype(std::declval<Var>().value())> val){return val;},var); }, column ));
+	auto nd = node<selection>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, Var& var) { return proc.template channel<Sel>(name,[](typename std::decay_t<decltype(std::declval<Var>().value())> val){return val;},var); }, column.get_action() ));
 	this->add_selection(nd);
   return nd;
 }
@@ -383,7 +393,7 @@ template <typename T>
 template <typename Cnt, typename... Args>
 typename ana::analysis<T>::template node<ana::counter::booker<Cnt>> ana::analysis<T>::count(const std::string& name, const Args&... arguments)
 {
-	auto nd = node<counter::booker<Cnt>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc) { return proc.template count<Cnt>(name,arguments...); } ));
+	auto nd = node<counter::booker<Cnt>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template count<Cnt>(name,arguments...); } ));
   return nd;
 }
 
@@ -392,7 +402,7 @@ template <typename Cnt>
 typename ana::analysis<T>::template node<Cnt> ana::analysis<T>::book(const node<counter::booker<Cnt>>& booker)
 {
 	this->reset();
-	auto nd = node<Cnt>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, counter::booker<Cnt>& bkr) { return proc.template book<Cnt>(bkr); }, booker ));
+	auto nd = node<Cnt>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr) { return proc.template book<Cnt>(bkr); }, booker.get_action() ));
 	this->add_counter(nd);
   return nd;
 }
@@ -410,7 +420,7 @@ template <typename T>
 void ana::analysis<T>::analyze()
 { 
 	if (!m_analyzed) {
-		this->run_processors();
+		this->process_dataset();
 		this->clear_counters();
 	}
 	m_analyzed = true;
@@ -426,11 +436,11 @@ template <typename T>
 void ana::analysis<T>::clear_counters()
 { 
 	m_counter_list.clear();
-	this->m_processors.apply( [] (processor<reader_type>& proc) { proc.clear_counters(); } );
+	this->m_processors.to_slots( [] (processor<dataset_reader_type>& proc) { proc.clear_counters(); } );
 }
 
 template <typename T>
-void ana::analysis<T>::run_processors()
+void ana::analysis<T>::process_dataset()
 {
 	// start
 	this->m_dataset->start();
@@ -441,10 +451,10 @@ void ana::analysis<T>::run_processors()
 		std::vector<std::thread> pool;
 		for (size_t islot=0 ; islot<this->m_processors.concurrency() ; ++islot) {
 			pool.emplace_back(
-				[] (processor<reader_type>& proc) {
+				[] (processor<dataset_reader_type>& proc) {
 					proc.process();
 				},
-				std::ref(*this->m_processors.slot(islot))
+				std::ref(*this->m_processors.get_slot(islot))
 			);
 		}
 		// join threads
@@ -454,7 +464,7 @@ void ana::analysis<T>::run_processors()
 	// single-threaded
 	} else {
 		for (size_t islot=0 ; islot<this->m_processors.concurrency() ; ++islot) {
-			this->m_processors.slot(islot)->process();
+			this->m_processors.get_slot(islot)->process();
 		}
 	}
 
@@ -466,7 +476,7 @@ void ana::analysis<T>::run_processors()
 template <typename T>
 ana::analysis<T>& ana::analysis<T>::rebase(const node<selection>& sel)
 {
-	this->m_processors.apply( [] (processor<reader_type>& proc, selection& sel) { proc.rebase(sel); }, sel );	
+	this->m_processors.to_slots( [] (processor<dataset_reader_type>& proc, selection& sel) { proc.rebase(sel); }, sel.get_action() );	
   return *this;
 }
 

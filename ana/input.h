@@ -35,9 +35,11 @@ struct partition
 	partition() = default;
 	~partition() = default;
 
-	void      add(size_t islot, long long start, long long end);
-	void      add(const range& range);
-	range     part(size_t irange) const;
+	void      add_part(size_t islot, long long start, long long end);
+	void      add_part(const range& range);
+
+	range     get_part(size_t irange) const;
+
 	size_t    size() const;
 	range     total() const;
 	partition truncate(long long max_entries=-1) const;
@@ -92,12 +94,14 @@ class reader
 {
 
 public:
+
+public:
 	reader(const range& part);
 	~reader() = default;
 
-	// open data range for each range
-	template<typename U, typename... Args>
-  decltype(auto) read_column(const std::string& name, Args&&... args) const;
+	// read a column of a data type with given name
+	template<typename Val>
+  decltype(auto) read_column(const std::string& name) const;
 
 	virtual void begin();
 	virtual bool next() = 0;
@@ -109,7 +113,11 @@ protected:
 };
 
 template<typename T>
-using read_t = typename decltype(std::declval<T>().open_reader(std::declval<const input::range&>()))::element_type;
+using read_dataset_t = typename decltype(std::declval<T>().open_reader(std::declval<range>()))::element_type;
+
+template<typename T, typename Val>
+using read_column_t = typename decltype(std::declval<T>().template read_column<Val>(std::declval<std::string>()))::element_type;
+
 
 }
 
@@ -147,10 +155,10 @@ ana::input::reader<T>::reader(const ana::input::range& part) :
 {}
 
 template<typename T>
-template<typename U, typename... Args>
-decltype(auto) ana::input::reader<T>::read_column(const std::string& name, Args&&... args) const
+template<typename Val>
+decltype(auto) ana::input::reader<T>::read_column(const std::string& name) const
 {
-	return static_cast<const T*>(this)->template read<U>(name, std::forward<Args>(args)...);
+	return static_cast<const T*>(this)->template read<Val>(name);
 }
 
 template<typename T>

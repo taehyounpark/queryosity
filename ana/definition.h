@@ -49,6 +49,13 @@ public:
 
 };
 
+template <typename T>
+struct is_column_definition : std::false_type {};
+template <typename T>
+struct is_column_definition<column::definition<T>> : std::true_type {};
+template <typename T>
+constexpr bool is_column_definition_v = is_column_definition<T>::value;
+
 }
 
 template <typename Ret>

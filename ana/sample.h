@@ -12,8 +12,7 @@ class sample
 {
 
 public:
-  using dataset_type = T;
-  using reader_type = input::read_t<T>;
+  using dataset_reader_type = input::read_dataset_t<T>;
 
 public:
   sample(long long max_entries=-1);
@@ -30,12 +29,12 @@ public:
   double get_weight() const;
 
 protected:
-  long long                       m_max_entries;
-  double                          m_scale;
-  std::unique_ptr<T>              m_dataset;
-  input::partition                m_partition;
-  concurrent<reader_type>         m_readers;
-  concurrent<processor<reader_type>> m_processors;
+  long long                                  m_max_entries;
+  double                                     m_scale;
+  std::unique_ptr<T>                         m_dataset;
+  input::partition                           m_partition;
+  concurrent<dataset_reader_type>            m_readers;
+  concurrent<processor<dataset_reader_type>> m_processors;
 
 };
 
@@ -63,10 +62,10 @@ void ana::sample<T>::open(const Args&... args)
   m_readers.clear();
   m_processors.clear();
   for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
-    auto rdr = m_dataset->open_reader(m_partition.part(islot));
-    m_readers.add(rdr);
-    auto proc = std::make_shared<processor<reader_type>>(*rdr,m_scale);
-    m_processors.add(proc);
+    auto rdr = m_dataset->open_reader(m_partition.get_part(islot));
+    m_readers.add_slot(rdr);
+    auto proc = std::make_shared<processor<dataset_reader_type>>(*rdr,m_scale);
+    m_processors.add_slot(proc);
 	}
 }
 
@@ -85,9 +84,9 @@ void ana::sample<T>::open(std::unique_ptr<T> ds)
   m_readers.clear();
   m_processors.clear();
   for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
-    auto rdr = m_dataset->open_reader(m_partition.part(islot));
+    auto rdr = m_dataset->open_reader(m_partition.get_part(islot));
     m_readers.add(rdr);
-    auto proc = std::make_shared<processor<reader_type>>(*rdr,m_scale);
+    auto proc = std::make_shared<processor<dataset_reader_type>>(*rdr,m_scale);
     m_processors.add(proc);
 	}
 }

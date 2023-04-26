@@ -1,6 +1,7 @@
 #include "ana/action.h"
 
 ana::action::action(const std::string& name) :
+	routine::routine(),
 	m_name(name)
 {}
 

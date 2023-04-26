@@ -6,9 +6,13 @@
 
 #include "ana/action.h"
 #include "ana/concurrent.h"
+#include "ana/concurrent.h"
 
 namespace ana
 {
+
+template <typename Ret>
+class term;
 
 class column : public action
 {
@@ -32,9 +36,18 @@ public:
   template <typename T>
   class equation;
 
+  template <typename T>
+  class action;
+
 public: 
   column(const std::string& name);
   virtual ~column() = default;
+
+  void mark_required(bool required = true);
+  bool is_required() const;
+
+protected:
+  bool m_required;
 
 };
 
@@ -73,8 +86,9 @@ public:
 
 };
 
-template <typename T>
-using value_t = typename cell<T>::value_type;
+template <typename Term>
+// using value_t = typename cell<T>::value_type;
+using term_value_t = decltype(std::declval<Term>().value());
 
 //------------------------------------------------------------------------------
 // converted_from 

@@ -28,13 +28,7 @@ Information in dataset organized by *columns* can be accessed by supplying their
 auto mcWeight = data.read<float>("mcWeight");
 auto nlep = data.read<unsigned int>("lep_n");
 auto lepPts = data.read<ROOT::RVec<float>>("lep_pt");
-auto lepEtas = data.read<ROOT::RVec<float>>("lep_eta");
-auto lepPhis = data.read<ROOT::RVec<float>>("lep_phi");
-auto lepEs = data.read<ROOT::RVec<float>>("lep_E");
-auto lepCharges = data.read<ROOT::RVec<float>>("lep_charge");
-auto lepTypes = data.read<ROOT::RVec<unsigned int>>("lep_type");
-auto met = data.read<float>("met_et");
-auto metPhi = data.read<float>("met_phi");
+// ...
 ```
 - The column data type can be arbitrarily nested and/or complicated, e.g. `ROOT::RVec<float>`, as long as it is defined how to do so (see `ana::input::reader<CRTP>`).
 
@@ -42,6 +36,7 @@ Computing new columns from existing ones can be explicitly specified (great for 
 ```
 auto leadLepP4 = data.define<NthFourMomentum>("leadLepP4", 0);  // leading = 0th index
 leadLepP4.evaluate(lepPts, lepEtas, lepPhis, lepEs);
+
 auto subleadLepP4 = data.define<NthFourMomentum>("subleadLepP4", 1);  // subleading = 1st index
 subleadLepP4.evaluate(lepPts, lepEtas, lepPhis, lepEs);
 ```
@@ -50,6 +45,7 @@ subleadLepP4.evaluate(lepPts, lepEtas, lepPhis, lepEs);
 Or, it can be as minimal as the expressions themselves:
 ```
 auto dilepP4 = data.evaluate("dilepP4", [](const TLorentzVector& p4, const TLorentzVector& q4){return (p4+q4);}, leadLepP4,subleadLepP4 );
+
 auto higgsPt = data.evaluate("higgsPt",
   [](const TLorentzVector& dilep_p4, float met, float met_phi) {
     TVector2 ptll; ptll.SetMagPhi(dilep_p4.Pt(), dilep_p4.Phi());
@@ -97,7 +93,7 @@ Alternatively, all the results booked across multiple selections can be organize
   auto outputFile = TFile::Open("hww_results.root")
   ana::output::dump<Folder>(higgsPtSpectrum,outputFile);
 ```
-- `Folder` implements `ana::counter::reporter<CRTP>` 
+- `Folder` implements `ana::counter::summary<CRTP>` 
 
 ![Results](./results.png)
 

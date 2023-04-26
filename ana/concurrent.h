@@ -22,9 +22,9 @@ class concurrent
 {
 
 public:
-  template <typename> friend class concurrent;
-
   using model_type = T;
+
+  template <typename> friend class concurrent;
 
 public:
   concurrent() = default;
@@ -40,8 +40,8 @@ public:
   std::shared_ptr<T> model() const;
 
   // add/get slots
-  void add(std::shared_ptr<T> slot);
-  std::shared_ptr<T> slot(size_t i) const;
+  void add_slot(std::shared_ptr<T> slot);
+  std::shared_ptr<T> get_slot(size_t i) const;
   std::vector<std::shared_ptr<T>> slots() const;
 
   // downsize slots
@@ -55,15 +55,15 @@ public:
 
   // apply a method to all nodes
   template <typename F, typename... Args>
-  void apply(F f, const concurrent<Args>&... args) const;
+  void to_slots(F f, const concurrent<Args>&... args) const;
 
   // check common value of function call from all nodes
   template <typename F, typename... Args>
-  auto check(F f, const Args&... args) const -> std::invoke_result_t<F,T&,const Args&...>;
+  auto from_model(F f, const Args&... args) const -> std::invoke_result_t<F,T&,const Args&...>;
 
   // return (concurrent) result of function call from all nodes
   template <typename F, typename... Args>
-  auto invoke(F f, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<F,T&,Args&...>::element_type>;
+  auto from_slots(F f, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<F,T&,Args&...>::element_type>;
 
 protected:
   std::vector<std::shared_ptr<T>> m_slots;
@@ -78,7 +78,7 @@ ana::concurrent<T>::concurrent(const concurrent<U>& other)
 {
   this->m_slots.clear();
   for(size_t i=0 ; i<other.concurrency() ; ++i) {
-    this->m_slots.push_back(other.slot(i));
+    this->m_slots.push_back(other.get_slot(i));
   }
 }
 
@@ -88,13 +88,13 @@ ana::concurrent<T>& ana::concurrent<T>::operator=(const concurrent<U>& other)
 {
   this->m_slots.clear();
   for(size_t i=0 ; i<other.concurrency() ; ++i) {
-    this->m_slots.push_back(other.slot(i));
+    this->m_slots.push_back(other.get_slot(i));
   }
   return *this;
 }
 
 template <typename T>
-void ana::concurrent<T>::add(std::shared_ptr<T> slot)
+void ana::concurrent<T>::add_slot(std::shared_ptr<T> slot)
 {
   m_slots.push_back(slot);
 }
@@ -104,7 +104,6 @@ void ana::concurrent<T>::clear()
 {
   m_slots.clear();
 }
-
 
 template <typename T>
 void ana::concurrent<T>::downsize(size_t n)
@@ -120,7 +119,7 @@ std::shared_ptr<T> ana::concurrent<T>::model() const
 }
 
 template <typename T>
-std::shared_ptr<T> ana::concurrent<T>::slot(size_t i) const
+std::shared_ptr<T> ana::concurrent<T>::get_slot(size_t i) const
 {
   return m_slots[i];
 }
@@ -133,33 +132,33 @@ size_t ana::concurrent<T>::concurrency() const
 
 template <typename T>
 template <typename F, typename... Args>
-void ana::concurrent<T>::apply(F f, const concurrent<Args>&... args) const
+void ana::concurrent<T>::to_slots(F f, const concurrent<Args>&... args) const
 {
   assert( ((concurrency()==args.concurrency())&&...) );
   for(size_t i=0 ; i<concurrency() ; ++i) {
-    f(*slot(i),*args.slot(i)...);
+    f(*this->get_slot(i),*args.get_slot(i)...);
   }
 }
 
 template <typename T>
 template <typename F, typename... Args>
-auto ana::concurrent<T>::check(F f, const Args&... args) const -> std::invoke_result_t<F,T&,const Args&...>
+auto ana::concurrent<T>::from_model(F f, const Args&... args) const -> std::invoke_result_t<F,T&,const Args&...>
 {
   auto result = f(*model(),args...);
   for(size_t i=1 ; i<concurrency() ; ++i) {
-    assert(result==f(*slot(i),args...));
+    assert(result==f(*this->get_slot(i),args...));
   }
   return result;
 }
 
 template <typename T>
 template <typename F, typename... Args>
-auto ana::concurrent<T>::invoke(F f, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<F,T&,Args&...>::element_type>
+auto ana::concurrent<T>::from_slots(F f, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<F,T&,Args&...>::element_type>
 {
   assert( ((concurrency()==args.concurrency())&&...) );
   concurrent<typename std::invoke_result_t<F,T&,Args&...>::element_type> invoked;
   for(size_t i=0 ; i<concurrency() ; ++i) {
-    invoked.add(f(*slot(i),*args.slot(i)...));
+    invoked.add_slot(f(*this->get_slot(i),*args.get_slot(i)...));
   }
   return invoked;
 }

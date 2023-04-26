@@ -34,17 +34,17 @@ ana::input::range& ana::input::range::operator+=(const range& next)
 	return *this;
 }
 
-void ana::input::partition::add(size_t islot, long long begin, long long end)
+void ana::input::partition::add_part(size_t islot, long long begin, long long end)
 {
 	this->parts.push_back(range(islot,begin,end));
 }
 
-void ana::input::partition::add(const range& part)
+void ana::input::partition::add_part(const range& part)
 {
 	this->parts.push_back(part);
 }
 
-ana::input::range ana::input::partition::part(size_t islot) const
+ana::input::range ana::input::partition::get_part(size_t islot) const
 {
 	return this->parts[islot];
 }

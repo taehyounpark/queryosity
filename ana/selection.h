@@ -53,7 +53,7 @@ private:
 	std::shared_ptr<column> m_decision;
 	ana::variable<double>   m_variable;
 
-	bool m_channel;
+	bool m_channeled;
 
 };
 

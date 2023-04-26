@@ -30,7 +30,7 @@ public:
 	class booker;
 
 	template <typename T>
-	class reporter;
+	class summary;
 
 	class experiment;
 
@@ -145,7 +145,7 @@ protected:
 };
 
 template <typename T>
-class counter::reporter
+class counter::summary
 {
 
 public:
