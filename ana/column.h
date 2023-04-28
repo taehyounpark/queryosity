@@ -178,11 +178,11 @@ public:
 
 public:
 	template <typename... Args>
-	calculator(Args&&... args);
+	calculator(Args const&... args);
 	~calculator() = default;
 
 	template <typename... Args>
-  void set_constructor(Args&&... args);
+  void set_constructor(Args const&... args);
 
 	template <typename... Vals> 
 	std::shared_ptr<T> calculate_from( cell<Vals> const&... cols ) const;
@@ -247,15 +247,15 @@ std::shared_ptr<ana::cell<To>> ana::cell_as(const cell<From>& from)
 
 template <typename T>
 template <typename... Args>
-ana::column::calculator<T>::calculator(Args&&... args) :
-	m_make_shared(std::bind([](Args&&... args){return std::make_shared<T>(std::forward<Args>(args)...);}, std::forward<Args>(args)...))
+ana::column::calculator<T>::calculator(Args const&... args) :
+	m_make_shared(std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... ))
 {}
 
 template <typename T>
 template <typename... Args>
-void ana::column::calculator<T>::set_constructor(Args&&... args)
+void ana::column::calculator<T>::set_constructor(Args const&... args)
 {
-  m_make_shared = std::bind([](Args&&... args){return std::make_shared<T>(std::forward<Args>(args)...);}, std::forward<Args>(args)...);
+  m_make_shared = std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... );
 }
 
 template <typename T>

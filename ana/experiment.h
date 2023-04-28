@@ -38,9 +38,10 @@ public:
 	template <typename Cnt>
 	auto repeat_counter(counter::booker<Cnt> const& bkr) const -> std::shared_ptr<counter::booker<Cnt>>;
 
+	void clear_counters();
+
 protected:
 	void add_counter(counter& cnt);
-	void clear_counters();
 
 protected:
 	std::vector<counter*> m_counters;

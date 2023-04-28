@@ -121,7 +121,7 @@ template <typename T>
 template <typename Def, typename... Args>
 auto ana::column::computation<T>::vary_column(column::calculator<Def> const& calc, Args&&... args) const -> std::shared_ptr<calculator<Def>>
 {
-	return std::make_shared<column::calculator<Def>>(args...);
+	return std::make_shared<calculator<Def>>(std::forward<Args>(args)...);
 }
 
 template <typename T>

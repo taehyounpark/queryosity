@@ -49,8 +49,8 @@ public:
 	virtual void set_nominal(const delayed& nom) override;
  	virtual void set_variation(const std::string& varname, const delayed& var) override;
 
-	virtual delayed<U>& get_nominal() override;
-	virtual delayed<U>& get_variation(const std::string& varname) override;
+	virtual delayed<U> nominal() const override;
+	virtual delayed<U> variation(const std::string& varname) const override;
 	
 	virtual bool has_variation(const std::string& varname) const override;
 	virtual std::set<std::string> list_variation_names() const override;
@@ -90,7 +90,6 @@ public:
 	{
 		if constexpr( is_column_calculator_v<U> ) {
 			auto col = this->m_analysis->compute(*this, columns...);
-			this->m_analysis->add_column(col);
 			return col;
 		} else {
 			static_assert( is_column_calculator_v<U> , "non-column cannot be evaluated" );
@@ -102,12 +101,11 @@ public:
 	{
 		if constexpr( is_column_calculator_v<V> ) {
 			// this is nominal
-			varied<calculated_column_t<V>> syst;
-			auto nom = this->m_analysis->compute( *this, columns.get_nominal()... );
-			syst.set_nominal(nom);
+			auto nom = this->m_analysis->compute( *this, columns.nominal()... );
+			varied<calculated_column_t<V>> syst(nom);
 			// variations
 			for (auto const& varname : list_all_variation_names(columns...)) {
-				auto var = this->m_analysis->compute( *this, columns.get_variation(varname)... );
+				auto var = this->m_analysis->compute( *this, columns.variation(varname)... );
 				syst.set_variation(varname, var);
 			}
 			return syst;
@@ -136,14 +134,14 @@ public:
 		if constexpr(is_selection_calculator_v<U>) {
 			auto syst = varied<U>(*this);
 			// nominal
-			// auto nom = m_analysis->template filter<U>(this->get_name()).apply( columns.get_nominal()...);
-			// this->apply( columns.get_nominal()...);
-			auto nom = delayed(*this).apply(columns.get_nominal()...);
+			// auto nom = m_analysis->template filter<U>(this->get_name()).apply( columns.nominal()...);
+			// this->apply( columns.nominal()...);
+			auto nom = delayed(*this).apply(columns.nominal()...);
 			syst.set_nominal(*this);
 			//variations
 			auto varnames = list_all_variation_names(columns...);
 			for (auto const& varname : varnames) {
-				auto var = delayed(*this).apply( columns.get_variation(varname)...);
+				auto var = delayed(*this).apply( columns.variation(varname)...);
 				syst.set_variation(varname,var);
 			}
 			return syst;
@@ -172,24 +170,19 @@ public:
 		}
 	}
 
-	template <typename... Nodes, std::enable_if_t<(is_varied_v<Nodes>||...), int> = 0>
+	template <typename... Nodes, std::enable_if_t< has_variation_v<Nodes...>, int> = 0>
 	auto fill(Nodes... columns) -> varied<U>
 	{
+		// always repeat the counter, so each fill operation is performed independently
 		if constexpr(is_counter_booker_v<U>) {
-			auto syst = varied<U>(*this);
-			// important: make sure to always copy the booker,
-			// for both nominal & each variation.
-			// otherwise if an existing one is used and passed along, 
-			// the wrong and extra fill call will be registered.
 			// nominal
 			auto nom = this->m_analysis->repeat_counter(*this);
-			nom.fill(columns.get_nominal()...);
-			syst.set_nominal(nom);
+			nom.fill(columns.nominal()...);
+			auto syst = varied<U>(nom);
 			// variations
 			for (auto const& varname : list_all_variation_names(columns...)) {
-				// copy-construct a new counter booker
 				auto var = this->m_analysis->repeat_counter(*this);
-				var.fill(columns.get_variation(varname)...);
+				var.fill(columns.variation(varname)...);
 				syst.set_variation(varname,var);
 			}
 			return syst;
@@ -201,9 +194,7 @@ public:
 	template <typename Sel, typename V = U, typename std::enable_if_t<is_counter_booker_v<V>, void>* = nullptr>
 	auto at(const delayed<Sel>& sel) const -> delayed<booked_counter_t<V>>
 	{
-		auto cnt = this->m_analysis->count(*this, sel);
-		this->m_analysis->add_counter(cnt);
-		return cnt;
+		return this->m_analysis->count(*this, sel);
 	}
 
 	// book 1 x N counting operators
@@ -291,14 +282,14 @@ void ana::analysis<T>::delayed<Act>::set_variation(const std::string& varname, d
 
 template<typename T>
 template<typename Act>
-typename ana::analysis<T>::template delayed<Act>& ana::analysis<T>::delayed<Act>::get_nominal()
+auto ana::analysis<T>::delayed<Act>::nominal() const -> delayed<Act>
 {
 	return *this;
 }
 
 template<typename T>
 template<typename Act>
-typename ana::analysis<T>::template delayed<Act>& ana::analysis<T>::delayed<Act>::get_variation(const std::string& varname)
+auto ana::analysis<T>::delayed<Act>::variation(const std::string& varname) const -> delayed<Act>
 {
 	return *this;
 }
@@ -325,9 +316,10 @@ auto ana::analysis<T>::delayed<Act>::vary(const std::string& varname, Args&&... 
   // create a delayed varied with the this as nominal
   auto syst = varied<V>(*this);
 
-	// TODO implement systematic variations
-	syst.set_nominal(*this);
-  syst.set_variation(varname, *this);
+	// set variation of the column
+  syst.set_variation(varname, this->m_analysis->vary_column(*this, std::forward<Args>(args)...));
+
+	std::cout << syst.has_variation(varname) << std::endl;
 
   // done
   return syst;
@@ -358,39 +350,3 @@ auto ana::analysis<T>::delayed<Act>::channel(const std::string& name, Args&&... 
 		static_assert(std::is_base_of_v<selection,Act>, "filter must be called from a selection");
 	}
 }
-
-// template<typename T>
-// template<typename Act>
-// template <typename... Cols>
-// void ana::analysis<T>::delayed<Act>::fill(delayed<Cols> const&... columns)
-// {
-// 	if constexpr(is_counter_booker_v<Act> ||  is_counter_fillable_v<Act>) {
-// 		// nominal
-// 		m_threaded.to_slots( [] (Act& fillable, Cols&... cols) { fillable.enter_columns(cols...); }, columns.get_slots()... );
-// 	} else {
-// 		static_assert( (is_counter_booker_v<Act> ||  is_counter_fillable_v<Act>), "non-fillable counter" );
-// 	}
-// }
-
-// template<typename T>
-// template<typename Act>
-// template <typename... Nodes>
-// auto ana::analysis<T>::delayed<Act>::fill(Nodes... columns) -> varied<Act>
-// {
-// 	if constexpr(is_counter_booker_v<Act>) {
-// 		auto syst = varied<Act>();
-// 		// nominal
-// 		auto nom = std::make_shared<Act>(*this);
-// 		nom.get_slots().to_slots( [] (Act& fillable, typename Nodes::action_type::counter_type&... cols) { fillable.enter_columns(cols...); }, columns.get_nominal().get_slots()... );
-// 		syst.set_nominal(nom);
-// 		//variations
-// 		auto varnames = list_all_variation_names(columns...);
-// 		for (auto const& varname : varnames) {
-// 			auto var = std::make_shared<Act>(*this);
-// 			var.get_slots().to_slots( [] (Act& fillable, typename Nodes::action_type::counter_type&... cols) { fillable.enter_columns(cols...); }, columns.get_variation(varname).get_slots()... );
-// 			syst.set_variation(varname,var);
-// 		}
-// 	} else {
-// 		static_assert( (is_counter_booker_v<Act>), "not a counter booker, cannot enter with columns" );
-// 	}
-// }

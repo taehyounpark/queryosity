@@ -25,8 +25,8 @@ public:
   evaluated_from(F&& callable);
 	virtual ~evaluated_from() = default;
 
-  template <typename F>
-	void set_expression(F&& callable);
+  // template <typename F>
+	// void set_expression(F&& callable);
 
   // convert each input argument type
   template <typename... UArgs>
