@@ -20,18 +20,27 @@ class counter : public routine
 {
 
 public:
+	// simplest implementation of a counter that user can implement
 	template <typename T>
 	class implementation;
 
+	// optional method to "fill" with values of additional columns
 	template <typename T>
 	class logic;
 
+	// manager of filled columns
+	template <typename T>
+	class filler;
+
+	// manager of booked selections
 	template <typename T>
 	class booker;
 
+	// results organization
 	template <typename T>
 	class summary;
 
+	// run all counters
 	class experiment;
 
 public:
@@ -96,7 +105,7 @@ public:
 	virtual ~fillable() = default;
 
 	template <typename... Vals>
-	void enter(const term<Vals>&... cols);
+	void enter_columns(term<Vals> const&... cols);
 
 	virtual void count(double w) override;
 	virtual void fill(ana::observable<Obs>... observables, double w) = 0;
@@ -128,20 +137,18 @@ public:
 	booker(Args&&... args);
 	~booker() = default;
 
-	// alow copy constructor
-
 	template <typename... Vals> 
-	void enter( const term<Vals>&... cols );
+	void enter_columns( const term<Vals>&... cols );
 
-	std::shared_ptr<T> book_selection(const selection& sel);
+	std::shared_ptr<T> count_at(const selection& sel);
 
 	std::vector<std::shared_ptr<T>> list_counters() const;
 	std::vector<std::string> list_selection_paths() const;
 	std::shared_ptr<T> get_counter(const std::string& path) const;
 
 protected:
-	std::function<std::shared_ptr<T>()>  m_call_make;
-	std::vector<std::function<void(T&)>> m_call_fills;
+	std::function<std::shared_ptr<T>()>                m_make_counter;
+	std::vector<std::function<void(T&)>>               m_fill_columns;
 	std::unordered_map<std::string,std::shared_ptr<T>> m_booked_counter_map;
 
 };
@@ -180,14 +187,6 @@ constexpr std::false_type check_counter_fillable(...);
 template <typename T> 
 constexpr bool is_counter_fillable_v = decltype(check_counter_fillable(std::declval<T>()))::value;
 
-template <typename Cnt>
-struct is_counter_booker: std::false_type {};
-template <typename Cnt>
-struct is_counter_booker<counter::booker<Cnt>>: std::true_type {};
-template <typename Cnt>
-constexpr bool is_counter_booker_v = is_counter_booker<Cnt>::value;
-
-
 }
 
 #include "ana/term.h"
@@ -220,7 +219,7 @@ ana::counter::implementation<T>::fillable<Obs...>::fillable() :
 template <typename T>
 template <typename... Obs>
 template <typename... Vals>
-void ana::counter::implementation<T>::fillable<Obs...>::enter(const term<Vals>&... cols)
+void ana::counter::implementation<T>::fillable<Obs...>::enter_columns(const term<Vals>&... cols)
 {
 	static_assert(sizeof...(Obs)==sizeof...(Vals), "dimension mis-match between filled variables & columns.");
 	m_fills.emplace_back(cols...);
@@ -247,24 +246,24 @@ ana::counter::logic<T(Obs...)>::logic() :
 template <typename T>
 template <typename... Args>
 ana::counter::booker<T>::booker(Args&&... args) :
-	m_call_make(std::bind([](Args&&... args){return std::make_shared<T>(std::forward<Args>(args)...);}, std::forward<Args>(args)...))
+	m_make_counter(std::bind([](Args&&... args){return std::make_shared<T>(std::forward<Args>(args)...);}, std::forward<Args>(args)...))
 {}
 
 template <typename T>
 template <typename... Vals>
-void ana::counter::booker<T>::enter(const term<Vals>&... columns)
+void ana::counter::booker<T>::enter_columns(const term<Vals>&... columns)
 {
-	m_call_fills.push_back(std::bind([](T& cnt, const term<Vals>&... cols){cnt.enter(cols...);}, std::placeholders::_1, std::ref(columns)...));
+	m_fill_columns.push_back(std::bind([](T& cnt, const term<Vals>&... cols){cnt.enter_columns(cols...);}, std::placeholders::_1, std::ref(columns)...));
 }
 
 template <typename T>
-std::shared_ptr<T> ana::counter::booker<T>::book_selection(const selection& sel)
+std::shared_ptr<T> ana::counter::booker<T>::count_at(const selection& sel)
 {
 	// call constructor
-	auto cnt = m_call_make();
+	auto cnt = m_make_counter();
 
 	// fill columns (if set)
-	for (const auto& call_fill : m_call_fills) {
+	for (const auto& call_fill : m_fill_columns) {
 		call_fill(*cnt);
 	}
 

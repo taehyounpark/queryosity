@@ -21,15 +21,16 @@ public:
   using evalfunc_type = std::function<Ret(const Args&...)>;
 
 public:
-  evaluated_from();
+  template <typename F>
+  evaluated_from(F&& callable);
 	virtual ~evaluated_from() = default;
 
   template <typename F>
-	void set_evaluation(F&& callable);
+	void set_expression(F&& callable);
 
   // convert each input argument type
   template <typename... UArgs>
-  void set_arguments(cell<UArgs>&... args);
+  void set_arguments(cell<UArgs> const&... args);
 
   virtual Ret calculate() const override;
 
@@ -37,15 +38,14 @@ public:
 
 protected:
 	argtuple_type m_arguments;
-	evalfunc_type m_evalute;
+	evalfunc_type m_evaluate;
 
 };
 
 template <typename Ret, typename... Args>
 std::shared_ptr<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>> make_equation(std::function<Ret(Args...)> func)
 {
-	(void)(func);
-	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>();
+	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(func);
 	return eqn;
 }
 
@@ -53,7 +53,8 @@ template <typename Ret, typename... Args>
 class column::equation<Ret(Args...)> : public term<Ret>::template evaluated_from<Args...>
 {
 public:
-  equation();
+  template <typename F>
+  equation(F&& callable);
 	virtual ~equation() = default;
 };
 
@@ -71,32 +72,36 @@ constexpr bool is_column_equation_v = is_column_equation<T>::value;
 
 template <typename Ret>
 template <typename... Args>
-ana::term<Ret>::evaluated_from<Args...>::evaluated_from() :
+template <typename F>
+ana::term<Ret>::evaluated_from<Args...>::evaluated_from(F&& callable) :
 	term<Ret>::calculation()
-{}
+{
+  m_evaluate = std::function<Ret(const Args&...)>(std::forward<F>(callable));
+}
 
 template <typename Ret, typename... Args>
-ana::column::equation<Ret(Args...)>::equation() :
-	term<Ret>::template evaluated_from<Args...>()
+template <typename F>
+ana::column::equation<Ret(Args...)>::equation(F&& callable) :
+	term<Ret>::template evaluated_from<Args...>(std::forward<F>(callable))
 {}
 
-template <typename Ret>
-template <typename... Args>
-template <typename F>
-void ana::term<Ret>::evaluated_from<Args...>::set_evaluation(F&& callable)
-{
-	m_evalute = std::function<Ret(const Args&...)>(std::forward<F>(callable));
-}
+// template <typename Ret>
+// template <typename... Args>
+// template <typename F>
+// void ana::term<Ret>::evaluated_from<Args...>::set_expression(F&& callable)
+// {
+// 	m_evaluate = std::function<Ret(const Args&...)>(std::forward<F>(callable));
+// }
 
 template <typename Ret>
 template <typename... Args>
 template <typename... UArgs>
-void ana::term<Ret>::evaluated_from<Args...>::set_arguments(cell<UArgs>&... args)
+void ana::term<Ret>::evaluated_from<Args...>::set_arguments(cell<UArgs> const&... args)
 {
   static_assert(sizeof...(Args)==sizeof...(UArgs));
   m_arguments = std::make_tuple(
     std::invoke(
-      [](cell<UArgs>& args) -> std::shared_ptr<cell<Args>> {
+      [](cell<UArgs> const& args) -> std::shared_ptr<cell<Args>> {
         return ana::cell_as<Args>(args);
     },args)...
   );
@@ -109,14 +114,14 @@ auto ana::term<Ret>::evaluated_from<Args...>::get_arguments() const -> argtuple_
   return m_arguments;
 }
 
-// user-defined evaluation with input arguments
+// user-defined expression with input arguments
 template <typename Ret>
 template <typename... Args>
 Ret ana::term<Ret>::evaluated_from<Args...>::calculate() const
 {
   return std::apply(
     [this](const std::shared_ptr<cell<Args>>&... args) { 
-      return this->m_evalute(args->value()...);
+      return this->m_evaluate(args->value()...);
     },m_arguments
   );
 }

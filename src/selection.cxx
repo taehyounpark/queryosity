@@ -6,7 +6,7 @@
 ana::selection::selection(const std::string& name) :
 	ana::action(name),
 	m_preselection(nullptr),
-	m_channeled(false)
+	m_channel(false)
 {}
 
 void ana::selection::set_initial()
@@ -31,12 +31,12 @@ const ana::selection* ana::selection::get_previous() const
 
 void ana::selection::set_channel(bool channel)
 {
-	m_channeled = channel;
+	m_channel = channel;
 }
 
 bool ana::selection::is_channel() const noexcept
 {
-	return m_channeled;
+	return m_channel;
 }
 
 std::string ana::selection::get_path() const

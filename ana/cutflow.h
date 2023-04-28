@@ -6,6 +6,8 @@
 #include <unordered_map>
 
 #include "ana/selection.h"
+#include "ana/cut.h"
+#include "ana/weight.h"
 
 namespace ana
 {
@@ -18,13 +20,17 @@ public:
 	~cutflow() = default;
 
 public:
-	cutflow& rebase(const selection& sel) noexcept;
+	template <typename Sel, typename F>
+	auto filter(const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
 
-	template <typename Sel, typename F, typename... Vars>
-	std::shared_ptr<selection> filter(const std::string& name, F callable, Vars&... vars);
+	template <typename Sel, typename F>
+	auto channel(const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
 
-	template <typename Sel, typename F, typename... Vars>
-	std::shared_ptr<selection> channel(const std::string& name, F callable, Vars&... vars);
+	template <typename Calc, typename... Cols>
+	auto apply(Calc& calc, Cols const&... columns) -> std::shared_ptr<typename Calc::selection_type>;
+
+	template <typename Sel, typename F>
+	auto repeat_selection(typename Sel::template calculator<equation_t<F>> const& calc) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
 
 protected:
 	void add_selection(selection& selection);
@@ -35,39 +41,49 @@ protected:
 
 };
 
+template <typename T>
+struct is_selection_calculator: std::false_type {};
+template <typename T>
+struct is_selection_calculator<selection::cut::calculator<T>>: std::true_type {};
+template <typename T>
+struct is_selection_calculator<selection::weight::calculator<T>>: std::true_type {};
+template <typename T>
+constexpr bool is_selection_calculator_v = is_selection_calculator<T>::value;
+
 }
 
-#include "ana/cut.h"
-#include "ana/weight.h"
 #include "ana/term.h"
 #include "ana/counter.h"
 #include "ana/equation.h"
 
-template <typename Sel, typename F, typename... Vars>
-std::shared_ptr<ana::selection> ana::selection::cutflow::filter(const std::string& name, F callable, Vars&... vars)
+template <typename Sel, typename F>
+auto ana::selection::cutflow::filter(const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>
 {
-	using return_type = typename std::invoke_result_t<F, typename std::decay_t<decltype(std::declval<Vars>().value())>...>;
-	auto eqn = std::make_shared<equation_t<F>>();
-	eqn->set_evaluation(callable);
-	if constexpr(sizeof...(Vars)>0) eqn->set_arguments(vars...);
-	auto flt = std::make_shared<Sel>(name);
-	// if (m_latest) flt->set_previous(*m_latest);
-	flt->set_decision(std::static_pointer_cast<ana::term<return_type>>(eqn));
-	this->add_selection(*flt);
-	return flt;
+	auto eqn = make_equation(std::function(std::forward<F>(lmbd)));
+	auto calc = std::make_shared<typename Sel::template calculator<equation_t<F>>>(name,eqn);
+	calc->set_channel(false);
+	return calc;
 }
 
-template <typename Sel, typename F, typename... Vars>
-std::shared_ptr<ana::selection> ana::selection::cutflow::channel(const std::string& name, F callable, Vars&... vars)
+template <typename Sel, typename F>
+auto ana::selection::cutflow::channel(const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>
 {
-	using return_type = typename std::invoke_result_t<F, typename std::decay_t<decltype(std::declval<Vars>().value())>...>;
-	auto eqn = std::make_shared<equation_t<F>>();
-	eqn->set_evaluation(callable);
-	if constexpr(sizeof...(Vars)>0) eqn->set_arguments(vars...);
-	auto flt = std::make_shared<Sel>(name);
-	flt->set_channel(true);
-	flt->set_decision(std::static_pointer_cast<ana::term<return_type>>(eqn));
-	// if (m_latest) flt->set_previous(*m_latest);
-	this->add_selection(*flt);
-	return flt;
+	auto eqn = make_equation(std::function(std::forward<F>(lmbd)));
+	auto calc = std::make_shared<typename Sel::template calculator<equation_t<F>>>(name,eqn);
+	calc->set_channel(true);
+	return calc;
+}
+
+template <typename Calc, typename... Cols>
+auto ana::selection::cutflow::apply(Calc& calc, Cols const&... columns) -> std::shared_ptr<typename Calc::selection_type>
+{
+	auto sel = calc.apply_selection(columns...);
+	this->add_selection(*sel);
+	return sel;
+}
+
+template <typename Sel, typename F>
+auto ana::selection::cutflow::repeat_selection(typename Sel::template calculator<equation_t<F>> const& calc) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>
+{
+	return std::make_shared<typename Sel::template calculator<equation_t<F>>>(calc);
 }

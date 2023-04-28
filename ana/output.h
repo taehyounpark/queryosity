@@ -24,19 +24,19 @@ static void dump(Node bkr, Dest& dest, const Args&... args);
 }
 
 template <typename Reporter, typename Node, typename Dest, typename... Args>
-void ana::output::dump(Node node, Dest& dest, const Args&... args)
+void ana::output::dump(Node delayed, Dest& dest, const Args&... args)
 {
   // instantiate summary
   Reporter summary(args...);
 
   // get counter name and selection paths
-  // auto counter_name = node.from_model([](const typename Node::model_type& cntr){return cntr.get_name();});
-  auto selection_paths = node.get_action().from_model([](const typename Node::action_type& bkr){return bkr.list_selection_paths();});
+  // auto counter_name = delayed.from_model([](const typename Node::model_type& cntr){return cntr.get_name();});
+  auto selection_paths = delayed.get_slots().from_model([](const typename Node::action_type& bkr){return bkr.list_selection_paths();});
 
   // record all results
-  // using result_type = decltype(node["path"].result());
+  // using result_type = decltype(delayed["path"].result());
   for (const auto& sel_path : selection_paths) {
-    summary.record(sel_path, node[sel_path].result());
+    summary.record(sel_path, delayed[sel_path].result());
   }
 
   // report results to dest

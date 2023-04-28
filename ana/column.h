@@ -26,16 +26,13 @@ public:
   class constant;
 
   template <typename T>
-  class calculation;
-
-  template <typename T>
   class definition;
 
   template <typename T>
   class equation;
 
   template <typename T>
-  class action;
+  class calculator;
 
 public: 
   column();
@@ -85,8 +82,8 @@ public:
 };
 
 // type of term<T>::value() = const T&
-template <typename Term>
-using term_value_t = decltype(std::declval<Term>().value());
+template <typename T>
+using term_value_t = std::decay_t<decltype(std::declval<T>().value())>;
 
 //------------------------------------------------------------------------------
 // converted_from 
@@ -172,6 +169,29 @@ protected:
 };
 
 
+template <typename T>
+class column::calculator
+{
+
+public:
+	using column_type = T;
+
+public:
+	template <typename... Args>
+	calculator(Args&&... args);
+	~calculator() = default;
+
+	template <typename... Args>
+  void set_constructor(Args&&... args);
+
+	template <typename... Vals> 
+	std::shared_ptr<T> calculate_from( cell<Vals> const&... cols ) const;
+
+protected:
+	std::function<std::shared_ptr<T>()> m_make_shared;
+
+};
+
 }
 
 template <typename T>
@@ -220,6 +240,38 @@ std::shared_ptr<ana::cell<To>> ana::cell_as(const cell<From>& from)
     static_assert( std::is_same_v<From,To> || std::is_base_of_v<From,To> || std::is_convertible_v<From,To>, "incompatible value types" );
   }
 }
+
+// ---------
+// calculator
+// ---------
+
+template <typename T>
+template <typename... Args>
+ana::column::calculator<T>::calculator(Args&&... args) :
+	m_make_shared(std::bind([](Args&&... args){return std::make_shared<T>(std::forward<Args>(args)...);}, std::forward<Args>(args)...))
+{}
+
+template <typename T>
+template <typename... Args>
+void ana::column::calculator<T>::set_constructor(Args&&... args)
+{
+  m_make_shared = std::bind([](Args&&... args){return std::make_shared<T>(std::forward<Args>(args)...);}, std::forward<Args>(args)...);
+}
+
+template <typename T>
+template <typename... Vals>
+std::shared_ptr<T> ana::column::calculator<T>::calculate_from(cell<Vals> const&... columns) const
+{
+  auto defn = m_make_shared();
+
+  defn->set_arguments(columns...);
+
+  return defn;
+}
+
+// --------
+// variable
+// --------
 
 template <typename T>
 ana::variable<T>::variable() :

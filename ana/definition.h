@@ -49,12 +49,11 @@ public:
 
 };
 
-template <typename T>
-struct is_column_definition : std::false_type {};
-template <typename T>
-struct is_column_definition<column::definition<T>> : std::true_type {};
-template <typename T>
-constexpr bool is_column_definition_v = is_column_definition<T>::value;
+template <typename Ret, typename... Vals> 
+constexpr std::true_type check_column_definition(typename column::template definition<Ret(Vals...)> const&);
+constexpr std::false_type check_column_definition(...);
+template <typename T> 
+constexpr bool is_column_definition_v = decltype(check_column_definition(std::declval<T>()))::value;
 
 }
 
@@ -72,7 +71,7 @@ ana::column::definition<Ret(Args...)>::definition() :
 template <typename Ret>
 template <typename... Args>
 template <typename... UArgs>
-void ana::term<Ret>::defined_from<Args...>::set_arguments(const cell<UArgs>&... args)
+void ana::term<Ret>::defined_from<Args...>::set_arguments(cell<UArgs> const&... args)
 {
   static_assert(sizeof...(Args)==sizeof...(UArgs));
   m_arguments = std::make_tuple(
@@ -90,7 +89,7 @@ auto ana::term<Ret>::defined_from<Args...>::get_arguments() const -> argtup_type
   return m_arguments;
 }
 
-// user-defined evaluation with input arguments
+// user-defined expression with input arguments
 template <typename Ret>
 template <typename... Args>
 Ret ana::term<Ret>::defined_from<Args...>::calculate() const

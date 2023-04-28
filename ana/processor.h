@@ -27,10 +27,6 @@ public:
 	void process();
 	void process(input::progress& progress);
 
-protected:
-	counter::experiment* m_nominal;
-	std::vector<counter::experiment*> m_variations;
-
 };
 
 }

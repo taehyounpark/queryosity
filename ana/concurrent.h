@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <vector>
 #include <memory>
 #include <thread>
@@ -36,7 +37,7 @@ public:
   concurrent& operator=(const concurrent<U>& other);
 
 public:
-  // main node = slot(0)
+  // main delayed = slot(0)
   std::shared_ptr<T> model() const;
 
   // add/get slots
@@ -53,15 +54,15 @@ public:
   // number of slots
   size_t concurrency() const;
 
-  // apply a method to all nodes
+  // apply a method to all delayeds
   template <typename F, typename... Args>
   void to_slots(F f, const concurrent<Args>&... args) const;
 
-  // check common value of function call from all nodes
+  // check common value of function call from all delayeds
   template <typename F, typename... Args>
   auto from_model(F f, const Args&... args) const -> std::invoke_result_t<F,T&,const Args&...>;
 
-  // return (concurrent) result of function call from all nodes
+  // return (concurrent) result of function call from all delayeds
   template <typename F, typename... Args>
   auto from_slots(F f, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<F,T&,Args&...>::element_type>;
 
@@ -76,6 +77,7 @@ template <typename T>
 template <typename U>
 ana::concurrent<T>::concurrent(const concurrent<U>& other)
 {
+  static_assert( std::is_base_of_v<T,U>, "incompatible concurrent types" );
   this->m_slots.clear();
   for(size_t i=0 ; i<other.concurrency() ; ++i) {
     this->m_slots.push_back(other.get_slot(i));

@@ -75,9 +75,9 @@ A "counter" represents an action to be performed once per-entry, based on:
 - Perform the action if its "booked" selection passes the cut, with the given statistical weight.
 - (Optional) values of other columns with which the counter is "filled".
 ```
-  auto higgsPtSpectrum = data.count<Histogram<1,float>>("higgsPtSpectrum", 100,0,2e6);
+  auto higgsPtSpectrum = data.book<Histogram<1,float>>("higgsPtSpectrum", 100,0,2e6);
   higgsPtSpectrum.fill(higgsPt);
-  higgsPtSpectrum.book(cut2los, cut2ldf, cut2lsf);
+  higgsPtSpectrum.at(cut2los, cut2ldf, cut2lsf);
 ```
 
 The result of each counter, in this case a `shared_ptr<TH1>`, can be accessed by re-specifying the path of the booked selection:

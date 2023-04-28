@@ -11,7 +11,6 @@
 #include "ana/input.h"
 #include "ana/column.h"
 #include "ana/term.h"
-
 #include "ana/constant.h"
 #include "ana/equation.h"
 
@@ -19,10 +18,18 @@ namespace ana
 {
 
 template <typename T>
+struct is_column_calculator: std::false_type {};
+template <typename T>
+struct is_column_calculator<column::calculator<T>>: std::true_type {};
+template <typename T>
+constexpr bool is_column_calculator_v = is_column_calculator<T>::value;
+
+template <typename T>
+using calculated_column_t = typename T::column_type;
+
+template <typename T>
 class column::computation
 {
-
-public:
 
 public:
 	computation(input::reader<T>& reader);
@@ -30,18 +37,22 @@ public:
 
 public:
 	template <typename Val>
-	// auto read(const std::string& name) -> decltype(std::declval<input::reader<T>>().template read_column<Val>(name));
 	auto read(const std::string& name) -> std::shared_ptr<input::read_column_t<T,Val>>;
 
 	template <typename Val>
-	std::shared_ptr<column::constant<Val>> constant(const Val& val);
+	auto constant(const Val& val) -> std::shared_ptr<column::constant<Val>>;
 
 	template <typename Def, typename... Args>
-	std::shared_ptr<Def> define(const Args&... vars);
+	auto define(const Args&... vars) const -> std::shared_ptr<calculator<Def>>;
 
-	template <typename F, typename... Vars>
-	// auto evaluate(F callable, Vars&... vars) -> std::shared_ptr<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>;
-	auto evaluate(F callable, Vars&... vars) -> std::shared_ptr<equation_t<F>>;
+	template <typename F>
+	auto define(F callable) const -> std::shared_ptr<calculator<equation_t<F>>>;
+
+	template <typename Def, typename... Cols>
+	auto compute(column::calculator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>;
+
+	template <typename Def, typename... Args>
+	auto vary_column(column::calculator<Def> const& calc, Args&&... args) const -> std::shared_ptr<column::calculator<Def>>;
 
 protected:
 	void add_column(column& column);
@@ -71,7 +82,7 @@ auto ana::column::computation<T>::read(const std::string& name) -> std::shared_p
 
 template <typename T>
 template <typename Val>
-std::shared_ptr<ana::column::constant<Val>> ana::column::computation<T>::constant(const Val& val)
+auto ana::column::computation<T>::constant(const Val& val) -> std::shared_ptr<ana::column::constant<Val>>
 {
 	auto cnst = std::make_shared<typename column::constant<Val>>(val);
 	this->add_column(*cnst);
@@ -80,23 +91,37 @@ std::shared_ptr<ana::column::constant<Val>> ana::column::computation<T>::constan
 
 template <typename T>
 template <typename Def, typename... Args>
-std::shared_ptr<Def> ana::column::computation<T>::define(const Args&... args)
+auto ana::column::computation<T>::define(const Args&... args) const -> std::shared_ptr<calculator<Def>>
 {
-	auto defn = std::make_shared<Def>(args...);
+	auto defn = std::make_shared<calculator<Def>>(args...);
+	return defn;
+}
+
+template <typename T>
+template <typename F>
+// auto ana::column::computation<T>::evaluate(F callable, Vars&... vars) -> std::shared_ptr<ana::term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>
+auto ana::column::computation<T>::define(F callable) const -> std::shared_ptr<calculator<equation_t<F>>>
+{
+	auto eqn = std::make_shared<calculator<equation_t<F>>>(callable);
+	return eqn;
+}
+
+template <typename T>
+template <typename Def, typename... Cols>
+auto ana::column::computation<T>::compute(column::calculator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>
+{
+	// use the calculator to actually make the column
+	auto defn = calc.calculate_from(columns...);
+	// and add it
 	this->add_column(*defn);
 	return defn;
 }
 
 template <typename T>
-template <typename F, typename... Vars>
-// auto ana::column::computation<T>::evaluate(F callable, Vars&... vars) -> std::shared_ptr<ana::term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>
-auto ana::column::computation<T>::evaluate(F callable, Vars&... vars) -> std::shared_ptr<equation_t<F>>
+template <typename Def, typename... Args>
+auto ana::column::computation<T>::vary_column(column::calculator<Def> const& calc, Args&&... args) const -> std::shared_ptr<calculator<Def>>
 {
-	auto eqn = ana::make_equation(std::function(callable));
-	eqn->set_evaluation(callable);
-	if constexpr(sizeof...(Vars)>0) eqn->set_arguments(vars...);
-	this->add_column(*eqn);
-	return eqn;
+	return std::make_shared<column::calculator<Def>>(args...);
 }
 
 template <typename T>
