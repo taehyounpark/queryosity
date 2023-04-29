@@ -1,5 +1,6 @@
 #pragma once
 
+#include <set>
 #include <vector>
 #include <memory>
 #include <string>
@@ -16,7 +17,7 @@
 #include "ana/weight.h"
 #include "ana/counter.h"
 #include "ana/concurrent.h"
-#include "ana/processor.h"
+#include "ana/looper.h"
 
 namespace ana
 {
@@ -26,88 +27,133 @@ class analysis : public sample<T>
 {
 
 public:
-  using dataset_type = typename sample<T>::dataset_type;
-  using reader_type = typename sample<T>::reader_type;
+  using dataset_reader_type = typename sample<T>::dataset_reader_type;
 
 public:
 	template <typename U>
 	class node;
 
+	template <typename U>
+	class delayed;
+	template <typename U>
+	friend class delayed;
+
+	template <typename U>
+	class varied;
+	template <typename U>
+	friend class varied;
+
+	template <typename U>
+	static constexpr std::true_type check_nominal(typename analysis<T>::template delayed<U> const&);
+	static constexpr std::false_type check_nominal(...);
+	template <typename V>
+	static constexpr bool is_nominal_v = decltype(check_nominal(std::declval<V>()))::value;
+
+	template <typename U>
+	static constexpr std::true_type check_varied(typename analysis<T>::template varied<U> const&);
+	static constexpr std::false_type check_varied(...);
+	template <typename V>
+	static constexpr bool is_varied_v = decltype(check_varied(std::declval<V>()))::value;
+
+	template <typename... Args>
+	static constexpr bool has_no_variation_v = (is_nominal_v<Args>&&...);
+	template <typename... Args>
+	static constexpr bool has_variation_v = (is_varied_v<Args>||...);
+
+	template <typename Sel, typename F>
+	using custom_selection_calculator_t = typename Sel::template calculator<equation_t<F>>;
+	template <typename Sel>
+	using simple_selection_calculator_t = typename Sel::template calculator<equation_t<std::function<double(double)>>>;
+
 public:
   analysis(long long max_entries=-1);
   virtual ~analysis() = default;
 
-  template <typename Val, typename... Args>
-  node<term<Val>> read(const std::string& name, const Args&... args);
+	analysis(analysis const&) = delete;
+	analysis& operator=(analysis const&) = delete;
 
   template <typename Val>
-  node<term<Val>> constant(const std::string& name, const Val& value);
+  auto read(const std::string& name) -> delayed<input::read_column_t<input::read_dataset_t<T>,Val>>;
+  template <typename Val>
+  auto constant(const Val& value) -> delayed<column::constant<Val>>;
 
   template <typename Def, typename... Args>
-  node<Def> define(const std::string& name, const Args&... arguments);
+  auto define(const Args&... arguments) -> delayed<column::calculator<Def>>;
+  template <typename F>
+  auto define(F expression) -> delayed<column::calculator<equation_t<F>>>;
+  template <typename Def, typename... Cols>
+	auto compute(delayed<column::calculator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>;
 
-  template <typename F, typename... Vars>
-  auto evaluate(const std::string& name, F callable, const node<Vars>&... columns) -> node<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>;
-
-  template <typename Sel, typename Var>
-  node<selection> filter(const std::string& name, const node<Var>& column);
-  template <typename Sel, typename F, typename... Vars>
-  node<selection> filter(const std::string& name, F callable, const node<Vars>&... columns);
-
-  template <typename Sel, typename Var>
-  node<selection> channel(const std::string& name, const node<Var>& column);
-  template <typename Sel, typename F, typename... Vars>
-  node<selection> channel(const std::string& name, F callable, const node<Vars>&... columns);
-
-  analysis& rebase(const node<selection>& sel);
-	node<selection> operator[](const std::string& path) const;
+	template <typename Sel, typename F>
+  auto filter(const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>;
+  template <typename Sel, typename F>
+  auto channel(const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>;
+	template <typename Sel>
+  auto filter(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
+  template <typename Sel>
+  auto channel(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
+	template <typename Calc, typename... Cols>
+	auto apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> delayed<typename Calc::selection_type>;
 
 	template <typename Cnt, typename... Args>
-	node<counter::booker<Cnt>> count(const std::string& name, const Args&... arguments);
-
-	template <typename Cnt>
-	node<Cnt> book(const node<counter::booker<Cnt>>& booker);
-
-	std::vector<std::string> list_column_names() const;
-	std::vector<std::string> list_selection_paths() const;
-
-	bool has_column(const std::string& name) const;
-	bool has_selection(const std::string& path) const;
-
-public:
-	void analyze();
-	void reset();
+	delayed<counter::booker<Cnt>> book(Args&&... args);
+	template <typename Cnt, typename Sel>
+	delayed<Cnt> count(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel);
 
 	void clear_counters();
 
-protected:
-  void run_processors();
+	void analyze();
+	void reset();
 
 protected:
-	void add_column(node<column> var);
-	void add_selection(node<selection> sel);
-	void add_counter(node<counter> cnt);
+  void process_dataset();
+
+	template <typename Sel, typename F>
+  auto filter(delayed<selection> const& prev, const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>;
+  template <typename Sel, typename F>
+  auto channel(delayed<selection> const& prev, const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>;
+	template <typename Sel>
+  auto filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
+  template <typename Sel>
+  auto channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
+
+	// recreate a delayed node as a variation under new arguments
+	template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* = nullptr>
+	auto vary_column(delayed<V> const& nom, const std::string& colname) -> delayed<V>;
+	template <typename Val, typename V, typename std::enable_if_t<ana::is_column_constant_v<V>, V>* = nullptr>
+	auto vary_column(delayed<V> const& nom, Val const& val) -> delayed<V>;
+	template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V>, V>* = nullptr>
+	auto vary_definition(delayed<column::calculator<V>> const& nom, Args&&... args) -> delayed<column::calculator<V>>;
+	template <typename F, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* = nullptr>
+	auto vary_definition(delayed<column::calculator<V>> const& nom, F&& expression) -> delayed<column::calculator<V>>;
+
+  template <typename Sel, typename F>
+  auto repeat_selection(delayed<custom_selection_calculator_t<Sel,F>> const& calc) -> delayed<custom_selection_calculator_t<Sel,F>>;
+
+  template <typename Cnt>
+  auto repeat_counter(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>;
+
+protected:
+	void add_column(delayed<column> var);
+	void add_selection(delayed<selection> sel);
+	void add_counter(delayed<counter> cnt);
 
 protected:
 	bool m_analyzed;
 
-	std::vector<std::string>                     m_column_names;
-	std::unordered_map<std::string,node<column>> m_column_map;
-
-	std::vector<std::string>                        m_selection_paths;
-	std::unordered_map<std::string,node<selection>> m_selection_map;
-
-	std::vector<node<counter>> m_counter_list;
+	std::vector<delayed<column>>    m_column_list;
+	std::vector<delayed<selection>> m_selection_list;
+	std::vector<delayed<counter>>   m_counter_list;
 
 };
 
 template <typename T>
 template <typename U>
-class analysis<T>::node : public concurrent<U>
+class analysis<T>::node
 {
 
 public:
-	using model_type = typename concurrent<U>::model_type;
+	using action_type = U;
 
 public:
 	friend class analysis<T>;
@@ -117,178 +163,34 @@ public:
 	node() :
 		m_analysis(nullptr)
 	{}
-	node(analysis<T>& analysis, const concurrent<U>& action) :
-		concurrent<U>(action),
+	node(analysis<T>& analysis) :
 		m_analysis(&analysis)
 	{}
 	~node() = default;
 
-	template <typename V>
-	node(const node<V>& other) :
-		concurrent<U>(other),
-		m_analysis(other.m_analysis)
-	{}
+public:
 
-	template <typename V>
-	node& operator=(const node<V>& other)
-	{
-		m_analysis = other.m_analysis;
-		this->m_islots.clear();
-		for (size_t i=0 ; i<other.concurrency() ; ++i) {
-			this->m_islots.push_back(other.slot(i));
-		}
-		return *this;
-	}
+	virtual delayed<U> nominal() const = 0;
+	virtual delayed<U> variation(const std::string& varname) const = 0;
 
-	std::string get_name() const
-	{
-		return this->check( [] (const action& act) { return act.get_name(); } );
-	}
+	virtual void set_nominal(delayed<U> const& nom) = 0;
+	virtual void set_variation(const std::string& varname, delayed<U> const& nom) = 0;
 
-	std::string get_path() const
-	{
-		if constexpr(std::is_base_of_v<selection,U>) {
-			return this->check( [] (const selection& sel) { return sel.get_path(); } );
-		} else {
-			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "analysis node is not a selection");
-		}
-	}
-
-	std::string get_full_path() const
-	{
-		if constexpr(std::is_base_of_v<selection,U>) {
-			return this->check( [] (const selection& sel) { return sel.get_full_path(); } );
-		} else {
-			static_assert((std::is_base_of_v<selection,U> || std::is_base_of_v<counter,U>), "analysis node is not a selection");
-		}
-	}
-
-  template <typename V = U, typename... Vars>
-	typename std::enable_if<std::tuple_size<decltype(std::declval<V>().get_arguments())>::value!=0, void>::type evaluate(const node<Vars>&... arguments)
-	{
-		this->apply( [] (U& defn, Vars&... args) { defn.set_arguments(args...); }, arguments... );
-	}
-
-  template <typename Sel, typename Var>
-  node<selection> filter(const std::string& name, const node<Var>& column)
-	{
-		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_analysis->rebase(*this).template filter<Sel>(name, column);
-		} else {
-			static_assert(std::is_base_of_v<selection,U>, "filter cannot be applied to non-selection node");
-		}
-	}
-
-  template <typename Sel, typename F, typename... Vars>
-  node<selection> filter(const std::string& name, F callable, const node<Vars>&... columns)
-	{
-		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_analysis->rebase(*this).template filter<Sel>(name, callable, columns...);
-		} else {
-			static_assert(std::is_base_of_v<selection,U>, "filter cannot be applied to non-selection node");
-		}
-	}
-
-  template <typename Sel, typename Var>
-  node<selection> channel(const std::string& name, const node<Var>& column)
-	{
-		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_analysis->rebase(*this).template channel<Sel>(name, column);
-		} else {
-			static_assert(std::is_base_of_v<selection,U>, "filter cannot be applied to non-selection node");
-		}
-	}
-
-  template <typename Sel, typename F, typename... Vars>
-  node<selection> channel(const std::string& name, F callable, const node<Vars>&... columns)
-	{
-		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_analysis->rebase(*this).template channel<Sel>(name, callable, columns...);
-		} else {
-			static_assert(std::is_base_of_v<selection,U>, "filter cannot be applied to non-selection node");
-		}
-	}
-
-	void weighted(bool weighted=true)
-	{
-		if constexpr(std::is_base_of_v<counter,U>) {
-			this->apply( [=] (counter& cnt) { cnt.use_weight(weighted); } );
-		} else {
-			static_assert(std::is_base_of_v<counter,U>, "non-counter cannot be set to be (un-)weighted");
-		}
-	}
-
-	void scale(double scale)
-	{
-		if constexpr(std::is_base_of_v<counter,U>) {
-			this->apply( [=] (counter& cnt) { cnt.set_scale(scale); } );
-		} else {
-			static_assert(std::is_base_of_v<counter,U>, "non-counter cannot be scaled");
-		}
-	}
-
-	template <typename... Cols>
-	void fill(const node<Cols>&... columns)
-	{
-		if constexpr( is_counter_booker_v<U> ) {
-			this->apply( [] (U& bkr, Cols&... cols) { bkr.enter(cols...); }, columns... );
-		} else if constexpr( is_counter_fillable_v<U> ) {
-			this->apply( [] (U& fillable, Cols&... cols) { fillable.enter(cols...); }, columns... );
-		} else {
-			static_assert( (is_counter_booker_v<U> ||  is_counter_fillable_v<U>), "non-fillable counter" );
-		}
-	}
-
-	template <typename Cnt, typename V = U, std::enable_if_t<std::is_base_of_v<selection,V>>* = nullptr>
-	node<Cnt> book(const node<counter::booker<Cnt>>& bkr)
-	{
-		return m_analysis->rebase(*this).template book(bkr);
-	}
-
-	template <typename V = U, typename std::enable_if<is_counter_booker_v<V>,void>::type* = nullptr>
-	node<typename V::counter_type> book(const node<selection>& filter)
-	{
-		return m_analysis->rebase(filter).template book(*this);
-	}
-
-	template <typename... Ats>
-	void book(const node<Ats>&... ats)
-	{
-		(this->book(ats),...);
-	}
-
-	template <typename V = U, typename std::enable_if<is_counter_booker_v<V>,void>::type* = nullptr>
-	node<typename V::counter_type> operator[](const std::string& sel_path)
-	{
-		return node<typename V::counter_type>(*this->m_analysis, this->invoke([=](U& bkr){ return bkr.get_counter(sel_path); }) );
-	}
-
-	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
-	decltype(std::declval<V>().result()) result()
-	{
-		m_analysis->analyze();
-		this->merge_results();
-		return this->model()->result();
-	}
+	virtual bool has_variation(const std::string& varname) const = 0;
+	virtual std::set<std::string> list_variation_names() const = 0;
 
 protected:
-	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
-	void merge_results()
-	{
-		auto model = this->model();
-		for (size_t islot=1 ; islot<this->concurrency() ; ++islot) {
-			auto slot = this->slot(islot);
-			if (!slot->is_merged()) model->merge(slot->result());
-			slot->set_merged(true);
-		}
-	}
-
-protected:
-	analysis<T>*  m_analysis;
+	analysis<T>* m_analysis;
 
 };
 
+template <typename... Nodes>
+auto list_all_variation_names(Nodes const&... nodes) -> std::set<std::string>;
+
 }
+
+#include "ana/delayed.h"
+#include "ana/varied.h"
 
 // ----------------------------------------------------------------------------
 // analysis
@@ -308,109 +210,142 @@ ana::analysis<T>::analysis(long long max_entries) :
 // {}
 
 template <typename T>
-template <typename Val, typename... Args>
-typename ana::analysis<T>::template node<ana::term<Val>> ana::analysis<T>::read(const std::string& name, const Args&... args)
+template <typename Val>
+// typename ana::analysis<T>::template delayed<ana::term<Val>> ana::analysis<T>::read(const std::string& name)
+auto ana::analysis<T>::read(const std::string& name) -> delayed<input::read_column_t<input::read_dataset_t<T>,Val>>
 {
-	auto nd = node<term<Val>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc) { return proc.template read<Val>(name,args...); } ));
+	using column_reader_t = typename decltype(this->m_loopers.model()->template read<Val>(name))::element_type;
+	auto nd = delayed<column_reader_t>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template read<Val>(name); } ));
 	this->add_column(nd);
 	return nd;
 }
 
 template <typename T>
 template <typename Val>
-typename ana::analysis<T>::template node<ana::term<Val>> ana::analysis<T>::constant(const std::string& name, const Val& val)
+auto ana::analysis<T>::constant(const Val& val) -> delayed<ana::column::constant<Val>>
 {
-	auto nd = node<term<Val>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc) { return proc.template constant<Val>(name,val); } ));
+	auto nd = delayed<column::constant<Val>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template constant<Val>(val); } ));
 	this->add_column(nd);
   return nd;
 }
 
 template <typename T>
 template <typename Def, typename... Args>
-typename ana::analysis<T>::template node<Def> ana::analysis<T>::define(const std::string& name, const Args&... arguments)
+auto ana::analysis<T>::define(const Args&... arguments) -> typename analysis<T>::template delayed<column::calculator<Def>>
 {
-	auto nd = node<Def>(*this, this->m_processors.invoke( [&](processor<reader_type>& proc) { return proc.template define<Def>(name,arguments...); } ));
-	this->add_column(nd);
+	auto nd = delayed<column::calculator<Def>>(*this, this->m_loopers.from_slots( [&](looper<dataset_reader_type>& lpr) { return lpr.template define<Def>(arguments...); } ));
 	return nd;
 }
 
 template <typename T>
-template <typename F, typename... Vars>
-auto ana::analysis<T>::evaluate(const std::string& name, F callable, const node<Vars>&... columns) ->  typename analysis<T>::template node<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>
+template <typename F>
+auto ana::analysis<T>::define(F expression) ->  typename analysis<T>::template delayed<column::calculator<equation_t<F>>>
 {
-	auto nd = node<term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Vars&... vars) { return proc.template evaluate(name,callable,vars...); }, columns... ));
-	this->add_column(nd);
+	auto nd = delayed<column::calculator<equation_t<F>>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template define(expression); } ));
   return nd;
 }
 
 template <typename T>
-template <typename Sel, typename F, typename... Vars>
-typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::filter(const std::string& name, F callable, const node<Vars>&... columns)
+template <typename Def, typename... Cols>
+auto ana::analysis<T>::compute(delayed<column::calculator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>
 {
-	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Vars&... vars) { return proc.template filter<Sel>(name,callable,vars...); }, columns... ));
-	this->add_selection(nd);
-  return nd;
+	auto col = delayed<Def>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, column::calculator<Def>& calc, Cols const&... cols) { return lpr.template compute(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
+	this->add_column(col);
+  return col;
 }
 
 template <typename T>
-template <typename Sel, typename Var>
-typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::filter(const std::string& name, const node<Var>& column)
+template <typename Sel, typename F>
+auto ana::analysis<T>::filter(const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>
 {
-	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Var& var) { return proc.template filter<Sel>(name,[](typename std::decay_t<decltype(std::declval<Var>().value())> val){return val;},var); }, column ));
-	this->add_selection(nd);
-  return nd;
+	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,lmbd); } ));
 }
 
 template <typename T>
-template <typename Sel, typename F, typename... Vars>
-typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::channel(const std::string& name, F callable, const node<Vars>&... columns)
+template <typename Sel, typename F>
+auto ana::analysis<T>::channel(const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>
 {
-	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Vars&... vars) { return proc.template channel<Sel>(name,callable,vars...); }, columns... ));
-	this->add_selection(nd);
-  return nd;
+	auto sel = delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,lmbd); } ));
+	return sel;	
 }
 
 template <typename T>
-template <typename Sel, typename Var>
-typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::channel(const std::string& name, const node<Var>& column)
+template <typename Sel>
+auto ana::analysis<T>::filter(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
 {
-	auto nd = node<selection>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, Var& var) { return proc.template channel<Sel>(name,[](typename std::decay_t<decltype(std::declval<Var>().value())> val){return val;},var); }, column ));
-	this->add_selection(nd);
-  return nd;
+	auto sel = delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,[](double x){return x;}); } ));
+	return sel;	
+}
+
+template <typename T>
+template <typename Sel>
+auto ana::analysis<T>::channel(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
+{
+	auto sel = delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,[](double x){return x;}); } ));
+	return sel;	
+}
+
+template <typename T>
+template <typename Sel, typename F>
+auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>
+{
+	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,lmbd); }, prev.get_slots() ));
+}
+
+template <typename T>
+template <typename Sel, typename F>
+auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>
+{
+	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,lmbd); }, prev.get_slots() ));
+}
+
+template <typename T>
+template <typename Sel>
+auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
+{
+	return delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
+}
+
+template <typename T>
+template <typename Sel>
+auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
+{
+	return delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
+}
+
+template <typename T>
+template <typename Calc, typename... Cols>
+auto ana::analysis<T>::apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> typename ana::analysis<T>::template delayed<typename Calc::selection_type>
+{
+	auto sel = delayed<typename Calc::selection_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, Calc& calc, Cols&... cols) { return lpr.template apply(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
+	this->add_selection(sel);
+  return sel;
 }
 
 template <typename T>
 template <typename Cnt, typename... Args>
-typename ana::analysis<T>::template node<ana::counter::booker<Cnt>> ana::analysis<T>::count(const std::string& name, const Args&... arguments)
+typename ana::analysis<T>::template delayed<ana::counter::booker<Cnt>> ana::analysis<T>::book(Args&&... args)
 {
-	auto nd = node<counter::booker<Cnt>>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc) { return proc.template count<Cnt>(name,arguments...); } ));
-  return nd;
+	auto bkr = delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template book<Cnt>(args...); } ));
+  return bkr;
 }
 
 template <typename T>
-template <typename Cnt>
-typename ana::analysis<T>::template node<Cnt> ana::analysis<T>::book(const node<counter::booker<Cnt>>& booker)
+template <typename Cnt, typename Sel>
+typename ana::analysis<T>::template delayed<Cnt> ana::analysis<T>::count(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel)
 {
+	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto nd = node<Cnt>(*this, this->m_processors.invoke( [=](processor<reader_type>& proc, counter::booker<Cnt>& bkr) { return proc.template book<Cnt>(bkr); }, booker ));
-	this->add_counter(nd);
-  return nd;
-}
-
-template <typename T>
-typename ana::analysis<T>::template node<ana::selection> ana::analysis<T>::operator[](const std::string& path) const
-{
-	if (!this->has_selection(path)) {
-		throw std::logic_error("selection does not exist");
-	};
-	return m_selection_map.at(path);
+	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sel const& sel) { return lpr.template count<Cnt>(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
+	this->add_counter(cnt);
+  return cnt;
 }
 
 template <typename T>
 void ana::analysis<T>::analyze()
 { 
 	if (!m_analyzed) {
-		this->run_processors();
+		this->process_dataset();
 		this->clear_counters();
 	}
 	m_analyzed = true;
@@ -426,11 +361,11 @@ template <typename T>
 void ana::analysis<T>::clear_counters()
 { 
 	m_counter_list.clear();
-	this->m_processors.apply( [] (processor<reader_type>& proc) { proc.clear_counters(); } );
+	this->m_loopers.to_slots( [] (looper<dataset_reader_type>& lpr) { lpr.clear_counters(); } );
 }
 
 template <typename T>
-void ana::analysis<T>::run_processors()
+void ana::analysis<T>::process_dataset()
 {
 	// start
 	this->m_dataset->start();
@@ -439,12 +374,12 @@ void ana::analysis<T>::run_processors()
 	if (multithread::status()) {
 		// start threads
 		std::vector<std::thread> pool;
-		for (size_t islot=0 ; islot<this->m_processors.concurrency() ; ++islot) {
+		for (size_t islot=0 ; islot<this->m_loopers.concurrency() ; ++islot) {
 			pool.emplace_back(
-				[] (processor<reader_type>& proc) {
-					proc.process();
+				[] (looper<dataset_reader_type>& lpr) {
+					lpr.loop();
 				},
-				std::ref(*this->m_processors.slot(islot))
+				std::ref(*this->m_loopers.get_slot(islot))
 			);
 		}
 		// join threads
@@ -453,8 +388,8 @@ void ana::analysis<T>::run_processors()
 		}
 	// single-threaded
 	} else {
-		for (size_t islot=0 ; islot<this->m_processors.concurrency() ; ++islot) {
-			this->m_processors.slot(islot)->process();
+		for (size_t islot=0 ; islot<this->m_loopers.concurrency() ; ++islot) {
+			this->m_loopers.get_slot(islot)->loop();
 		}
 	}
 
@@ -463,61 +398,75 @@ void ana::analysis<T>::run_processors()
 
 }
 
+// template <typename T>
+// ana::analysis<T>& ana::analysis<T>::rebase(const delayed<selection>& sel)
+// {
+// 	this->m_loopers.to_slots( [] (looper<dataset_reader_type>& lpr, selection& sel) { lpr.rebase(sel); }, sel.get_slots() );	
+//   return *this;
+// }
+
 template <typename T>
-ana::analysis<T>& ana::analysis<T>::rebase(const node<selection>& sel)
+void ana::analysis<T>::add_column(typename ana::analysis<T>::template delayed<column> delayed)
 {
-	this->m_processors.apply( [] (processor<reader_type>& proc, selection& sel) { proc.rebase(sel); }, sel );	
-  return *this;
+	m_column_list.push_back(delayed);
 }
 
 template <typename T>
-bool ana::analysis<T>::has_column(const std::string& name) const
+void ana::analysis<T>::add_selection(typename ana::analysis<T>::template delayed<selection> delayed)
 {
-	return m_column_map.find(name)!=m_column_map.end();
+	m_selection_list.push_back(delayed);
 }
 
 template <typename T>
-bool ana::analysis<T>::has_selection(const std::string& path) const
+void ana::analysis<T>::add_counter(typename ana::analysis<T>::template delayed<counter> delayed)
 {
-	return m_selection_map.find(path)!=m_selection_map.end();
+	m_counter_list.push_back(delayed);
+}
+template <typename T>
+template <typename Sel, typename F>
+auto ana::analysis<T>::repeat_selection(delayed<custom_selection_calculator_t<Sel,F>> const& calc) -> delayed<custom_selection_calculator_t<Sel,F>>
+{
+	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, custom_selection_calculator_t<Sel,F> const& calc){ return lpr.repeat_selection(calc); }, calc.get_slots() ));
 }
 
 template <typename T>
-void ana::analysis<T>::add_column(typename ana::analysis<T>::template node<column> node)
+template <typename Cnt>
+auto ana::analysis<T>::repeat_counter(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>
 {
-	auto name = node.get_name();
-	if (this->has_column(name)) {
-		throw std::logic_error("column already exists");
-	}
-	m_column_map[name] = node;
-	m_column_names.push_back(name);
+	return delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, counter::booker<Cnt> const& bkr){ return lpr.repeat_counter(bkr); }, bkr.get_slots() ));
+}
+
+template <typename... Nodes>
+auto ana::list_all_variation_names(Nodes const&... nodes) -> std::set<std::string> {
+	std::set<std::string> variation_names;
+	(variation_names.merge(nodes.list_variation_names()),...);
+	return variation_names;
 }
 
 template <typename T>
-void ana::analysis<T>::add_selection(typename ana::analysis<T>::template node<selection> node)
+template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* ptr> inline
+auto ana::analysis<T>::vary_column(delayed<V> const&, const std::string& colname) -> delayed<V>
 {
-	auto path = node.get_path();
-	if (this->has_selection(path)) {
-		throw std::logic_error("selection already exists");
-	}
-	m_selection_map[path] = node;
-	m_selection_paths.push_back(path);
+  return this->read<term_value_t<V>>(colname);
 }
 
 template <typename T>
-void ana::analysis<T>::add_counter(typename ana::analysis<T>::template node<counter> node)
+template <typename Val, typename V, typename std::enable_if_t<ana::is_column_constant_v<V>, V>* ptr> inline
+auto ana::analysis<T>::vary_column(delayed<V> const& nom, Val const& val) -> delayed<V>
 {
-	m_counter_list.push_back(node);
+	return this->constant<Val>(val);
 }
 
 template <typename T>
-std::vector<std::string> ana::analysis<T>::list_column_names() const
+template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V>, V>* ptr> inline
+auto ana::analysis<T>::vary_definition(delayed<column::calculator<V>> const&, Args&&... args) -> delayed<column::calculator<V>>
 {
-	return m_column_names;
+  return this->define<V>(std::forward<Args>(args)...);
 }
 
 template <typename T>
-std::vector<std::string> ana::analysis<T>::list_selection_paths() const
+template <typename F, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr> inline
+auto ana::analysis<T>::vary_definition(delayed<column::calculator<V>> const& nom, F&& expression) -> delayed<column::calculator<V>>
 {
-	return m_selection_paths;
+	return this->define(std::forward<F>(expression));
 }

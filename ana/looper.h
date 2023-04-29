@@ -6,41 +6,43 @@
 
 #include "ana/routine.h"
 #include "ana/computation.h"
-#include "ana/cutflow.h"
 #include "ana/experiment.h"
 
 namespace ana
 {
 
 template <typename T>
-class processor : public routine, public column::computation<T>, public counter::experiment
+class looper : public routine, public column::computation<T>, public counter::experiment
 {
 
 public:
-	processor(input::reader<T>& reader, double scale);
-	virtual ~processor() = default;
+	looper(input::reader<T>& reader, double scale);
+	virtual ~looper() = default;
 
 public:
 	virtual void initialize() override;
 	virtual void execute() override;
 	virtual void finalize() override;
 
-	void process();
-	void process(input::progress& progress);
+	void loop();
+	void loop(input::progress& progress);
 
 };
 
 }
 
+#include "ana/selection.h"
+#include "ana/counter.h"
+
 template <typename T>
-ana::processor<T>::processor(input::reader<T>& reader, double scale) :
+ana::looper<T>::looper(input::reader<T>& reader, double scale) :
   routine(),
 	column::computation<T>(reader),
 	counter::experiment(scale)
 {}
 
 template <typename T>
-void ana::processor<T>::initialize()
+void ana::looper<T>::initialize()
 {
 	for (const auto& col : this->m_columns) {
 		col->initialize();
@@ -54,7 +56,7 @@ void ana::processor<T>::initialize()
 }
 
 template <typename T>
-void ana::processor<T>::execute()
+void ana::looper<T>::execute()
 {
 	for (const auto& col : this->m_columns) {
 		col->execute();
@@ -68,7 +70,7 @@ void ana::processor<T>::execute()
 }
 
 template <typename T>
-void ana::processor<T>::finalize()
+void ana::looper<T>::finalize()
 {
 	for (const auto& col : this->m_columns) {
 		col->finalize();
@@ -82,7 +84,7 @@ void ana::processor<T>::finalize()
 }
 
 template <typename T>
-void ana::processor<T>::process()
+void ana::looper<T>::loop()
 {
 	// start
 	this->m_reader->begin();
@@ -99,7 +101,7 @@ void ana::processor<T>::process()
 }
 
 template <typename T>
-void ana::processor<T>::process(input::progress& progress)
+void ana::looper<T>::loop(input::progress& progress)
 {
 	// start
 	this->m_reader->begin();

@@ -23,7 +23,7 @@ public:
   using argtup_type = std::tuple<variable<Args>...>;
 
 public:
-  defined_from(const std::string& name);
+  defined_from();
   virtual ~defined_from() = default;
 
   template <typename... UArgs>
@@ -44,7 +44,7 @@ class column::definition<Ret(Args...)> : public term<Ret>::template defined_from
 {
 
 public:
-  definition(const std::string& name);
+  definition();
   virtual ~definition() = default;
 
 };
@@ -53,19 +53,19 @@ public:
 
 template <typename Ret>
 template <typename... Args>
-ana::term<Ret>::defined_from<Args...>::defined_from(const std::string& name) :
-  term<Ret>::calculation(name)
+ana::term<Ret>::defined_from<Args...>::defined_from() :
+  term<Ret>::calculation()
 {}
 
 template <typename Ret, typename... Args>
-ana::column::definition<Ret(Args...)>::definition(const std::string& name) :
-  term<Ret>::template defined_from<Args...>(name)
+ana::column::definition<Ret(Args...)>::definition() :
+  term<Ret>::template defined_from<Args...>()
 {}
 
 template <typename Ret>
 template <typename... Args>
 template <typename... UArgs>
-void ana::term<Ret>::defined_from<Args...>::set_arguments(const cell<UArgs>&... args)
+void ana::term<Ret>::defined_from<Args...>::set_arguments(cell<UArgs> const&... args)
 {
   static_assert(sizeof...(Args)==sizeof...(UArgs));
   m_arguments = std::make_tuple(
@@ -83,7 +83,7 @@ auto ana::term<Ret>::defined_from<Args...>::get_arguments() const -> argtup_type
   return m_arguments;
 }
 
-// user-defined evaluation with input arguments
+// user-defined expression with input arguments
 template <typename Ret>
 template <typename... Args>
 Ret ana::term<Ret>::defined_from<Args...>::calculate() const

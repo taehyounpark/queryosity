@@ -2,7 +2,7 @@
 
 #include "ana/concurrent.h"
 #include "ana/input.h"
-#include "ana/processor.h"
+#include "ana/looper.h"
 
 namespace ana
 {
@@ -12,17 +12,22 @@ class sample
 {
 
 public:
-  using dataset_type = T;
-  using reader_type = input::read_t<T>;
+  using dataset_reader_type = input::read_dataset_t<T>;
 
 public:
   sample(long long max_entries=-1);
   virtual ~sample() = default;
 
+  // general case (cannot handle arguments with initializer braces)
   template <typename... Args>
-  void open(const Args&... args);
+  void open(Args&&... args);
 
-  void open(std::unique_ptr<T> dataset);
+  // shortcut for file paths provided with initializer braces
+  template <typename U = T, typename std::enable_if_t<std::is_constructible_v<U,std::string,std::initializer_list<std::string>>, U>* = nullptr>
+  void open(const std::string& key, std::initializer_list<std::string> file_paths);
+
+  template <typename... Args>
+  void prepare(std::unique_ptr<T> dataset);
 
   void scale(double w);
 
@@ -30,12 +35,12 @@ public:
   double get_weight() const;
 
 protected:
-  long long                       m_max_entries;
-  double                          m_scale;
-  std::unique_ptr<T>              m_dataset;
-  input::partition                m_partition;
-  concurrent<reader_type>         m_readers;
-  concurrent<processor<reader_type>> m_processors;
+  long long                                  m_max_entries;
+  double                                     m_scale;
+  std::unique_ptr<T>                         m_dataset;
+  input::partition                           m_partition;
+  concurrent<dataset_reader_type>            m_readers;
+  concurrent<looper<dataset_reader_type>> m_loopers;
 
 };
 
@@ -49,47 +54,47 @@ ana::sample<T>::sample(long long max_entries) :
 
 template <typename T>
 template <typename... Args>
-void ana::sample<T>::open(const Args&... args)
+void ana::sample<T>::open(Args&&... args)
 {
-  m_dataset = std::make_unique<T>(args...);
-
-  // partition data
-	m_partition = m_dataset->allocate().truncate(m_max_entries).merge(ana::multithread::concurrency());
-
-  // normalize data
-  m_scale /= m_dataset->normalize();
-
-  // open readers & processors
-  m_readers.clear();
-  m_processors.clear();
-  for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
-    auto rdr = m_dataset->open_reader(m_partition.part(islot));
-    m_readers.add(rdr);
-    auto proc = std::make_shared<processor<reader_type>>(*rdr,m_scale);
-    m_processors.add(proc);
-	}
+  // make the dataset according to user implementation
+  this->prepare(std::make_unique<T>(std::forward<Args>(args)...));
 }
 
 template <typename T>
-void ana::sample<T>::open(std::unique_ptr<T> ds)
+template <typename U, typename std::enable_if_t<std::is_constructible_v<U,std::string,std::initializer_list<std::string>>, U>* ptr > inline
+void ana::sample<T>::open(const std::string& key, std::initializer_list<std::string> file_paths)
 {
-  m_dataset = std::move(ds);
+  // make the dataset according to user implementation
+  this->prepare(std::make_unique<T>(key, file_paths));
+}
 
-  // partition data
+template <typename T>
+template <typename... Args>
+void ana::sample<T>::prepare(std::unique_ptr<T> dataset)
+{
+  m_dataset = std::move(dataset);
+
+  // first, allocate the dataset partition according to user implementation
+  // then, truncate to the maximum requested entries
+  // finally, downsize to the maximum requested concurrency
 	m_partition = m_dataset->allocate().truncate(m_max_entries).merge(ana::multithread::concurrency());
 
-  // normalize data
+  // calculate a normalization factor according to user implementation
+  // globally scale the sample by the inverse
   m_scale /= m_dataset->normalize();
 
-  // open readers & processors
+  // open the dataset reader and looper for each available thread
   m_readers.clear();
-  m_processors.clear();
+  m_loopers.clear();
   for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
-    auto rdr = m_dataset->open_reader(m_partition.part(islot));
-    m_readers.add(rdr);
-    auto proc = std::make_shared<processor<reader_type>>(*rdr,m_scale);
-    m_processors.add(proc);
+    auto rdr = m_dataset->read_dataset(m_partition.get_part(islot));
+    m_readers.add_slot(rdr);
+    auto lpr = std::make_shared<looper<dataset_reader_type>>(*rdr,m_scale);
+    m_loopers.add_slot(lpr);
 	}
+
+  // done -- sample is opened and ready for analysis
+  return;
 }
 
 template <typename T>

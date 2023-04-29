@@ -8,6 +8,10 @@
 namespace ana
 {
 
+template<typename T> struct is_shared_ptr : std::false_type {};
+template<typename T> struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
+template <typename T> static constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
+
 template<typename T>
 class sample;
 
@@ -35,9 +39,11 @@ struct partition
 	partition() = default;
 	~partition() = default;
 
-	void      add(size_t islot, long long start, long long end);
-	void      add(const range& range);
-	range     part(size_t irange) const;
+	void      add_part(size_t islot, long long start, long long end);
+	void      add_part(const range& range);
+
+	range     get_part(size_t irange) const;
+
 	size_t    size() const;
 	range     total() const;
 	partition truncate(long long max_entries=-1) const;
@@ -79,7 +85,7 @@ public:
 	virtual double normalize() const;
 
 	// read data for range
-  decltype(auto) open_reader(const range& part) const;
+  decltype(auto) read_dataset(const range& part) const;
 
 	// run dataset
 	virtual void start();
@@ -92,12 +98,14 @@ class reader
 {
 
 public:
+
+public:
 	reader(const range& part);
 	~reader() = default;
 
-	// open data range for each range
-	template<typename U, typename... Args>
-  decltype(auto) read_column(const std::string& name, Args&&... args) const;
+	// read a column of a data type with given name
+	template<typename Val>
+  decltype(auto) read_column(const std::string& name) const;
 
 	virtual void begin();
 	virtual bool next() = 0;
@@ -109,7 +117,10 @@ protected:
 };
 
 template<typename T>
-using read_t = typename decltype(std::declval<T>().open_reader(std::declval<const input::range&>()))::element_type;
+using read_dataset_t = typename decltype(std::declval<T>().read_dataset(std::declval<range>()))::element_type;
+
+template<typename T, typename Val>
+using read_column_t = typename decltype(std::declval<T>().template read_column<Val>(std::declval<std::string>()))::element_type;
 
 }
 
@@ -136,8 +147,10 @@ void ana::input::dataset<T>::finish()
 {}
 
 template<typename T>
-decltype(auto) ana::input::dataset<T>::open_reader(const range& part) const
+decltype(auto) ana::input::dataset<T>::read_dataset(const range& part) const
 {
+	using opened_t = decltype(static_cast<const T*>(this)->open(part));
+	static_assert( is_shared_ptr_v<opened_t>, "dataset must open shared pointer of its reader" );
 	return static_cast<const T*>(this)->open(part);
 }
 
@@ -147,10 +160,12 @@ ana::input::reader<T>::reader(const ana::input::range& part) :
 {}
 
 template<typename T>
-template<typename U, typename... Args>
-decltype(auto) ana::input::reader<T>::read_column(const std::string& name, Args&&... args) const
+template<typename Val>
+decltype(auto) ana::input::reader<T>::read_column(const std::string& name) const
 {
-	return static_cast<const T*>(this)->template read<U>(name, std::forward<Args>(args)...);
+	using opened_t = decltype(static_cast<const T*>(this)->template read<Val>(name));
+	static_assert( is_shared_ptr_v<opened_t>, "dataset must open shared pointer of its column reader" );
+	return static_cast<const T*>(this)->template read<Val>(name);
 }
 
 template<typename T>

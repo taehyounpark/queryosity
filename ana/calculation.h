@@ -13,7 +13,7 @@ class term<T>::calculation : public term<T>
 {
 
 public:
-	calculation(const std::string& name);
+	calculation();
   virtual ~calculation() = default;
 
 public:
@@ -38,8 +38,8 @@ protected:
 }
 
 template <typename T>
-ana::term<T>::calculation::calculation(const std::string& name) :
-  term<T>(name),
+ana::term<T>::calculation::calculation() :
+  term<T>(),
   m_updated(true)
 {}
 

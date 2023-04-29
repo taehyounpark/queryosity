@@ -3,8 +3,8 @@
 #include "ana/selection.h"
 #include "ana/strutils.h"
 
-ana::counter::counter(const std::string& name) :
-	ana::action(name),
+ana::counter::counter() :
+	ana::routine(),
 	m_selection(nullptr),
 	m_scale(1.0),
 	m_raw(false)
