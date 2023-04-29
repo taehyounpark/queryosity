@@ -28,15 +28,17 @@ class ana::selection::cut::calculator
 
 public:
 	using selection_type = cut;
+	using equation_type = T;
 
 public:
 	calculator(const std::string& name, std::shared_ptr<T> eqn);
 	~calculator() = default;
 
 	void set_channel(bool ch);
+	void set_previous( selection const& prev );
 
-	template <typename Sel>
-	void set_previous( Sel const& prev );
+	bool is_channel() const;
+	std::string get_name() const;
 
 	template <typename... Vals> 
 	std::shared_ptr<cut> apply_selection( cell<Vals> const&... columns) const;
@@ -46,6 +48,7 @@ protected:
 	std::function<std::shared_ptr<cut>()> m_make_shared_cut;
 	std::function<void(cut&)> m_set_previous;
 	bool m_channel;
+	std::string m_name;
 
 };
 
@@ -53,6 +56,7 @@ protected:
 
 template <typename T>
 ana::selection::cut::calculator<T>::calculator(const std::string& name, std::shared_ptr<T> eqn) :
+	m_name(name),
 	m_make_shared_cut(std::bind([](const std::string& name){return std::make_shared<cut>(name);}, name)),
 	m_equation(eqn),
 	m_set_previous([](cut&){return;}),
@@ -66,10 +70,21 @@ void ana::selection::cut::calculator<T>::set_channel(bool ch)
 }
 
 template <typename T>
-template <typename Sel>
-void ana::selection::cut::calculator<T>::set_previous(Sel const& previous)
+bool ana::selection::cut::calculator<T>::is_channel() const
 {
-	m_set_previous = std::bind([](cut& curr, Sel const& prev){curr.set_previous(prev);}, std::placeholders::_1, std::cref(previous));
+	return m_channel;
+}
+
+template <typename T>
+std::string ana::selection::cut::calculator<T>::get_name() const
+{
+	return m_name;
+}
+
+template <typename T>
+void ana::selection::cut::calculator<T>::set_previous(ana::selection const& previous)
+{
+	m_set_previous = std::bind([](cut& curr, selection const& prev){curr.set_previous(prev);}, std::placeholders::_1, std::cref(previous));
 }
 
 template <typename T>

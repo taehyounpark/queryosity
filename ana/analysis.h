@@ -108,8 +108,14 @@ public:
 protected:
   void process_dataset();
 
-  template <typename Def, typename... Args>
-  auto vary_column(delayed<column::calculator<Def>> const& calc, Args&&... args) -> delayed<column::calculator<Def>>;
+	template <typename Sel, typename F>
+  auto filter(delayed<selection> const& prev, const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>;
+  template <typename Sel, typename F>
+  auto channel(delayed<selection> const& prev, const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>;
+	template <typename Sel>
+  auto filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
+  template <typename Sel>
+  auto channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
 
 	// recreate a delayed node as a variation under new arguments
 	template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* = nullptr>
@@ -117,9 +123,9 @@ protected:
 	template <typename Val, typename V, typename std::enable_if_t<ana::is_column_constant_v<V>, V>* = nullptr>
 	auto vary_column(delayed<V> const& nom, Val const& val) -> delayed<V>;
 	template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V>, V>* = nullptr>
-	auto vary_column(delayed<V> const& nom, Args&&... args) -> delayed<V>;
+	auto vary_definition(delayed<column::calculator<V>> const& nom, Args&&... args) -> delayed<column::calculator<V>>;
 	template <typename F, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* = nullptr>
-	auto vary_column(delayed<V> const& nom, F&& expression) -> delayed<V>;
+	auto vary_definition(delayed<column::calculator<V>> const& nom, F&& expression) -> delayed<column::calculator<V>>;
 
   template <typename Sel, typename F>
   auto repeat_selection(delayed<custom_selection_calculator_t<Sel,F>> const& calc) -> delayed<custom_selection_calculator_t<Sel,F>>;
@@ -218,7 +224,7 @@ template <typename T>
 template <typename Val>
 auto ana::analysis<T>::constant(const Val& val) -> delayed<ana::column::constant<Val>>
 {
-	auto nd = delayed<term<Val>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template constant<Val>(val); } ));
+	auto nd = delayed<column::constant<Val>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template constant<Val>(val); } ));
 	this->add_column(nd);
   return nd;
 }
@@ -277,6 +283,34 @@ auto ana::analysis<T>::channel(const std::string& name) -> delayed<simple_select
 {
 	auto sel = delayed<simple_selection_calculator_t<Sel>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,[](double x){return x;}); } ));
 	return sel;	
+}
+
+template <typename T>
+template <typename Sel, typename F>
+auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>
+{
+	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,lmbd); }, prev.get_slots() ));
+}
+
+template <typename T>
+template <typename Sel, typename F>
+auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>
+{
+	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,lmbd); }, prev.get_slots() ));
+}
+
+template <typename T>
+template <typename Sel>
+auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
+{
+	return delayed<simple_selection_calculator_t<Sel>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
+}
+
+template <typename T>
+template <typename Sel>
+auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
+{
+	return delayed<simple_selection_calculator_t<Sel>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
 }
 
 template <typename T>
@@ -388,14 +422,6 @@ void ana::analysis<T>::add_counter(typename ana::analysis<T>::template delayed<c
 {
 	m_counter_list.push_back(delayed);
 }
-
-template <typename T>
-template <typename Def, typename... Args>
-auto ana::analysis<T>::vary_column(delayed<column::calculator<Def>> const& calc, Args&&... args) -> delayed<column::calculator<Def>>
-{
-	return delayed<column::calculator<Def>>(*this, this->m_processors.from_slots( [&](processor<dataset_reader_type>& proc, column::calculator<Def> const& calc){ return proc.vary_column(calc, std::forward<Args>(args)...); }, calc.get_slots() ));
-}
-
 template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::repeat_selection(delayed<custom_selection_calculator_t<Sel,F>> const& calc) -> delayed<custom_selection_calculator_t<Sel,F>>
@@ -433,14 +459,14 @@ auto ana::analysis<T>::vary_column(delayed<V> const& nom, Val const& val) -> del
 
 template <typename T>
 template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V>, V>* ptr> inline
-auto ana::analysis<T>::vary_column(delayed<V> const&, Args&&... args) -> delayed<V>
+auto ana::analysis<T>::vary_definition(delayed<column::calculator<V>> const&, Args&&... args) -> delayed<column::calculator<V>>
 {
   return this->define<V>(std::forward<Args>(args)...);
 }
 
 template <typename T>
 template <typename F, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr> inline
-auto ana::analysis<T>::vary_column(delayed<V> const& nom, F&& expression) -> delayed<V>
+auto ana::analysis<T>::vary_definition(delayed<column::calculator<V>> const& nom, F&& expression) -> delayed<column::calculator<V>>
 {
 	return this->define(std::forward<F>(expression));
 }

@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <memory>
-#include <unordered_map>
 
 #include "ana/selection.h"
 #include "ana/cut.h"
@@ -26,6 +25,12 @@ public:
 	template <typename Sel, typename F>
 	auto channel(const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
 
+	template <typename Sel, typename F>
+	auto filter(selection const& prev, const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
+
+	template <typename Sel, typename F>
+	auto channel(selection const& prev, const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
+
 	template <typename Calc, typename... Cols>
 	auto apply(Calc& calc, Cols const&... columns) -> std::shared_ptr<typename Calc::selection_type>;
 
@@ -41,14 +46,10 @@ protected:
 
 };
 
-template <typename T>
-struct is_selection_calculator: std::false_type {};
-template <typename T>
-struct is_selection_calculator<selection::cut::calculator<T>>: std::true_type {};
-template <typename T>
-struct is_selection_calculator<selection::weight::calculator<T>>: std::true_type {};
-template <typename T>
-constexpr bool is_selection_calculator_v = is_selection_calculator<T>::value;
+template <typename T> struct is_selection_calculator: std::false_type {};
+template <typename T> struct is_selection_calculator<selection::cut::calculator<T>>: std::true_type {};
+template <typename T> struct is_selection_calculator<selection::weight::calculator<T>>: std::true_type {};
+template <typename T> constexpr bool is_selection_calculator_v = is_selection_calculator<T>::value;
 
 }
 
@@ -71,6 +72,22 @@ auto ana::selection::cutflow::channel(const std::string& name, F&& lmbd) -> std:
 	auto eqn = make_equation(std::function(std::forward<F>(lmbd)));
 	auto calc = std::make_shared<typename Sel::template calculator<equation_t<F>>>(name,eqn);
 	calc->set_channel(true);
+	return calc;
+}
+
+template <typename Sel, typename F>
+auto ana::selection::cutflow::filter(selection const& prev, const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>
+{
+	auto calc = this->filter<Sel>(name,std::forward<F>(lmbd));
+	calc->set_previous(prev);
+	return calc;
+}
+
+template <typename Sel, typename F>
+auto ana::selection::cutflow::channel(selection const& prev,const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>
+{
+	auto calc = this->channel<Sel>(name,std::forward<F>(lmbd));
+	calc->set_previous(prev);
 	return calc;
 }
 

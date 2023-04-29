@@ -10,6 +10,21 @@
 namespace ana
 {
 
+struct has_no_equality {}; 
+template<typename T, typename Arg> has_no_equality operator==(const T&, const Arg&);
+template<typename T, typename Arg = T>
+struct has_equality_v { enum { value = !std::is_same<decltype(std::declval<T>() < std::declval<Arg>()), has_no_equality>::value }; };  
+
+struct has_no_division {}; 
+template<typename T, typename Arg> has_no_division operator/(const T&, const Arg&);
+template<typename T, typename Arg = T>
+struct has_division { enum { value = !std::is_same<decltype(std::declval<T>() / std::declval<Arg>()), has_no_division>::value }; };  
+template<typename T, typename Arg = T>
+static constexpr bool has_division_v = has_division<T,Arg>::value;  
+
+template <typename T>
+using delayed_action_t = typename decltype(std::declval<T>())::action_type;
+
 template <typename T>
 template <typename U>
 class analysis<T>::delayed : public analysis<T>::node<U>
@@ -17,6 +32,12 @@ class analysis<T>::delayed : public analysis<T>::node<U>
 
 public:
 	using action_type = U;
+
+	template <typename Sel, typename... Args>
+	using delayed_selection_calculator_t = decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...));
+
+	template <typename Sel, typename... Args>
+	using selection_calculator_t = typename decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...))::action_type;
 
 public:
 	friend class analysis<T>;
@@ -55,41 +76,43 @@ public:
 	virtual bool has_variation(const std::string& varname) const override;
 	virtual std::set<std::string> list_variation_names() const override;
 
-	std::string get_name() const
-	{
-		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_threaded.from_model( [] (const selection& sel) { return sel.get_name(); } );
-		} else {
-			static_assert( (std::is_base_of_v<selection,U>), "not a selection" );
-		}
-	}
+	// std::string get_name() const
+	// {
+	// 	if constexpr(std::is_base_of_v<selection,U>) {
+	// 		return m_threaded.from_model( [] (const selection& sel) { return sel.get_name(); } );
+	// 	} else {
+	// 		static_assert( (std::is_base_of_v<selection,U>), "not a selection" );
+	// 	}
+	// }
 
-	std::string get_path() const
-	{
-		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_threaded.from_model( [] (const selection& sel) { return sel.get_path(); } );
-		} else {
-			static_assert((std::is_base_of_v<selection,U>), "not a selection");
-		}
-	}
+	// std::string get_path() const
+	// {
+	// 	if constexpr(std::is_base_of_v<selection,U>) {
+	// 		return m_threaded.from_model( [] (const selection& sel) { return sel.get_path(); } );
+	// 	} else {
+	// 		static_assert((std::is_base_of_v<selection,U>), "not a selection");
+	// 	}
+	// }
 
-	std::string get_full_path() const
-	{
-		if constexpr(std::is_base_of_v<selection,U>) {
-			return m_threaded.from_model( [] (const selection& sel) { return sel.get_full_path(); } );
-		} else {
-			static_assert((std::is_base_of_v<selection,U>), "not a selection");
-		}
-	}
+	// std::string get_full_path() const
+	// {
+	// 	if constexpr(std::is_base_of_v<selection,U>) {
+	// 		return m_threaded.from_model( [] (const selection& sel) { return sel.get_full_path(); } );
+	// 	} else {
+	// 		static_assert((std::is_base_of_v<selection,U>), "not a selection");
+	// 	}
+	// }
 
 	// created a varied node that will contain the original as nominal
 	// and a single variation under the specified name and constructor arguments
 	// further calls to add more variations are handled by varied<V>::vary()
-	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_v<V>, V>* = nullptr>
+	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>, V>* = nullptr>
+	auto vary(const std::string& varname, Args&&... args) -> varied<V>;
+	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* = nullptr>
 	auto vary(const std::string& varname, Args&&... args) -> varied<V>;
 
   template <typename... Nodes, std::enable_if_t<has_no_variation_v<Nodes...>, int> = 0>
-	auto evaluate(Nodes... columns) const
+	auto evaluate(Nodes const&... columns) const
 	{
 		if constexpr( is_column_calculator_v<U> ) {
 			auto col = this->m_analysis->compute(*this, columns...);
@@ -100,7 +123,7 @@ public:
 	}
 
 	template <typename... Nodes, typename V = U, std::enable_if_t<has_variation_v<Nodes...>&&is_column_calculator_v<V>, int> = 0>
-	auto evaluate(Nodes... columns) const -> varied<calculated_column_t<V>>
+	auto evaluate(Nodes const&... columns) const -> varied<calculated_column_t<V>>
 	{
 		if constexpr( is_column_calculator_v<V> ) {
 			// this is nominal
@@ -118,8 +141,6 @@ public:
 	}
 
 	// filter: regular selection operation
-	template <typename Sel, typename... Args>
-	using delayed_selection_calculator_t = decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...));
   template <typename Sel, typename... Args>
   auto filter(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>;
   template <typename Sel, typename... Args>
@@ -132,7 +153,7 @@ public:
 	}
 
 	template <typename... Nodes , std::enable_if_t<(is_varied_v<Nodes>||...), int> = 0>
-	auto apply(Nodes... columns) -> varied<U>
+	auto apply(Nodes const&... columns) -> varied<U>
 	{
 		if constexpr(is_selection_calculator_v<U>) {
 			auto syst = varied<U>(*this);
@@ -154,7 +175,7 @@ public:
 	}
 
 	template <typename... Nodes , std::enable_if_t<has_no_variation_v<Nodes...>, int> = 0>
-	auto fill(Nodes... columns) -> delayed<U>
+	auto fill(Nodes const&... columns) -> delayed<U>
 	{
 		if constexpr(is_counter_booker_v<U>) {
 			m_threaded.to_slots( [] (U& fillable, typename Nodes::action_type&... cols) { fillable.fill_columns(cols...); }, columns.get_slots()... );
@@ -165,14 +186,13 @@ public:
 	}
 
 	template <typename... Nodes, std::enable_if_t< has_variation_v<Nodes...>, int> = 0>
-	auto fill(Nodes... columns) -> varied<U>
+	auto fill(Nodes const&... columns) -> varied<U>
 	{
 		// always repeat the counter, so each fill operation is performed independently
 		if constexpr(is_counter_booker_v<U>) {
 			// nominal
 			auto nom = this->m_analysis->repeat_counter(*this);
-			nom.fill(columns.nominal()...);
-			auto syst = varied<U>(nom);
+			auto syst = varied<U>(nom.fill(columns.nominal()...));
 			// variations
 			for (auto const& varname : list_all_variation_names(columns...)) {
 				auto var = this->m_analysis->repeat_counter(*this);
@@ -212,6 +232,11 @@ public:
 		return m_threaded.model()->result();
 	}
 
+	analysis<T>* get_analysis() { return this->m_analysis; }
+	concurrent<U> const& get_slots() const { 
+		return m_threaded; 
+	}
+
 	template <typename... Args>
 	auto operator()(Args&&... args)
 	{
@@ -225,10 +250,13 @@ public:
 		}
 	}
 
-	analysis<T>* get_analysis() { return this->m_analysis; }
-	concurrent<U> const& get_slots() const { 
-		return m_threaded; 
+	// // pass through arithmetic operators for columns
+	template <typename V, typename W = U, typename std::enable_if_t<is_column_v<W> && has_division_v<term_value_t<W>, term_value_t<typename V::action_type>>, W>* = nullptr>
+	auto operator/(V const& other) const 
+	{
+		return this->m_analysis->define([](term_value_t<W> const& me, term_value_t<typename V::action_type> const& you){ return me / you; })(*this,other);
 	}
+
 
 protected:
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
@@ -301,7 +329,7 @@ bool ana::analysis<T>::delayed<Act>::has_variation(const std::string&) const
 
 template <typename T>
 template <typename Act>
-template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_v<V>, V>* ptr> inline
+template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>, V>* ptr> inline
 auto ana::analysis<T>::delayed<Act>::vary(const std::string& varname, Args&&... args) -> varied<V>
 {
   // create a delayed varied with the this as nominal
@@ -314,11 +342,25 @@ auto ana::analysis<T>::delayed<Act>::vary(const std::string& varname, Args&&... 
 
 template <typename T>
 template <typename Act>
+template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* ptr> inline
+auto ana::analysis<T>::delayed<Act>::vary(const std::string& varname, Args&&... args) -> varied<V>
+{
+  // create a delayed varied with the this as nominal
+  auto syst = varied<V>(*this);
+	// set variation of the column according to new constructor arguments
+  syst.set_variation(varname, this->m_analysis->vary_definition(*this, std::forward<Args>(args)...));
+  // done
+  return syst;
+}
+
+template <typename T>
+template <typename Act>
 template <typename Sel, typename... Args>
 auto ana::analysis<T>::delayed<Act>::filter(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>
 {
 	if constexpr(std::is_base_of_v<selection,Act>) {
-		auto sel = this->m_analysis->template filter<Sel>(name, std::forward<Args>(args)...);
+		auto sel = this->m_analysis->template filter<Sel>(*this, name, std::forward<Args>(args)...);
+		// sel.get_slots().to_slots( [](typename delayed_selection_calculator_t<Sel,Args...>::action_type& calc, selection const& prev){calc.set_previous(prev);}, this->get_slots() );
 		return sel;
 	} else {
 		static_assert(std::is_base_of_v<selection,Act>, "filter must be called from a selection");
@@ -331,9 +373,10 @@ template <typename Sel, typename... Args>
 auto ana::analysis<T>::delayed<Act>::channel(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>
 {
 	if constexpr(std::is_base_of_v<selection,Act>) {
-		auto sel = this->m_analysis->template channel<Sel>(name, std::forward<Args>(args)...);
+		auto sel = this->m_analysis->template channel<Sel>(*this, name, std::forward<Args>(args)...);
+		// sel.get_slots().to_slots( [](typename delayed_selection_calculator_t<Sel,Args...>::action_type& calc, selection const& prev){calc.set_previous(prev);}, this->get_slots() );
 		return sel;
 	} else {
-		static_assert(std::is_base_of_v<selection,Act>, "filter must be called from a selection");
+		static_assert(std::is_base_of_v<selection,Act>, "channel must be called from a selection");
 	}
 }

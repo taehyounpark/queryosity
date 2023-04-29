@@ -28,15 +28,17 @@ class ana::selection::weight::calculator
 
 public:
 	using selection_type = weight;
+	using equation_type = T;
 
 public:
 	calculator(const std::string& name, std::shared_ptr<T> eqn);
 	~calculator() = default;
 
 	void set_channel(bool ch);
+	void set_previous( selection const& prev );
 
-	template <typename Sel>
-	void set_previous( Sel const& prev );
+	bool is_channel() const;
+	std::string get_name() const;
 
 	template <typename... Vals> 
 	std::shared_ptr<weight> apply_selection( cell<Vals> const&... columns) const;
@@ -46,6 +48,7 @@ protected:
 	std::function<std::shared_ptr<weight>()> m_make_shared_weight;
 	std::function<void(weight&)> m_set_previous;
 	bool m_channel;
+	std::string m_name;
 
 };
 
@@ -53,6 +56,7 @@ protected:
 
 template <typename T>
 ana::selection::weight::calculator<T>::calculator(const std::string& name, std::shared_ptr<T> eqn) :
+	m_name(name),
 	m_make_shared_weight(std::bind([](const std::string& name){return std::make_shared<weight>(name);}, name)),
 	m_equation(eqn),
 	m_set_previous([](weight&){return;}),
@@ -66,10 +70,21 @@ void ana::selection::weight::calculator<T>::set_channel(bool ch)
 }
 
 template <typename T>
-template <typename Sel>
-void ana::selection::weight::calculator<T>::set_previous(Sel const& previous)
+void ana::selection::weight::calculator<T>::set_previous(selection const& previous)
 {
-	m_set_previous = std::bind([](weight& curr, Sel const& prev){curr.set_previous(prev);}, std::placeholders::_1, std::cref(previous));
+	m_set_previous = std::bind([](weight& curr, selection const& prev){curr.set_previous(prev);}, std::placeholders::_1, std::cref(previous));
+}
+
+template <typename T>
+bool ana::selection::weight::calculator<T>::is_channel() const
+{
+	return m_channel;
+}
+
+template <typename T>
+std::string ana::selection::weight::calculator<T>::get_name() const
+{
+	return m_name;
 }
 
 template <typename T>

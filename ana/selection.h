@@ -57,11 +57,11 @@ private:
 	bool m_channel;
 };
 
-template <typename Out, typename... Vals> 
-constexpr std::true_type check_selection(selection const&);
-constexpr std::false_type check_selection(...);
+// template <typename Out, typename... Vals> 
+// constexpr std::true_type check_selection(selection const&);
+// constexpr std::false_type check_selection(...);
 template <typename T> 
-constexpr bool is_selection_v = decltype(check_selection(std::declval<T>()))::value;
+constexpr bool is_selection_v = std::is_base_of_v<ana::selection, T>;
 
 }
 

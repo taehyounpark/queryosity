@@ -280,5 +280,8 @@ std::shared_ptr<T> ana::counter::booker<T>::book_counter_at(const selection& sel
 template <typename T>
 std::shared_ptr<T> ana::counter::booker<T>::get_booked_counter(const std::string& sel_path) const
 {
+	if (m_booked_counter_map.find(sel_path)==m_booked_counter_map.end()) {
+		return nullptr;
+	}
 	return m_booked_counter_map.at(sel_path);
 }

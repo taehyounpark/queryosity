@@ -18,8 +18,16 @@ public:
   sample(long long max_entries=-1);
   virtual ~sample() = default;
 
+  // general case (cannot handle arguments with initializer braces)
   template <typename... Args>
-  void open(const Args&... args);
+  void open(Args&&... args);
+
+  // shortcut for file paths provided with initializer braces
+  template <typename U = T, typename std::enable_if_t<std::is_constructible_v<U,std::string,std::initializer_list<std::string>>, U>* = nullptr>
+  void open(const std::string& key, std::initializer_list<std::string> file_paths);
+
+  template <typename... Args>
+  void prepare(std::unique_ptr<T> dataset);
 
   void scale(double w);
 
@@ -46,17 +54,36 @@ ana::sample<T>::sample(long long max_entries) :
 
 template <typename T>
 template <typename... Args>
-void ana::sample<T>::open(const Args&... args)
+void ana::sample<T>::open(Args&&... args)
 {
-  m_dataset = std::make_unique<T>(args...);
+  // make the dataset according to user implementation
+  this->prepare(std::make_unique<T>(std::forward<Args>(args)...));
+}
 
-  // partition data
+template <typename T>
+template <typename U, typename std::enable_if_t<std::is_constructible_v<U,std::string,std::initializer_list<std::string>>, U>* ptr > inline
+void ana::sample<T>::open(const std::string& key, std::initializer_list<std::string> file_paths)
+{
+  // make the dataset according to user implementation
+  this->prepare(std::make_unique<T>(key, file_paths));
+}
+
+template <typename T>
+template <typename... Args>
+void ana::sample<T>::prepare(std::unique_ptr<T> dataset)
+{
+  m_dataset = std::move(dataset);
+
+  // first, allocate the dataset partition according to user implementation
+  // then, truncate to the maximum requested entries
+  // finally, downsize to the maximum requested concurrency
 	m_partition = m_dataset->allocate().truncate(m_max_entries).merge(ana::multithread::concurrency());
 
-  // normalize data
+  // calculate a normalization factor according to user implementation
+  // globally scale the sample by the inverse
   m_scale /= m_dataset->normalize();
 
-  // open readers & processors
+  // open the dataset reader and processor for each available thread
   m_readers.clear();
   m_processors.clear();
   for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
@@ -65,6 +92,9 @@ void ana::sample<T>::open(const Args&... args)
     auto proc = std::make_shared<processor<dataset_reader_type>>(*rdr,m_scale);
     m_processors.add_slot(proc);
 	}
+
+  // done -- sample is opened and ready for analysis
+  return;
 }
 
 template <typename T>
