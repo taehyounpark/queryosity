@@ -1,26 +1,29 @@
 Coherent data analysis in C++.
-- Multithreaded and computationally optimal processing of the dataset.
-- Fast and intuitive computation of column values.
+- Multithreaded processing of the dataset.
+- Declarative computation of column values.
 - Clear chain and/or branches of selections applied to entries.
-- Systematic variations of an analysis computation performed simultaneously.
-- Customizable handling & output of analysis results.
-
-The purpose of this library is to provide a clear, ***_abstract_*** interface for users to implement the above features crucial for any rigorous dataset transformation procedures.
+- Propagation of systematic variations through an analysis.
+- Customizable logic & output of analysis results.
 
 ## Prerequisites
 - C++17 standard compiler
 - CMake 3.12 or newer
 
-## Key concept
+## Key concepts
+
+A clear way to define the logic data analysis procedures is crucial not only for the technical robustness of the results, but also to enable a way for analyzers to consistently extend and investigate complicated dataset transformation procedures as a project develops.
+This library provide an ***_abstract_*** interface for users to achieve these features.
 
 - An `analysis` entity that represents the entire dataset.
 - Performing an operation outputs a `delayed` node representing the booked action.
   - The processing of the dataset performing booked actions are triggered upon accessing the result of a node.
 - Further operations can be done in the context of existing ones, which are provided as input arguments.
-  - Some of these operations are called from the analysis, others from individual nodes.
-  - By construction, the computation graph is prevented from forming recursive node operations.
+  - By construction, the computation graph is prevented from forming recursions.
 - A node can be systematically `varied` for which an alternate definition of the action is included in the analysis.
-  - The union of applied variations is ensured to be reflected in any nodes involving any input node(s) with variation(s).
+  - All other operations that involve varied nodes carry them through, such that the end results represent the full union of all applicable variations.
+  - The propagation is "transparent", meaning no changes to the rest of interface calls are needed to see the variations in effect.
+
+Some of these paradigms are already de-facto standard in other programming languages such as Python (e.g. `dask.delayed`), while others (e.g. `varied<T>`) is not as much so.
 
 ## Applied walkthrough
 
@@ -134,7 +137,7 @@ auto pth_2los = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut2
 // counter can be booked at multiple cuts
 auto pth_hists = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut2ldf, cut2lsf);
 ```
-__Note__: The number of computational operations are guaranteed to be the minimum required to run the analysis graph, and any and all nodes that can be ruled out for each entry are not computed. In the case of the above histograms, since they are booked at $N_\ell \geq 2$ selections, the calculation of the $p_{\text{T}}^{\ell\ell}$ and also downstream $p_{\text{E}}^H$ will never be computed for events in which the vector sizes are not of appropiate size.
+__Note__: The number of computational operations are guaranteed to be the minimum required to run the analysis graph, and any and all nodes that can be ruled out for each entry are not computed. In the above example the calculation of the $p_{\text{T}}^{\ell\ell}$ and $p_{\text{E}}^H$ will not occur unless the event satisfies $n_\ell = 2$.
 
 #### 3.2 Processing the dataset and accessing results
 The result of each counter can be accessed by specifying the path of the booked selections
