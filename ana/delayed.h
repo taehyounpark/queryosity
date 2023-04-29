@@ -15,6 +15,10 @@ template<typename T, typename Arg> has_no_equality operator==(const T&, const Ar
 template<typename T, typename Arg = T>
 struct has_equality_v { enum { value = !std::is_same<decltype(std::declval<T>() < std::declval<Arg>()), has_no_equality>::value }; };  
 
+// template <typename T, typename Arg = T> struct has_division : std::false_type {};
+// template <typename T, typename Arg> struct has_division<decltype(std::declval<T>() / std::declval<Arg>()),decltype(std::declval<T>() / std::declval<Arg>())> : std::true_type {};
+// template <typename T, typename Arg> constexpr bool has_division_v = has_division<T, Arg>::value;
+
 struct has_no_division {}; 
 template<typename T, typename Arg> has_no_division operator/(const T&, const Arg&);
 template<typename T, typename Arg = T>
@@ -152,7 +156,7 @@ public:
 		return this->m_analysis->apply(*this, columns...);
 	}
 
-	template <typename... Nodes , std::enable_if_t<(is_varied_v<Nodes>||...), int> = 0>
+	template <typename... Nodes , std::enable_if_t<has_variation_v<Nodes...>, int> = 0>
 	auto apply(Nodes const&... columns) -> varied<U>
 	{
 		if constexpr(is_selection_calculator_v<U>) {
@@ -251,12 +255,11 @@ public:
 	}
 
 	// // pass through arithmetic operators for columns
-	template <typename V, typename W = U, typename std::enable_if_t<is_column_v<W> && has_division_v<term_value_t<W>, term_value_t<typename V::action_type>>, W>* = nullptr>
-	auto operator/(V const& other) const 
+	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && has_division_v<term_value_t<V>, term_value_t<typename Arg::action_type>>, V>* = nullptr>
+	auto operator/(Arg const& other) const 
 	{
-		return this->m_analysis->define([](term_value_t<W> const& me, term_value_t<typename V::action_type> const& you){ return me / you; })(*this,other);
+		return this->m_analysis->define([](term_value_t<V> const& me, term_value_t<typename Arg::action_type> const& you){ return me / you; })(*this,other);
 	}
-
 
 protected:
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>

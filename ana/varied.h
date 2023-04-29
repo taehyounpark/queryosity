@@ -94,6 +94,9 @@ public:
 	template <typename... Args>
 	auto operator()(Args&&... args) -> varied<typename decltype(std::declval<delayed<Act>>().operator()(std::forward<Args>(args).nominal()...))::action_type>;
 
+	template <typename Arg>
+	auto operator/(Arg&& b) const  -> varied<typename decltype(std::declval<delayed<Act>>().operator/(std::forward<Arg>(b).nominal()))::action_type>;
+
 	template <typename V = Act, typename std::enable_if<ana::is_counter_booker_v<V> || ana::is_counter_implemented_v<V>,void>::type* = nullptr>
 	auto operator[](const std::string& sel_path) const -> delayed<V>;
 
@@ -278,6 +281,18 @@ auto ana::analysis<T>::varied<Act>::operator()(Args&&... args) -> varied<typenam
 	auto syst = varied<typename decltype(std::declval<delayed<Act>>().operator()(std::forward<Args>(args).nominal()...))::action_type>(nominal().operator()(std::forward<Args>(args).nominal()...));
 	for (auto const& varname : list_all_variation_names(*this, std::forward<Args>(args)...)) {
 		syst.set_variation(varname, variation(varname).operator()(std::forward<Args>(args).variation(varname)...) );
+	}
+	return syst;
+}
+
+template <typename T>
+template <typename Act>
+template <typename Arg>
+auto ana::analysis<T>::varied<Act>::operator/(Arg&& b) const  -> varied<typename decltype(std::declval<delayed<Act>>().operator/(std::forward<Arg>(b).nominal()))::action_type>
+{
+	auto syst = varied<typename decltype(std::declval<delayed<Act>>().operator/(std::forward<Arg>(b).nominal()))::action_type>(nominal().operator/(std::forward<Arg>(b).nominal()));
+	for (auto const& varname : list_all_variation_names(*this, std::forward<Arg>(b))) {
+		syst.set_variation(varname, variation(varname).operator/(std::forward<Arg>(b).variation(varname)) );
 	}
 	return syst;
 }

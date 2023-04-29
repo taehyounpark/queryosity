@@ -123,10 +123,12 @@ A *counter* is an arbitrary action performed once per-entry:
 - Only if a specified selection passes the cut, "count" the entry with its weight.
 - (Optional) receive the values of other columns to be "filled" with.
 ```cpp
-// 1-dimensional histogram:
-// fill with the values of higgs pT
-// make one for each at different & same-flavour channels
-auto pth_hists = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut2los, cut2ldf);
+// Histogram<1,float> implements ana::counter::logic<std::shared_ptr<TH1F>(float)>
+// if (cut2los.pass_cut()) pth_hist->Fill(pth, cut2los.get_weight());
+auto pth_2los = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut2los);
+
+// counter can be booked at multiple cuts
+auto pth_hists = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut2ldf, cut2lsf);
 ```
 __Note__: The number of computational operations are guaranteed to be the minimum required to run the analysis graph, and any and all nodes that can be ruled out for each entry are not computed. In the case of the above histograms, since they are booked at $N_\ell \geq 2$ selections, the calculation of the $p_{\text{T}}^{\ell\ell}$ and also downstream $p_{\text{E}}^H$ will never be computed for events in which the vector sizes are not of appropiate size.
 
@@ -134,40 +136,42 @@ __Note__: The number of computational operations are guaranteed to be the minimu
 The result of each counter can be accessed by specifying the path of the booked selections
 ```cpp
 // dataset processing is triggered
-auto pth_2los = pth_hists["2los"].result();
+auto result = pth_2los.result();  // std::shared_ptr<TH1>
 
 // results are already available, obtained instantaneously
 auto pth_2lsf = pth_hists["2los/2ldf"].result();
 auto pth_2ldf = pth_hists["2los/2lsf"].result();
 ```
+![pth_hists](pth_hists.png)
 
 ### 4. Systematic variations
 
 #### 4.1 Varying a column/selection
 *Any* column and selection node can be varied with an alternative definition of itself.
+- For dataset columns and/or ones that do not require input columns (i.e. constants), they can be varied simply by calling their new definition:
 ```cpp
 // dataset columns and constants of identical types can be defined
 auto lep_pt = data.read<ROOT::RVec<float>>("lep_pt").vary("lpt_cone30", "lep_ptcone30");
-
+```
+- For computed columns, their varied definition must precede their input arguments.
+```
 // definitions can also be varied before its argument inputs.
 auto l1p4 = data.define<ScaledP4>(0).vary("lp4_up",0,1.02).vary("lp4_down",0,0.98)\
               (lep_pt, lep_eta, lep_phi, lep_E);
-// union set of variations in effect: lpt_cone30, lp4_up, lp4_down
 
 // variations in multiple columns can be synchronized by giving them identical names
 auto l2p4 = data.define<ScaledP4>(1).vary("lp4_up",1,1.02).vary("lp4_down",1,0.98)\
               (lep_pt, lep_eta, lep_phi, lep_E);
 ```
-There is no further treatment needed to handle these variations. They can be ensured to be transparently propagated to future nodes, such that the final set of applied variations of an action is always a union of individual sets of variations from participating nodes.
+Once these variations exist, they can be ensured to transparently propagate to future nodes, such that the final set of applied variations of any action is the union of individual sets of variations from participating nodes.
 ```cpp
 // any variations in the filled columns and/or booked selections are reflected in the final counters
-auto pth_hists = data.book<Histogram<1,float>>("pth",100,0,200).fill(pth).at(cut2ldf, cut2lsf);
+auto pth_2ldf_vars = data.book<Histogram<1,float>>("pth",100,0,200).fill(pth).at(cut2ldf);
+// union set of variations in effect: pth : {lpt_cone30, lp4_up} U cut2ldf : {el_sf_up}
 
-// note: additional nominal() call
-auto pth_2ldf_nom = pth_hists.nominal()["2ldf"].result();
-
-// note: additional hash key access
-auto pth_2ldf_lp4_up = pth_hists["lep_p4_up"]["2ldf"].result();
-auto pth_2ldf_lp4_up = pth_hists["lpt_cone30"]["2ldf"].result();
+// note: additional nominal() & variation access call
+auto pth_2ldf_nom = pth_2ldf_vars.nominal().result();
+auto pth_2ldf_lp4_up = pth_2ldf_vars["lep_p4_up"].result();
 ```
 By running multiple variations of the analysis computation in this way for each entry at a time, the performance cost associated with repeated dataset readout can be avoided.
+![pth_varied](pth_varied.png)
