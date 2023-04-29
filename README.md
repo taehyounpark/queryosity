@@ -11,7 +11,7 @@ The purpose of this library is to provide a clear, ***_abstract_*** interface fo
 - C++17 standard compiler
 - CMake 3.12 or newer
 
-## Key concepts
+## Key concept
 
 - An `analysis` entity that represents the entire dataset.
 - Performing an operation outputs a `delayed` node representing the booked action.
@@ -48,22 +48,22 @@ auto mc_weight = data.read<float>("mcWeight");
 auto el_sf = data.read<float>("scaleFactor_ELE");
 auto mu_sf = data.read<float>("scaleFactor_MUON");
 auto n_lep = data.read<unsigned int>("lep_n");
-auto lep_pts_MeV = data.read<ROOT::RVec<float>>("lep_pt");
-auto lep_etas = data.read<ROOT::RVec<float>>("lep_eta");
-auto lep_phis = data.read<ROOT::RVec<float>>("lep_phi");
-auto lep_Es_MeV = data.read<ROOT::RVec<float>>("lep_E");
+auto lep_pt_MeV = data.read<ROOT::RVec<float>>("lep_pt");
+auto lep_eta = data.read<ROOT::RVec<float>>("lep_eta");
+auto lep_phi = data.read<ROOT::RVec<float>>("lep_phi");
+auto lep_E_MeV = data.read<ROOT::RVec<float>>("lep_E");
 auto lep_Qs = data.read<ROOT::RVec<float>>("lep_charge");
 auto lep_types = data.read<ROOT::RVec<unsigned int>>("lep_type");
 auto met_MeV = data.read<float>("met_et");
 auto met_phi = data.read<float>("met_phi");
 ```
 #### 1.2 Computing new quantities
-Arithmetic operators supported by the underlying data types can passed through the node:
+Simple operators supported by the underlying data types can be passed through:
 ```cpp
 // ROOT::RVec<float> supports division
 auto GeV = ana.constant<double>(1000.0);
-auto lep_pts = lep_pts / GeV;
-auto lep_Es = lep_pts / GeV;
+auto lep_pt = lep_pt_MeV / GeV;
+auto lep_E = lep_Et_MeV / GeV;
 auto met = met_MeV / GeV;
 ```
 Custom C++ expressions out of existing ones can also be applied as lambda expressions:
@@ -71,7 +71,7 @@ Custom C++ expressions out of existing ones can also be applied as lambda expres
 // see below for l1p4 and l2p4
 auto dilepP4 = data.define([](TLorentzVector const& p4, TLorentzVector const& q4){return (p4+q4);})(l1p4,l2p4);
 ```
-Fully custom definitions are equally-well supported by full class definitions:
+Fully custom definitions are equally-well supported by defining its inheritance as illustrated:
 ```cpp
 using RVecD = ROOT::RVec<double>;
 class ScaledP4 : public ana::column::definition<TLorentzVector(RVecD, RVecD, RVecD, RVecD)>
@@ -82,18 +82,16 @@ public:
     m_index(index)
   {}
   virtual ~ScaledP4() = default;
-  virtual TLorentzVector evaluate(ana::observable<RVecD> pts, ana::observable<RVecD> etas, ana::observable<RVecD> phis, ana::observable<RVecD> es) const override {
+  virtual TLorentzVector evaluate(ana::observable<RVecD> pt, ana::observable<RVecD> eta, ana::observable<RVecD> phi, ana::observable<RVecD> es) const override {
     TLorentzVector p4;
-    p4.SetPtEtaPhiE(pts->at(m_index),etas->at(m_index),phis->at(m_index),es->at(m_index));
-    return p4;
+    p4.SetPtEtaPhiE(pt->at(m_index),eta->at(m_index),phi->at(m_index),es->at(m_index));
+    return p4*m_scale;
   }
 protected:
   unsigned int m_index;
   double m_scale;
 };
 ```
-
-
 
 ### 2. Applying selections
 #### 2.1 Cut versus weight
@@ -135,6 +133,7 @@ The result of each counter can be accessed by specifying the path of the booked 
 ```cpp
 // dataset processing is triggered
 auto pth_2los = pth_hists["2los"].result();
+
 // results are already available, obtained instantaneously
 auto pth_2lsf = pth_hists["2los/2ldf"].result();
 auto pth_2ldf = pth_hists["2los/2lsf"].result();
@@ -145,49 +144,28 @@ auto pth_2ldf = pth_hists["2los/2lsf"].result();
 #### 4.1 Varying a column/selection
 *Any* column and selection node can be varied with an alternative definition of itself.
 ```cpp
-// varying the four-momenta of leptons by scaling it up and down
-auto l1p4 = data.define<ScaledP4>(0)(lep_pts, lep_etas, lep_phis, lep_Es)\
-                     .vary("lp4_up",0,1.02)(lep_pts, lep_etas, lep_phis, lep_Es)\
-                     .vary("lp4_down",0,0.98)(lep_pts, lep_etas, lep_phis, lep_Es);
+// dataset columns and constants of identical types can be defined
+auto lep_pt = data.read<ROOT::RVec<float>>("lep_pt").vary("lpt_cone30", "lep_ptcone30");
 
-// was a delayed<ScaledP4> before, now a varied<ScaledP4>
-auto l2p4 = data.define<ScaledP4>(1)(lep_pts, lep_etas, lep_phis, lep_Es)\
-                     .vary("lp4_up",1,1.02)(lep_pts, lep_etas, lep_phis, lep_Es)\
-                     .vary("lp4_down",1,0.98)(lep_pts, lep_etas, lep_phis, lep_Es);
-```
-Note that the process is completely flexible, such that __any__ arguments involved in the node construction can be changed: logical consistency and correctness of the variation is the responsibility of the physicist.
-```cpp
-// this makes no sense
-auto l1p4_nonsense = data.define<ScaledP4>(0,0.5)(lep_pts, lep_etas, lep_phis, lep_Es)\
-                     .vary("lp4_up",1,1.0)(jet_pts, jet_etas, jet_phis, jet_Es)\
-                     .vary("lp4_down",2,2.0)(lep_pts, jet_etas, lep_charges, lep_types);
-```
-There is no further treatment needed to handle the variations in nodes: they can be ensured to be transparently propagated through all downstream nodes.
-```cpp
-auto dilepP4 = data.define([](TLorentzVector const& p4, TLorentzVector const& q4){return (p4+q4);})(l1p4,l2p4);
-// already has "lp4_up/down" from input columns
-```
-Interactions among non-overlapping variations in the nodes are handled by the nominal of the respective nodes. At each propagation, the resulting node will contain the union of all applicable variations for the action.
-```cpp
-// scale factors have their own variations
-auto el_sf_applied = data.filter<weight>("el_sf")(el_sf)\
-                         .vary("el_sf_up",[](double x){return x*1.05;})(el_sf)\
-                         .vary("el_sf_up",[](double x){return x*0.95;})(el_sf);
+// definitions can also be varied before its argument inputs.
+auto l1p4 = data.define<ScaledP4>(0).vary("lp4_up",0,1.02).vary("lp4_down",0,0.98)\
+              (lep_pt, lep_eta, lep_phi, lep_E);
+// union set of variations in effect: lpt_cone30, lp4_up, lp4_down
 
-auto el_sf_applied = data.filter<weight>("el_sf")(el_sf)\
-                         .vary("el_sf_up",[](double x){return x*1.05;})(el_sf)\
-                         .vary("el_sf_up",[](double x){return x*0.95;})(el_sf);
-// ...
+// variations in multiple columns can be synchronized by giving them identical names
+auto l2p4 = data.define<ScaledP4>(1).vary("lp4_up",1,1.02).vary("lp4_down",1,0.98)\
+              (lep_pt, lep_eta, lep_phi, lep_E);
+```
+There is no further treatment needed to handle these variations. They can be ensured to be transparently propagated to future nodes, such that the final set of applied variations of an action is always a union of individual sets of variations from participating nodes.
 
+```cpp
+// any variations in the filled columns and/or booked selections are reflected in the final counters
 auto pth_hists = data.book<Histogram<1,float>>("pth",100,0,200).fill(pth).at(cut2ldf, cut2lsf);
-// variations propagated through:
-// fill(pth) -> lep_p4_up/dn
-// at(cut2los, cut2ldf) -> el_sf_up/dn
 
-// note: additional nominal() call to access the original result
+// note: additional nominal() call to access unchanged result
 auto pth_2ldf_nom = pth_hists.nominal()["2ldf"].result();
 
-// note: additional hash key to access the varied result
+// note: additional hash key to access each varied result
 auto pth_2ldf_lp4_up = pth_hists["lep_p4_up"]["2ldf"].result();
-auto pth_2ldf_lp4_up = pth_hists["el_sf_up"]["2ldf"].result();
+auto pth_2ldf_lp4_up = pth_hists["lpt_cone30"]["2ldf"].result();
 ```
