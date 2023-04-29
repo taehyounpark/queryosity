@@ -80,7 +80,7 @@ public:
   template <typename Def, typename... Args>
   auto define(const Args&... arguments) -> delayed<column::calculator<Def>>;
   template <typename F>
-  auto define(F callable) -> delayed<column::calculator<equation_t<F>>>;
+  auto define(F expression) -> delayed<column::calculator<equation_t<F>>>;
   template <typename Def, typename... Cols>
 	auto compute(delayed<column::calculator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>;
 
@@ -88,21 +88,15 @@ public:
   auto filter(const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>;
   template <typename Sel, typename F>
   auto channel(const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>;
-
 	template <typename Sel>
   auto filter(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
   template <typename Sel>
   auto channel(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
-
 	template <typename Calc, typename... Cols>
 	auto apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> delayed<typename Calc::selection_type>;
 
 	template <typename Cnt, typename... Args>
 	delayed<counter::booker<Cnt>> book(Args&&... args);
-
-	template <typename Cnt>
-	delayed<counter::booker<Cnt>> book(delayed<counter::booker<Cnt>> const& bkr);
-
 	template <typename Cnt, typename Sel>
 	delayed<Cnt> count(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel);
 
@@ -116,8 +110,20 @@ protected:
 
   template <typename Def, typename... Args>
   auto vary_column(delayed<column::calculator<Def>> const& calc, Args&&... args) -> delayed<column::calculator<Def>>;
+
+	// recreate a delayed node as a variation under new arguments
+	template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* = nullptr>
+	auto vary_column(delayed<V> const& nom, const std::string& colname) -> delayed<V>;
+	template <typename Val, typename V, typename std::enable_if_t<ana::is_column_constant_v<V>, V>* = nullptr>
+	auto vary_column(delayed<V> const& nom, Val const& val) -> delayed<V>;
+	template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V>, V>* = nullptr>
+	auto vary_column(delayed<V> const& nom, Args&&... args) -> delayed<V>;
+	template <typename F, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* = nullptr>
+	auto vary_column(delayed<V> const& nom, F&& expression) -> delayed<V>;
+
   template <typename Sel, typename F>
   auto repeat_selection(delayed<custom_selection_calculator_t<Sel,F>> const& calc) -> delayed<custom_selection_calculator_t<Sel,F>>;
+
   template <typename Cnt>
   auto repeat_counter(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>;
 
@@ -228,9 +234,9 @@ auto ana::analysis<T>::define(const Args&... arguments) -> typename analysis<T>:
 
 template <typename T>
 template <typename F>
-auto ana::analysis<T>::define(F callable) ->  typename analysis<T>::template delayed<column::calculator<equation_t<F>>>
+auto ana::analysis<T>::define(F expression) ->  typename analysis<T>::template delayed<column::calculator<equation_t<F>>>
 {
-	auto nd = delayed<column::calculator<equation_t<F>>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template define(callable); } ));
+	auto nd = delayed<column::calculator<equation_t<F>>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template define(expression); } ));
 	// this->add_column(nd);
   return nd;
 }
@@ -289,14 +295,6 @@ template <typename Cnt, typename... Args>
 typename ana::analysis<T>::template delayed<ana::counter::booker<Cnt>> ana::analysis<T>::book(Args&&... args)
 {
 	auto bkr = delayed<counter::booker<Cnt>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template book<Cnt>(args...); } ));
-  return bkr;
-}
-
-template <typename T>
-template <typename Cnt>
-typename ana::analysis<T>::template delayed<ana::counter::booker<Cnt>> ana::analysis<T>::book(delayed<counter::booker<Cnt>> const& nom)
-{
-	auto bkr = delayed<counter::booker<Cnt>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template book<Cnt>(nom); } ));
   return bkr;
 }
 
@@ -418,6 +416,33 @@ template <typename... Nodes>
 auto ana::list_all_variation_names(Nodes const&... nodes) -> std::set<std::string> {
 	std::set<std::string> variation_names;
 	(variation_names.merge(nodes.list_variation_names()),...);
-	// (variation_names.insert(nodes.list_variation_names().begin(),nodes.list_variation_names().end()),...);
 	return variation_names;
+}
+
+template <typename T>
+template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* ptr> inline
+auto ana::analysis<T>::vary_column(delayed<V> const&, const std::string& colname) -> delayed<V>
+{
+  return this->read<term_value_t<V>>(colname);
+}
+
+template <typename T>
+template <typename Val, typename V, typename std::enable_if_t<ana::is_column_constant_v<V>, V>* ptr> inline
+auto ana::analysis<T>::vary_column(delayed<V> const& nom, Val const& val) -> delayed<V>
+{
+	return this->constant<Val>(val);
+}
+
+template <typename T>
+template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V>, V>* ptr> inline
+auto ana::analysis<T>::vary_column(delayed<V> const&, Args&&... args) -> delayed<V>
+{
+  return this->define<V>(std::forward<Args>(args)...);
+}
+
+template <typename T>
+template <typename F, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr> inline
+auto ana::analysis<T>::vary_column(delayed<V> const& nom, F&& expression) -> delayed<V>
+{
+	return this->define(std::forward<F>(expression));
 }

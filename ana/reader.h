@@ -34,12 +34,6 @@ public:
 
 };
 
-template <typename Val>
-constexpr std::true_type check_column_reader(const typename column::reader<Val>&);
-constexpr std::false_type check_column_reader(...);
-template <typename Rdr>
-constexpr bool is_column_reader_v = decltype(check_column_reader(std::declval<Rdr>()))::value;
-
 }
 
 template <typename T>

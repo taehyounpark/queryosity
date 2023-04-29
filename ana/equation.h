@@ -61,13 +61,6 @@ public:
 template <typename F>
 using equation_t = typename decltype(make_equation(std::function(std::declval<F>())))::element_type;
 
-template <typename T>
-struct is_column_equation : std::false_type {};
-template <typename T>
-struct is_column_equation<column::equation<T>> : std::true_type {};
-template <typename T>
-constexpr bool is_column_equation_v = is_column_equation<T>::value;
-
 }
 
 template <typename Ret>

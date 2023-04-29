@@ -49,12 +49,6 @@ public:
 
 };
 
-template <typename Ret, typename... Vals> 
-constexpr std::true_type check_column_definition(typename column::template definition<Ret(Vals...)> const&);
-constexpr std::false_type check_column_definition(...);
-template <typename T> 
-constexpr bool is_column_definition_v = decltype(check_column_definition(std::declval<T>()))::value;
-
 }
 
 template <typename Ret>

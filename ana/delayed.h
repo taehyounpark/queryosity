@@ -82,8 +82,11 @@ public:
 		}
 	}
 
-	template<typename... Args, typename V=U, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* = nullptr>
-	auto vary(const std::string& varname, Args&&... args) const -> varied<V>;
+	// created a varied node that will contain the original as nominal
+	// and a single variation under the specified name and constructor arguments
+	// further calls to add more variations are handled by varied<V>::vary()
+	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_v<V>, V>* = nullptr>
+	auto vary(const std::string& varname, Args&&... args) -> varied<V>;
 
   template <typename... Nodes, std::enable_if_t<has_no_variation_v<Nodes...>, int> = 0>
 	auto evaluate(Nodes... columns) const
@@ -150,15 +153,6 @@ public:
 		}
 	}
 
-	// void weighted(bool weighted=true)
-	// {
-	// 	if constexpr(std::is_base_of_v<counter,U>) {
-	// 		m_threaded.to_slots( [=] (counter& cnt) { cnt.use_weight(weighted); } );
-	// 	} else {
-	// 		static_assert(std::is_base_of_v<counter,U>, "non-counter cannot be set to be (un-)weighted");
-	// 	}
-	// }
-
 	template <typename... Nodes , std::enable_if_t<has_no_variation_v<Nodes...>, int> = 0>
 	auto fill(Nodes... columns) -> delayed<U>
 	{
@@ -197,9 +191,6 @@ public:
 		return this->m_analysis->count(*this, sel);
 	}
 
-	// book 1 x N counting operators
-	// 1 filter x N counters
-	// 1 counter x N filters
 	template <typename... Nodes, std::enable_if_t<has_no_variation_v<Nodes...>, int> = 0>
 	auto at(Nodes... sels) const -> delayed<U>
 	{
@@ -224,13 +215,13 @@ public:
 	template <typename... Args>
 	auto operator()(Args&&... args)
 	{
-		constexpr bool valid_args = is_column_calculator_v<U> || is_selection_calculator_v<U>;
+		constexpr bool is_calculator_v = is_column_calculator_v<U> || is_selection_calculator_v<U>;
 		if constexpr( is_column_calculator_v<U> ) {
 			return this->evaluate(std::forward<Args>(args)...);
 		} else if constexpr( is_selection_calculator_v<U> ) {
 			return this->apply(std::forward<Args>(args)...);
 		} else {
-			static_assert( valid_args, "no valid input operation" );
+			static_assert( is_calculator_v, "no valid input operation" );
 		}
 	}
 
@@ -263,8 +254,8 @@ protected:
 #include "ana/definition.h"
 #include "ana/equation.h"
 
-template<typename T>
-template<typename Act>
+template <typename T>
+template <typename Act>
 void ana::analysis<T>::delayed<Act>::set_nominal(delayed const& nom)
 {
 	// get nominal from other action
@@ -272,23 +263,23 @@ void ana::analysis<T>::delayed<Act>::set_nominal(delayed const& nom)
 	m_threaded  = nom.m_threaded;
 }
 
-template<typename T>
-template<typename Act>
+template <typename T>
+template <typename Act>
 void ana::analysis<T>::delayed<Act>::set_variation(const std::string& varname, delayed const&)
 {
 	// this is nominal -- ignore all variations
 	return;
 }
 
-template<typename T>
-template<typename Act>
+template <typename T>
+template <typename Act>
 auto ana::analysis<T>::delayed<Act>::nominal() const -> delayed<Act>
 {
 	return *this;
 }
 
-template<typename T>
-template<typename Act>
+template <typename T>
+template <typename Act>
 auto ana::analysis<T>::delayed<Act>::variation(const std::string& varname) const -> delayed<Act>
 {
 	return *this;
@@ -308,25 +299,21 @@ bool ana::analysis<T>::delayed<Act>::has_variation(const std::string&) const
 	return false;
 }
 
-template<typename T>
-template<typename Act>
-template<typename... Args, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* ptr> inline
-auto ana::analysis<T>::delayed<Act>::vary(const std::string& varname, Args&&... args) const -> varied<V>
+template <typename T>
+template <typename Act>
+template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_v<V>, V>* ptr> inline
+auto ana::analysis<T>::delayed<Act>::vary(const std::string& varname, Args&&... args) -> varied<V>
 {
   // create a delayed varied with the this as nominal
   auto syst = varied<V>(*this);
-
-	// set variation of the column
+	// set variation of the column according to new constructor arguments
   syst.set_variation(varname, this->m_analysis->vary_column(*this, std::forward<Args>(args)...));
-
-	std::cout << syst.has_variation(varname) << std::endl;
-
   // done
   return syst;
 }
 
-template<typename T>
-template<typename Act>
+template <typename T>
+template <typename Act>
 template <typename Sel, typename... Args>
 auto ana::analysis<T>::delayed<Act>::filter(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>
 {
@@ -338,8 +325,8 @@ auto ana::analysis<T>::delayed<Act>::filter(const std::string& name, Args&&... a
 	}
 }
 
-template<typename T>
-template<typename Act>
+template <typename T>
+template <typename Act>
 template <typename Sel, typename... Args>
 auto ana::analysis<T>::delayed<Act>::channel(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>
 {

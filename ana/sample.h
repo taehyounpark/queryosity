@@ -60,7 +60,7 @@ void ana::sample<T>::open(const Args&... args)
   m_readers.clear();
   m_processors.clear();
   for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
-    auto rdr = m_dataset->open_reader(m_partition.get_part(islot));
+    auto rdr = m_dataset->read_dataset(m_partition.get_part(islot));
     m_readers.add_slot(rdr);
     auto proc = std::make_shared<processor<dataset_reader_type>>(*rdr,m_scale);
     m_processors.add_slot(proc);
