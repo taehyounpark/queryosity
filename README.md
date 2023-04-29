@@ -71,7 +71,7 @@ Custom C++ expressions out of existing ones can also be applied as lambda expres
 // see below for l1p4 and l2p4
 auto dilepP4 = data.define([](TLorentzVector const& p4, TLorentzVector const& q4){return (p4+q4);})(l1p4,l2p4);
 ```
-Fully custom definitions are equally-well supported by defining its inheritance as illustrated:
+Complicated definitions can be explicitly specified by a full class definition:
 ```cpp
 using RVecD = ROOT::RVec<double>;
 class ScaledP4 : public ana::column::definition<TLorentzVector(RVecD, RVecD, RVecD, RVecD)>
@@ -91,6 +91,10 @@ protected:
   unsigned int m_index;
   double m_scale;
 };
+
+// ...
+
+auto l1p4 = data.define<ScaledP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
 ```
 
 ### 2. Applying selections
@@ -147,29 +151,33 @@ auto pth_2ldf = pth_hists["2los/2lsf"].result();
 ### 4. Systematic variations
 
 #### 4.1 Varying a column/selection
-*Any* column and selection node can be varied with an alternative definition of itself.
+*Any* column node can be varied with an alternative definition of itself. Once these variations exist, they can be ensured to transparently propagate to future nodes, such that the final set of applied variations of any action is the union of individual sets of variations from participating nodes.
 - For dataset columns and/or ones that do not require input columns (i.e. constants), they can be varied simply by calling their new definition:
 ```cpp
 // dataset columns and constants of identical types can be defined
 auto lep_pt = data.read<ROOT::RVec<float>>("lep_pt").vary("lpt_cone30", "lep_ptcone30");
+
+// rest of the interface remains unchanged
+// but now, "lpt_cone30" is applied from lep_pt variation
+auto l1p4 = data.define<ScaledP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
 ```
 - For computed columns, their varied definition must precede their input arguments.
-```
-// definitions can also be varied before its argument inputs.
-auto l1p4 = data.define<ScaledP4>(0).vary("lp4_up",0,1.02).vary("lp4_down",0,0.98)\
-              (lep_pt, lep_eta, lep_phi, lep_E);
-
-// variations in multiple columns can be synchronized by giving them identical names
-auto l2p4 = data.define<ScaledP4>(1).vary("lp4_up",1,1.02).vary("lp4_down",1,0.98)\
-              (lep_pt, lep_eta, lep_phi, lep_E);
-```
-Once these variations exist, they can be ensured to transparently propagate to future nodes, such that the final set of applied variations of any action is the union of individual sets of variations from participating nodes.
 ```cpp
-// any variations in the filled columns and/or booked selections are reflected in the final counters
-auto pth_2ldf_vars = data.book<Histogram<1,float>>("pth",100,0,200).fill(pth).at(cut2ldf);
-// union set of variations in effect: pth : {lpt_cone30, lp4_up} U cut2ldf : {el_sf_up}
+// adding a variation before any existing ones propagate through
+auto l1p4 = data.define<ScaledP4>(0).vary("lp4_up",0,1.02)\
+              (lep_pt, lep_eta, lep_phi, lep_E);
+// union set of variations in effect: {lpt_cone30, lp4_up}
 
-// note: additional nominal() & variation access call
+// variations in multiple columns with the same name are synchronized
+auto l2p4 = data.define<ScaledP4>(1).vary("lp4_up",1,1.01)\
+              (lep_pt, lep_eta, lep_phi, lep_E);
+```
+The propagation continues through to filters and counters, such that the final output results can be access by their names:
+```cpp
+// again, interface remains unchanged
+auto pth_2ldf_vars = data.book<Histogram<1,float>>("pth",100,0,200).fill(pth).at(cut2ldf);
+
+// note: additional nominal() & variation access
 auto pth_2ldf_nom = pth_2ldf_vars.nominal().result();
 auto pth_2ldf_lp4_up = pth_2ldf_vars["lep_p4_up"].result();
 ```

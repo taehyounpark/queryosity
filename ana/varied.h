@@ -146,6 +146,9 @@ template <typename Act>
 template <typename V , typename std::enable_if<ana::is_counter_booker_v<V> || ana::is_counter_implemented_v<V>,void>::type* ptr>
 auto ana::analysis<T>::varied<Act>::operator[](const std::string& varname) const -> delayed<V>
 {
+	if (!this->has_variation(varname)) {
+		throw std::logic_error(std::string("variation '")+varname+"' does not exist"); 
+	}
 	return m_variation_map.at(varname);
 }
 

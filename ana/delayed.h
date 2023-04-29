@@ -225,7 +225,7 @@ public:
 	template <typename V = U, typename std::enable_if<is_counter_booker_v<V>,void>::type* = nullptr>
 	auto operator[](const std::string& sel_path) const -> delayed<booked_counter_t<V>>
 	{
-		return delayed<typename V::counter_type>(*this->m_analysis, m_threaded.from_slots([=](U& bkr){ return bkr.get_booked_counter(sel_path); }) );
+		return delayed<typename V::counter_type>(*this->m_analysis, m_threaded.from_slots([=](U& bkr){ return bkr.get_counter_at(sel_path); }) );
 	}
 
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
