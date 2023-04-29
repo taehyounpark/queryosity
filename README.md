@@ -1,5 +1,5 @@
 Coherent data analysis in C++.
-- Multithreaded processing of the dataset.
+- Multithreaded and computationally optimal processing of the dataset.
 - Fast and intuitive computation of column values.
 - Clear chain and/or branches of selections applied to entries.
 - Systematic variations of an analysis computation performed simultaneously.
@@ -18,9 +18,9 @@ The purpose of this library is to provide a clear, ***_abstract_*** interface fo
   - The processing of the dataset performing booked actions are triggered upon accessing the result of a node.
 - Further operations can be done in the context of existing ones, which are provided as input arguments.
   - Some of these operations are called from the analysis, others from individual nodes.
-  - The computation graph among nodes is recursion-free by construction.
+  - By construction, the computation graph is prevented from forming recursive node operations.
 - A node can be systematically `varied` for which an alternate definition of the action is included in the analysis.
-  - The maximal union set of variations is ensured to be reflected in any nodes involving any input node(s) with variation(s).
+  - The union of applied variations is ensured to be reflected in any nodes involving any input node(s) with variation(s).
 
 ## Applied walkthrough
 
@@ -116,6 +116,7 @@ auto cut2los = cut2l.channel<cut>("2los", [](ROOT::RVec<float> const& qs){return
 auto cut2ldf = cut2los.filter<cut>("2ldf", [](ROOT::RVec<int> const& flavours){return (flavours.at(0) + flavours.at(1) == 24);})(lep_types);
 auto cut2lsf = cut2los.filter<cut>("2lsf", [](ROOT::RVec<int> const& flavours){return ((flavours.at(0) + flavours.at(1) == 22) || (lep_type.at(0) + lep_type.at(1) == 26));})(lep_types);
 ```
+
 ### 3. Counting entries
 #### 3.1 Booking counters
 A *counter* is an arbitrary action performed once per-entry:
@@ -125,8 +126,9 @@ A *counter* is an arbitrary action performed once per-entry:
 // 1-dimensional histogram:
 // fill with the values of higgs pT
 // make one for each at different & same-flavour channels
-auto pth_hists = data.book<Histogram<1,float>>("pth",100,0,400).fill(a).at(cut2los, cut2ldf);
+auto pth_hists = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut2los, cut2ldf);
 ```
+__Note__: The number of computational operations are guaranteed to be the minimum required to run the analysis graph, and any and all nodes that can be ruled out for each entry are not computed. In the case of the above histograms, since they are booked at $N_\ell \geq 2$ selections, the calculation of the $p_{\text{T}}^{\ell\ell}$ and also downstream $p_{\text{E}}^H$ will never be computed for events in which the vector sizes are not of appropiate size.
 
 #### 3.2 Processing the dataset and accessing results
 The result of each counter can be accessed by specifying the path of the booked selections
@@ -157,15 +159,15 @@ auto l2p4 = data.define<ScaledP4>(1).vary("lp4_up",1,1.02).vary("lp4_down",1,0.9
               (lep_pt, lep_eta, lep_phi, lep_E);
 ```
 There is no further treatment needed to handle these variations. They can be ensured to be transparently propagated to future nodes, such that the final set of applied variations of an action is always a union of individual sets of variations from participating nodes.
-
 ```cpp
 // any variations in the filled columns and/or booked selections are reflected in the final counters
 auto pth_hists = data.book<Histogram<1,float>>("pth",100,0,200).fill(pth).at(cut2ldf, cut2lsf);
 
-// note: additional nominal() call to access unchanged result
+// note: additional nominal() call
 auto pth_2ldf_nom = pth_hists.nominal()["2ldf"].result();
 
-// note: additional hash key to access each varied result
+// note: additional hash key access
 auto pth_2ldf_lp4_up = pth_hists["lep_p4_up"]["2ldf"].result();
 auto pth_2ldf_lp4_up = pth_hists["lpt_cone30"]["2ldf"].result();
 ```
+By running multiple variations of the analysis computation in this way for each entry at a time, the performance cost associated with repeated dataset readout can be avoided.
