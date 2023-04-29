@@ -188,7 +188,7 @@ public:
 	std::shared_ptr<T> calculate_from( cell<Vals> const&... cols ) const;
 
 protected:
-	std::function<std::shared_ptr<T>()> m_make_shared;
+	std::function<std::shared_ptr<T>()> m_make_shared_counter;
 
 };
 
@@ -248,21 +248,21 @@ std::shared_ptr<ana::cell<To>> ana::cell_as(const cell<From>& from)
 template <typename T>
 template <typename... Args>
 ana::column::calculator<T>::calculator(Args const&... args) :
-	m_make_shared(std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... ))
+	m_make_shared_counter(std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... ))
 {}
 
 template <typename T>
 template <typename... Args>
 void ana::column::calculator<T>::set_constructor(Args const&... args)
 {
-  m_make_shared = std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... );
+  m_make_shared_counter = std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... );
 }
 
 template <typename T>
 template <typename... Vals>
 std::shared_ptr<T> ana::column::calculator<T>::calculate_from(cell<Vals> const&... columns) const
 {
-  auto defn = m_make_shared();
+  auto defn = m_make_shared_counter();
 
   defn->set_arguments(columns...);
 

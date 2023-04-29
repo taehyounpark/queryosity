@@ -105,7 +105,7 @@ public:
 	virtual ~fillable() = default;
 
 	template <typename... Vals>
-	void enter_columns(term<Vals> const&... cols);
+	void fill_columns(term<Vals> const&... cols);
 
 	virtual void count(double w) override;
 	virtual void fill(ana::observable<Obs>... observables, double w) = 0;
@@ -138,13 +138,10 @@ public:
 	~booker() = default;
 
 	template <typename... Vals> 
-	void enter_columns( const term<Vals>&... cols );
+	void fill_columns( term<Vals> const&... cols );
 
-	std::shared_ptr<T> count_at(const selection& sel);
-
-	std::vector<std::shared_ptr<T>> list_counters() const;
-	std::vector<std::string> list_selection_paths() const;
-	std::shared_ptr<T> get_counter(const std::string& path) const;
+	std::shared_ptr<T> book_counter_at(const selection& sel);
+	std::shared_ptr<T> get_booked_counter(const std::string& path) const;
 
 protected:
 	std::function<std::shared_ptr<T>()>                m_make_counter;
@@ -219,7 +216,7 @@ ana::counter::implementation<T>::fillable<Obs...>::fillable() :
 template <typename T>
 template <typename... Obs>
 template <typename... Vals>
-void ana::counter::implementation<T>::fillable<Obs...>::enter_columns(const term<Vals>&... cols)
+void ana::counter::implementation<T>::fillable<Obs...>::fill_columns(term<Vals> const&... cols)
 {
 	static_assert(sizeof...(Obs)==sizeof...(Vals), "dimension mis-match between filled variables & columns.");
 	m_fills.emplace_back(cols...);
@@ -251,13 +248,13 @@ ana::counter::booker<T>::booker(Args&&... args) :
 
 template <typename T>
 template <typename... Vals>
-void ana::counter::booker<T>::enter_columns(const term<Vals>&... columns)
+void ana::counter::booker<T>::fill_columns(term<Vals> const&... columns)
 {
-	m_fill_columns.push_back(std::bind([](T& cnt, const term<Vals>&... cols){cnt.enter_columns(cols...);}, std::placeholders::_1, std::ref(columns)...));
+	m_fill_columns.push_back(std::bind([](T& cnt, term<Vals> const&... cols){cnt.fill_columns(cols...);}, std::placeholders::_1, std::ref(columns)...));
 }
 
 template <typename T>
-std::shared_ptr<T> ana::counter::booker<T>::count_at(const selection& sel)
+std::shared_ptr<T> ana::counter::booker<T>::book_counter_at(const selection& sel)
 {
 	// call constructor
 	auto cnt = m_make_counter();
@@ -274,34 +271,14 @@ std::shared_ptr<T> ana::counter::booker<T>::count_at(const selection& sel)
 	if (m_booked_counter_map.find(sel.get_path())!=m_booked_counter_map.end()) {
 		throw std::logic_error("counter already booked at selection");
 	}
-	m_booked_counter_map[sel.get_path()] = cnt;
+	m_booked_counter_map.insert( std::make_pair(sel.get_path(),cnt) );
 
 	// return booked & filled cnt
 	return cnt;
 }
 
 template <typename T>
-std::shared_ptr<T> ana::counter::booker<T>::get_counter(const std::string& sel_path) const
+std::shared_ptr<T> ana::counter::booker<T>::get_booked_counter(const std::string& sel_path) const
 {
 	return m_booked_counter_map.at(sel_path);
-}
-
-template <typename T>
-std::vector<std::shared_ptr<T>> ana::counter::booker<T>::list_counters() const
-{
-	std::vector<std::shared_ptr<T>> booked_counters;
-	for (const auto& booked_counter : m_booked_counter_map) {
-		booked_counters.push_back(booked_counter.second);
-	}
-	return booked_counters;
-}
-
-template <typename T>
-std::vector<std::string> ana::counter::booker<T>::list_selection_paths() const
-{
-	std::vector<std::string> selection_paths;
-	for (const auto& path_counter : m_booked_counter_map) {
-		selection_paths.push_back(path_counter.first);
-	}
-	return selection_paths;
 }

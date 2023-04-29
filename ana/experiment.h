@@ -61,7 +61,7 @@ std::shared_ptr<ana::counter::booker<Cnt>> ana::counter::experiment::book(Args&&
 template <typename Cnt, typename Sel>
 std::shared_ptr<Cnt> ana::counter::experiment::count(booker<Cnt>& bkr, Sel const& sel)
 {
-	auto cnt = bkr.count_at(sel);
+	auto cnt = bkr.book_counter_at(sel);
 	cnt->set_scale(m_norm);
 	this->add_counter(*cnt);
 	return cnt;

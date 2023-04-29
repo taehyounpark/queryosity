@@ -228,7 +228,6 @@ template <typename Def, typename... Args>
 auto ana::analysis<T>::define(const Args&... arguments) -> typename analysis<T>::template delayed<column::calculator<Def>>
 {
 	auto nd = delayed<column::calculator<Def>>(*this, this->m_processors.from_slots( [&](processor<dataset_reader_type>& proc) { return proc.template define<Def>(arguments...); } ));
-	// this->add_column(nd);
 	return nd;
 }
 
@@ -237,7 +236,6 @@ template <typename F>
 auto ana::analysis<T>::define(F expression) ->  typename analysis<T>::template delayed<column::calculator<equation_t<F>>>
 {
 	auto nd = delayed<column::calculator<equation_t<F>>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template define(expression); } ));
-	// this->add_column(nd);
   return nd;
 }
 

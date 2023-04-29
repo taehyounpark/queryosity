@@ -111,7 +111,7 @@ template <typename T>
 template <typename Act>
 void ana::analysis<T>::varied<Act>::set_variation(const std::string& varname, delayed<Act> const& var)
 {
-	m_variation_map[varname] = var;
+	m_variation_map.insert(std::make_pair(varname,var));
 	m_variation_names.insert(varname);
 }
 

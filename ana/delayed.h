@@ -157,7 +157,7 @@ public:
 	auto fill(Nodes... columns) -> delayed<U>
 	{
 		if constexpr(is_counter_booker_v<U>) {
-			m_threaded.to_slots( [] (U& fillable, typename Nodes::action_type&... cols) { fillable.enter_columns(cols...); }, columns.get_slots()... );
+			m_threaded.to_slots( [] (U& fillable, typename Nodes::action_type&... cols) { fillable.fill_columns(cols...); }, columns.get_slots()... );
 			return *this;
 		} else {
 			static_assert( (is_counter_booker_v<U>), "non-fillable delayed action" );
@@ -201,7 +201,7 @@ public:
 	template <typename V = U, typename std::enable_if<is_counter_booker_v<V>,void>::type* = nullptr>
 	auto operator[](const std::string& sel_path) const -> delayed<booked_counter_t<V>>
 	{
-		return delayed<typename V::counter_type>(*this->m_analysis, m_threaded.from_slots([=](U& bkr){ return bkr.get_counter(sel_path); }) );
+		return delayed<typename V::counter_type>(*this->m_analysis, m_threaded.from_slots([=](U& bkr){ return bkr.get_booked_counter(sel_path); }) );
 	}
 
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>

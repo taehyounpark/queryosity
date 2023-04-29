@@ -43,7 +43,7 @@ public:
 
 protected:
 	std::shared_ptr<T> m_equation;
-	std::function<std::shared_ptr<weight>()> m_make_shared;
+	std::function<std::shared_ptr<weight>()> m_make_shared_weight;
 	std::function<void(weight&)> m_set_previous;
 	bool m_channel;
 
@@ -53,7 +53,7 @@ protected:
 
 template <typename T>
 ana::selection::weight::calculator<T>::calculator(const std::string& name, std::shared_ptr<T> eqn) :
-	m_make_shared(std::bind([](const std::string& name){return std::make_shared<weight>(name);}, name)),
+	m_make_shared_weight(std::bind([](const std::string& name){return std::make_shared<weight>(name);}, name)),
 	m_equation(eqn),
 	m_set_previous([](weight&){return;}),
 	m_channel(false)
@@ -77,7 +77,7 @@ template <typename... Vals>
 std::shared_ptr<ana::selection::weight> ana::selection::weight::calculator<T>::apply_selection(cell<Vals> const&... columns) const
 {
 	// make this selection
-  auto sel = m_make_shared();
+  auto sel = m_make_shared_weight();
 
 	// mark it as channel if so
 	sel->set_channel(m_channel);
