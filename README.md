@@ -1,5 +1,5 @@
 Coherent data analysis in C++.
-- Multi-threaded processing of the dataset.
+- Multithreaded processing of the dataset.
 - Fast and intuitive computation of column values.
 - Clear chain and/or branches of selections applied to entries.
 - Systematic variations of an analysis computation performed simultaneously.
