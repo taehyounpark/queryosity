@@ -2,7 +2,7 @@
 
 #include "ana/concurrent.h"
 #include "ana/input.h"
-#include "ana/processor.h"
+#include "ana/looper.h"
 
 namespace ana
 {
@@ -40,7 +40,7 @@ protected:
   std::unique_ptr<T>                         m_dataset;
   input::partition                           m_partition;
   concurrent<dataset_reader_type>            m_readers;
-  concurrent<processor<dataset_reader_type>> m_processors;
+  concurrent<looper<dataset_reader_type>> m_loopers;
 
 };
 
@@ -83,14 +83,14 @@ void ana::sample<T>::prepare(std::unique_ptr<T> dataset)
   // globally scale the sample by the inverse
   m_scale /= m_dataset->normalize();
 
-  // open the dataset reader and processor for each available thread
+  // open the dataset reader and looper for each available thread
   m_readers.clear();
-  m_processors.clear();
+  m_loopers.clear();
   for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
     auto rdr = m_dataset->read_dataset(m_partition.get_part(islot));
     m_readers.add_slot(rdr);
-    auto proc = std::make_shared<processor<dataset_reader_type>>(*rdr,m_scale);
-    m_processors.add_slot(proc);
+    auto lpr = std::make_shared<looper<dataset_reader_type>>(*rdr,m_scale);
+    m_loopers.add_slot(lpr);
 	}
 
   // done -- sample is opened and ready for analysis

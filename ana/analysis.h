@@ -17,7 +17,7 @@
 #include "ana/weight.h"
 #include "ana/counter.h"
 #include "ana/concurrent.h"
-#include "ana/processor.h"
+#include "ana/looper.h"
 
 namespace ana
 {
@@ -214,8 +214,8 @@ template <typename Val>
 // typename ana::analysis<T>::template delayed<ana::term<Val>> ana::analysis<T>::read(const std::string& name)
 auto ana::analysis<T>::read(const std::string& name) -> delayed<input::read_column_t<input::read_dataset_t<T>,Val>>
 {
-	using column_reader_t = typename decltype(this->m_processors.model()->template read<Val>(name))::element_type;
-	auto nd = delayed<column_reader_t>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template read<Val>(name); } ));
+	using column_reader_t = typename decltype(this->m_loopers.model()->template read<Val>(name))::element_type;
+	auto nd = delayed<column_reader_t>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template read<Val>(name); } ));
 	this->add_column(nd);
 	return nd;
 }
@@ -224,7 +224,7 @@ template <typename T>
 template <typename Val>
 auto ana::analysis<T>::constant(const Val& val) -> delayed<ana::column::constant<Val>>
 {
-	auto nd = delayed<column::constant<Val>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template constant<Val>(val); } ));
+	auto nd = delayed<column::constant<Val>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template constant<Val>(val); } ));
 	this->add_column(nd);
   return nd;
 }
@@ -233,7 +233,7 @@ template <typename T>
 template <typename Def, typename... Args>
 auto ana::analysis<T>::define(const Args&... arguments) -> typename analysis<T>::template delayed<column::calculator<Def>>
 {
-	auto nd = delayed<column::calculator<Def>>(*this, this->m_processors.from_slots( [&](processor<dataset_reader_type>& proc) { return proc.template define<Def>(arguments...); } ));
+	auto nd = delayed<column::calculator<Def>>(*this, this->m_loopers.from_slots( [&](looper<dataset_reader_type>& lpr) { return lpr.template define<Def>(arguments...); } ));
 	return nd;
 }
 
@@ -241,7 +241,7 @@ template <typename T>
 template <typename F>
 auto ana::analysis<T>::define(F expression) ->  typename analysis<T>::template delayed<column::calculator<equation_t<F>>>
 {
-	auto nd = delayed<column::calculator<equation_t<F>>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template define(expression); } ));
+	auto nd = delayed<column::calculator<equation_t<F>>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template define(expression); } ));
   return nd;
 }
 
@@ -249,7 +249,7 @@ template <typename T>
 template <typename Def, typename... Cols>
 auto ana::analysis<T>::compute(delayed<column::calculator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>
 {
-	auto col = delayed<Def>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, column::calculator<Def>& calc, Cols const&... cols) { return proc.template compute(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
+	auto col = delayed<Def>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, column::calculator<Def>& calc, Cols const&... cols) { return lpr.template compute(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
 	this->add_column(col);
   return col;
 }
@@ -258,14 +258,14 @@ template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::filter(const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>
 {
-	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,lmbd); } ));
+	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,lmbd); } ));
 }
 
 template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::channel(const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>
 {
-	auto sel = delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,lmbd); } ));
+	auto sel = delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,lmbd); } ));
 	return sel;	
 }
 
@@ -273,7 +273,7 @@ template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::filter(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
 {
-	auto sel = delayed<simple_selection_calculator_t<Sel>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,[](double x){return x;}); } ));
+	auto sel = delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,[](double x){return x;}); } ));
 	return sel;	
 }
 
@@ -281,7 +281,7 @@ template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::channel(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
 {
-	auto sel = delayed<simple_selection_calculator_t<Sel>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,[](double x){return x;}); } ));
+	auto sel = delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,[](double x){return x;}); } ));
 	return sel;	
 }
 
@@ -289,35 +289,35 @@ template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>
 {
-	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,lmbd); }, prev.get_slots() ));
+	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,lmbd); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name, F lmbd) -> delayed<custom_selection_calculator_t<Sel,F>>
 {
-	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,lmbd); }, prev.get_slots() ));
+	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,lmbd); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
 {
-	return delayed<simple_selection_calculator_t<Sel>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
+	return delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
 {
-	return delayed<simple_selection_calculator_t<Sel>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
+	return delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Calc, typename... Cols>
 auto ana::analysis<T>::apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> typename ana::analysis<T>::template delayed<typename Calc::selection_type>
 {
-	auto sel = delayed<typename Calc::selection_type>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, Calc& calc, Cols&... cols) { return proc.template apply(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
+	auto sel = delayed<typename Calc::selection_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, Calc& calc, Cols&... cols) { return lpr.template apply(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
 	this->add_selection(sel);
   return sel;
 }
@@ -326,7 +326,7 @@ template <typename T>
 template <typename Cnt, typename... Args>
 typename ana::analysis<T>::template delayed<ana::counter::booker<Cnt>> ana::analysis<T>::book(Args&&... args)
 {
-	auto bkr = delayed<counter::booker<Cnt>>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc) { return proc.template book<Cnt>(args...); } ));
+	auto bkr = delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template book<Cnt>(args...); } ));
   return bkr;
 }
 
@@ -336,7 +336,7 @@ typename ana::analysis<T>::template delayed<Cnt> ana::analysis<T>::count(delayed
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto cnt = delayed<Cnt>(*this, this->m_processors.from_slots( [=](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, Sel const& sel) { return proc.template count<Cnt>(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
+	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sel const& sel) { return lpr.template count<Cnt>(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
 	this->add_counter(cnt);
   return cnt;
 }
@@ -361,7 +361,7 @@ template <typename T>
 void ana::analysis<T>::clear_counters()
 { 
 	m_counter_list.clear();
-	this->m_processors.to_slots( [] (processor<dataset_reader_type>& proc) { proc.clear_counters(); } );
+	this->m_loopers.to_slots( [] (looper<dataset_reader_type>& lpr) { lpr.clear_counters(); } );
 }
 
 template <typename T>
@@ -374,12 +374,12 @@ void ana::analysis<T>::process_dataset()
 	if (multithread::status()) {
 		// start threads
 		std::vector<std::thread> pool;
-		for (size_t islot=0 ; islot<this->m_processors.concurrency() ; ++islot) {
+		for (size_t islot=0 ; islot<this->m_loopers.concurrency() ; ++islot) {
 			pool.emplace_back(
-				[] (processor<dataset_reader_type>& proc) {
-					proc.process();
+				[] (looper<dataset_reader_type>& lpr) {
+					lpr.loop();
 				},
-				std::ref(*this->m_processors.get_slot(islot))
+				std::ref(*this->m_loopers.get_slot(islot))
 			);
 		}
 		// join threads
@@ -388,8 +388,8 @@ void ana::analysis<T>::process_dataset()
 		}
 	// single-threaded
 	} else {
-		for (size_t islot=0 ; islot<this->m_processors.concurrency() ; ++islot) {
-			this->m_processors.get_slot(islot)->process();
+		for (size_t islot=0 ; islot<this->m_loopers.concurrency() ; ++islot) {
+			this->m_loopers.get_slot(islot)->loop();
 		}
 	}
 
@@ -401,7 +401,7 @@ void ana::analysis<T>::process_dataset()
 // template <typename T>
 // ana::analysis<T>& ana::analysis<T>::rebase(const delayed<selection>& sel)
 // {
-// 	this->m_processors.to_slots( [] (processor<dataset_reader_type>& proc, selection& sel) { proc.rebase(sel); }, sel.get_slots() );	
+// 	this->m_loopers.to_slots( [] (looper<dataset_reader_type>& lpr, selection& sel) { lpr.rebase(sel); }, sel.get_slots() );	
 //   return *this;
 // }
 
@@ -426,14 +426,14 @@ template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::repeat_selection(delayed<custom_selection_calculator_t<Sel,F>> const& calc) -> delayed<custom_selection_calculator_t<Sel,F>>
 {
-	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_processors.from_slots( [](processor<dataset_reader_type>& proc, custom_selection_calculator_t<Sel,F> const& calc){ return proc.repeat_selection(calc); }, calc.get_slots() ));
+	return delayed<custom_selection_calculator_t<Sel,F>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, custom_selection_calculator_t<Sel,F> const& calc){ return lpr.repeat_selection(calc); }, calc.get_slots() ));
 }
 
 template <typename T>
 template <typename Cnt>
 auto ana::analysis<T>::repeat_counter(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>
 {
-	return delayed<counter::booker<Cnt>>(*this, this->m_processors.from_slots( [](processor<dataset_reader_type>& proc, counter::booker<Cnt> const& bkr){ return proc.repeat_counter(bkr); }, bkr.get_slots() ));
+	return delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, counter::booker<Cnt> const& bkr){ return lpr.repeat_counter(bkr); }, bkr.get_slots() ));
 }
 
 template <typename... Nodes>
