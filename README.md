@@ -63,7 +63,7 @@ auto met_MeV = data.read<float>("met_et");
 auto met_phi = data.read<float>("met_phi");
 ```
 #### 1.2 Computing new quantities
-Simple operators supported by the underlying data types can be passed through:
+Mathematical binary and unary operations supported by the underlying data types are passed through:
 ```cpp
 // ROOT::RVec<float> supports division
 auto GeV = ana.constant<double>(1000.0);
@@ -71,12 +71,12 @@ auto lep_pt = lep_pt_MeV / GeV;
 auto lep_E = lep_Et_MeV / GeV;
 auto met = met_MeV / GeV;
 ```
-Custom C++ expressions out of existing ones can also be applied as lambda expressions:
+Custom lambda expressions can also be used:
 ```cpp
 // see below for l1p4 and l2p4
 auto dilepP4 = data.define([](TLorentzVector const& p4, TLorentzVector const& q4){return (p4+q4);})(l1p4,l2p4);
 ```
-Complicated definitions can be explicitly specified by a full class definition:
+For more complicated definitions, they can be explicitly specified by a full class implementation:
 ```cpp
 using RVecD = ROOT::RVec<double>;
 class ScaledP4 : public ana::column::definition<TLorentzVector(RVecD, RVecD, RVecD, RVecD)>
@@ -99,6 +99,7 @@ protected:
 
 // ...
 
+// first set of arguments is the constructor to your class,
 auto l1p4 = data.define<ScaledP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
 ```
 
@@ -108,10 +109,9 @@ Filtering entries in a dataset is done via a *selection*, which is either a bool
 ```cpp
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
-auto cut2l = data.filter<cut>("2l", [](int nlep){return (nlep == 2);})(nlep)\
-                 .filter<weight>("mc_weight")(mc_weight)\
-                 .filter<weight>("el_sf")(el_sf)\
-                 .filter<weight>("mu_sf")(mu_sf);
+auto cut2l = data.filter<weight>("mc_weight")(mc_weight * el_sf * mu_sf)\
+                  .filter<cut>("2l")(n_lep == 2);
+                  // reminder: delayed math operations
 ```
 - Selections that are applied in sequence after the first can be chained from the nodes directly.
 - Each filter operation requires an identifiable name, which is used to form the path of the full chain of selections applied.
@@ -120,6 +120,7 @@ Distinct (not required to be mutually exclusive) chains of selections can branch
 ```cpp
 // note: "channel" designation
 auto cut2los = cut2l.channel<cut>("2los", [](ROOT::RVec<float> const& qs){return (qs.at(0) + qs.at(1) == 0);})(lep_charges);
+                                          // custom expressions are also possible
 
 // branching out from a common 2-lepton, opposite-sign cut
 auto cut2ldf = cut2los.filter<cut>("2ldf", [](ROOT::RVec<int> const& flavours){return (flavours.at(0) + flavours.at(1) == 24);})(lep_types);
@@ -130,14 +131,15 @@ auto cut2lsf = cut2los.filter<cut>("2lsf", [](ROOT::RVec<int> const& flavours){r
 #### 3.1 Booking counters
 A *counter* is an arbitrary action performed once per-entry:
 - Only if a specified selection passes the cut, "count" the entry with its weight.
-- (Optional) receive the values of other columns to be "filled" with.
+- (Optional) receive the values of other columns to be "filled" with. This operation can be performed an arbitrary number of times on a counter.
 ```cpp
 // Histogram<1,float> implements ana::counter::logic<std::shared_ptr<TH1F>(float)>
 // if (cut2los.pass_cut()) pth_hist->Fill(pth, cut2los.get_weight());
 auto pth_2los = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut2los);
 
-// counter can be booked at multiple cuts
-auto pth_hists = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut2ldf, cut2lsf);
+// alternatively, they can be booked at multiple cuts
+// also, filling it twice with leading and sub-leading leptons
+auto lep_pt_2d_hists = data.book<Histogram<2,float>>("lep_pt_2d",20,0,100,20,0,100).fill(l1pt).fill(l2pt).at(cut2ldf, cut2lsf);
 ```
 __Note__: The number of computational operations are guaranteed to be the minimum required to run the analysis graph, and any and all nodes that can be ruled out for each entry are not computed. In the above example the calculation of the $p_{\text{T}}^{\ell\ell}$ and $p_{\text{E}}^H$ will not occur unless the event satisfies $n_\ell = 2$.
 

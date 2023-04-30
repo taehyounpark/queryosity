@@ -49,6 +49,10 @@ CHECK_FOR_BINARY_OP(division,/)
 CHECK_FOR_BINARY_OP(remainder,%)
 CHECK_FOR_BINARY_OP(logical_or,||)
 CHECK_FOR_BINARY_OP(logical_and,&&)
+CHECK_FOR_BINARY_OP(greater_than,>)
+CHECK_FOR_BINARY_OP(less_than,<)
+CHECK_FOR_BINARY_OP(greater_than_or_equal_to,>=)
+CHECK_FOR_BINARY_OP(less_than_or_equal_to,<=)
 
 CHECK_FOR_UNARY_OP(logical_not,!)
 CHECK_FOR_UNARY_OP(minus,-)
@@ -283,17 +287,17 @@ public:
 		}
 	}
 
-	// // pass through arithmetic operators for columns
-	// template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_division_v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>
-	// auto operator/(Arg const& other) const 
-	// {
-	// 	return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me / you; })(*this,other);
-	// }
 
 	DEFINE_DELAYED_BINARY_OP(addition,+)
 	DEFINE_DELAYED_BINARY_OP(subtraction,-)
 	DEFINE_DELAYED_BINARY_OP(multiplication,*)
 	DEFINE_DELAYED_BINARY_OP(division,/)
+	DEFINE_DELAYED_BINARY_OP(logical_or,||)
+	DEFINE_DELAYED_BINARY_OP(logical_and,&&)
+	DEFINE_DELAYED_BINARY_OP(greater_than,>)
+	DEFINE_DELAYED_BINARY_OP(less_than,<)
+	DEFINE_DELAYED_BINARY_OP(greater_than_or_equal_to,>=)
+	DEFINE_DELAYED_BINARY_OP(less_than_or_equal_to,<=)
 
 	DEFINE_DELAYED_UNARY_OP(logical_not,!)
 	DEFINE_DELAYED_UNARY_OP(minus,-)
