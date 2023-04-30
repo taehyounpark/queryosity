@@ -11,6 +11,8 @@
 namespace ana
 {
 
+namespace op_check
+{
 struct not_available {}; 
 template<typename T, typename Arg> not_available operator==(const T&, const Arg&);
 template<typename T, typename Arg = T> struct has_equality { enum { value = !std::is_same<decltype(std::declval<T>() == std::declval<Arg>()), not_available>::value }; };  
@@ -18,6 +20,7 @@ template<typename T, typename Arg = T> static constexpr bool has_equality_v = ha
 template<typename T, typename Arg> not_available operator/(const T&, const Arg&);
 template<typename T, typename Arg = T> struct has_division { enum { value = !std::is_same<decltype(std::declval<T>() / std::declval<Arg>()), not_available>::value }; };  
 template<typename T, typename Arg = T> static constexpr bool has_division_v = has_division<T,Arg>::value;  
+}
 
 template <typename Calc> using calculated_column_t = typename Calc::column_type;
 template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
@@ -249,7 +252,7 @@ public:
 	}
 
 	// // pass through arithmetic operators for columns
-	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && has_division_v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>
+	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_division_v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>
 	auto operator/(Arg const& other) const 
 	{
 		return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me / you; })(*this,other);
