@@ -8,7 +8,6 @@
 #include <functional>
 #include <thread>
 
-
 #include "ana/input.h"
 #include "ana/sample.h"
 #include "ana/column.h"

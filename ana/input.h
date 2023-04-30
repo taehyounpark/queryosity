@@ -2,10 +2,9 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 #include <atomic>
 #include <cassert>
-
-
 
 namespace ana
 {

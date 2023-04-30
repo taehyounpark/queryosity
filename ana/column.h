@@ -2,6 +2,7 @@
 
 #include <string>
 #include <memory>
+#include <functional>
 #include <type_traits>
 
 #include "ana/routine.h"
