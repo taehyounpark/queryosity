@@ -4,7 +4,7 @@
 #include "ana/strutils.h"
 
 ana::selection::selection(const std::string& name) :
-	ana::action(name),
+	m_name(name),
 	m_preselection(nullptr),
 	m_channel(false)
 {}
@@ -37,6 +37,11 @@ void ana::selection::set_channel(bool channel)
 bool ana::selection::is_channel() const noexcept
 {
 	return m_channel;
+}
+
+std::string ana::selection::get_name() const
+{
+	return m_name;
 }
 
 std::string ana::selection::get_path() const

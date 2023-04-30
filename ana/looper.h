@@ -4,7 +4,7 @@
 #include <vector>
 #include <memory>
 
-#include "ana/routine.h"
+#include "ana/action.h"
 #include "ana/computation.h"
 #include "ana/experiment.h"
 
@@ -12,7 +12,7 @@ namespace ana
 {
 
 template <typename T>
-class looper : public routine, public column::computation<T>, public counter::experiment
+class looper : public action, public column::computation<T>, public counter::experiment
 {
 
 public:
@@ -36,7 +36,7 @@ public:
 
 template <typename T>
 ana::looper<T>::looper(input::reader<T>& reader, double scale) :
-  routine(),
+  action(),
 	column::computation<T>(reader),
 	counter::experiment(scale)
 {}

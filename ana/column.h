@@ -5,12 +5,12 @@
 #include <functional>
 #include <type_traits>
 
-#include "ana/routine.h"
+#include "ana/action.h"
 
 namespace ana
 {
 
-class column : public routine
+class column : public action
 {
 
 public:
@@ -46,12 +46,6 @@ public:
 public: 
   column();
   virtual ~column() = default;
-
-  void mark_required(bool required = true);
-  bool is_required() const;
-
-protected:
-  bool m_required;
 
 };
 

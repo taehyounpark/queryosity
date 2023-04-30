@@ -179,6 +179,8 @@ class analysis<T>::node
 {
 
 public:
+	using analysis_type = analysis<T>;
+	using dataset_type = T;
 	using action_type = U;
 
 public:
@@ -197,12 +199,12 @@ public:
 public:
 
 	virtual delayed<U> nominal() const = 0;
-	virtual delayed<U> variation(const std::string& varname) const = 0;
+	virtual delayed<U> variation(const std::string& var_name) const = 0;
 
 	virtual void set_nominal(delayed<U> const& nom) = 0;
-	virtual void set_variation(const std::string& varname, delayed<U> const& nom) = 0;
+	virtual void set_variation(const std::string& var_name, delayed<U> const& nom) = 0;
 
-	virtual bool has_variation(const std::string& varname) const = 0;
+	virtual bool has_variation(const std::string& var_name) const = 0;
 	virtual std::set<std::string> list_variation_names() const = 0;
 
 protected:

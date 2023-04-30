@@ -68,7 +68,9 @@ class analysis<T>::delayed : public node<U>
 {
 
 public:
-	using action_type = U;
+	using analysis_t = typename node<U>::analysis_type;
+	using dataset_type = typename node<U>::dataset_type;
+	using action_type = typename node<U>::action_type;
 
 	template <typename Sel, typename... Args>
 	using delayed_selection_calculator_t = decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...));
@@ -105,12 +107,12 @@ public:
 	}
 
 	virtual void set_nominal(const delayed& nom) override;
- 	virtual void set_variation(const std::string& varname, const delayed& var) override;
+ 	virtual void set_variation(const std::string& var_name, const delayed& var) override;
 
 	virtual delayed<U> nominal() const override;
-	virtual delayed<U> variation(const std::string& varname) const override;
+	virtual delayed<U> variation(const std::string& var_name) const override;
 	
-	virtual bool has_variation(const std::string& varname) const override;
+	virtual bool has_variation(const std::string& var_name) const override;
 	virtual std::set<std::string> list_variation_names() const override;
 
 	// std::string get_name() const
@@ -144,9 +146,9 @@ public:
 	// and a single variation under the specified name and constructor arguments
 	// further calls to add more variations are handled by varied<V>::vary()
 	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>, V>* = nullptr>
-	auto vary(const std::string& varname, Args&&... args) -> varied<V>;
+	auto vary(const std::string& var_name, Args&&... args) -> varied<V>;
 	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* = nullptr>
-	auto vary(const std::string& varname, Args&&... args) -> varied<V>;
+	auto vary(const std::string& var_name, Args&&... args) -> varied<V>;
 
   template <typename... Nodes, std::enable_if_t<has_no_variation_v<Nodes...>, int> = 0>
 	auto evaluate(Nodes const&... columns) const
@@ -167,9 +169,9 @@ public:
 			auto nom = this->m_analysis->compute( *this, columns.nominal()... );
 			varied<calculated_column_t<V>> syst(nom);
 			// variations
-			for (auto const& varname : list_all_variation_names(columns...)) {
-				auto var = this->m_analysis->compute( *this, columns.variation(varname)... );
-				syst.set_variation(varname, var);
+			for (auto const& var_name : list_all_variation_names(columns...)) {
+				auto var = this->m_analysis->compute( *this, columns.variation(var_name)... );
+				syst.set_variation(var_name, var);
 			}
 			return syst;
 		} else {
@@ -200,10 +202,10 @@ public:
 			auto nom = delayed(*this).apply(columns.nominal()...);
 			syst.set_nominal(*this);
 			//variations
-			auto varnames = list_all_variation_names(columns...);
-			for (auto const& varname : varnames) {
-				auto var = delayed(*this).apply( columns.variation(varname)...);
-				syst.set_variation(varname,var);
+			auto var_names = list_all_variation_names(columns...);
+			for (auto const& var_name : var_names) {
+				auto var = delayed(*this).apply( columns.variation(var_name)...);
+				syst.set_variation(var_name,var);
 			}
 			return syst;
 		} else {
@@ -231,10 +233,10 @@ public:
 			auto nom = this->m_analysis->repeat_counter(*this);
 			auto syst = varied<U>(nom.fill(columns.nominal()...));
 			// variations
-			for (auto const& varname : list_all_variation_names(columns...)) {
+			for (auto const& var_name : list_all_variation_names(columns...)) {
 				auto var = this->m_analysis->repeat_counter(*this);
-				var.fill(columns.variation(varname)...);
-				syst.set_variation(varname,var);
+				var.fill(columns.variation(var_name)...);
+				syst.set_variation(var_name,var);
 			}
 			return syst;
 		} else {
@@ -288,6 +290,7 @@ public:
 	}
 
 
+	DEFINE_DELAYED_BINARY_OP(equality,==)
 	DEFINE_DELAYED_BINARY_OP(addition,+)
 	DEFINE_DELAYED_BINARY_OP(subtraction,-)
 	DEFINE_DELAYED_BINARY_OP(multiplication,*)
@@ -319,6 +322,9 @@ protected:
 
 };
 
+// analysis<T> of analysis<T>::node<U>
+template <typename T> using analysis_t = typename T::analysis_type; 
+
 }
 
 #include "ana/varied.h"
@@ -337,7 +343,7 @@ void ana::analysis<T>::delayed<Act>::set_nominal(delayed const& nom)
 
 template <typename T>
 template <typename Act>
-void ana::analysis<T>::delayed<Act>::set_variation(const std::string& varname, delayed const&)
+void ana::analysis<T>::delayed<Act>::set_variation(const std::string& var_name, delayed const&)
 {
 	// this is nominal -- ignore all variations
 	return;
@@ -352,7 +358,7 @@ auto ana::analysis<T>::delayed<Act>::nominal() const -> delayed<Act>
 
 template <typename T>
 template <typename Act>
-auto ana::analysis<T>::delayed<Act>::variation(const std::string& varname) const -> delayed<Act>
+auto ana::analysis<T>::delayed<Act>::variation(const std::string& var_name) const -> delayed<Act>
 {
 	return *this;
 }
@@ -374,12 +380,12 @@ bool ana::analysis<T>::delayed<Act>::has_variation(const std::string&) const
 template <typename T>
 template <typename Act>
 template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>, V>* ptr> inline
-auto ana::analysis<T>::delayed<Act>::vary(const std::string& varname, Args&&... args) -> varied<V>
+auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
 {
   // create a delayed varied with the this as nominal
   auto syst = varied<V>(*this);
 	// set variation of the column according to new constructor arguments
-  syst.set_variation(varname, this->m_analysis->vary_column(*this, std::forward<Args>(args)...));
+  syst.set_variation(var_name, this->m_analysis->vary_column(*this, std::forward<Args>(args)...));
   // done
   return syst;
 }
@@ -387,12 +393,12 @@ auto ana::analysis<T>::delayed<Act>::vary(const std::string& varname, Args&&... 
 template <typename T>
 template <typename Act>
 template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* ptr> inline
-auto ana::analysis<T>::delayed<Act>::vary(const std::string& varname, Args&&... args) -> varied<V>
+auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
 {
   // create a delayed varied with the this as nominal
   auto syst = varied<V>(*this);
 	// set variation of the column according to new constructor arguments
-  syst.set_variation(varname, this->m_analysis->vary_definition(*this, std::forward<Args>(args)...));
+  syst.set_variation(var_name, this->m_analysis->vary_definition(*this, std::forward<Args>(args)...));
   // done
   return syst;
 }

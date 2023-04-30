@@ -21,6 +21,8 @@ public:
   virtual ~selection() = default;
 
 public:
+	std::string get_name() const;
+
 	void set_initial();
 	void set_previous(const selection& preselection);
 
@@ -48,6 +50,8 @@ public:
 	virtual void finalize() override;
 
 private:
+	std::string m_name;
+
 	const selection* m_preselection;
 
 	std::shared_ptr<column> m_decision;

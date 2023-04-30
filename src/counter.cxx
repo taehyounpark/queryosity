@@ -3,7 +3,7 @@
 #include "ana/selection.h"
 
 ana::counter::counter() :
-	ana::routine(),
+	action(),
 	m_selection(nullptr),
 	m_scale(1.0),
 	m_raw(false)

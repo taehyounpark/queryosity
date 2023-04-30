@@ -65,16 +65,16 @@ auto met_phi = data.read<float>("met_phi");
 #### 1.2 Computing new quantities
 Mathematical binary and unary operations supported by the underlying data types are passed through:
 ```cpp
-// ROOT::RVec<float> supports division
 auto GeV = ana.constant<double>(1000.0);
-auto lep_pt = lep_pt_MeV / GeV;
+auto lep_pt = lep_pt_MeV / GeV;  // ROOT::RVec<float> / double
 auto lep_E = lep_Et_MeV / GeV;
 auto met = met_MeV / GeV;
 ```
 Custom lambda expressions can also be used:
 ```cpp
-// see below for l1p4 and l2p4
+// see below for l1p4 and l2p4 definitions
 auto dilepP4 = data.define([](TLorentzVector const& p4, TLorentzVector const& q4){return (p4+q4);})(l1p4,l2p4);
+                       // * first argument is the functor,                                         * second the input columns.
 ```
 For more complicated definitions, they can be explicitly specified by a full class implementation:
 ```cpp
@@ -99,8 +99,8 @@ protected:
 
 // ...
 
-// first set of arguments is the constructor to your class,
 auto l1p4 = data.define<ScaledP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
+                              // * first set of arguments is now the class constructor.
 ```
 
 ### 2. Applying selections
@@ -109,21 +109,26 @@ Filtering entries in a dataset is done via a *selection*, which is either a bool
 ```cpp
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
-auto cut2l = data.filter<weight>("mc_weight")(mc_weight * el_sf * mu_sf)\
-                  .filter<cut>("2l")(n_lep == 2);
-                  // reminder: delayed math operations
+auto n_lep_req = data.constant<int>(2)
+auto cut2l = data.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
+                 .filter<cut>("2l")(n_lep == n_lep_req);
+                 // reminder: delayed math operations
 ```
 - Selections that are applied in sequence after the first can be chained from the nodes directly.
 - Each filter operation requires an identifiable name, which is used to form the path of the full chain of selections applied.
 #### 2.2 Branching out & channels
 Distinct (not required to be mutually exclusive) chains of selections can branch out from a common point. Designating a particular selection as a *channel* marks that its name will be reflected as part of the path of downstream selections.
 ```cpp
-// note: "channel" designation
+// requiring the two leptons have opposite charges
+            // * further selections must be applied from the node
+                  // * note "channel" designation
 auto cut2los = cut2l.channel<cut>("2los", [](ROOT::RVec<float> const& qs){return (qs.at(0) + qs.at(1) == 0);})(lep_charges);
-                                          // custom expressions are also possible
+                                       // * custom expressions same as in for column definition possible
 
 // branching out from a common 2-lepton, opposite-sign cut
+  // * different-flavour leptons
 auto cut2ldf = cut2los.filter<cut>("2ldf", [](ROOT::RVec<int> const& flavours){return (flavours.at(0) + flavours.at(1) == 24);})(lep_types);
+  // * same-flavour leptons
 auto cut2lsf = cut2los.filter<cut>("2lsf", [](ROOT::RVec<int> const& flavours){return ((flavours.at(0) + flavours.at(1) == 22) || (lep_type.at(0) + lep_type.at(1) == 26));})(lep_types);
 ```
 
@@ -133,25 +138,40 @@ A *counter* is an arbitrary action performed once per-entry:
 - Only if a specified selection passes the cut, "count" the entry with its weight.
 - (Optional) receive the values of other columns to be "filled" with. This operation can be performed an arbitrary number of times on a counter.
 ```cpp
-// Histogram<1,float> implements ana::counter::logic<std::shared_ptr<TH1F>(float)>
-// if (cut2los.pass_cut()) pth_hist->Fill(pth, cut2los.get_weight());
-auto pth_2los = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut2los);
+// Histogram<1,float> : ana::counter::logic<std::shared_ptr<TH1F>(float)>
+                                           // * constructor arguments
+auto pth_2los = data.book<Histogram<1,float>>("pth",100,0,400)\
+                  // * pth_hist->Fill(pth, cut2los.get_weight());
+                    .fill(pth)\
+                  // * if (cut2los.passed_cut()) { ... }
+                    .at(cut2los);
 
-// alternatively, they can be booked at multiple cuts
-// also, filling it twice with leading and sub-leading leptons
-auto lep_pt_2d_hists = data.book<Histogram<2,float>>("lep_pt_2d",20,0,100,20,0,100).fill(l1pt).fill(l2pt).at(cut2ldf, cut2lsf);
+auto l1n2_pt_hists = data.book<Histogram<1,float>>("l1n2_pt",20,0,100)\
+                         // * any number of fills can be done
+                           .fill(l1pt).fill(l2pt)\
+                         // * can be booked at selections at once
+                           .at(cut2ldf, cut2lsf);
 ```
-__Note__: The number of computational operations are guaranteed to be the minimum required to run the analysis graph, and any and all nodes that can be ruled out for each entry are not computed. In the above example the calculation of the $p_{\text{T}}^{\ell\ell}$ and $p_{\text{E}}^H$ will not occur unless the event satisfies $n_\ell = 2$.
+The number of computational operations performed in order to perform this final step is guaranteed to be the minimum required, and any unnecessary nodes that are not performed.
+- In the above example, note that the counters were all booked after $n_\ell = 2$ selection.
+- Therefore, the calculation of the dilepton-requiring quantities will not occur unless the event satisfies.
 
 #### 3.2 Processing the dataset and accessing results
 The result of each counter can be accessed by specifying the path of the booked selections
 ```cpp
-// dataset processing is triggered
-auto result = pth_2los.result();  // std::shared_ptr<TH1>
+      // * trigger dataset processing
+pth_2los.result();  // -> std::shared_ptr<TH1>
 
-// results are already available, obtained instantaneously
-auto pth_2lsf = pth_hists["2los/2ldf"].result();
-auto pth_2ldf = pth_hists["2los/2lsf"].result();
+                              // * also accessible by selection path key
+auto l1n2_pt_2lsf = l1n2_pt_hists["2los/2ldf"].result();
+auto l1n2_pt_2ldf = l1n2_pt_hists["2los/2lsf"].result();
+
+auto out_file = TFile::Open("hww_hists.root","create");
+// helper function to "dump" counter results at all selections
+ana::output::dump<Folder>(l1n2_pt_hists, out_file);
+               // * Folder : ana::counter::summary<Folder>
+               // * i.e. user-implementable
+delete out_file;
 ```
 ![pth_hists](pth_hists.png)
 

@@ -5,16 +5,27 @@
 #include <unordered_map>
 #include <functional>
 
-#include "ana/routine.h"
-#include "ana/concurrent.h"
-#include "ana/column.h"
+#include "ana/action.h"
 
 namespace ana
 {
 
+template <typename T>
+class term;
+
+template <typename T>
+class cell;
+
+template <typename T>
+class variable;
+
+template <typename T>
+class observable;
+
 class selection;
 
-class counter : public routine
+
+class counter : public action
 {
 
 public:
@@ -154,16 +165,24 @@ class counter::summary
 
 public:
 
-	template <typename Result>
-	void record(const std::string& selection_path, std::decay_t<Result> counter_result)
+	// version for delayed<counter>
+	template <typename Res>
+	void record(const std::string& selection_path, std::decay_t<Res> counter_result)
 	{
 		static_cast<T*>(this)->record(selection_path, counter_result);	
 	}
 
-	template <typename Destination>
-	void report(const std::string& counter_name, Destination& destination)
+	// version for varied<counter>
+	template <typename Res>
+	void record(const std::string& variation_name, const std::string& selection_path, std::decay_t<Res> counter_result)
 	{
-		static_cast<T*>(this)->report(counter_name, destination);	
+		static_cast<T*>(this)->record(variation_name, selection_path, counter_result);	
+	}
+
+	template <typename Dest>
+	void output(Dest& destination)
+	{
+		static_cast<T*>(this)->output(destination);	
 	}
 
 };

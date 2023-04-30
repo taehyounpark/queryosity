@@ -1,23 +1,24 @@
 #pragma once
 
-#include <string>
+#include <iostream>
+#include <vector>
+#include <memory>
+#include <algorithm>
+#include <atomic>
 
-#include "ana/routine.h"
-
-namespace ana 
+namespace ana
 {
 
-class action : public routine
+class action
 {
 
 public:
-	action(const std::string& name);
+	action() = default;
 	virtual ~action() = default;
 
-	const std::string& get_name() const;
-
-protected:
-	std::string m_name;
+	virtual void initialize() = 0;
+	virtual void execute()    = 0;
+	virtual void finalize()   = 0;
 
 };
 
