@@ -56,7 +56,7 @@ protected:
 template <typename Sel, typename Lmbd>
 auto ana::selection::cutflow::filter(const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>
 {
-	auto eqn = make_equation(std::function(std::forward<Lmbd>(lmbd)));
+	auto eqn = column::make_equation(std::function(std::forward<Lmbd>(lmbd)));
 	auto calc = std::make_shared<typename Sel::template calculator<column::equation_t<Lmbd>>>(name,eqn);
 	calc->set_channel(false);
 	return calc;
@@ -65,7 +65,7 @@ auto ana::selection::cutflow::filter(const std::string& name, Lmbd&& lmbd) -> st
 template <typename Sel, typename Lmbd>
 auto ana::selection::cutflow::channel(const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>
 {
-	auto eqn = make_equation(std::function(std::forward<Lmbd>(lmbd)));
+	auto eqn = column::make_equation(std::function(std::forward<Lmbd>(lmbd)));
 	auto calc = std::make_shared<typename Sel::template calculator<column::equation_t<Lmbd>>>(name,eqn);
 	calc->set_channel(true);
 	return calc;

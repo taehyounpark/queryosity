@@ -33,7 +33,7 @@ export(PACKAGE ana)
 
 set(CONF_INCLUDE_DIRS "${PROJECT_SOURCE_DIR}" "${PROJECT_SOURCE_DIR}/ana" )
 set(CONF_LIBRARY_DIRS "${PROJECT_BINARY_DIR}")
-set(CONF_LIBRARIES    ana)
+set(CONF_LIBRARIES ana)
 configure_file(config.cmake.in
   "${PROJECT_BINARY_DIR}/config.cmake" @ONLY)
 

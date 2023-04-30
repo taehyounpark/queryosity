@@ -8,18 +8,50 @@
 #include "ana/computation.h"
 #include "ana/experiment.h"
 
+// macros to check and generate operator definitions
+// binary
+#define CHECK_FOR_BINARY_OP(op_name,op_symbol)\
+	struct has_no_  ## op_name {};\
+	template<typename T, typename Arg> has_no_ ## op_name operator op_symbol(const T&, const Arg&);\
+	template<typename T, typename Arg = T> struct has_ ## op_name { enum { value = !std::is_same<decltype(std::declval<T>() == std::declval<Arg>()), has_no_ ## op_name>::value }; };\
+	template<typename T, typename Arg = T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T,Arg>::value; 
+
+#define DEFINE_DELAYED_BINARY_OP(op_name,op_symbol)\
+	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>\
+	auto operator op_symbol(const Arg& other) const\
+	{\
+		return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me op_symbol you; })(*this,other);\
+	}
+// unary
+#define CHECK_FOR_UNARY_OP(op_name,op_symbol)\
+	struct has_no_  ## op_name {};\
+	template<typename T> has_no_ ## op_name operator op_symbol(const T&);\
+	template<typename T> struct has_ ## op_name { enum { value = !std::is_same<decltype( op_symbol std::declval<T>()), has_no_ ## op_name>::value }; };\
+	template<typename T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T>::value; 
+
+#define DEFINE_DELAYED_UNARY_OP(op_name,op_symbol)\
+	template <typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>>, V>* = nullptr>\
+	auto operator op_symbol() const\
+	{\
+		return this->m_analysis->define([](cell_value_t<V> const& me){ return (op_symbol me); })(*this);\
+	}
+
 namespace ana
 {
 
 namespace op_check
 {
-struct not_available {}; 
-template<typename T, typename Arg> not_available operator==(const T&, const Arg&);
-template<typename T, typename Arg = T> struct has_equality { enum { value = !std::is_same<decltype(std::declval<T>() == std::declval<Arg>()), not_available>::value }; };  
-template<typename T, typename Arg = T> static constexpr bool has_equality_v = has_equality<T,Arg>::value;  
-template<typename T, typename Arg> not_available operator/(const T&, const Arg&);
-template<typename T, typename Arg = T> struct has_division { enum { value = !std::is_same<decltype(std::declval<T>() / std::declval<Arg>()), not_available>::value }; };  
-template<typename T, typename Arg = T> static constexpr bool has_division_v = has_division<T,Arg>::value;  
+CHECK_FOR_BINARY_OP(equality,==)
+CHECK_FOR_BINARY_OP(addition,+)
+CHECK_FOR_BINARY_OP(subtraction,-)
+CHECK_FOR_BINARY_OP(multiplication,*)
+CHECK_FOR_BINARY_OP(division,/)
+CHECK_FOR_BINARY_OP(remainder,%)
+CHECK_FOR_BINARY_OP(logical_or,||)
+CHECK_FOR_BINARY_OP(logical_and,&&)
+
+CHECK_FOR_UNARY_OP(logical_not,!)
+CHECK_FOR_UNARY_OP(minus,-)
 }
 
 template <typename Calc> using calculated_column_t = typename Calc::column_type;
@@ -252,11 +284,19 @@ public:
 	}
 
 	// // pass through arithmetic operators for columns
-	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_division_v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>
-	auto operator/(Arg const& other) const 
-	{
-		return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me / you; })(*this,other);
-	}
+	// template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_division_v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>
+	// auto operator/(Arg const& other) const 
+	// {
+	// 	return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me / you; })(*this,other);
+	// }
+
+	DEFINE_DELAYED_BINARY_OP(addition,+)
+	DEFINE_DELAYED_BINARY_OP(subtraction,-)
+	DEFINE_DELAYED_BINARY_OP(multiplication,*)
+	DEFINE_DELAYED_BINARY_OP(division,/)
+
+	DEFINE_DELAYED_UNARY_OP(logical_not,!)
+	DEFINE_DELAYED_UNARY_OP(minus,-)
 
 protected:
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>

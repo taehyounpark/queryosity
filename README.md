@@ -24,8 +24,8 @@ This library provide an ***_abstract_*** interface for users to achieve these fe
 Some of these paradigms are already standard tools in other programming languages such as Python (e.g. `dask.delayed`), while others (e.g. `varied<T>`) is not as much so.
 
 ## Prerequisites
-- C++17 standard compiler
-- CMake 3.12 or newer
+- C++17 standard compiler (tested with Clang 14 and GCC 11)
+- CMake 3.24 or newer
 
 ## Applied walkthrough
 
