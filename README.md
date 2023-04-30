@@ -1,13 +1,11 @@
 Coherent data analysis in C++.
+
+## Features
 - Multithreaded processing of the dataset.
 - Declarative computation of column values.
 - Clear chain and/or branches of selections applied to entries.
 - Propagation of systematic variations through an analysis.
 - Customizable logic & output of analysis results.
-
-## Prerequisites
-- C++17 standard compiler
-- CMake 3.12 or newer
 
 ## Key concepts
 
@@ -23,7 +21,11 @@ This library provide an ***_abstract_*** interface for users to achieve these fe
   - All other operations that involve varied nodes carry them through, such that the end results represent the full union of all applicable variations.
   - The propagation is "transparent", meaning no changes to the rest of interface calls are needed to see the variations in effect.
 
-Some of these paradigms are already de-facto standard in other programming languages such as Python (e.g. `dask.delayed`), while others (e.g. `varied<T>`) is not as much so.
+Some of these paradigms are already standard tools in other programming languages such as Python (e.g. `dask.delayed`), while others (e.g. `varied<T>`) is not as much so.
+
+## Prerequisites
+- C++17 standard compiler
+- CMake 3.12 or newer
 
 ## Applied walkthrough
 
