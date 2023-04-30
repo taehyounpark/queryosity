@@ -9,43 +9,11 @@
 
 #include "ana/input.h"
 #include "ana/column.h"
-#include "ana/term.h"
 #include "ana/constant.h"
 #include "ana/equation.h"
 
 namespace ana 
 {
-
-template <typename T> struct is_column_calculator : std::false_type {};
-template <typename T> struct is_column_calculator<column::calculator<T>> : std::true_type {};
-template <typename T> constexpr bool is_column_calculator_v = is_column_calculator<T>::value;
-
-constexpr std::true_type check_column(const column&);
-constexpr std::false_type check_column(...);
-template <typename T> constexpr bool is_column_v = decltype(check_column(std::declval<T>()))::value;
-
-template <typename T>
-constexpr std::true_type check_column_reader(typename column::reader<T> const&);
-constexpr std::false_type check_column_reader(...);
-template <typename T> constexpr bool is_column_reader_v = decltype(check_column_reader(std::declval<T>()))::value;
-
-template <typename T>
-constexpr std::true_type check_column_constant(typename column::constant<T> const&);
-constexpr std::false_type check_column_constant(...);
-template <typename T> constexpr bool is_column_constant_v = decltype(check_column_constant(std::declval<T>()))::value;
-
-template <typename T>
-constexpr std::true_type check_column_equation(typename column::equation<T> const&);
-constexpr std::false_type check_column_equation(...);
-template <typename T> constexpr bool is_column_equation_v = decltype(check_column_equation(std::declval<T>()))::value;
-
-template <typename T>
-constexpr std::true_type check_column_definition(typename column::definition<T> const&);
-constexpr std::false_type check_column_definition(...);
-template <typename T> constexpr bool is_column_definition_v = decltype(check_column_definition(std::declval<T>()))::value;
-
-template <typename T>
-using calculated_column_t = typename T::column_type;
 
 template <typename T>
 class column::computation
@@ -57,7 +25,7 @@ public:
 
 public:
 	template <typename Val>
-	auto read(const std::string& name) -> std::shared_ptr<input::read_column_t<T,Val>>;
+	auto read(const std::string& name) -> std::shared_ptr<read_column_t<T,Val>>;
 
 	template <typename Val>
 	auto constant(const Val& val) -> std::shared_ptr<column::constant<Val>>;
@@ -93,8 +61,10 @@ ana::column::computation<T>::computation(input::reader<T>& reader) :
 template <typename T>
 template <typename Val>
 // auto ana::column::computation<T>::read(const std::string& name) -> decltype(std::declval<input::reader<T>>().template read_column<Val>(name))
-auto ana::column::computation<T>::read(const std::string& name) -> std::shared_ptr<input::read_column_t<T,Val>>
+auto ana::column::computation<T>::read(const std::string& name) -> std::shared_ptr<read_column_t<T,Val>>
 {
+	using read_t = decltype(m_reader->template read_column<Val>(std::declval<std::string>()));
+	static_assert( is_shared_ptr_v<read_t>, "dataset must open a std::shared_ptr of its column reader" );
 	auto rdr = m_reader->template read_column<Val>(name);
 	this->add_column(*rdr);
 	return rdr;

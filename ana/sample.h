@@ -12,7 +12,7 @@ class sample
 {
 
 public:
-  using dataset_reader_type = input::read_dataset_t<T>;
+  using dataset_reader_type = read_dataset_t<T>;
 
 public:
   sample(long long max_entries=-1);

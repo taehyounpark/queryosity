@@ -5,7 +5,6 @@
 #include <functional>
 
 #include "ana/column.h"
-#include "ana/term.h"
 #include "ana/calculation.h"
 
 namespace ana

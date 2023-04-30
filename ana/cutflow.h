@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 
+
 #include "ana/selection.h"
 #include "ana/cut.h"
 #include "ana/weight.h"
@@ -46,14 +47,9 @@ protected:
 
 };
 
-template <typename T> struct is_selection_calculator: std::false_type {};
-template <typename T> struct is_selection_calculator<selection::cut::calculator<T>>: std::true_type {};
-template <typename T> struct is_selection_calculator<selection::weight::calculator<T>>: std::true_type {};
-template <typename T> constexpr bool is_selection_calculator_v = is_selection_calculator<T>::value;
-
 }
 
-#include "ana/term.h"
+#include "ana/column.h"
 #include "ana/counter.h"
 #include "ana/equation.h"
 

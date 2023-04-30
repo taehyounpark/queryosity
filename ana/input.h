@@ -5,12 +5,10 @@
 #include <atomic>
 #include <cassert>
 
+
+
 namespace ana
 {
-
-template<typename T> struct is_shared_ptr : std::false_type {};
-template<typename T> struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
-template <typename T> static constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 
 template<typename T>
 class sample;
@@ -116,13 +114,14 @@ protected:
 
 };
 
-template<typename T>
-using read_dataset_t = typename decltype(std::declval<T>().read_dataset(std::declval<range>()))::element_type;
-
-template<typename T, typename Val>
-using read_column_t = typename decltype(std::declval<T>().template read_column<Val>(std::declval<std::string>()))::element_type;
-
 }
+
+template<typename T> using read_dataset_t = typename decltype(std::declval<T>().read_dataset(std::declval<input::range>()))::element_type;
+template<typename T, typename Val> using read_column_t = typename decltype(std::declval<T>().template read_column<Val>(std::declval<std::string>()))::element_type;
+
+template<typename T> struct is_shared_ptr : std::false_type {};
+template<typename T> struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
+template <typename T> static constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 
 }
 
@@ -149,8 +148,8 @@ void ana::input::dataset<T>::finish()
 template<typename T>
 decltype(auto) ana::input::dataset<T>::read_dataset(const range& part) const
 {
-	using opened_t = decltype(static_cast<const T*>(this)->open(part));
-	static_assert( is_shared_ptr_v<opened_t>, "dataset must open shared pointer of its reader" );
+	using opened_t = decltype(static_cast<const T*>(this)->open(std::declval<range>()));
+	static_assert( is_shared_ptr_v<opened_t>, "dataset must open a std::shared_ptr of its reader" );
 	return static_cast<const T*>(this)->open(part);
 }
 
@@ -163,8 +162,8 @@ template<typename T>
 template<typename Val>
 decltype(auto) ana::input::reader<T>::read_column(const std::string& name) const
 {
-	using opened_t = decltype(static_cast<const T*>(this)->template read<Val>(name));
-	static_assert( is_shared_ptr_v<opened_t>, "dataset must open shared pointer of its column reader" );
+	using opened_t = decltype(static_cast<const T*>(this)->template read<Val>(std::declval<std::string>()));
+	static_assert( is_shared_ptr_v<opened_t>, "dataset must open a std::shared_ptr of its column reader" );
 	return static_cast<const T*>(this)->template read<Val>(name);
 }
 

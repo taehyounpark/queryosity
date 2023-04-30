@@ -8,8 +8,6 @@
 #include "ana/routine.h"
 #include "ana/concurrent.h"
 #include "ana/column.h"
-#include "ana/term.h"
-#include "ana/strutils.h"
 
 namespace ana
 {
@@ -186,7 +184,7 @@ constexpr bool is_counter_fillable_v = decltype(check_counter_fillable(std::decl
 
 }
 
-#include "ana/term.h"
+#include "ana/column.h"
 #include "ana/selection.h"
 
 template <typename T>

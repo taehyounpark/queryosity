@@ -8,10 +8,10 @@
 #include <functional>
 #include <thread>
 
+
 #include "ana/input.h"
 #include "ana/sample.h"
 #include "ana/column.h"
-#include "ana/term.h"
 #include "ana/selection.h"
 #include "ana/cut.h"
 #include "ana/weight.h"
@@ -21,6 +21,39 @@
 
 namespace ana
 {
+
+template <typename T> struct is_column_calculator : std::false_type {};
+template <typename T> struct is_column_calculator<column::calculator<T>> : std::true_type {};
+template <typename T> constexpr bool is_column_calculator_v = is_column_calculator<T>::value;
+
+constexpr std::true_type check_column(const column&);
+constexpr std::false_type check_column(...);
+template <typename T> constexpr bool is_column_v = decltype(check_column(std::declval<T>()))::value;
+
+template <typename T>
+constexpr std::true_type check_column_reader(typename column::reader<T> const&);
+constexpr std::false_type check_column_reader(...);
+template <typename T> constexpr bool is_column_reader_v = decltype(check_column_reader(std::declval<T>()))::value;
+
+template <typename T>
+constexpr std::true_type check_column_constant(typename column::constant<T> const&);
+constexpr std::false_type check_column_constant(...);
+template <typename T> constexpr bool is_column_constant_v = decltype(check_column_constant(std::declval<T>()))::value;
+
+template <typename T>
+constexpr std::true_type check_column_equation(typename column::equation<T> const&);
+constexpr std::false_type check_column_equation(...);
+template <typename T> constexpr bool is_column_equation_v = decltype(check_column_equation(std::declval<T>()))::value;
+
+template <typename T>
+constexpr std::true_type check_column_definition(typename column::definition<T> const&);
+constexpr std::false_type check_column_definition(...);
+template <typename T> constexpr bool is_column_definition_v = decltype(check_column_definition(std::declval<T>()))::value;
+
+template <typename T> struct is_selection_calculator: std::false_type {};
+template <typename T> struct is_selection_calculator<selection::cut::calculator<T>>: std::true_type {};
+template <typename T> struct is_selection_calculator<selection::weight::calculator<T>>: std::true_type {};
+template <typename T> constexpr bool is_selection_calculator_v = is_selection_calculator<T>::value;
 
 template <typename T>
 class analysis : public sample<T>
@@ -46,24 +79,18 @@ public:
 	template <typename U>
 	static constexpr std::true_type check_nominal(typename analysis<T>::template delayed<U> const&);
 	static constexpr std::false_type check_nominal(...);
-	template <typename V>
-	static constexpr bool is_nominal_v = decltype(check_nominal(std::declval<V>()))::value;
+	template <typename V> static constexpr bool is_nominal_v = decltype(check_nominal(std::declval<V>()))::value;
 
 	template <typename U>
 	static constexpr std::true_type check_varied(typename analysis<T>::template varied<U> const&);
 	static constexpr std::false_type check_varied(...);
-	template <typename V>
-	static constexpr bool is_varied_v = decltype(check_varied(std::declval<V>()))::value;
+	template <typename V> static constexpr bool is_varied_v = decltype(check_varied(std::declval<V>()))::value;
 
-	template <typename... Args>
-	static constexpr bool has_no_variation_v = (is_nominal_v<Args>&&...);
-	template <typename... Args>
-	static constexpr bool has_variation_v = (is_varied_v<Args>||...);
+	template <typename... Args> static constexpr bool has_no_variation_v = (is_nominal_v<Args>&&...);
+	template <typename... Args> static constexpr bool has_variation_v = (is_varied_v<Args>||...);
 
-	template <typename Sel, typename F>
-	using custom_selection_calculator_t = typename Sel::template calculator<equation_t<F>>;
-	template <typename Sel>
-	using simple_selection_calculator_t = typename Sel::template calculator<equation_t<std::function<double(double)>>>;
+	template <typename Sel, typename F> using custom_selection_calculator_t = typename Sel::template calculator<equation_t<F>>;
+	template <typename Sel> using simple_selection_calculator_t = typename Sel::template calculator<equation_t<std::function<double(double)>>>;
 
 public:
   analysis(long long max_entries=-1);
@@ -73,7 +100,7 @@ public:
 	analysis& operator=(analysis const&) = delete;
 
   template <typename Val>
-  auto read(const std::string& name) -> delayed<input::read_column_t<input::read_dataset_t<T>,Val>>;
+  auto read(const std::string& name) -> delayed<read_column_t<read_dataset_t<T>,Val>>;
   template <typename Val>
   auto constant(const Val& value) -> delayed<column::constant<Val>>;
 
@@ -212,10 +239,9 @@ ana::analysis<T>::analysis(long long max_entries) :
 template <typename T>
 template <typename Val>
 // typename ana::analysis<T>::template delayed<ana::term<Val>> ana::analysis<T>::read(const std::string& name)
-auto ana::analysis<T>::read(const std::string& name) -> delayed<input::read_column_t<input::read_dataset_t<T>,Val>>
+auto ana::analysis<T>::read(const std::string& name) -> delayed<read_column_t<read_dataset_t<T>,Val>>
 {
-	using column_reader_t = typename decltype(this->m_loopers.model()->template read<Val>(name))::element_type;
-	auto nd = delayed<column_reader_t>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template read<Val>(name); } ));
+	auto nd = delayed<read_column_t<read_dataset_t<T>,Val>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template read<Val>(name); } ));
 	this->add_column(nd);
 	return nd;
 }
@@ -447,7 +473,7 @@ template <typename T>
 template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* ptr> inline
 auto ana::analysis<T>::vary_column(delayed<V> const&, const std::string& colname) -> delayed<V>
 {
-  return this->read<term_value_t<V>>(colname);
+  return this->read<cell_value_t<V>>(colname);
 }
 
 template <typename T>

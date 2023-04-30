@@ -3,7 +3,6 @@
 #include <memory>
 
 #include "ana/column.h"
-#include "ana/term.h"
 #include "ana/action.h"
 
 namespace ana

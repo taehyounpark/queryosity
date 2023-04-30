@@ -3,6 +3,7 @@
 #include <iostream>
 #include <type_traits>
 
+
 #include "ana/analysis.h"
 #include "ana/computation.h"
 #include "ana/experiment.h"
@@ -10,28 +11,21 @@
 namespace ana
 {
 
-struct has_no_equality {}; 
-template<typename T, typename Arg> has_no_equality operator==(const T&, const Arg&);
-template<typename T, typename Arg = T>
-struct has_equality_v { enum { value = !std::is_same<decltype(std::declval<T>() < std::declval<Arg>()), has_no_equality>::value }; };  
+struct not_available {}; 
+template<typename T, typename Arg> not_available operator==(const T&, const Arg&);
+template<typename T, typename Arg = T> struct has_equality { enum { value = !std::is_same<decltype(std::declval<T>() == std::declval<Arg>()), not_available>::value }; };  
+template<typename T, typename Arg = T> static constexpr bool has_equality_v = has_equality<T,Arg>::value;  
+template<typename T, typename Arg> not_available operator/(const T&, const Arg&);
+template<typename T, typename Arg = T> struct has_division { enum { value = !std::is_same<decltype(std::declval<T>() / std::declval<Arg>()), not_available>::value }; };  
+template<typename T, typename Arg = T> static constexpr bool has_division_v = has_division<T,Arg>::value;  
 
-// template <typename T, typename Arg = T> struct has_division : std::false_type {};
-// template <typename T, typename Arg> struct has_division<decltype(std::declval<T>() / std::declval<Arg>()),decltype(std::declval<T>() / std::declval<Arg>())> : std::true_type {};
-// template <typename T, typename Arg> constexpr bool has_division_v = has_division<T, Arg>::value;
-
-struct has_no_division {}; 
-template<typename T, typename Arg> has_no_division operator/(const T&, const Arg&);
-template<typename T, typename Arg = T>
-struct has_division { enum { value = !std::is_same<decltype(std::declval<T>() / std::declval<Arg>()), has_no_division>::value }; };  
-template<typename T, typename Arg = T>
-static constexpr bool has_division_v = has_division<T,Arg>::value;  
-
-template <typename T>
-using delayed_action_t = typename decltype(std::declval<T>())::action_type;
+template <typename Calc> using calculated_column_t = typename Calc::column_type;
+template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
+template <typename Calc> using calculated_selection_t = typename Calc::selection_type;
 
 template <typename T>
 template <typename U>
-class analysis<T>::delayed : public analysis<T>::node<U>
+class analysis<T>::delayed : public node<U>
 {
 
 public:
@@ -255,10 +249,10 @@ public:
 	}
 
 	// // pass through arithmetic operators for columns
-	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && has_division_v<term_value_t<V>, term_value_t<typename Arg::action_type>>, V>* = nullptr>
+	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && has_division_v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>
 	auto operator/(Arg const& other) const 
 	{
-		return this->m_analysis->define([](term_value_t<V> const& me, term_value_t<typename Arg::action_type> const& you){ return me / you; })(*this,other);
+		return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me / you; })(*this,other);
 	}
 
 protected:

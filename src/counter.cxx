@@ -1,7 +1,6 @@
 #include "ana/counter.h"
 
 #include "ana/selection.h"
-#include "ana/strutils.h"
 
 ana::counter::counter() :
 	ana::routine(),

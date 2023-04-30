@@ -1,7 +1,5 @@
 #include "ana/cutflow.h"
 
-#include "ana/strutils.h"
-
 ana::selection::cutflow::cutflow() //:
 {}
 

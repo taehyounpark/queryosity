@@ -1,5 +1,6 @@
 #pragma once
 
+
 #include "ana/selection.h"
 
 namespace ana
@@ -102,7 +103,7 @@ std::shared_ptr<ana::selection::cut> ana::selection::cut::calculator<T>::apply_s
 
 	// set the decision
 	m_equation->set_arguments(columns...);
-	sel->set_decision(std::static_pointer_cast<term<term_value_t<T>>>(m_equation));
+	sel->set_decision(std::static_pointer_cast<term<cell_value_t<T>>>(m_equation));
 
   return sel;
 }

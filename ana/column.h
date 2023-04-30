@@ -9,9 +9,6 @@
 namespace ana
 {
 
-template <typename Ret>
-class term;
-
 class column : public routine
 {
 
@@ -46,18 +43,9 @@ protected:
 
 };
 
-template <typename T>
-class cell;
-
-template <typename T>
-class variable;
-
-template <typename T>
-class observable;
-
-//------------------------------------------------------------------------------
-// cell<T>: value can be "observed" through value()
-//------------------------------------------------------------------------------
+//---------------------------------------------------
+// cell can actually report on the concrete data type
+//---------------------------------------------------
 template <typename T>
 class cell
 {
@@ -81,13 +69,9 @@ public:
 
 };
 
-// type of term<T>::value() = const T&
-template <typename T>
-using term_value_t = std::decay_t<decltype(std::declval<T>().value())>;
-
-//------------------------------------------------------------------------------
-// converted_from 
-//------------------------------------------------------------------------------
+//------------------------------------
+// conversion between compatible types 
+//------------------------------------
 template <typename To>
 template <typename From>
 class cell<To>::converted_from : public cell<To>
@@ -106,9 +90,9 @@ private:
 
 };
 
-//------------------------------------------------------------------------------
-// interface_to
-//------------------------------------------------------------------------------
+//------------------------------------------
+// interface between inherited -> base type
+//------------------------------------------
 template <typename To>
 template <typename From>
 class cell<To>::interface_to : public cell<To>
@@ -126,9 +110,39 @@ private:
 
 };
 
-template <typename To, typename From>
-std::shared_ptr<cell<To>> cell_as(const cell<From>& from);
+// term: get value of type T while ensured that it stays "updated"
+template <typename T>
+class term : public column, public cell<T>
+{
 
+public:
+  using value_type = typename cell<T>::value_type;
+
+public:
+  term();
+  virtual ~term() = default;
+
+  virtual void initialize() override;
+  virtual void execute() override;
+  virtual void finalize() override;
+
+public:
+  class constant;
+
+  class reader;
+
+  class calculation;
+
+  template <typename... Args>
+  class defined_from;
+
+  template <typename... Args>
+  class evaluated_from;
+
+};
+
+// *hold* a cell 
+// negligible performance cost in passing this around
 template <typename T>
 class variable
 {
@@ -149,6 +163,7 @@ protected:
 
 };
 
+// lightweight proxy to a variable (that lives somewhere safely)
 template <typename T>
 class observable
 {
@@ -167,7 +182,6 @@ protected:
   const variable<T>* m_var;
 
 };
-
 
 template <typename T>
 class column::calculator
@@ -192,7 +206,30 @@ protected:
 
 };
 
+template <typename To, typename From>
+std::shared_ptr<cell<To>> cell_as(const cell<From>& from);
+
+template <typename T> using cell_value_t = std::decay_t<decltype(std::declval<T>().value())>;
+
 }
+
+template <typename T>
+ana::term<T>::term() : 
+  column(),
+  cell<T>()
+{}
+
+template <typename T>
+void ana::term<T>::initialize()
+{}
+
+template <typename T>
+void ana::term<T>::execute()
+{}
+
+template <typename T>
+void ana::term<T>::finalize()
+{}
 
 template <typename T>
 const T* ana::cell<T>::field() const

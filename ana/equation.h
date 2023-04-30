@@ -5,7 +5,6 @@
 #include <functional>
 
 #include "ana/column.h"
-#include "ana/term.h"
 #include "ana/calculation.h"
 
 namespace ana
@@ -43,13 +42,6 @@ protected:
 };
 
 template <typename Ret, typename... Args>
-std::shared_ptr<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>> make_equation(std::function<Ret(Args...)> func)
-{
-	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(func);
-	return eqn;
-}
-
-template <typename Ret, typename... Args>
 class column::equation<Ret(Args...)> : public term<Ret>::template evaluated_from<Args...>
 {
 public:
@@ -58,8 +50,10 @@ public:
 	virtual ~equation() = default;
 };
 
-template <typename F>
-using equation_t = typename decltype(make_equation(std::function(std::declval<F>())))::element_type;
+template <typename Ret, typename... Args>
+auto make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>;
+
+template <typename F> using equation_t = typename decltype(make_equation(std::function(std::declval<F>())))::element_type;
 
 }
 
@@ -77,14 +71,6 @@ template <typename F>
 ana::column::equation<Ret(Args...)>::equation(F&& callable) :
 	term<Ret>::template evaluated_from<Args...>(std::forward<F>(callable))
 {}
-
-// template <typename Ret>
-// template <typename... Args>
-// template <typename F>
-// void ana::term<Ret>::evaluated_from<Args...>::set_expression(F&& callable)
-// {
-// 	m_evaluate = std::function<Ret(const Args&...)>(std::forward<F>(callable));
-// }
 
 template <typename Ret>
 template <typename... Args>
@@ -117,4 +103,11 @@ Ret ana::term<Ret>::evaluated_from<Args...>::calculate() const
       return this->m_evaluate(args->value()...);
     },m_arguments
   );
+}
+
+template <typename Ret, typename... Args>
+auto ana::make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<ana::column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>
+{
+	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(func);
+	return eqn;
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ana/term.h"
+#include "ana/column.h"
 
 namespace ana
 {
