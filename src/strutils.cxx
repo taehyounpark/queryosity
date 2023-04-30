@@ -6,7 +6,6 @@
 #include <locale>
 
 #include "ana/vecutils.h"
-#include "ana/lexertk.hpp"
 
 std::string str::enclose(const std::string& str, const std::string& lside, const std::string& rside)
 {
@@ -179,53 +178,4 @@ std::string str::apply_locale(long long num, const std::string& loc)
 	ss.imbue(std::locale(loc.c_str()));
 	ss << num;
 	return ss.str();
-}
-
-std::vector<std::string> str::tokenize_expression(std::string expression, const std::vector<std::string>& existingColumnNames)
-{
-  expression = str::replace_all(expression,"\"","'");
-
-	// start with empty list of used column names
-	std::vector<std::string> usedColumnNames;
-	// C++ expression lexer
-	lexertk::generator tokens;
-	const auto tokensOk = tokens.process(expression);
-	if (!tokensOk) {
-		const auto msg = "failed to tokenize expression";
-		throw std::runtime_error(msg);
-	}
-   // iterate over tokens in expression and fill usedColumnNames, varNames and expr_withVars
-   const auto nTokens = tokens.size();
-   const auto kSymbol = lexertk::token::e_symbol;
-   for (auto i = 0u; i < nTokens; ++i) {
-      const auto &tok = tokens[i];
-      // lexertk classifies '&' as e_symbol for some reason
-      if (tok.type != kSymbol || tok.value == "&" || tok.value == "|") {
-        // token is not a potential term name, skip it
-        continue;
-      }
-      // get a list of candidate names
-      std::vector<std::string> candidateColumnNames({tok.value});
-      // if token is the start of a dot chain (a.b.c...), a.b, a.b.c etc. are also potential column names
-      auto dotChainKeepsGoing = [&](unsigned int _i) {
-        return _i + 2 <= nTokens && tokens[_i + 1].value == "." && tokens[_i + 2].type == kSymbol;
-      };
-      while (dotChainKeepsGoing(i)) {
-        candidateColumnNames.emplace_back(candidateColumnNames.back() + "." + tokens[i + 2].value);
-        i += 2; // consume the tokens we looked at
-      }
-      // find the longest potential column name that is an actual column name
-      // if it's a new match, also add it to usedColumnNames and update varNames
-      // potential columns are sorted by length, so we search from the end
-      auto isVariable = [&](const std::string &columnName) {
-        return (vec::contains(existingColumnNames,columnName));
-      };
-      const auto longestMatch = std::find_if(candidateColumnNames.crbegin(), candidateColumnNames.crend(), isVariable);
-      if (longestMatch != candidateColumnNames.crend() && !vec::contains(usedColumnNames,*longestMatch)) {
-				usedColumnNames.emplace_back(*longestMatch);
-      }
-   }
-
-   // return column names are actually used
-   return usedColumnNames;
 }
