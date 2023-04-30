@@ -20,23 +20,23 @@ public:
 	~cutflow() = default;
 
 public:
-	template <typename Sel, typename F>
-	auto filter(const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
+	template <typename Sel, typename Lmbd>
+	auto filter(const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>;
 
-	template <typename Sel, typename F>
-	auto channel(const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
+	template <typename Sel, typename Lmbd>
+	auto channel(const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>;
 
-	template <typename Sel, typename F>
-	auto filter(selection const& prev, const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
+	template <typename Sel, typename Lmbd>
+	auto filter(selection const& prev, const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>;
 
-	template <typename Sel, typename F>
-	auto channel(selection const& prev, const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
+	template <typename Sel, typename Lmbd>
+	auto channel(selection const& prev, const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>;
 
 	template <typename Calc, typename... Cols>
 	auto apply(Calc& calc, Cols const&... columns) -> std::shared_ptr<typename Calc::selection_type>;
 
-	template <typename Sel, typename F>
-	auto repeat_selection(typename Sel::template calculator<equation_t<F>> const& calc) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>;
+	template <typename Sel, typename Lmbd>
+	auto repeat_selection(typename Sel::template calculator<column::equation_t<Lmbd>> const& calc) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>;
 
 protected:
 	void add_selection(selection& selection);
@@ -53,36 +53,36 @@ protected:
 #include "ana/counter.h"
 #include "ana/equation.h"
 
-template <typename Sel, typename F>
-auto ana::selection::cutflow::filter(const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>
+template <typename Sel, typename Lmbd>
+auto ana::selection::cutflow::filter(const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>
 {
-	auto eqn = make_equation(std::function(std::forward<F>(lmbd)));
-	auto calc = std::make_shared<typename Sel::template calculator<equation_t<F>>>(name,eqn);
+	auto eqn = make_equation(std::function(std::forward<Lmbd>(lmbd)));
+	auto calc = std::make_shared<typename Sel::template calculator<column::equation_t<Lmbd>>>(name,eqn);
 	calc->set_channel(false);
 	return calc;
 }
 
-template <typename Sel, typename F>
-auto ana::selection::cutflow::channel(const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>
+template <typename Sel, typename Lmbd>
+auto ana::selection::cutflow::channel(const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>
 {
-	auto eqn = make_equation(std::function(std::forward<F>(lmbd)));
-	auto calc = std::make_shared<typename Sel::template calculator<equation_t<F>>>(name,eqn);
+	auto eqn = make_equation(std::function(std::forward<Lmbd>(lmbd)));
+	auto calc = std::make_shared<typename Sel::template calculator<column::equation_t<Lmbd>>>(name,eqn);
 	calc->set_channel(true);
 	return calc;
 }
 
-template <typename Sel, typename F>
-auto ana::selection::cutflow::filter(selection const& prev, const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>
+template <typename Sel, typename Lmbd>
+auto ana::selection::cutflow::filter(selection const& prev, const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>
 {
-	auto calc = this->filter<Sel>(name,std::forward<F>(lmbd));
+	auto calc = this->filter<Sel>(name,std::forward<Lmbd>(lmbd));
 	calc->set_previous(prev);
 	return calc;
 }
 
-template <typename Sel, typename F>
-auto ana::selection::cutflow::channel(selection const& prev,const std::string& name, F&& lmbd) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>
+template <typename Sel, typename Lmbd>
+auto ana::selection::cutflow::channel(selection const& prev,const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>
 {
-	auto calc = this->channel<Sel>(name,std::forward<F>(lmbd));
+	auto calc = this->channel<Sel>(name,std::forward<Lmbd>(lmbd));
 	calc->set_previous(prev);
 	return calc;
 }
@@ -95,8 +95,8 @@ auto ana::selection::cutflow::apply(Calc& calc, Cols const&... columns) -> std::
 	return sel;
 }
 
-template <typename Sel, typename F>
-auto ana::selection::cutflow::repeat_selection(typename Sel::template calculator<equation_t<F>> const& calc) -> std::shared_ptr<typename Sel::template calculator<equation_t<F>>>
+template <typename Sel, typename Lmbd>
+auto ana::selection::cutflow::repeat_selection(typename Sel::template calculator<column::equation_t<Lmbd>> const& calc) -> std::shared_ptr<typename Sel::template calculator<column::equation_t<Lmbd>>>
 {
-	return std::make_shared<typename Sel::template calculator<equation_t<F>>>(calc);
+	return std::make_shared<typename Sel::template calculator<column::equation_t<Lmbd>>>(calc);
 }

@@ -32,6 +32,17 @@ public:
   template <typename T>
   class calculator;
 
+public:
+  // accept a std::function<Ret(Args...)> to make an equation<Ret(Args...)>
+  template <typename Ret, typename... Args>
+  static auto make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>;
+  // dummy function to direct all others
+  // IMPORTANT: G++ will NOT compile without this
+  template <typename X>
+  static bool make_equation(X const& x);
+  // create a well-formed equation<Ret(Args...)> out of a lambda expression
+  template <typename Lmbd> using equation_t = typename decltype(make_equation(std::function(std::declval<Lmbd>())))::element_type;
+
 public: 
   column();
   virtual ~column() = default;

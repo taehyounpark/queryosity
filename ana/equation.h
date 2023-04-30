@@ -20,12 +20,12 @@ public:
   using evalfunc_type = std::function<Ret(const Args&...)>;
 
 public:
-  template <typename F>
-  evaluated_from(F&& callable);
+  template <typename Lmbd>
+  evaluated_from(Lmbd&& lmbd);
 	virtual ~evaluated_from() = default;
 
-  // template <typename F>
-	// void set_expression(F&& callable);
+  // template <typename Lmbd>
+	// void set_expression(Lmbd&& lmbd);
 
   // convert each input argument type
   template <typename... UArgs>
@@ -45,31 +45,26 @@ template <typename Ret, typename... Args>
 class column::equation<Ret(Args...)> : public term<Ret>::template evaluated_from<Args...>
 {
 public:
-  template <typename F>
-  equation(F&& callable);
+  template <typename Lmbd>
+  equation(Lmbd&& lmbd);
 	virtual ~equation() = default;
 };
-
-template <typename Ret, typename... Args>
-auto make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>;
-
-template <typename F> using equation_t = typename decltype(make_equation(std::function(std::declval<F>())))::element_type;
 
 }
 
 template <typename Ret>
 template <typename... Args>
-template <typename F>
-ana::term<Ret>::evaluated_from<Args...>::evaluated_from(F&& callable) :
+template <typename Lmbd>
+ana::term<Ret>::evaluated_from<Args...>::evaluated_from(Lmbd&& lmbd) :
 	term<Ret>::calculation()
 {
-  m_evaluate = std::function<Ret(const Args&...)>(std::forward<F>(callable));
+  m_evaluate = std::function<Ret(const Args&...)>(std::forward<Lmbd>(lmbd));
 }
 
 template <typename Ret, typename... Args>
-template <typename F>
-ana::column::equation<Ret(Args...)>::equation(F&& callable) :
-	term<Ret>::template evaluated_from<Args...>(std::forward<F>(callable))
+template <typename Lmbd>
+ana::column::equation<Ret(Args...)>::equation(Lmbd&& lmbd) :
+	term<Ret>::template evaluated_from<Args...>(std::forward<Lmbd>(lmbd))
 {}
 
 template <typename Ret>
@@ -106,7 +101,7 @@ Ret ana::term<Ret>::evaluated_from<Args...>::calculate() const
 }
 
 template <typename Ret, typename... Args>
-auto ana::make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<ana::column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>
+auto ana::column::make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<ana::column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>
 {
 	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(func);
 	return eqn;

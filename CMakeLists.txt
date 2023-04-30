@@ -2,7 +2,7 @@
 # RAnalysis
 ################################################################################
 
-if(${AnalysisBase_FOUND})
+if($ENV{AnalysisBase_SET_UP})
   set(STANDALONE_BUILD 0)
   set(ATLAS_BUILD 1)  
 else()

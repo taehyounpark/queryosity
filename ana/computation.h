@@ -33,8 +33,8 @@ public:
 	template <typename Def, typename... Args>
 	auto define(const Args&... vars) const -> std::shared_ptr<calculator<Def>>;
 
-	template <typename F>
-	auto define(F callable) const -> std::shared_ptr<calculator<equation_t<F>>>;
+	template <typename Lmbd>
+	auto define(Lmbd lmbd) const -> std::shared_ptr<calculator<column::equation_t<Lmbd>>>;
 
 	template <typename Def, typename... Cols>
 	auto compute(column::calculator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>;
@@ -88,11 +88,11 @@ auto ana::column::computation<T>::define(const Args&... args) const -> std::shar
 }
 
 template <typename T>
-template <typename F>
-// auto ana::column::computation<T>::evaluate(F callable, Vars&... vars) -> std::shared_ptr<ana::term<std::decay_t<typename decltype(std::function(std::declval<F>()))::result_type>>>
-auto ana::column::computation<T>::define(F callable) const -> std::shared_ptr<calculator<equation_t<F>>>
+template <typename Lmbd>
+// auto ana::column::computation<T>::evaluate(Lmbd lmbd, Vars&... vars) -> std::shared_ptr<ana::term<std::decay_t<typename decltype(std::function(std::declval<Lmbd>()))::result_type>>>
+auto ana::column::computation<T>::define(Lmbd lmbd) const -> std::shared_ptr<calculator<column::equation_t<Lmbd>>>
 {
-	auto eqn = std::make_shared<calculator<equation_t<F>>>(callable);
+	auto eqn = std::make_shared<calculator<column::equation_t<Lmbd>>>(lmbd);
 	return eqn;
 }
 

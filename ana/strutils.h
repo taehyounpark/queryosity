@@ -41,6 +41,4 @@ std::string align_right(const std::string& str, size_t width, char fill=' ');
 std::string apply_locale(double num, const std::string& loc="");
 std::string apply_locale(long long num, const std::string& loc="");
 
-std::vector<std::string> tokenize_expression(std::string expression, const std::vector<std::string>& existingcolumnNames);
-
 }
