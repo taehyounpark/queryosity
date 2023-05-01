@@ -216,7 +216,6 @@ template <typename T>
 template <typename Act>
 template<typename... Args, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* ptr>
 auto ana::analysis<T>::varied<Act>::evaluate(Args&&... args) -> typename ana::analysis<T>::template varied<calculated_column_t<V>>
-// varied version of evaluating a column
 {
 	varied<calculated_column_t<V>> syst(nominal().evaluate(std::forward<Args>(args).nominal()...));
 	for (auto const& var_name : list_all_variation_names(*this, std::forward<Args>(args)...)) {

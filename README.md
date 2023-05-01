@@ -78,15 +78,15 @@ For more complicated definitions, they can be explicitly specified by a full cla
 ```cpp
 using TLV = TLorentzVector;
 using RVecD = ROOT::RVec<double>;
-class ScaledP4 : public ana::column::definition<TLV(RVecD, RVecD, RVecD, RVecD)>
+class NthP4 : public ana::column::definition<TLV(RVecD, RVecD, RVecD, RVecD)>
 // - define an ith TLorenzVector out of (pt,eta,phi,e) vectors
 {
 public:
-  ScaledP4(unsigned int index, double scale=1.0) : 
+  NthP4(unsigned int index, double scale=1.0) : 
     ana::column::definition<TLV(RVecD, RVecD, RVecD, RVecD)>(),
     m_index(index)
   {}
-  virtual ~ScaledP4() = default;
+  virtual ~NthP4() = default;
 
   // implement this
   virtual TLV evaluate(ana::observable<RVecD> pt, ana::observable<RVecD> eta, ana::observable<RVecD> phi, ana::observable<RVecD> es) const override {
@@ -106,7 +106,7 @@ protected:
 
 // ...
 
-auto l1p4 = hww.define<ScaledP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
+auto l1p4 = hww.define<NthP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
 // - first set of arguments is now the class constructor
 // - second set remains the input columns
 ```
@@ -216,7 +216,7 @@ By running variations of the analysis computation for each entry at once, the pe
 auto lep_pt = data.read<ROOT::RVec<float>>("lep_pt").vary("lpt_cone30", "lep_ptcone30");
 
 // or, vary how a column definition runs
-auto l1p4 = data.define<ScaledP4>(0)\
+auto l1p4 = data.define<NthP4>(0)\
                 .vary("lp4_up",0,1.02)\
                 (lep_pt, lep_eta, lep_phi, lep_E);
 // - any variations *must* be added before providing input columns
@@ -228,7 +228,7 @@ l1p4.has_variation("lpt_cone30");  // true
 l1p4.has_variation("lp4_up");  // true
 
 // variations in multiple columns with the same name will be applied together
-auto l2p4 = data.define<ScaledP4>(1).vary("lp4_up",1,1.01)(lep_pt, lep_eta, lep_phi, lep_E);
+auto l2p4 = data.define<NthP4>(1).vary("lp4_up",1,1.01)(lep_pt, lep_eta, lep_phi, lep_E);
 ```
 #### 4.2 Propagation of variations through selections and counters
 No further treatment and/or changes to other analysis calls are required. These variations are ensured to be propagated through downstream selections and counters.

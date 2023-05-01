@@ -44,9 +44,7 @@ void ana::output::dump(Node const& node, Dest&& dest, Args&&... args)
       summary.record(sel_path, node.nominal()[sel_path].result());
     }
     for (auto const& var_name : list_all_variation_names(node)) {
-      std::cout << var_name << std::endl;
       for (auto const& sel_path : selection_paths) {
-        std::cout << sel_path << std::endl;
         summary.record(var_name, sel_path, node[var_name][sel_path].result());
       }
     }
