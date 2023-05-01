@@ -32,10 +32,10 @@ Any data structure that can be represented as a (per-row) $\times$ (column-value
 // provide or default to maximum number of thread count
 ana::multithread::enable();  
 
-// TreeData : ana::input::dataset<TreeData> (i.e. user-implemented)
-auto data = ana::analysis<TreeData>();
+// Tree : ana::input::dataset<Tree> (i.e. user-implemented)
+auto data = ana::analysis<Tree>();
 
-// constructor arguments of TreeData
+// constructor arguments of Tree
 data.open("mini", {"hww_mc.root"});  
 ```
 
@@ -43,7 +43,7 @@ data.open("mini", {"hww_mc.root"});
 #### 1.1 Reading columns in the dataset
 Existing *columns* in the dataset can be accessed by supplying their types and names.
 ```cpp
-// TreeData::Branch<float> : ana::input::dataset<CRTP>, ana::column::reader<T>  (i.e. user-implementable)
+// Tree::Branch<float> : ana::input::dataset<CRTP>, ana::column::reader<T>  (i.e. user-implementable)
 auto mc_weight = data.read<float>("mcWeight");
 auto el_sf = data.read<float>("scaleFactor_ELE");
 auto mu_sf = data.read<float>("scaleFactor_MUON");
