@@ -31,13 +31,13 @@ auto ana::analysis<T>::varied<Act>::operator op_symbol(Arg&& b) const  -> varied
 	}\
 	return syst;\
 }
-#define DECLARE_VARIED_UNARY_OP(op_name,op_symbol)\
-template <typename V = Act, typename std::enable_if_t<ana::is_column_v<V> && ana::op_check::has_ ## op_name ## _v<V>, V>* = nullptr>\
+#define DECLARE_VARIED_UNARY_OP(op_symbol)\
+template <typename V = Act, typename std::enable_if_t<ana::is_column_v<V>, V>* = nullptr>\
 auto operator op_symbol() const  -> varied<typename decltype(std::declval<delayed<V>>().operator op_symbol())::action_type>;
 #define DEFINE_VARIED_UNARY_OP(op_name,op_symbol)\
 template <typename T>\
 template <typename Act>\
-template <typename V, typename std::enable_if_t<ana::is_column_v<V> && ana::op_check::has_ ## op_name ## _v<V>, V>* ptr>\
+template <typename V, typename std::enable_if_t<ana::is_column_v<V>, V>* ptr>\
 auto ana::analysis<T>::varied<Act>::operator op_symbol() const  -> varied<typename decltype(std::declval<delayed<V>>().operator  op_symbol())::action_type>\
 {\
 	auto syst = varied<typename decltype(std::declval<delayed<V>>().operator  op_symbol())::action_type>(nominal().operator op_symbol());\
@@ -130,12 +130,8 @@ public:
 	template <typename V = Act, typename std::enable_if<ana::is_counter_booker_v<V> || ana::is_counter_implemented_v<V>,void>::type* = nullptr>
 	auto operator[](const std::string& sel_path) const -> delayed<V>;
 
-	// mathematical operations
-	// template <typename V = Act, typename std::enable_if_t<is_column_v<V>, V>* = nullptr>
-	// auto operator -() const  -> varied<typename decltype(std::declval<delayed<Act>>().operator -())::action_type>;
-	DECLARE_VARIED_UNARY_OP(minus,-)
-	DECLARE_VARIED_UNARY_OP(logical_not,!)
-	// binary
+	DECLARE_VARIED_UNARY_OP(-)
+	DECLARE_VARIED_UNARY_OP(!)
 	DECLARE_VARIED_BINARY_OP(+)
 	DECLARE_VARIED_BINARY_OP(-)
 	DECLARE_VARIED_BINARY_OP(*)
@@ -246,7 +242,7 @@ template <typename Act>
 template <typename Sel, typename Lmbd, typename V, typename std::enable_if_t<ana::is_selection_v<V>, V>* ptr>
 auto ana::analysis<T>::varied<Act>::channel(const std::string& name, Lmbd&& lmbd) -> varied<custom_selection_calculator_t<Sel,Lmbd>>
 {
-	varied<custom_selection_calculator_t<Sel,Lmbd>> syst(nominal().template filter<Sel>(name,std::forward<Lmbd>(lmbd)));
+	varied<custom_selection_calculator_t<Sel,Lmbd>> syst(nominal().template channel<Sel>(name,std::forward<Lmbd>(lmbd)));
 	for (auto const& var_name : this->list_variation_names()) {
 		syst.set_variation(var_name, variation(var_name).template channel<Sel>(name,std::forward<Lmbd>(lmbd)));
 	}
