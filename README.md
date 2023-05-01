@@ -76,7 +76,7 @@ auto dilepP4 = data.define([](TLV const& p4, TLV const& q4) {return (p4+q4);})(l
 ```
 For more complicated definitions, they can be explicitly specified by a full class implementation:
 ```cpp
-using TLV = TLorentzVecto;
+using TLV = TLorentzVector;
 using RVecD = ROOT::RVec<double>;
 class ScaledP4 : public ana::column::definition<TLV(RVecD, RVecD, RVecD, RVecD)>
 // - define an ith TLorenzVector out of (pt,eta,phi,e) vectors
