@@ -104,19 +104,19 @@ public:
 	auto evaluate(Args&&... args) -> varied<calculated_column_t<V>>;
 
 	template <typename Sel, typename Lmbd, typename V = Act, typename std::enable_if_t<ana::is_selection_v<V>, V>* = nullptr>
-  auto filter(const std::string& name, Lmbd&& args) -> varied<custom_selection_calculator_t<Sel,Lmbd>>;
+  auto filter(const std::string& name, Lmbd&& args) -> varied<custom_selection_calculator_t<Lmbd>>;
 
 	template <typename Sel, typename Lmbd, typename V = Act, typename std::enable_if_t<ana::is_selection_v<V>, V>* = nullptr>
-  auto channel(const std::string& name, Lmbd&& args) -> varied<custom_selection_calculator_t<Sel,Lmbd>>;
+  auto channel(const std::string& name, Lmbd&& args) -> varied<custom_selection_calculator_t<Lmbd>>;
 
 	template <typename Sel, typename V = Act, typename std::enable_if_t<ana::is_selection_v<V>, V>* = nullptr>
-  auto filter(const std::string& name) -> varied<simple_selection_calculator_t<Sel>>;
+  auto filter(const std::string& name) -> varied<simple_selection_calculator_type>;
 
 	template <typename Sel, typename V = Act, typename std::enable_if_t<ana::is_selection_v<V>, V>* = nullptr>
-  auto channel(const std::string& name) -> varied<simple_selection_calculator_t<Sel>>;
+  auto channel(const std::string& name) -> varied<simple_selection_calculator_type>;
 
 	template <typename... Nodes, typename V = Act, typename std::enable_if_t<ana::is_selection_calculator_v<V>, V>* = nullptr>
-	auto apply(Nodes const&... columns) -> varied<calculated_selection_t<V>>;
+	auto apply(Nodes const&... columns) -> varied<selection>;
 
 	template <typename... Nodes, typename V = Act, typename std::enable_if_t<ana::is_counter_booker_v<V>, V>* = nullptr>
 	auto fill(Nodes const&... columns) -> varied<V>;
@@ -227,9 +227,9 @@ auto ana::analysis<T>::varied<Act>::evaluate(Args&&... args) -> typename ana::an
 template <typename T>
 template <typename Act>
 template <typename Sel, typename Lmbd, typename V, typename std::enable_if_t<ana::is_selection_v<V>, V>* ptr>
-auto ana::analysis<T>::varied<Act>::filter(const std::string& name, Lmbd&& lmbd) -> varied<custom_selection_calculator_t<Sel,Lmbd>>
+auto ana::analysis<T>::varied<Act>::filter(const std::string& name, Lmbd&& lmbd) -> varied<custom_selection_calculator_t<Lmbd>>
 {
-	varied<custom_selection_calculator_t<Sel,Lmbd>> syst(nominal().template filter<Sel>(name,std::forward<Lmbd>(lmbd)));
+	varied<custom_selection_calculator_t<Lmbd>> syst(nominal().template filter<Sel>(name,std::forward<Lmbd>(lmbd)));
 	for (auto const& var_name : this->list_variation_names()) {
 		syst.set_variation(var_name, variation(var_name).template filter<Sel>(name,std::forward<Lmbd>(lmbd)));
 	}
@@ -239,9 +239,9 @@ auto ana::analysis<T>::varied<Act>::filter(const std::string& name, Lmbd&& lmbd)
 template <typename T>
 template <typename Act>
 template <typename Sel, typename Lmbd, typename V, typename std::enable_if_t<ana::is_selection_v<V>, V>* ptr>
-auto ana::analysis<T>::varied<Act>::channel(const std::string& name, Lmbd&& lmbd) -> varied<custom_selection_calculator_t<Sel,Lmbd>>
+auto ana::analysis<T>::varied<Act>::channel(const std::string& name, Lmbd&& lmbd) -> varied<custom_selection_calculator_t<Lmbd>>
 {
-	varied<custom_selection_calculator_t<Sel,Lmbd>> syst(nominal().template channel<Sel>(name,std::forward<Lmbd>(lmbd)));
+	varied<custom_selection_calculator_t<Lmbd>> syst(nominal().template channel<Sel>(name,std::forward<Lmbd>(lmbd)));
 	for (auto const& var_name : this->list_variation_names()) {
 		syst.set_variation(var_name, variation(var_name).template channel<Sel>(name,std::forward<Lmbd>(lmbd)));
 	}
@@ -251,9 +251,9 @@ auto ana::analysis<T>::varied<Act>::channel(const std::string& name, Lmbd&& lmbd
 template <typename T>
 template <typename Act>
 template <typename Sel, typename V, typename std::enable_if_t<ana::is_selection_v<V>, V>* ptr>
-auto ana::analysis<T>::varied<Act>::filter(const std::string& name) -> varied<simple_selection_calculator_t<Sel>>
+auto ana::analysis<T>::varied<Act>::filter(const std::string& name) -> varied<simple_selection_calculator_type>
 {
-	varied<simple_selection_calculator_t<Sel>> syst(nominal().template filter<Sel>(name));
+	varied<simple_selection_calculator_type> syst(nominal().template filter<Sel>(name));
 	for (auto const& var_name : this->list_variation_names()) {
 		syst.set_variation(var_name, variation(var_name).template filter<Sel>(name));
 	}
@@ -263,9 +263,9 @@ auto ana::analysis<T>::varied<Act>::filter(const std::string& name) -> varied<si
 template <typename T>
 template <typename Act>
 template <typename Sel, typename V, typename std::enable_if_t<ana::is_selection_v<V>, V>* ptr>
-auto ana::analysis<T>::varied<Act>::channel(const std::string& name) -> varied<simple_selection_calculator_t<Sel>>
+auto ana::analysis<T>::varied<Act>::channel(const std::string& name) -> varied<simple_selection_calculator_type>
 {
-	varied<simple_selection_calculator_t<Sel>> syst(nominal().template channel<Sel>(name));
+	varied<simple_selection_calculator_type> syst(nominal().template channel<Sel>(name));
 	for (auto const& var_name : this->list_variation_names()) {
 		syst.set_variation(var_name, variation(var_name).template channel<Sel>(name));
 	}
@@ -276,9 +276,9 @@ auto ana::analysis<T>::varied<Act>::channel(const std::string& name) -> varied<s
 template <typename T>
 template <typename Act>
 template <typename... Nodes, typename V, typename std::enable_if_t<ana::is_selection_calculator_v<V>, V>* ptr>
-auto ana::analysis<T>::varied<Act>::apply(Nodes const&... columns) -> varied<calculated_selection_t<V>>
+auto ana::analysis<T>::varied<Act>::apply(Nodes const&... columns) -> varied<selection>
 {
-	varied<calculated_selection_t<V>> syst(nominal().apply(columns.nominal()...));
+	varied<selection> syst(nominal().apply(columns.nominal()...));
 	for (auto const& var_name : list_all_variation_names(*this, columns...)) {
 		syst.set_variation(var_name, variation(var_name).fill(columns.variation(var_name)...));
 	}

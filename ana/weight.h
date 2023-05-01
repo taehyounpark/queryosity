@@ -35,11 +35,8 @@ public:
 	calculator(const std::string& name, std::shared_ptr<T> eqn);
 	~calculator() = default;
 
-	void set_channel(bool ch);
 	void set_previous( selection const& prev );
-
-	bool is_channel() const;
-	std::string get_name() const;
+	void set_channel(bool ch);
 
 	template <typename... Vals> 
 	std::shared_ptr<weight> apply_selection( cell<Vals> const&... columns) const;
@@ -74,18 +71,6 @@ template <typename T>
 void ana::selection::weight::calculator<T>::set_previous(selection const& previous)
 {
 	m_set_previous = std::bind([](weight& curr, selection const& prev){curr.set_previous(prev);}, std::placeholders::_1, std::cref(previous));
-}
-
-template <typename T>
-bool ana::selection::weight::calculator<T>::is_channel() const
-{
-	return m_channel;
-}
-
-template <typename T>
-std::string ana::selection::weight::calculator<T>::get_name() const
-{
-	return m_name;
 }
 
 template <typename T>

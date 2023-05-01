@@ -50,8 +50,8 @@ constexpr std::false_type check_column_definition(...);
 template <typename T> constexpr bool is_column_definition_v = decltype(check_column_definition(std::declval<T>()))::value;
 
 template <typename T> struct is_selection_calculator: std::false_type {};
-template <typename T> struct is_selection_calculator<selection::cut::calculator<T>>: std::true_type {};
-template <typename T> struct is_selection_calculator<selection::weight::calculator<T>>: std::true_type {};
+template <typename T> struct is_selection_calculator<selection::calculator<T>>: std::true_type {};
+// template <typename T> struct is_selection_calculator<selection::weight::calculator<T>>: std::true_type {};
 template <typename T> constexpr bool is_selection_calculator_v = is_selection_calculator<T>::value;
 
 template <typename T>
@@ -88,8 +88,8 @@ public:
 	template <typename... Args> static constexpr bool has_no_variation_v = (is_nominal_v<Args>&&...);
 	template <typename... Args> static constexpr bool has_variation_v = (is_varied_v<Args>||...);
 
-	template <typename Sel, typename Lmbd> using custom_selection_calculator_t = typename Sel::template calculator<column::equation_t<Lmbd>>;
-	template <typename Sel> using simple_selection_calculator_t = typename Sel::template calculator<column::equation_t<std::function<double(double)>>>;
+	template <typename Lmbd> using custom_selection_calculator_t = typename selection::template calculator<column::equation_t<Lmbd>>;
+	using simple_selection_calculator_type = typename selection::template calculator<column::equation_t<std::function<double(double)>>>;
 
 public:
   analysis(long long max_entries=-1);
@@ -111,15 +111,15 @@ public:
 	auto compute(delayed<column::calculator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>;
 
 	template <typename Sel, typename Lmbd>
-  auto filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Sel,Lmbd>>;
+  auto filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
   template <typename Sel, typename Lmbd>
-  auto channel(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Sel,Lmbd>>;
+  auto channel(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
 	template <typename Sel>
-  auto filter(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
+  auto filter(const std::string& name) -> delayed<simple_selection_calculator_type>;
   template <typename Sel>
-  auto channel(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
+  auto channel(const std::string& name) -> delayed<simple_selection_calculator_type>;
 	template <typename Calc, typename... Cols>
-	auto apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> delayed<typename Calc::selection_type>;
+	auto apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> delayed<selection>;
 
 	template <typename Cnt, typename... Args>
 	auto book(Args&&... args) -> delayed<counter::booker<Cnt>>;
@@ -135,13 +135,13 @@ protected:
   void process_dataset();
 
 	template <typename Sel, typename Lmbd>
-  auto filter(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Sel,Lmbd>>;
+  auto filter(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
   template <typename Sel, typename Lmbd>
-  auto channel(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Sel,Lmbd>>;
+  auto channel(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
 	template <typename Sel>
-  auto filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
+  auto filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_type>;
   template <typename Sel>
-  auto channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>;
+  auto channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_type>;
 
 	// recreate a delayed node as a variation under new arguments
 	template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* = nullptr>
@@ -154,7 +154,7 @@ protected:
 	auto vary_definition(delayed<column::calculator<V>> const& nom, Lmbd const& lmbd) -> delayed<column::calculator<V>>;
 
   template <typename Sel, typename Lmbd>
-  auto repeat_selection(delayed<custom_selection_calculator_t<Sel,Lmbd>> const& calc) -> delayed<custom_selection_calculator_t<Sel,Lmbd>>;
+  auto repeat_selection(delayed<custom_selection_calculator_t<Lmbd>> const& calc) -> delayed<custom_selection_calculator_t<Lmbd>>;
 
   template <typename Cnt>
   auto repeat_counter(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>;
@@ -276,68 +276,68 @@ auto ana::analysis<T>::compute(delayed<column::calculator<Def>> const& calc, del
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Sel,Lmbd>>
+auto ana::analysis<T>::filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
 {
-	return delayed<custom_selection_calculator_t<Sel,Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,lmbd); } ));
+	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,lmbd); } ));
 }
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::channel(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Sel,Lmbd>>
+auto ana::analysis<T>::channel(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
 {
-	auto sel = delayed<custom_selection_calculator_t<Sel,Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,lmbd); } ));
+	auto sel = delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,lmbd); } ));
 	return sel;	
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::filter(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
+auto ana::analysis<T>::filter(const std::string& name) -> delayed<simple_selection_calculator_type>
 {
-	auto sel = delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,[](double x){return x;}); } ));
+	auto sel = delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,[](double x){return x;}); } ));
 	return sel;	
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::channel(const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
+auto ana::analysis<T>::channel(const std::string& name) -> delayed<simple_selection_calculator_type>
 {
-	auto sel = delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,[](double x){return x;}); } ));
+	auto sel = delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,[](double x){return x;}); } ));
 	return sel;	
 }
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Sel,Lmbd>>
+auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
 {
-	return delayed<custom_selection_calculator_t<Sel,Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,lmbd); }, prev.get_slots() ));
+	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,lmbd); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Sel,Lmbd>>
+auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
 {
-	return delayed<custom_selection_calculator_t<Sel,Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,lmbd); }, prev.get_slots() ));
+	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,lmbd); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
+auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_type>
 {
-	return delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
+	return delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_t<Sel>>
+auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_type>
 {
-	return delayed<simple_selection_calculator_t<Sel>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
+	return delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Calc, typename... Cols>
-auto ana::analysis<T>::apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> typename ana::analysis<T>::template delayed<typename Calc::selection_type>
+auto ana::analysis<T>::apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> typename ana::analysis<T>::template delayed<selection>
 {
-	auto sel = delayed<typename Calc::selection_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, Calc& calc, Cols&... cols) { return lpr.template apply(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
+	auto sel = delayed<selection>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, Calc& calc, Cols&... cols) { return lpr.template apply(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
 	this->add_selection(sel);
   return sel;
 }
@@ -443,9 +443,9 @@ void ana::analysis<T>::add_counter(typename ana::analysis<T>::template delayed<c
 }
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::repeat_selection(delayed<custom_selection_calculator_t<Sel,Lmbd>> const& calc) -> delayed<custom_selection_calculator_t<Sel,Lmbd>>
+auto ana::analysis<T>::repeat_selection(delayed<custom_selection_calculator_t<Lmbd>> const& calc) -> delayed<custom_selection_calculator_t<Lmbd>>
 {
-	return delayed<custom_selection_calculator_t<Sel,Lmbd>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, custom_selection_calculator_t<Sel,Lmbd> const& calc){ return lpr.repeat_selection(calc); }, calc.get_slots() ));
+	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, custom_selection_calculator_t<Lmbd> const& calc){ return lpr.repeat_selection(calc); }, calc.get_slots() ));
 }
 
 template <typename T>

@@ -71,7 +71,6 @@ template <class T, class Index> static constexpr bool has_subscript_v = has_subs
 
 template <typename Calc> using calculated_column_t = typename Calc::column_type;
 template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
-template <typename Calc> using calculated_selection_t = typename Calc::selection_type;
 
 template <typename T>
 template <typename U>
@@ -170,16 +169,16 @@ public:
 	}
 
 	template <typename... Nodes, typename V = U, std::enable_if_t<is_selection_calculator_v<V> && has_no_variation_v<Nodes...>, int> = 0>
-	auto apply(Nodes const&... columns) -> delayed<typename V::selection_type>
+	auto apply(Nodes const&... columns) -> delayed<selection>
 	{
 		return this->m_analysis->apply(*this, columns...);
 	}
 
 	template <typename... Nodes , typename V = U, std::enable_if_t<is_selection_calculator_v<V> && has_variation_v<Nodes...>, int> = 0>
-	auto apply(Nodes const&... columns) -> varied<calculated_selection_t<V>>
+	auto apply(Nodes const&... columns) -> varied<selection>
 	{
 		if constexpr(is_selection_calculator_v<V>) {
-			varied<calculated_selection_t<V>> syst(this->nominal().apply(columns.nominal()...));
+			varied<selection> syst(this->nominal().apply(columns.nominal()...));
 			auto var_names = list_all_variation_names(columns...);
 			for (auto const& var_name : var_names) {
 				syst.set_variation(var_name, this->variation(var_name).apply(columns.variation(var_name)...));

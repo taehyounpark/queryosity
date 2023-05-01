@@ -264,7 +264,7 @@ ana::counter::logic<T(Obs...)>::logic() :
 template <typename T>
 template <typename... Args>
 ana::counter::booker<T>::booker(Args... args) :
-	m_make_counter(std::bind([](Args... args){return std::make_shared<T>(args...);}, args...))
+	m_make_counter([=](){return std::make_shared<T>(args...);})
 {}
 
 template <typename T>

@@ -8,24 +8,12 @@
 namespace vec
 {
 
-	std::vector<double> make_lin(size_t binCount, double a, double b);
-	std::vector<double> make_log(size_t binCount, double a, double b);
-
-	template <typename T>
-	bool contains(const std::vector<T>& vec, const T& ele);
-
-	template <typename T>
-	T sum(const std::vector<T>& vec);
-
-	template<typename T>
-	std::vector<std::vector<T>> group(const std::vector<T>& vec, size_t n);
-
-}
-
 template <typename T>
-bool vec::contains(const std::vector<T>& vec, const T& ele)
-{
-	return (std::find(vec.begin(), vec.end(), ele) != vec.end());
+T sum(const std::vector<T>& vec);
+
+template<typename T>
+std::vector<std::vector<T>> group(const std::vector<T>& vec, size_t n);
+
 }
 
 template <typename T>
