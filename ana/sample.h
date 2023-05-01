@@ -61,7 +61,7 @@ void ana::sample<T>::open(Args&&... args)
 }
 
 template <typename T>
-template <typename U, typename std::enable_if_t<std::is_constructible_v<U,std::string,std::initializer_list<std::string>>, U>* ptr > inline
+template <typename U, typename std::enable_if_t<std::is_constructible_v<U,std::string,std::initializer_list<std::string>>, U>* ptr >
 void ana::sample<T>::open(const std::string& key, std::initializer_list<std::string> file_paths)
 {
   // make the dataset according to user implementation

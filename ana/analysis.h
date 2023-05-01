@@ -471,28 +471,28 @@ auto ana::list_all_variation_names(Nodes const&... nodes) -> std::set<std::strin
 }
 
 template <typename T>
-template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* ptr> inline
+template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* ptr>
 auto ana::analysis<T>::vary_column(delayed<V> const&, const std::string& colname) -> delayed<V>
 {
   return this->read<cell_value_t<V>>(colname);
 }
 
 template <typename T>
-template <typename Val, typename V, typename std::enable_if_t<ana::is_column_constant_v<V>, V>* ptr> inline
+template <typename Val, typename V, typename std::enable_if_t<ana::is_column_constant_v<V>, V>* ptr>
 auto ana::analysis<T>::vary_column(delayed<V> const& nom, Val const& val) -> delayed<V>
 {
 	return this->constant<Val>(val);
 }
 
 template <typename T>
-template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V>, V>* ptr> inline
+template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V>, V>* ptr>
 auto ana::analysis<T>::vary_definition(delayed<column::calculator<V>> const&, Args&&... args) -> delayed<column::calculator<V>>
 {
   return this->define<V>(std::forward<Args>(args)...);
 }
 
 template <typename T>
-template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr> inline
+template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr>
 auto ana::analysis<T>::vary_definition(delayed<column::calculator<V>> const& nom, Lmbd const& lmbd) -> delayed<column::calculator<V>>
 {
 	return this->define(lmbd);

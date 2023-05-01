@@ -12,9 +12,9 @@
 // binary
 #define CHECK_FOR_BINARY_OP(op_name,op_symbol)\
 	struct has_no_  ## op_name {};\
-	template<typename T, typename Arg> has_no_ ## op_name operator op_symbol(const T&, const Arg&);\
-	template<typename T, typename Arg = T> struct has_ ## op_name { enum { value = !std::is_same<decltype(std::declval<T>() == std::declval<Arg>()), has_no_ ## op_name>::value }; };\
-	template<typename T, typename Arg = T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T,Arg>::value; 
+	template <typename T, typename Arg> has_no_ ## op_name operator op_symbol(const T&, const Arg&);\
+	template <typename T, typename Arg = T> struct has_ ## op_name { enum { value = !std::is_same<decltype(std::declval<T>() == std::declval<Arg>()), has_no_ ## op_name>::value }; };\
+	template <typename T, typename Arg = T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T,Arg>::value; 
 
 #define DEFINE_DELAYED_BINARY_OP(op_name,op_symbol)\
 	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>\
@@ -25,9 +25,9 @@
 // unary
 #define CHECK_FOR_UNARY_OP(op_name,op_symbol)\
 	struct has_no_  ## op_name {};\
-	template<typename T> has_no_ ## op_name operator op_symbol(const T&);\
-	template<typename T> struct has_ ## op_name { enum { value = !std::is_same<decltype( op_symbol std::declval<T>()), has_no_ ## op_name>::value }; };\
-	template<typename T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T>::value; 
+	template <typename T> has_no_ ## op_name operator op_symbol(const T&);\
+	template <typename T> struct has_ ## op_name { enum { value = !std::is_same<decltype( op_symbol std::declval<T>()), has_no_ ## op_name>::value }; };\
+	template <typename T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T>::value; 
 
 #define DEFINE_DELAYED_UNARY_OP(op_name,op_symbol)\
 	template <typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>>, V>* = nullptr>\
@@ -56,6 +56,16 @@ CHECK_FOR_BINARY_OP(less_than_or_equal_to,<=)
 
 CHECK_FOR_UNARY_OP(logical_not,!)
 CHECK_FOR_UNARY_OP(minus,-)
+
+template <class T, class Index>
+struct has_subscript_impl
+{
+  template <class T1, class IndexDeduced = Index, class Reference = decltype((*std::declval<T*>())[std::declval<IndexDeduced>()]), class = typename std::enable_if<!std::is_void<Reference>::value>::type> static std::true_type test(int);
+  template <class> static std::false_type test(...);
+  using type = decltype(test<T>(0));
+};
+template <class T, class Index> using has_subscript = typename has_subscript_impl<T,Index>::type;
+template <class T, class Index> static constexpr bool has_subscript_v = has_subscript<T,Index>::value;
 }
 
 template <typename Calc> using calculated_column_t = typename Calc::column_type;
@@ -217,7 +227,7 @@ public:
 	auto fill(Nodes const&... columns) -> delayed<U>
 	{
 		if constexpr(is_counter_booker_v<U>) {
-			m_threaded.to_slots( [] (U& fillable, typename Nodes::action_type&... cols) { fillable.fill_columns(cols...); }, columns.get_slots()... );
+			m_threaded.to_slots( [] (U& fillable, typename Nodes::action_type&... cols) { fillable.fill_columns(cols...); }, columns.nominal().get_slots()... );
 			return *this;
 		} else {
 			static_assert( (is_counter_booker_v<U>), "non-fillable delayed action" );
@@ -289,7 +299,6 @@ public:
 		}
 	}
 
-
 	DEFINE_DELAYED_BINARY_OP(equality,==)
 	DEFINE_DELAYED_BINARY_OP(addition,+)
 	DEFINE_DELAYED_BINARY_OP(subtraction,-)
@@ -304,6 +313,13 @@ public:
 
 	DEFINE_DELAYED_UNARY_OP(logical_not,!)
 	DEFINE_DELAYED_UNARY_OP(minus,-)
+
+	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_subscript_v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>,V>* = nullptr>
+	auto operator[](Arg const& arg) const
+	{
+		// using subscripted_t = decltype(std::declval<cell_value_t<V>>().operator[](std::declval<cell_value_t<typename Arg::action_type>>()));
+		return this->m_analysis->define( [](cell_value_t<V> me, cell_value_t<typename Arg::action_type> index){return me[index];})(*this, arg);
+	}
 
 protected:
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
@@ -379,7 +395,7 @@ bool ana::analysis<T>::delayed<Act>::has_variation(const std::string&) const
 
 template <typename T>
 template <typename Act>
-template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>, V>* ptr> inline
+template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>, V>* ptr>
 auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
 {
   // create a delayed varied with the this as nominal
@@ -392,7 +408,7 @@ auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&...
 
 template <typename T>
 template <typename Act>
-template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* ptr> inline
+template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* ptr>
 auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
 {
   // create a delayed varied with the this as nominal

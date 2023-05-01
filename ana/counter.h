@@ -152,9 +152,12 @@ public:
 	std::shared_ptr<T> book_counter_at(const selection& sel);
 	std::shared_ptr<T> get_counter_at(const std::string& path) const;
 
+	std::vector<std::string> list_selection_paths() const;
+
 protected:
 	std::function<std::shared_ptr<T>()>                m_make_counter;
 	std::vector<std::function<void(T&)>>               m_fill_columns;
+	std::vector<std::string>                           m_booked_selection_paths;
 	std::unordered_map<std::string,std::shared_ptr<T>> m_booked_counter_map;
 
 };
@@ -288,10 +291,17 @@ std::shared_ptr<T> ana::counter::booker<T>::book_counter_at(const selection& sel
 	if (m_booked_counter_map.find(sel.get_path())!=m_booked_counter_map.end()) {
 		throw std::logic_error("counter already booked at selection");
 	}
+	m_booked_selection_paths.push_back(sel.get_path());
 	m_booked_counter_map.insert( std::make_pair(sel.get_path(),cnt) );
 
 	// return booked & filled cnt
 	return cnt;
+}
+
+template <typename T>
+std::vector<std::string> ana::counter::booker<T>::list_selection_paths() const
+{
+	return m_booked_selection_paths;
 }
 
 template <typename T>

@@ -27,9 +27,9 @@ Some of these paradigms are already standard tools in other programming language
 - C++17 standard compiler (tested with Clang 14 and GCC 11)
 - CMake 3.24 or newer
 
-## Applied walkthrough
+## Walkthrough
 
-The following example uses an implementation of the interface for the [CERN ROOT framework](https://root.cern/) to illustrate a conceptual demonstration of physics collision data analysis reconstructing the Higgs boson transverse momentum in a simulated $H\rightarrow WW^{\ast}\rightarrow e\nu\mu\nu$ dataset. See [here](https://github.com/taehyounpark/RAnalysis) for the implementation and [CERN Open Data Portal](https://opendata.cern.ch/record/700) for the dataset.
+The following example uses an implementation of the interface for the [CERN ROOT framework](https://root.cern/) to illustrate a conceptual demonstration of physics collision data analysis reconstructing the Higgs boson transverse momentum in a simulated $H\rightarrow WW^{\ast}\rightarrow e\nu\mu\nu$ dataset. See [here](https://github.com/taehyounpark/RAnalysis) for the implementation and example code and [here](https://opendata.cern.ch/record/700) for the publicly-available dataset.
 
 ### 0. Opening the dataset
 Any data structure that can be represented as a (per-row) $\times$ (column-value) layout is supported. The initialization of an *analysis* proceeds as:
@@ -37,7 +37,7 @@ Any data structure that can be represented as a (per-row) $\times$ (column-value
 // provide or default to maximum number of thread count
 ana::multithread::enable();  
 
-// implements ana::input::dataset<CRTP>
+// TreeData : ana::input::dataset<TreeData> (i.e. user-implemented)
 auto data = ana::analysis<TreeData>();
 
 // constructor arguments of TreeData
@@ -48,7 +48,7 @@ data.open("mini", {"hww_mc.root"});
 #### 1.1 Reading columns in the dataset
 Existing *columns* in the dataset can be accessed by supplying their types and names.
 ```cpp
-// implements ana::input::dataset<CRTP>, ana::column::reader<T>
+// TreeData::Branch<float> : ana::input::dataset<CRTP>, ana::column::reader<T>  (i.e. user-implementable)
 auto mc_weight = data.read<float>("mcWeight");
 auto el_sf = data.read<float>("scaleFactor_ELE");
 auto mu_sf = data.read<float>("scaleFactor_MUON");
@@ -65,10 +65,14 @@ auto met_phi = data.read<float>("met_phi");
 #### 1.2 Computing new quantities
 Mathematical binary and unary operations supported by the underlying data types are passed through:
 ```cpp
-auto GeV = ana.constant<double>(1000.0);
-auto lep_pt = lep_pt_MeV / GeV;  // ROOT::RVec<float> / double
-auto lep_E = lep_Et_MeV / GeV;
-auto met = met_MeV / GeV;
+auto GeV = ana.constant(1000.0);
+auto lep_pt = lep_pt_MeV / GeV;
+// etc. for all other magnitudes
+
+auto lep_eta_max = hww.constant(2.4);
+                        // * operations need not be atomic, commposite ones are okay
+auto lep_pt_sel = lep_pt[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
+// etc. for all other lep_X
 ```
 Custom lambda expressions can also be used:
 ```cpp
@@ -95,13 +99,17 @@ public:
 protected:
   unsigned int m_index;
   double m_scale;
+  // * it is up to user to ensure class instance are thread-safe
+  // int* g_modifiable_global_var;  // <- bad idea
 };
 
 // ...
-
-auto l1p4 = data.define<ScaledP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
-                              // * first set of arguments is now the class constructor.
+                              // * first set of arguments is now the class constructor
+auto l1p4 = hww.define<ScaledP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
+                                 // * second set remains the input columns
 ```
+- The interface grammar ensures that it is impossible to form recursions in the computation graph of quantities by construction.
+- Each quantity is evaluated once per event, at most. If and when a column is an input variable for two other columns, the value evaluated for the first is re-used for the second.
 
 ### 2. Applying selections
 #### 2.1 Cut versus weight
@@ -109,104 +117,109 @@ Filtering entries in a dataset is done via a *selection*, which is either a bool
 ```cpp
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
-auto n_lep_req = data.constant<int>(2)
+
+auto n_lep_req = data.constant<int>(2);
 auto cut2l = data.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
                  .filter<cut>("2l")(n_lep == n_lep_req);
-                 // reminder: delayed math operations
+                 // * cuts and weights can be applied in any sequence
 ```
 - Selections that are applied in sequence after the first can be chained from the nodes directly.
 - Each filter operation requires an identifiable name, which is used to form the path of the full chain of selections applied.
 #### 2.2 Branching out & channels
-Distinct (not required to be mutually exclusive) chains of selections can branch out from a common point. Designating a particular selection as a *channel* marks that its name will be reflected as part of the path of downstream selections.
+Different (not required to be mutually exclusive) chains of selections can branch out from a common point. Designating a particular selection as a *channel* marks that allows to form unique path strings for each selection.
 ```cpp
 // requiring the two leptons have opposite charges
-            // * further selections must be applied from the node
-                  // * note "channel" designation
 auto cut2los = cut2l.channel<cut>("2los", [](ROOT::RVec<float> const& qs){return (qs.at(0) + qs.at(1) == 0);})(lep_charges);
-                                       // * custom expressions same as in for column definition possible
+            // * sequential selections must be applied from the node
+            // * note "channel" designation
 
 // branching out from a common 2-lepton, opposite-sign cut
-  // * different-flavour leptons
+// * different-flavour leptons
 auto cut2ldf = cut2los.filter<cut>("2ldf", [](ROOT::RVec<int> const& flavours){return (flavours.at(0) + flavours.at(1) == 24);})(lep_types);
-  // * same-flavour leptons
+// * same-flavour leptons
 auto cut2lsf = cut2los.filter<cut>("2lsf", [](ROOT::RVec<int> const& flavours){return ((flavours.at(0) + flavours.at(1) == 22) || (lep_type.at(0) + lep_type.at(1) == 26));})(lep_types);
 ```
 
 ### 3. Counting entries
 #### 3.1 Booking counters
-A *counter* is an arbitrary action performed once per-entry:
-- Only if a specified selection passes the cut, "count" the entry with its weight.
-- (Optional) receive the values of other columns to be "filled" with. This operation can be performed an arbitrary number of times on a counter.
+A *counter* is an arbitrary action performed for each entry:
+- Only if a specified selection passes the cut, perform the counting with the weight.
+- (Optional) receive the values from input columns to be "filled" with.
 ```cpp
-// Histogram<1,float> : ana::counter::logic<std::shared_ptr<TH1F>(float)>
-                                           // * constructor arguments
+// Histogram<1,float> : ana::counter::logic<std::shared_ptr<TH1F>(float)> (i.e. user-immplementable)
 auto pth_2los = data.book<Histogram<1,float>>("pth",100,0,400)\
-                  // * pth_hist->Fill(pth, cut2los.get_weight());
                     .fill(pth)\
-                  // * if (cut2los.passed_cut()) { ... }
                     .at(cut2los);
+                  // if (cut2los.passed_cut()) { 
+                  //   pth_hist->Fill(pth, cut2los.get_weight());
+                  // }
 
+auto l1pt = lep_pt_sel[ hww.constant(0) ];
+auto l2pt = lep_pt_sel[ hww.constant(1) ];
+
+// this time, filling twice and making histogram at multiple selections
 auto l1n2_pt_hists = data.book<Histogram<1,float>>("l1n2_pt",20,0,100)\
-                         // * any number of fills can be done
                            .fill(l1pt).fill(l2pt)\
-                         // * can be booked at selections at once
-                           .at(cut2ldf, cut2lsf);
+                           .at(cut2los, cut2ldf, cut2lsf);
+                         // * any number of fills can be done
+                         // * can be at multiple selections at once
 ```
-The number of computational operations performed in order to perform this final step is guaranteed to be the minimum required, and any unnecessary nodes that are not performed.
+As a corollary of the column and selection computation procedure, the counting is operation is performed for an entry only when determined so by its booked selection.
 - In the above example, note that the counters were all booked after $n_\ell = 2$ selection.
-- Therefore, the calculation of the dilepton-requiring quantities will not occur unless the event satisfies.
+- As a result, the calculation of the dilepton-related quantities being filled into the histogram will not occur unless there are actually 2 valid leptons.
 
 #### 3.2 Processing the dataset and accessing results
 The result of each counter can be accessed by specifying the path of the booked selections
 ```cpp
-      // * trigger dataset processing
-pth_2los.result();  // -> std::shared_ptr<TH1>
+// trigger dataset processing
+pth_2los_res.result();  // -> std::shared_ptr<TH1>
 
                               // * also accessible by selection path key
 auto l1n2_pt_2lsf = l1n2_pt_hists["2los/2ldf"].result();
 auto l1n2_pt_2ldf = l1n2_pt_hists["2los/2lsf"].result();
 
-auto out_file = TFile::Open("hww_hists.root","create");
 // helper function to "dump" counter results at all selections
+// Folder : ana::counter::summary<Folder> (i.e. user-implementable)
+auto out_file = TFile::Open("hww_hists.root","recreate");
+ana::output::dump<Folder>(pth_2los_res, out_file);
 ana::output::dump<Folder>(l1n2_pt_hists, out_file);
-               // * Folder : ana::counter::summary<Folder>
-               // * i.e. user-implementable
 delete out_file;
 ```
-![pth_hists](pth_hists.png)
+![pth_hists](images/hww_hists.png)
 
 ### 4. Systematic variations
 
-#### 4.1 Varying a column/selection
-*Any* column node can be varied with an alternative definition of itself. Once these variations exist, they can be ensured to transparently propagate to future nodes, such that the final set of applied variations of any action is the union of individual sets of variations from participating nodes.
-- For dataset columns and/or ones that do not require input columns (i.e. constants), they can be varied simply by calling their new definition:
+#### 4.1 Varying a column
+A systematic variation is defined to be a different outcome of the analysis results under some alternative definition of select columns.
+- A column node can be varied by an alternative instance of the same type.
+- Any column definitions whose input columns are affected by variations will also be varied.
+
+By running variations of the analysis computation for each entry at once, the performance overhead associated with repeated dataset processing is avoided.
 ```cpp
-// dataset columns and constants of identical types can be defined
+// read an different column as the used quantity
 auto lep_pt = data.read<ROOT::RVec<float>>("lep_pt").vary("lpt_cone30", "lep_ptcone30");
 
-// rest of the interface remains unchanged
-// but now, "lpt_cone30" is applied from lep_pt variation
-auto l1p4 = data.define<ScaledP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
-```
-- For computed columns, their varied definition must precede their input arguments.
-```cpp
-// adding a variation before any existing ones propagate through
-auto l1p4 = data.define<ScaledP4>(0).vary("lp4_up",0,1.02)\
-              (lep_pt, lep_eta, lep_phi, lep_E);
-// union set of variations in effect: {lpt_cone30, lp4_up}
+// or, vary how a column definition runs
+auto l1p4 = data.define<ScaledP4>(0)\
+                .vary("lp4_up",0,1.02)\
+              // * add any variations before input columns
+                (lep_pt, lep_eta, lep_phi, lep_E);
+              // * "lpt_cone30" is applied from lep_pt variation
 
-// variations in multiple columns with the same name are synchronized
-auto l2p4 = data.define<ScaledP4>(1).vary("lp4_up",1,1.01)\
-              (lep_pt, lep_eta, lep_phi, lep_E);
+// union set of variations in effect: {lpt_cone30, lp4_up}
+l1p4.has_variation("lp4_up");  // true
+l1p4.has_variation("lpt_cone30");  // true
+
+// variations in multiple columns with the same name are applied in lockstep
+auto l2p4 = data.define<ScaledP4>(1).vary("lp4_up",1,1.01)(lep_pt, lep_eta, lep_phi, lep_E);
 ```
-The propagation continues through to filters and counters, such that the final output results can be access by their names:
+#### 4.2 Propagation of variations through selections and counters
+No special treatment and/or changes to the analysis is required from the above; without any other changes to the rest of the analysis interface, these variations can be ensured to transparently propagate through downstream selections and counters.
 ```cpp
-// again, interface remains unchanged
 auto pth_2ldf_vars = data.book<Histogram<1,float>>("pth",100,0,200).fill(pth).at(cut2ldf);
 
 // note: additional nominal() & variation access
 auto pth_2ldf_nom = pth_2ldf_vars.nominal().result();
 auto pth_2ldf_lp4_up = pth_2ldf_vars["lep_p4_up"].result();
 ```
-By running multiple variations of the analysis computation in this way for each entry at a time, the performance cost associated with repeated dataset readout can be avoided.
-![pth_varied](pth_varied.png)
+![l1n2pt_varied](images/l1n2pt_varied.png)
