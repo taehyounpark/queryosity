@@ -142,8 +142,9 @@ public:
 	using counter_type = T;
 
 public:
+	// constructor arguments must be copyable by value
 	template <typename... Args>
-	booker(Args&&... args);
+	booker(Args... args);
 	~booker() = default;
 
 	template <typename... Vals> 
@@ -262,8 +263,8 @@ ana::counter::logic<T(Obs...)>::logic() :
 
 template <typename T>
 template <typename... Args>
-ana::counter::booker<T>::booker(Args&&... args) :
-	m_make_counter(std::bind([](Args&&... args){return std::make_shared<T>(std::forward<Args>(args)...);}, std::forward<Args>(args)...))
+ana::counter::booker<T>::booker(Args... args) :
+	m_make_counter(std::bind([](Args... args){return std::make_shared<T>(args...);}, args...))
 {}
 
 template <typename T>

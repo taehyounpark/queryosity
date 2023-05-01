@@ -122,9 +122,9 @@ public:
 	auto apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> delayed<typename Calc::selection_type>;
 
 	template <typename Cnt, typename... Args>
-	delayed<counter::booker<Cnt>> book(Args&&... args);
+	auto book(Args&&... args) -> delayed<counter::booker<Cnt>>;
 	template <typename Cnt, typename Sel>
-	delayed<Cnt> count(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel);
+	auto count(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>;
 
 	void clear_counters();
 
@@ -229,13 +229,6 @@ ana::analysis<T>::analysis(long long max_entries) :
 	sample<T>(max_entries),
 	m_analyzed(false)
 {}
-
-// template <typename T>
-// template <typename... Args>
-// ana::analysis<T>::analysis(Args&&... args) :
-// 	sample<T>(std::forward<Args>(args)...),
-// 	m_analyzed(false)
-// {}
 
 template <typename T>
 template <typename Val>
@@ -351,15 +344,14 @@ auto ana::analysis<T>::apply(delayed<Calc> const& calc, delayed<Cols> const&... 
 
 template <typename T>
 template <typename Cnt, typename... Args>
-typename ana::analysis<T>::template delayed<ana::counter::booker<Cnt>> ana::analysis<T>::book(Args&&... args)
+auto ana::analysis<T>::book(Args&&... args) -> delayed<ana::counter::booker<Cnt>>
 {
-	auto bkr = delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template book<Cnt>(args...); } ));
-  return bkr;
+	return delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [&](looper<dataset_reader_type>& lpr) { return lpr.template book<Cnt>(std::forward<Args>(args)...); } ));
 }
 
 template <typename T>
 template <typename Cnt, typename Sel>
-typename ana::analysis<T>::template delayed<Cnt> ana::analysis<T>::count(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel)
+auto ana::analysis<T>::count(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
