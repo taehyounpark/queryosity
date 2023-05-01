@@ -17,7 +17,7 @@ template <typename T, typename Arg> has_no_ ## op_name operator op_symbol(const 
 template <typename T, typename Arg = T> struct has_ ## op_name { enum { value = !std::is_same<decltype(std::declval<T>() == std::declval<Arg>()), has_no_ ## op_name>::value }; };\
 template <typename T, typename Arg = T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T,Arg>::value; 
 #define DEFINE_DELAYED_BINARY_OP(op_name,op_symbol)\
-template <typename Arg, typename V = U, typename std::enable_if_t<ana::is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>\
+template <typename Arg, typename V = U, typename std::enable_if_t<ana::is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>,V>* = nullptr>\
 auto operator op_symbol(const Arg& other) const\
 {\
 	return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me op_symbol you; })(*this,other);\
@@ -29,7 +29,7 @@ template <typename T> has_no_ ## op_name operator op_symbol(const T&);\
 template <typename T> struct has_ ## op_name { enum { value = !std::is_same<decltype( op_symbol std::declval<T>()), has_no_ ## op_name>::value }; };\
 template <typename T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T>::value; 
 #define DEFINE_DELAYED_UNARY_OP(op_name,op_symbol)\
-template <typename V = U, typename std::enable_if_t<ana::is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>>, V>* = nullptr>\
+template <typename V = U, typename std::enable_if_t<ana::is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>>,V>* = nullptr>\
 auto operator op_symbol() const\
 {\
 	return this->m_analysis->define([](cell_value_t<V> const& me){ return (op_symbol me); })(*this);\
@@ -96,6 +96,7 @@ public:
 	delayed() :
 		node<U>::node()
 	{}
+
 	delayed(analysis<T>& analysis, const concurrent<U>& action) :
 		node<U>::node(analysis),
 		m_threaded(action)
@@ -134,99 +135,96 @@ public:
 	// created a varied node that will contain the original as nominal
 	// and a single variation under the specified name and constructor arguments
 	// further calls to add more variations are handled by varied<V>::vary()
-	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>, V>* = nullptr>
+	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>,V>* = nullptr>
 	auto vary(const std::string& var_name, Args&&... args) -> varied<V>;
-	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* = nullptr>
+	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V>,V>* = nullptr>
 	auto vary(const std::string& var_name, Args&&... args) -> varied<V>;
 
-  template <typename... Nodes, std::enable_if_t<has_no_variation_v<Nodes...>, int> = 0>
-	auto evaluate(Nodes const&... columns) const
+	template <typename... Args>
+	auto evaluate(Args&&... args) const
 	{
-		if constexpr( is_column_calculator_v<U> ) {
-			auto col = this->m_analysis->compute(*this, columns...);
-			return col;
-		} else {
-			static_assert( is_column_calculator_v<U> , "non-column cannot be evaluated" );
+		static_assert( is_column_calculator_v<U>, "non-columns cannot be evaluated" );
+		return this->evaluate_column(std::forward<Args>(args)...);
+	}
+
+  template <typename... Nodes, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>
+	auto evaluate_column(Nodes const&... columns) const
+	{
+		return this->m_analysis->evaluate_column(*this, columns...);
+	}
+
+	template <typename... Nodes, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V> && has_variation_v<Nodes...>,V>* = nullptr>
+	auto evaluate_column(Nodes const&... columns) const -> varied<calculated_column_t<V>>
+	{
+		auto nom = this->m_analysis->evaluate_column( *this, columns.nominal()... );
+		varied<calculated_column_t<V>> syst(nom);
+		for (auto const& var_name : list_all_variation_names(columns...)) {
+			auto var = this->m_analysis->evaluate_column( *this, columns.variation(var_name)... );
+			syst.set_variation(var_name, var);
 		}
+		return syst;
 	}
 
-	template <typename... Nodes, typename V = U, std::enable_if_t<has_variation_v<Nodes...>&&is_column_calculator_v<V>, int> = 0>
-	auto evaluate(Nodes const&... columns) const -> varied<calculated_column_t<V>>
+	template <typename... Nodes>
+	auto apply(Nodes const&... columns) const
 	{
-		if constexpr( is_column_calculator_v<V> ) {
-			// this is nominal
-			auto nom = this->m_analysis->compute( *this, columns.nominal()... );
-			varied<calculated_column_t<V>> syst(nom);
-			// variations
-			for (auto const& var_name : list_all_variation_names(columns...)) {
-				auto var = this->m_analysis->compute( *this, columns.variation(var_name)... );
-				syst.set_variation(var_name, var);
-			}
-			return syst;
-		} else {
-			static_assert( is_column_calculator_v<V> , "not a definition, cannot be evaluated" );
+		static_assert( is_selection_calculator_v<U>, "non-selections cannot be applied" );
+		return this->m_analysis->evaluate_selection(*this, columns...);
+	}
+
+	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_selection_calculator_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>
+	auto evaluate_selection(Nodes const&... columns) const -> delayed<selection>
+	{
+		return this->evaluate_selection(columns.nominal()...);
+	}
+
+	template <typename... Nodes , typename V = U, typename std::enable_if_t<is_selection_calculator_v<V> && has_variation_v<Nodes...>,V>* = nullptr>
+	auto evaluate_selection(Nodes const&... columns) const -> varied<selection>
+	{
+		varied<selection> syst(this->nominal().evaluate_selection(columns.nominal()...));
+		auto var_names = list_all_variation_names(columns...);
+		for (auto const& var_name : var_names) {
+			syst.set_variation(var_name, this->variation(var_name).evaluate_selection(columns.variation(var_name)...));
 		}
+		return syst;
 	}
 
-	template <typename... Nodes, typename V = U, std::enable_if_t<is_selection_calculator_v<V> && has_no_variation_v<Nodes...>, int> = 0>
-	auto apply(Nodes const&... columns) -> delayed<selection>
+	template <typename... Args>
+	auto fill(Args&&... args)
 	{
-		return this->m_analysis->apply(*this, columns...);
+		static_assert( is_counter_booker_v<U>, "non-counter(booker) cannot be filled");
+		return this->fill_counter(std::forward<Args>(args)...);
 	}
 
-	template <typename... Nodes , typename V = U, std::enable_if_t<is_selection_calculator_v<V> && has_variation_v<Nodes...>, int> = 0>
-	auto apply(Nodes const&... columns) -> varied<selection>
+	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_counter_booker_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>
+	auto fill_counter(Nodes const&... columns) -> delayed<U>
 	{
-		if constexpr(is_selection_calculator_v<V>) {
-			varied<selection> syst(this->nominal().apply(columns.nominal()...));
-			auto var_names = list_all_variation_names(columns...);
-			for (auto const& var_name : var_names) {
-				syst.set_variation(var_name, this->variation(var_name).apply(columns.variation(var_name)...));
-			}
-			return syst;
-		} else {
-			static_assert( (is_selection_calculator_v<V>), "cannot apply non-selection" );
+		m_threaded.to_slots( [] (U& fillable, typename Nodes::action_type&... cols) { fillable.enter_columns(cols...); }, columns.nominal().get_slots()... );
+		return *this;
+	}
+
+	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_counter_booker_v<V> && has_variation_v<Nodes...>,V>* = nullptr>
+	auto fill_counter(Nodes const&... columns) -> varied<U>
+	{
+		// use a copy for each so each variation can book the same selection
+		auto nom = this->m_analysis->repeat_booker(*this);
+		auto syst = varied<U>(nom.fill_counter(columns.nominal()...));
+		for (auto const& var_name : list_all_variation_names(columns...)) {
+			auto var = this->m_analysis->repeat_booker(*this);
+			var.fill_counter(columns.variation(var_name)...);
+			syst.set_variation(var_name,var);
 		}
+		return syst;
 	}
 
-	template <typename... Nodes , std::enable_if_t<has_no_variation_v<Nodes...>, int> = 0>
-	auto fill(Nodes const&... columns) -> delayed<U>
+	template <typename Sel>
+	auto at(const delayed<Sel>& sel)
 	{
-		if constexpr(is_counter_booker_v<U>) {
-			m_threaded.to_slots( [] (U& fillable, typename Nodes::action_type&... cols) { fillable.fill_columns(cols...); }, columns.nominal().get_slots()... );
-			return *this;
-		} else {
-			static_assert( (is_counter_booker_v<U>), "non-fillable delayed action" );
-		}
+		static_assert( is_counter_booker_v<U>, "non-counter(booker) cannot be counted at selection" );
+		return this->m_analysis->count_at(*this, sel);
 	}
 
-	template <typename... Nodes, std::enable_if_t< has_variation_v<Nodes...>, int> = 0>
-	auto fill(Nodes const&... columns) -> varied<U>
-	{
-		// always repeat the counter, so each fill operation is performed independently
-		if constexpr(is_counter_booker_v<U>) {
-			// nominal
-			auto nom = this->m_analysis->repeat_counter(*this);
-			auto syst = varied<U>(nom.fill(columns.nominal()...));
-			// variations
-			for (auto const& var_name : list_all_variation_names(columns...)) {
-				auto var = this->m_analysis->repeat_counter(*this);
-				var.fill(columns.variation(var_name)...);
-				syst.set_variation(var_name,var);
-			}
-			return syst;
-		} else {
-			static_assert( (is_counter_booker_v<U>), "not a counter" );
-		}
-	}
-
-	template <typename Sel, typename V = U, typename std::enable_if_t<is_counter_booker_v<V>, void>* = nullptr>
-	auto at(const delayed<Sel>& sel) const -> delayed<booked_counter_t<V>>
-	{
-		return this->m_analysis->count(*this, sel);
-	}
-
-	template <typename... Nodes, std::enable_if_t<has_no_variation_v<Nodes...>, int> = 0>
+	template <typename... Nodes, typename V = U, std::enable_if_t<is_counter_booker_v<V> && has_no_variation_v<Nodes...>, V>* = nullptr>
 	auto at(Nodes... sels) const -> delayed<U>
 	{
 		(this->at(sels),...);
@@ -234,23 +232,21 @@ public:
 	}
 
 	template <typename V = U, typename std::enable_if<is_counter_booker_v<V>,void>::type* = nullptr>
-	auto operator[](const std::string& sel_path) const -> delayed<booked_counter_t<V>>
+	auto operator[](const std::string& sel_path) const-> delayed<booked_counter_t<V>>
 	{
 		return delayed<typename V::counter_type>(*this->m_analysis, m_threaded.from_slots([=](U& bkr){ return bkr.get_counter_at(sel_path); }) );
 	}
 
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
-	decltype(std::declval<V>().result()) result()
+	decltype(std::declval<V>().result()) result() const
 	{
 		this->m_analysis->analyze();
 		this->merge_results();
 		return m_threaded.model()->result();
 	}
 
-	analysis<T>* get_analysis() { return this->m_analysis; }
-	concurrent<U> const& get_slots() const { 
-		return m_threaded; 
-	}
+	analysis<T>* get_analysis() const { return this->m_analysis; }
+	concurrent<U> const& get_slots() const { return m_threaded; }
 
 	template <typename... Args>
 	auto operator()(Args&&... args)
@@ -261,7 +257,7 @@ public:
 		} else if constexpr( is_selection_calculator_v<U> ) {
 			return this->apply(std::forward<Args>(args)...);
 		} else {
-			static_assert( is_calculator_v, "no valid input operation" );
+			static_assert( is_calculator_v, "non-column/selection cannot be evaluated" );
 		}
 	}
 
@@ -283,13 +279,12 @@ public:
 	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_subscript_v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>,V>* = nullptr>
 	auto operator[](Arg const& arg) const
 	{
-		// using subscripted_t = decltype(std::declval<cell_value_t<V>>().operator[](std::declval<cell_value_t<typename Arg::action_type>>()));
 		return this->m_analysis->define( [](cell_value_t<V> me, cell_value_t<typename Arg::action_type> index){return me[index];})(*this, arg);
 	}
 
 protected:
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
-	void merge_results()
+	void merge_results() const
 	{
 		auto model = m_threaded.model();
 		for (size_t islot=1 ; islot<m_threaded.concurrency() ; ++islot) {
@@ -362,7 +357,7 @@ bool ana::analysis<T>::delayed<Act>::has_variation(const std::string&) const
 
 template <typename T>
 template <typename Act>
-template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>, V>* ptr>
+template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>,V>* ptr>
 auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
 {
   // create a delayed varied with the this as nominal
@@ -375,7 +370,7 @@ auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&...
 
 template <typename T>
 template <typename Act>
-template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V>, V>* ptr>
+template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V>,V>* ptr>
 auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
 {
   // create a delayed varied with the this as nominal

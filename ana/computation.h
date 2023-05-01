@@ -37,7 +37,7 @@ public:
 	auto define(Lmbd lmbd) const -> std::shared_ptr<calculator<column::equation_t<Lmbd>>>;
 
 	template <typename Def, typename... Cols>
-	auto compute(column::calculator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>;
+	auto evaluate_column(column::calculator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>;
 
 	template <typename Def, typename... Args>
 	auto vary_column(column::calculator<Def> const& calc, Args&&... args) const -> std::shared_ptr<column::calculator<Def>>;
@@ -98,7 +98,7 @@ auto ana::column::computation<T>::define(Lmbd lmbd) const -> std::shared_ptr<cal
 
 template <typename T>
 template <typename Def, typename... Cols>
-auto ana::column::computation<T>::compute(column::calculator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>
+auto ana::column::computation<T>::evaluate_column(column::calculator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>
 {
 	// use the calculator to actually make the column
 	auto defn = calc.calculate_from(columns...);

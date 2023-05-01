@@ -33,10 +33,7 @@ public:
 	auto channel(selection const& prev, const std::string& name, Lmbd&& lmbd) -> std::shared_ptr<calculator<column::equation_t<Lmbd>>>;
 
 	template <typename Calc, typename... Cols>
-	auto apply(Calc& calc, Cols const&... columns) -> std::shared_ptr<selection>;
-
-	template <typename Sel, typename Lmbd>
-	auto repeat_selection(calculator<column::equation_t<Lmbd>> const& calc) -> std::shared_ptr<calculator<column::equation_t<Lmbd>>>;
+	auto evaluate_selection(Calc& calc, Cols const&... columns) -> std::shared_ptr<selection>;
 
 protected:
 	void add_selection(selection& selection);
@@ -90,15 +87,9 @@ auto ana::selection::cutflow::channel(selection const& prev,const std::string& n
 }
 
 template <typename Calc, typename... Cols>
-auto ana::selection::cutflow::apply(Calc& calc, Cols const&... columns) -> std::shared_ptr<selection>
+auto ana::selection::cutflow::evaluate_selection(Calc& calc, Cols const&... columns) -> std::shared_ptr<selection>
 {
 	auto sel = calc.apply_selection(columns...);
 	this->add_selection(*sel);
 	return sel;
-}
-
-template <typename Sel, typename Lmbd>
-auto ana::selection::cutflow::repeat_selection(calculator<column::equation_t<Lmbd>> const& calc) -> std::shared_ptr<calculator<column::equation_t<Lmbd>>>
-{
-	return std::make_shared<calculator<column::equation_t<Lmbd>>>(calc);
 }

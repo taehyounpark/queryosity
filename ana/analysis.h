@@ -107,8 +107,6 @@ public:
   auto define(const Args&... arguments) -> delayed<column::calculator<Def>>;
   template <typename Lmbd>
   auto define(Lmbd const& lmbd) -> delayed<column::calculator<column::equation_t<Lmbd>>>;
-  template <typename Def, typename... Cols>
-	auto compute(delayed<column::calculator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>;
 
 	template <typename Sel, typename Lmbd>
   auto filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
@@ -118,13 +116,18 @@ public:
   auto filter(const std::string& name) -> delayed<simple_selection_calculator_type>;
   template <typename Sel>
   auto channel(const std::string& name) -> delayed<simple_selection_calculator_type>;
-	template <typename Calc, typename... Cols>
-	auto apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> delayed<selection>;
 
 	template <typename Cnt, typename... Args>
 	auto book(Args&&... args) -> delayed<counter::booker<Cnt>>;
+
+  template <typename Def, typename... Cols>
+	auto evaluate_column(delayed<column::calculator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>;
+
+	template <typename Calc, typename... Cols>
+	auto evaluate_selection(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> delayed<selection>;
+
 	template <typename Cnt, typename Sel>
-	auto count(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>;
+	auto count_at(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>;
 
 	void clear_counters();
 
@@ -153,11 +156,8 @@ protected:
 	template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* = nullptr>
 	auto vary_definition(delayed<column::calculator<V>> const& nom, Lmbd const& lmbd) -> delayed<column::calculator<V>>;
 
-  template <typename Sel, typename Lmbd>
-  auto repeat_selection(delayed<custom_selection_calculator_t<Lmbd>> const& calc) -> delayed<custom_selection_calculator_t<Lmbd>>;
-
   template <typename Cnt>
-  auto repeat_counter(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>;
+  auto repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>;
 
 protected:
 	void add_column(delayed<column> var);
@@ -267,9 +267,9 @@ auto ana::analysis<T>::define(Lmbd const& lmbd) ->  typename analysis<T>::templa
 
 template <typename T>
 template <typename Def, typename... Cols>
-auto ana::analysis<T>::compute(delayed<column::calculator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>
+auto ana::analysis<T>::evaluate_column(delayed<column::calculator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>
 {
-	auto col = delayed<Def>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, column::calculator<Def>& calc, Cols const&... cols) { return lpr.template compute(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
+	auto col = delayed<Def>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, column::calculator<Def>& calc, Cols const&... cols) { return lpr.template evaluate_column(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
 	this->add_column(col);
   return col;
 }
@@ -335,9 +335,9 @@ auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string
 
 template <typename T>
 template <typename Calc, typename... Cols>
-auto ana::analysis<T>::apply(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> typename ana::analysis<T>::template delayed<selection>
+auto ana::analysis<T>::evaluate_selection(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> typename ana::analysis<T>::template delayed<selection>
 {
-	auto sel = delayed<selection>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, Calc& calc, Cols&... cols) { return lpr.template apply(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
+	auto sel = delayed<selection>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, Calc& calc, Cols&... cols) { return lpr.template evaluate_selection(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
 	this->add_selection(sel);
   return sel;
 }
@@ -351,11 +351,11 @@ auto ana::analysis<T>::book(Args&&... args) -> delayed<ana::counter::booker<Cnt>
 
 template <typename T>
 template <typename Cnt, typename Sel>
-auto ana::analysis<T>::count(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>
+auto ana::analysis<T>::count_at(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sel const& sel) { return lpr.template count<Cnt>(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
+	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sel const& sel) { return lpr.template count_at<Cnt>(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
 	this->add_counter(cnt);
   return cnt;
 }
@@ -441,18 +441,12 @@ void ana::analysis<T>::add_counter(typename ana::analysis<T>::template delayed<c
 {
 	m_counter_list.push_back(delayed);
 }
-template <typename T>
-template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::repeat_selection(delayed<custom_selection_calculator_t<Lmbd>> const& calc) -> delayed<custom_selection_calculator_t<Lmbd>>
-{
-	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, custom_selection_calculator_t<Lmbd> const& calc){ return lpr.repeat_selection(calc); }, calc.get_slots() ));
-}
 
 template <typename T>
 template <typename Cnt>
-auto ana::analysis<T>::repeat_counter(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>
+auto ana::analysis<T>::repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>
 {
-	return delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, counter::booker<Cnt> const& bkr){ return lpr.repeat_counter(bkr); }, bkr.get_slots() ));
+	return delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, counter::booker<Cnt> const& bkr){ return lpr.repeat_booker(bkr); }, bkr.get_slots() ));
 }
 
 template <typename... Nodes>

@@ -25,11 +25,11 @@ public:
 	template <typename Cnt, typename... Args>
 	std::shared_ptr<booker<Cnt>> book(Args&&... args);
 
-	template <typename Cnt, typename Sel>
-	std::shared_ptr<Cnt> count(booker<Cnt>& bkr, Sel const& sel);
-
 	template <typename Cnt>
-	auto repeat_counter(counter::booker<Cnt> const& bkr) const -> std::shared_ptr<counter::booker<Cnt>>;
+	auto repeat_booker(counter::booker<Cnt> const& bkr) const -> std::shared_ptr<counter::booker<Cnt>>;
+
+	template <typename Cnt, typename Sel>
+	std::shared_ptr<Cnt> count_at(booker<Cnt>& bkr, Sel const& sel);
 
 	void clear_counters();
 
@@ -52,16 +52,16 @@ std::shared_ptr<ana::counter::booker<Cnt>> ana::counter::experiment::book(Args&&
 }
 
 template <typename Cnt, typename Sel>
-std::shared_ptr<Cnt> ana::counter::experiment::count(booker<Cnt>& bkr, Sel const& sel)
+std::shared_ptr<Cnt> ana::counter::experiment::count_at(booker<Cnt>& bkr, Sel const& sel)
 {
-	auto cnt = bkr.book_counter_at(sel);
+	auto cnt = bkr.set_counter_at(sel);
 	cnt->set_scale(m_norm);
 	this->add_counter(*cnt);
 	return cnt;
 }
 
 template <typename Cnt>
-auto ana::counter::experiment::repeat_counter(counter::booker<Cnt> const& bkr) const -> std::shared_ptr<counter::booker<Cnt>>
+auto ana::counter::experiment::repeat_booker(counter::booker<Cnt> const& bkr) const -> std::shared_ptr<counter::booker<Cnt>>
 {
 	// a single booker always requires a one-to-map between booked selection path and counter instance
 	// so if a new variation is needed, the only way is to make a new copy of the booker
