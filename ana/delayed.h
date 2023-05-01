@@ -8,33 +8,32 @@
 #include "ana/computation.h"
 #include "ana/experiment.h"
 
-// macros to check and generate operator definitions
+// check existience of operators for T
+// https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists
 // binary
 #define CHECK_FOR_BINARY_OP(op_name,op_symbol)\
-	struct has_no_  ## op_name {};\
-	template <typename T, typename Arg> has_no_ ## op_name operator op_symbol(const T&, const Arg&);\
-	template <typename T, typename Arg = T> struct has_ ## op_name { enum { value = !std::is_same<decltype(std::declval<T>() == std::declval<Arg>()), has_no_ ## op_name>::value }; };\
-	template <typename T, typename Arg = T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T,Arg>::value; 
-
+struct has_no_  ## op_name {};\
+template <typename T, typename Arg> has_no_ ## op_name operator op_symbol(const T&, const Arg&);\
+template <typename T, typename Arg = T> struct has_ ## op_name { enum { value = !std::is_same<decltype(std::declval<T>() == std::declval<Arg>()), has_no_ ## op_name>::value }; };\
+template <typename T, typename Arg = T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T,Arg>::value; 
 #define DEFINE_DELAYED_BINARY_OP(op_name,op_symbol)\
-	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>\
-	auto operator op_symbol(const Arg& other) const\
-	{\
-		return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me op_symbol you; })(*this,other);\
-	}
+template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>\
+auto operator op_symbol(const Arg& other) const\
+{\
+	return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me op_symbol you; })(*this,other);\
+}
 // unary
 #define CHECK_FOR_UNARY_OP(op_name,op_symbol)\
-	struct has_no_  ## op_name {};\
-	template <typename T> has_no_ ## op_name operator op_symbol(const T&);\
-	template <typename T> struct has_ ## op_name { enum { value = !std::is_same<decltype( op_symbol std::declval<T>()), has_no_ ## op_name>::value }; };\
-	template <typename T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T>::value; 
-
+struct has_no_  ## op_name {};\
+template <typename T> has_no_ ## op_name operator op_symbol(const T&);\
+template <typename T> struct has_ ## op_name { enum { value = !std::is_same<decltype( op_symbol std::declval<T>()), has_no_ ## op_name>::value }; };\
+template <typename T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T>::value; 
 #define DEFINE_DELAYED_UNARY_OP(op_name,op_symbol)\
-	template <typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>>, V>* = nullptr>\
-	auto operator op_symbol() const\
-	{\
-		return this->m_analysis->define([](cell_value_t<V> const& me){ return (op_symbol me); })(*this);\
-	}
+template <typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>>, V>* = nullptr>\
+auto operator op_symbol() const\
+{\
+	return this->m_analysis->define([](cell_value_t<V> const& me){ return (op_symbol me); })(*this);\
+}
 
 namespace ana
 {
@@ -57,6 +56,8 @@ CHECK_FOR_BINARY_OP(less_than_or_equal_to,<=)
 CHECK_FOR_UNARY_OP(logical_not,!)
 CHECK_FOR_UNARY_OP(minus,-)
 
+// subscript operator needs special treatment
+// https://stackoverflow.com/questions/31305894/how-to-check-for-the-existence-of-a-subscript-operator
 template <class T, class Index>
 struct has_subscript_impl
 {
