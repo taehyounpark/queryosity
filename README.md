@@ -95,7 +95,7 @@ public:
     return p4*m_scale;
   }
   // - note that input columns are originally RVecF
-  // - ana::observable<T> ensures no-copy transfer of convertible/inheritable types
+  // - ana::observable<T> used to access to any convertible/inherited types
 
 protected:
   unsigned int m_index;
@@ -113,7 +113,7 @@ auto l1p4 = hww.define<ScaledP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_
 The computation graph formed can be ensured to be
 - Recursion-free: the grammar forbids this by construction.
 - Non-redundant: the value of a column is computed at most once per entry.
-- No-copy: values are passed by `const T&` from one column to another.
+- No-copy: values are passed by `const T&` from one column to another (unless a conversion is required).
 
 ### 2. Applying selections
 #### 2.1 Cut versus weight
