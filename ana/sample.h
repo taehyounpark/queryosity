@@ -77,11 +77,11 @@ void ana::sample<T>::prepare(std::unique_ptr<T> dataset)
   // first, allocate the dataset partition according to user implementation
   // then, truncate to the maximum requested entries
   // finally, downsize to the maximum requested concurrency
-	m_partition = m_dataset->allocate().truncate(m_max_entries).merge(ana::multithread::concurrency());
+	m_partition = m_dataset->allocate_partition().truncate(m_max_entries).merge(ana::multithread::concurrency());
 
   // calculate a normalization factor according to user implementation
   // globally scale the sample by the inverse
-  m_scale /= m_dataset->normalize();
+  m_scale /= m_dataset->normalize_scale();
 
   // open the dataset reader and looper for each available thread
   m_readers.clear();

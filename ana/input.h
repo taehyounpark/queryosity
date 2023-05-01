@@ -77,9 +77,13 @@ public:
 	dataset() = default;
 	virtual ~dataset() = default;
 
-	// get dataset partition & normalization
-	partition allocate();
-	virtual double normalize() const;
+	// allocation partitioning for multithreading
+	partition allocate_partition();
+
+	// normalize scale for all entries by some logic
+	double normalize_scale() const;
+	// do nothing by default
+	double normalize() const {return 1.0;}
 
 	// read data for range
   decltype(auto) read_dataset(const range& part) const;
@@ -125,15 +129,15 @@ template <typename T> static constexpr bool is_shared_ptr_v = is_shared_ptr<T>::
 }
 
 template<typename T>
-ana::input::partition ana::input::dataset<T>::allocate()
+ana::input::partition ana::input::dataset<T>::allocate_partition()
 {
-	return static_cast<const T*>(this)->allocate();
+	return static_cast<T*>(this)->allocate();
 }
 
 template<typename T>
-double ana::input::dataset<T>::normalize() const
+double ana::input::dataset<T>::normalize_scale() const
 {
-	return 1.0;
+	return static_cast<const T*>(this)->normalize();
 }
 
 template<typename T>
