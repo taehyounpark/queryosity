@@ -6,12 +6,19 @@
 
 #include "ana/analysis.h"
 #include "ana/delayed.h"
+#include "ana/column.h"
 
+// delayed<T> -> varied<T> seems like a headche, but
+// all of these are actually quite straightforward now.
+// we just apply whatever the original delayed action is doing,
+// simply to the nominal+variations.
 
+// starting with mathematical operations,
+// the nightmare type_traits gymnastics is no more,
+// we just do whatever delayed has available
 #define DECLARE_VARIED_BINARY_OP(op_symbol)\
 template <typename Arg>\
 auto operator op_symbol(Arg&& b) const  -> varied<typename decltype(std::declval<delayed<Act>>().operator op_symbol(std::forward<Arg>(b).nominal()))::action_type>;
-
 #define DEFINE_VARIED_BINARY_OP(op_symbol)\
 template <typename T>\
 template <typename Act>\
@@ -21,6 +28,21 @@ auto ana::analysis<T>::varied<Act>::operator op_symbol(Arg&& b) const  -> varied
 	auto syst = varied<typename decltype(std::declval<delayed<Act>>().operator  op_symbol(std::forward<Arg>(b).nominal()))::action_type>(nominal().operator op_symbol(std::forward<Arg>(b).nominal()));\
 	for (auto const& var_name : list_all_variation_names(*this, std::forward<Arg>(b))) {\
 		syst.set_variation(var_name, variation(var_name).operator op_symbol(std::forward<Arg>(b).variation(var_name)) );\
+	}\
+	return syst;\
+}
+#define DECLARE_VARIED_UNARY_OP(op_name,op_symbol)\
+template <typename V = Act, typename std::enable_if_t<ana::is_column_v<V> && ana::op_check::has_ ## op_name ## _v<V>, V>* = nullptr>\
+auto operator op_symbol() const  -> varied<typename decltype(std::declval<delayed<V>>().operator op_symbol())::action_type>;
+#define DEFINE_VARIED_UNARY_OP(op_name,op_symbol)\
+template <typename T>\
+template <typename Act>\
+template <typename V, typename std::enable_if_t<ana::is_column_v<V> && ana::op_check::has_ ## op_name ## _v<V>, V>* ptr>\
+auto ana::analysis<T>::varied<Act>::operator op_symbol() const  -> varied<typename decltype(std::declval<delayed<V>>().operator  op_symbol())::action_type>\
+{\
+	auto syst = varied<typename decltype(std::declval<delayed<V>>().operator  op_symbol())::action_type>(nominal().operator op_symbol());\
+	for (auto const& var_name : list_all_variation_names(*this)) {\
+		syst.set_variation(var_name, variation(var_name).operator op_symbol());\
 	}\
 	return syst;\
 }
@@ -66,15 +88,6 @@ public:
 		return *this;
 	}
 
-	// template <typename Oth>
-	// varied& operator=(delayed<Act> const& other)
-	// {
-	// 	this->m_analysis = other.m_analysis;
-	// 	m_nominal = other;
-	// 	m_variation_map.clear();
-	// 	return *this;
-	// }
-
 	virtual void set_nominal(delayed<Act> const& nom) override;
 	virtual void set_variation(const std::string& var_name, delayed<Act> const& var) override;
 
@@ -117,7 +130,12 @@ public:
 	template <typename V = Act, typename std::enable_if<ana::is_counter_booker_v<V> || ana::is_counter_implemented_v<V>,void>::type* = nullptr>
 	auto operator[](const std::string& sel_path) const -> delayed<V>;
 
-	// template <typename Arg> auto operator/(Arg&& b) const  -> varied<typename decltype(std::declval<delayed<Act>>().operator/(std::forward<Arg>(b).nominal()))::action_type>;
+	// mathematical operations
+	// template <typename V = Act, typename std::enable_if_t<is_column_v<V>, V>* = nullptr>
+	// auto operator -() const  -> varied<typename decltype(std::declval<delayed<Act>>().operator -())::action_type>;
+	DECLARE_VARIED_UNARY_OP(minus,-)
+	DECLARE_VARIED_UNARY_OP(logical_not,!)
+	// binary
 	DECLARE_VARIED_BINARY_OP(+)
 	DECLARE_VARIED_BINARY_OP(-)
 	DECLARE_VARIED_BINARY_OP(*)
@@ -128,7 +146,9 @@ public:
 	DECLARE_VARIED_BINARY_OP(>)
 	DECLARE_VARIED_BINARY_OP(<=)
 	DECLARE_VARIED_BINARY_OP(>=)
+	DECLARE_VARIED_BINARY_OP(==)
 	DECLARE_VARIED_BINARY_OP([])
+
 
 protected:
 	delayed<Act>                                 m_nominal;
@@ -324,25 +344,18 @@ auto ana::analysis<T>::varied<Act>::operator()(Args&&... args) -> varied<typenam
 	return syst;
 }
 
-// template <typename T>
-// template <typename Act>
-// template <typename Arg>
-// auto ana::analysis<T>::varied<Act>::operator/(Arg&& b) const  -> varied<typename decltype(std::declval<delayed<Act>>().operator/(std::forward<Arg>(b).nominal()))::action_type>
-// {
-// 	auto syst = varied<typename decltype(std::declval<delayed<Act>>().operator/(std::forward<Arg>(b).nominal()))::action_type>(nominal().operator/(std::forward<Arg>(b).nominal()));
-// 	for (auto const& var_name : list_all_variation_names(*this, std::forward<Arg>(b))) {
-// 		syst.set_variation(var_name, variation(var_name).operator/(std::forward<Arg>(b).variation(var_name)) );
-// 	}
-// 	return syst;
-// }
+DEFINE_VARIED_UNARY_OP(minus,-)
+DEFINE_VARIED_UNARY_OP(logical_not,!)
+
 DEFINE_VARIED_BINARY_OP(+)
 DEFINE_VARIED_BINARY_OP(-)
 DEFINE_VARIED_BINARY_OP(*)
 DEFINE_VARIED_BINARY_OP(/)
-DEFINE_VARIED_BINARY_OP(&&)
-DEFINE_VARIED_BINARY_OP(||)
 DEFINE_VARIED_BINARY_OP(<)
 DEFINE_VARIED_BINARY_OP(>)
 DEFINE_VARIED_BINARY_OP(<=)
 DEFINE_VARIED_BINARY_OP(>=)
+DEFINE_VARIED_BINARY_OP(==)
+DEFINE_VARIED_BINARY_OP(&&)
+DEFINE_VARIED_BINARY_OP(||)
 DEFINE_VARIED_BINARY_OP([])

@@ -17,7 +17,7 @@ template <typename T, typename Arg> has_no_ ## op_name operator op_symbol(const 
 template <typename T, typename Arg = T> struct has_ ## op_name { enum { value = !std::is_same<decltype(std::declval<T>() == std::declval<Arg>()), has_no_ ## op_name>::value }; };\
 template <typename T, typename Arg = T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T,Arg>::value; 
 #define DEFINE_DELAYED_BINARY_OP(op_name,op_symbol)\
-template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>\
+template <typename Arg, typename V = U, typename std::enable_if_t<ana::is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>, V>* = nullptr>\
 auto operator op_symbol(const Arg& other) const\
 {\
 	return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me op_symbol you; })(*this,other);\
@@ -29,7 +29,7 @@ template <typename T> has_no_ ## op_name operator op_symbol(const T&);\
 template <typename T> struct has_ ## op_name { enum { value = !std::is_same<decltype( op_symbol std::declval<T>()), has_no_ ## op_name>::value }; };\
 template <typename T> static constexpr bool has_ ## op_name ## _v = has_ ## op_name<T>::value; 
 #define DEFINE_DELAYED_UNARY_OP(op_name,op_symbol)\
-template <typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>>, V>* = nullptr>\
+template <typename V = U, typename std::enable_if_t<ana::is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>>, V>* = nullptr>\
 auto operator op_symbol() const\
 {\
 	return this->m_analysis->define([](cell_value_t<V> const& me){ return (op_symbol me); })(*this);\
@@ -40,18 +40,18 @@ namespace ana
 
 namespace op_check
 {
-CHECK_FOR_BINARY_OP(equality,==)
 CHECK_FOR_BINARY_OP(addition,+)
 CHECK_FOR_BINARY_OP(subtraction,-)
 CHECK_FOR_BINARY_OP(multiplication,*)
 CHECK_FOR_BINARY_OP(division,/)
 CHECK_FOR_BINARY_OP(remainder,%)
-CHECK_FOR_BINARY_OP(logical_or,||)
-CHECK_FOR_BINARY_OP(logical_and,&&)
 CHECK_FOR_BINARY_OP(greater_than,>)
 CHECK_FOR_BINARY_OP(less_than,<)
 CHECK_FOR_BINARY_OP(greater_than_or_equal_to,>=)
 CHECK_FOR_BINARY_OP(less_than_or_equal_to,<=)
+CHECK_FOR_BINARY_OP(equality,==)
+CHECK_FOR_BINARY_OP(logical_and,&&)
+CHECK_FOR_BINARY_OP(logical_or,||)
 
 CHECK_FOR_UNARY_OP(logical_not,!)
 CHECK_FOR_UNARY_OP(minus,-)
@@ -126,32 +126,11 @@ public:
 	virtual bool has_variation(const std::string& var_name) const override;
 	virtual std::set<std::string> list_variation_names() const override;
 
-	// std::string get_name() const
-	// {
-	// 	if constexpr(std::is_base_of_v<selection,U>) {
-	// 		return m_threaded.from_model( [] (const selection& sel) { return sel.get_name(); } );
-	// 	} else {
-	// 		static_assert( (std::is_base_of_v<selection,U>), "not a selection" );
-	// 	}
-	// }
-
-	// std::string get_path() const
-	// {
-	// 	if constexpr(std::is_base_of_v<selection,U>) {
-	// 		return m_threaded.from_model( [] (const selection& sel) { return sel.get_path(); } );
-	// 	} else {
-	// 		static_assert((std::is_base_of_v<selection,U>), "not a selection");
-	// 	}
-	// }
-
-	// std::string get_full_path() const
-	// {
-	// 	if constexpr(std::is_base_of_v<selection,U>) {
-	// 		return m_threaded.from_model( [] (const selection& sel) { return sel.get_full_path(); } );
-	// 	} else {
-	// 		static_assert((std::is_base_of_v<selection,U>), "not a selection");
-	// 	}
-	// }
+	// filter: regular selection operation
+  template <typename Sel, typename... Args>
+  auto filter(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>;
+  template <typename Sel, typename... Args>
+  auto channel(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>;
 
 	// created a varied node that will contain the original as nominal
 	// and a single variation under the specified name and constructor arguments
@@ -190,37 +169,24 @@ public:
 		}
 	}
 
-	// filter: regular selection operation
-  template <typename Sel, typename... Args>
-  auto filter(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>;
-  template <typename Sel, typename... Args>
-  auto channel(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>;
-
 	template <typename... Nodes, typename V = U, std::enable_if_t<is_selection_calculator_v<V> && has_no_variation_v<Nodes...>, int> = 0>
 	auto apply(Nodes const&... columns) -> delayed<typename V::selection_type>
 	{
 		return this->m_analysis->apply(*this, columns...);
 	}
 
-	template <typename... Nodes , std::enable_if_t<has_variation_v<Nodes...>, int> = 0>
-	auto apply(Nodes const&... columns) -> varied<U>
+	template <typename... Nodes , typename V = U, std::enable_if_t<is_selection_calculator_v<V> && has_variation_v<Nodes...>, int> = 0>
+	auto apply(Nodes const&... columns) -> varied<calculated_selection_t<V>>
 	{
-		if constexpr(is_selection_calculator_v<U>) {
-			auto syst = varied<U>(*this);
-			// nominal
-			// auto nom = m_analysis->template filter<U>(this->get_name()).apply( columns.nominal()...);
-			// this->apply( columns.nominal()...);
-			auto nom = delayed(*this).apply(columns.nominal()...);
-			syst.set_nominal(*this);
-			//variations
+		if constexpr(is_selection_calculator_v<V>) {
+			varied<calculated_selection_t<V>> syst(this->nominal().apply(columns.nominal()...));
 			auto var_names = list_all_variation_names(columns...);
 			for (auto const& var_name : var_names) {
-				auto var = delayed(*this).apply( columns.variation(var_name)...);
-				syst.set_variation(var_name,var);
+				syst.set_variation(var_name, this->variation(var_name).apply(columns.variation(var_name)...));
 			}
 			return syst;
 		} else {
-			static_assert( (is_selection_calculator_v<U>), "cannot apply non-selection" );
+			static_assert( (is_selection_calculator_v<V>), "cannot apply non-selection" );
 		}
 	}
 
@@ -340,7 +306,8 @@ protected:
 };
 
 // analysis<T> of analysis<T>::node<U>
-template <typename T> using analysis_t = typename T::analysis_type; 
+template <typename T> using analysis_t = typename T::analysis_type;
+template <typename T> using action_t = typename T::action_type;
 
 }
 
