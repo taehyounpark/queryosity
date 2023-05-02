@@ -140,20 +140,20 @@ public:
 	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V>,V>* = nullptr>
 	auto vary(const std::string& var_name, Args&&... args) -> varied<V>;
 
-	template <typename... Args>
-	auto evaluate(Args&&... args) const
+	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V>,V>* = nullptr>
+	auto evaluate(Args&&... args) const -> decltype(std::declval<delayed<V>>().evaluate_column(std::declval<Args>()...))
 	{
 		static_assert( is_column_calculator_v<U>, "non-columns cannot be evaluated" );
 		return this->evaluate_column(std::forward<Args>(args)...);
 	}
 
-  template <typename... Nodes, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>
-	auto evaluate_column(Nodes const&... columns) const
+  template <typename... Nodes, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V> && ana::analysis<T>::template has_no_variation_v<Nodes...>,V>* = nullptr>
+	auto evaluate_column(Nodes const&... columns) const -> delayed<calculated_column_t<V>>
 	{
 		return this->m_analysis->evaluate_column(*this, columns...);
 	}
 
-	template <typename... Nodes, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V> && has_variation_v<Nodes...>,V>* = nullptr>
+	template <typename... Nodes, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V> && ana::analysis<T>::template has_variation_v<Nodes...>,V>* = nullptr>
 	auto evaluate_column(Nodes const&... columns) const -> varied<calculated_column_t<V>>
 	{
 		auto nom = this->m_analysis->evaluate_column( *this, columns.nominal()... );
@@ -165,11 +165,11 @@ public:
 		return syst;
 	}
 
-	template <typename... Nodes>
-	auto apply(Nodes const&... columns) const
+	template <typename... Args, typename V = U, typename std::enable_if_t<is_selection_calculator_v<V>,V>* = nullptr>
+	auto apply(Args&&... args) const -> decltype(std::declval<delayed<V>>().evaluate_selection(std::declval<Args>()...))
 	{
 		static_assert( is_selection_calculator_v<U>, "non-selections cannot be applied" );
-		return this->evaluate_selection(columns...);
+		return this->evaluate_selection(std::forward<Args>(args)...);
 	}
 
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_selection_calculator_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>
@@ -189,22 +189,22 @@ public:
 		return syst;
 	}
 
-	template <typename... Args>
-	auto fill(Args&&... args)
+	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_counter_booker_v<V>,V>* = nullptr>
+	auto fill(Args&&... args) const -> decltype(std::declval<delayed<V>>().fill_counter(std::declval<Args>()...))
 	{
 		static_assert( is_counter_booker_v<U>, "non-counter(booker) cannot be filled");
 		return this->fill_counter(std::forward<Args>(args)...);
 	}
 
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_counter_booker_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>
-	auto fill_counter(Nodes const&... columns) -> delayed<U>
+	auto fill_counter(Nodes const&... columns) const -> delayed<U>
 	{
 		m_threaded.to_slots( [] (U& fillable, typename Nodes::action_type&... cols) { fillable.enter_columns(cols...); }, columns.nominal().get_slots()... );
 		return *this;
 	}
 
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_counter_booker_v<V> && has_variation_v<Nodes...>,V>* = nullptr>
-	auto fill_counter(Nodes const&... columns) -> varied<U>
+	auto fill_counter(Nodes const&... columns) const -> varied<U>
 	{
 		// use a copy for each so each variation can book the same selection
 		auto nom = this->m_analysis->repeat_booker(*this);
@@ -218,7 +218,7 @@ public:
 	}
 	
 	template <typename Arg>
-	auto at(Arg&& arg)
+	auto at(Arg&& arg) const
 	{
 		static_assert( is_counter_booker_v<U>, "non-counter(booker) cannot be counted at selection" );
 		return this->count_selection(std::forward<Arg>(arg));
@@ -364,23 +364,25 @@ void ana::analysis<T>::delayed<Act>::set_nominal(delayed const& nom)
 
 template <typename T>
 template <typename Act>
-void ana::analysis<T>::delayed<Act>::set_variation(const std::string& var_name, delayed const&)
+void ana::analysis<T>::delayed<Act>::set_variation(const std::string&, delayed const&)
 {
-	// this is nominal -- ignore all variations
-	return;
+	// this is nomial -- should never be called!
+	throw std::logic_error("cannot vary to a nominal-only delayed action");
 }
 
 template <typename T>
 template <typename Act>
 auto ana::analysis<T>::delayed<Act>::nominal() const -> delayed<Act>
 {
+	// this is nomial -- return itself
 	return *this;
 }
 
 template <typename T>
 template <typename Act>
-auto ana::analysis<T>::delayed<Act>::variation(const std::string& var_name) const -> delayed<Act>
+auto ana::analysis<T>::delayed<Act>::variation(const std::string&) const -> delayed<Act>
 {
+	// used when other variations ask the same of this, which it doesn't have -- return itself
 	return *this;
 }
 
@@ -423,6 +425,37 @@ auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&...
   // done
   return syst;
 }
+
+// template <typename T>
+// template <typename Act>
+// template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V>,V>* ptr>
+// auto ana::analysis<T>::delayed<Act>::evaluate(Args&&... args) const -> decltype(std::declval<delayed<V>>().evaluate_column(std::declval<Args>()...))
+// {
+// 	static_assert( is_column_calculator_v<V>, "non-columns cannot be evaluated" );
+// 	return this->evaluate_column(std::forward<Args>(args)...);
+// }
+
+// template <typename T>
+// template <typename Act>
+// template <typename... Nodes, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V> && ana::analysis<T>::template has_no_variation_v<Nodes...>,V>* ptr>
+// auto ana::analysis<T>::delayed<Act>::evaluate_column(Nodes const&... columns) const -> delayed<calculated_column_t<V>>
+// {
+// 	return this->m_analysis->evaluate_column(*this, columns...);
+// }
+
+// template <typename T>
+// template <typename Act>
+// template <typename... Nodes, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V> && ana::analysis<T>::template has_variation_v<Nodes...>,V>* ptr>
+// auto ana::analysis<T>::delayed<Act>::evaluate_column(Nodes const&... columns) const -> varied<calculated_column_t<V>>
+// {
+// 	auto nom = this->m_analysis->evaluate_column( *this, columns.nominal()... );
+// 	varied<calculated_column_t<V>> syst(nom);
+// 	for (auto const& var_name : list_all_variation_names(columns...)) {
+// 		auto var = this->m_analysis->evaluate_column( *this, columns.variation(var_name)... );
+// 		syst.set_variation(var_name, var);
+// 	}
+// 	return syst;
+// }
 
 template <typename T>
 template <typename Act>
