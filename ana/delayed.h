@@ -288,21 +288,21 @@ public:
 		return m_threaded.model()->result();
 	}
 
-	analysis<T>* get_analysis() const { return this->m_analysis; }
-	concurrent<U> const& get_slots() const { return m_threaded; }
-
-	template <typename... Args>
-	auto operator()(Args&&... args)
+	template <typename... Args, typename V = U, typename std::enable_if_t<is_column_calculator_v<V>,V>* = nullptr>
+	auto operator()(Args&&... args) -> decltype(std::declval<delayed<V>>().evaluate(std::declval<Args>()...))
 	{
-		constexpr bool is_calculator_v = is_column_calculator_v<U> || is_selection_calculator_v<U>;
-		if constexpr( is_column_calculator_v<U> ) {
-			return this->evaluate(std::forward<Args>(args)...);
-		} else if constexpr( is_selection_calculator_v<U> ) {
-			return this->apply(std::forward<Args>(args)...);
-		} else {
-			static_assert( is_calculator_v, "non-column/selection cannot be evaluated" );
-		}
+		return this->evaluate(std::forward<Args>(args)...);
 	}
+
+	template <typename... Args, typename V = U, typename std::enable_if_t<is_selection_calculator_v<V>,V>* = nullptr>
+	auto operator()(Args&&... args) -> decltype(std::declval<delayed<V>>().apply(std::declval<Args>()...))
+	{
+		return this->apply(std::forward<Args>(args)...);
+	}
+
+	analysis<T>* get_analysis() const { return this->m_analysis; }
+
+	concurrent<U> const& get_slots() const { return m_threaded; }
 
 	DEFINE_DELAYED_BINARY_OP(equality,==)
 	DEFINE_DELAYED_BINARY_OP(addition,+)
@@ -425,37 +425,6 @@ auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&...
   // done
   return syst;
 }
-
-// template <typename T>
-// template <typename Act>
-// template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V>,V>* ptr>
-// auto ana::analysis<T>::delayed<Act>::evaluate(Args&&... args) const -> decltype(std::declval<delayed<V>>().evaluate_column(std::declval<Args>()...))
-// {
-// 	static_assert( is_column_calculator_v<V>, "non-columns cannot be evaluated" );
-// 	return this->evaluate_column(std::forward<Args>(args)...);
-// }
-
-// template <typename T>
-// template <typename Act>
-// template <typename... Nodes, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V> && ana::analysis<T>::template has_no_variation_v<Nodes...>,V>* ptr>
-// auto ana::analysis<T>::delayed<Act>::evaluate_column(Nodes const&... columns) const -> delayed<calculated_column_t<V>>
-// {
-// 	return this->m_analysis->evaluate_column(*this, columns...);
-// }
-
-// template <typename T>
-// template <typename Act>
-// template <typename... Nodes, typename V, typename std::enable_if_t<ana::is_column_calculator_v<V> && ana::analysis<T>::template has_variation_v<Nodes...>,V>* ptr>
-// auto ana::analysis<T>::delayed<Act>::evaluate_column(Nodes const&... columns) const -> varied<calculated_column_t<V>>
-// {
-// 	auto nom = this->m_analysis->evaluate_column( *this, columns.nominal()... );
-// 	varied<calculated_column_t<V>> syst(nom);
-// 	for (auto const& var_name : list_all_variation_names(columns...)) {
-// 		auto var = this->m_analysis->evaluate_column( *this, columns.variation(var_name)... );
-// 		syst.set_variation(var_name, var);
-// 	}
-// 	return syst;
-// }
 
 template <typename T>
 template <typename Act>

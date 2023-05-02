@@ -417,13 +417,6 @@ void ana::analysis<T>::process_dataset()
 
 }
 
-// template <typename T>
-// ana::analysis<T>& ana::analysis<T>::rebase(const delayed<selection>& sel)
-// {
-// 	this->m_loopers.to_slots( [] (looper<dataset_reader_type>& lpr, selection& sel) { lpr.rebase(sel); }, sel.get_slots() );	
-//   return *this;
-// }
-
 template <typename T>
 void ana::analysis<T>::add_column(typename ana::analysis<T>::template delayed<column> delayed)
 {
