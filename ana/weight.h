@@ -39,7 +39,7 @@ public:
 	void set_channel(bool ch);
 
 	template <typename... Vals> 
-	std::shared_ptr<weight> apply_selection( cell<Vals> const&... columns) const;
+	std::shared_ptr<weight> evaluate_selection( cell<Vals> const&... columns) const;
 
 protected:
 	std::shared_ptr<T> m_equation;
@@ -75,7 +75,7 @@ void ana::selection::weight::calculator<T>::set_previous(selection const& previo
 
 template <typename T>
 template <typename... Vals>
-std::shared_ptr<ana::selection::weight> ana::selection::weight::calculator<T>::apply_selection(cell<Vals> const&... columns) const
+std::shared_ptr<ana::selection::weight> ana::selection::weight::calculator<T>::evaluate_selection(cell<Vals> const&... columns) const
 {
 	// make this selection
   auto sel = m_make_shared_weight();

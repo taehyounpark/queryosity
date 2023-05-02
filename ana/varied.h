@@ -280,7 +280,7 @@ auto ana::analysis<T>::varied<Act>::apply(Nodes const&... columns) -> varied<sel
 {
 	varied<selection> syst(nominal().apply(columns.nominal()...));
 	for (auto const& var_name : list_all_variation_names(*this, columns...)) {
-		syst.set_variation(var_name, variation(var_name).fill(columns.variation(var_name)...));
+		syst.set_variation(var_name,variation(var_name).apply(columns.variation(var_name)...));
 	}
 	return syst;
 }

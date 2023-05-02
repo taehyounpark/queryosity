@@ -123,11 +123,11 @@ public:
   template <typename Def, typename... Cols>
 	auto evaluate_column(delayed<column::calculator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>;
 
-	template <typename Calc, typename... Cols>
-	auto evaluate_selection(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> delayed<selection>;
+	template <typename Sel, typename... Cols>
+	auto evaluate_selection(delayed<selection::calculator<Sel>> const& calc, delayed<Cols> const&... columns) -> delayed<selection>;
 
 	template <typename Cnt, typename Sel>
-	auto count_at(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>;
+	auto count_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>;
 
 	void clear_counters();
 
@@ -334,10 +334,10 @@ auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string
 }
 
 template <typename T>
-template <typename Calc, typename... Cols>
-auto ana::analysis<T>::evaluate_selection(delayed<Calc> const& calc, delayed<Cols> const&... columns) -> typename ana::analysis<T>::template delayed<selection>
+template <typename Sel, typename... Cols>
+auto ana::analysis<T>::evaluate_selection(delayed<selection::calculator<Sel>> const& calc, delayed<Cols> const&... columns) -> typename ana::analysis<T>::template delayed<selection>
 {
-	auto sel = delayed<selection>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, Calc& calc, Cols&... cols) { return lpr.template evaluate_selection(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
+	auto sel = delayed<selection>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection::calculator<Sel>& calc, Cols&... cols) { return lpr.template evaluate_selection(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
 	this->add_selection(sel);
   return sel;
 }
@@ -351,11 +351,11 @@ auto ana::analysis<T>::book(Args&&... args) -> delayed<ana::counter::booker<Cnt>
 
 template <typename T>
 template <typename Cnt, typename Sel>
-auto ana::analysis<T>::count_at(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>
+auto ana::analysis<T>::count_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sel const& sel) { return lpr.template count_at<Cnt>(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
+	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sel const& sel) { return lpr.template count_selection<Cnt>(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
 	this->add_counter(cnt);
   return cnt;
 }

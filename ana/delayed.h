@@ -169,13 +169,13 @@ public:
 	auto apply(Nodes const&... columns) const
 	{
 		static_assert( is_selection_calculator_v<U>, "non-selections cannot be applied" );
-		return this->m_analysis->evaluate_selection(*this, columns...);
+		return this->evaluate_selection(columns...);
 	}
 
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_selection_calculator_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>
 	auto evaluate_selection(Nodes const&... columns) const -> delayed<selection>
 	{
-		return this->evaluate_selection(columns.nominal()...);
+		return this->m_analysis->evaluate_selection(*this,columns...);
 	}
 
 	template <typename... Nodes , typename V = U, typename std::enable_if_t<is_selection_calculator_v<V> && has_variation_v<Nodes...>,V>* = nullptr>
@@ -216,19 +216,62 @@ public:
 		}
 		return syst;
 	}
-
-	template <typename Sel>
-	auto at(const delayed<Sel>& sel)
+	
+	template <typename Arg>
+	auto at(Arg&& arg)
 	{
 		static_assert( is_counter_booker_v<U>, "non-counter(booker) cannot be counted at selection" );
-		return this->m_analysis->count_at(*this, sel);
+		return this->count_selection(std::forward<Arg>(arg));
+	}
+
+	template <typename... Args>
+	auto at(Args&&... args) const
+	{
+		static_assert( is_counter_booker_v<U>, "non-counter(booker) cannot be counted at selection" );
+		return this->count_selections(std::forward<Args>(args)...);
+	}
+
+	template <typename Node, typename V = U, std::enable_if_t<is_counter_booker_v<V> && is_nominal_v<Node>, V>* = nullptr>
+	auto count_selection(Node const& sel) const -> delayed<booked_counter_t<V>>
+	// nominal booker + nominal fill -> nominal counter
+	{
+		return this->m_analysis->count_selection(*this, sel);
+	}
+
+	template <typename Node, typename V = U, std::enable_if_t<is_counter_booker_v<V> && is_varied_v<Node>, V>* = nullptr>
+	auto count_selection(Node const& sel) const -> delayed<booked_counter_t<V>>
+	// nominal booker + varied fill -> varied counter
+	{
+		// use a copy for each so each variation can book the same selection
+		auto nom = this->m_analysis->repeat_booker(*this);
+		auto syst = varied<booked_counter_t<V>>(nom.count_selection(sel));
+		for (auto const& var_name : list_all_variation_names(sel)) {
+			auto var = this->m_analysis->repeat_booker(*this);
+			syst.set_variation(var_name,var.count_selection(sel.variation(var_name)));
+		}
+		return syst;
 	}
 
 	template <typename... Nodes, typename V = U, std::enable_if_t<is_counter_booker_v<V> && has_no_variation_v<Nodes...>, V>* = nullptr>
-	auto at(Nodes... sels) const -> delayed<U>
+	auto count_selections(Nodes const&... sels) const -> delayed<U>
+	// nominal booker + nominal fills -> this (nominal) booker
 	{
-		(this->at(sels),...);
+		(this->count_selection(sels),...);
 		return *this;
+	}
+
+	template <typename... Nodes, typename V = U, std::enable_if_t<is_counter_booker_v<V> && has_variation_v<Nodes...>, V>* = nullptr>
+	auto count_selections(Nodes const&... sels) const -> varied<V>
+	// nominal booker + varied fills -> varied booker
+	{
+		// use a copy for each so each variation can book the same selection
+		auto nom = this->m_analysis->repeat_booker(*this);
+		auto syst = varied<V>(nom.count_selections(sels...));
+		for (auto const& var_name : list_all_variation_names(sels...)) {
+			auto var = this->m_analysis->repeat_booker(*this);
+			syst.set_variation(var_name,var.count_selections(sels.variation(var_name)...));
+		}
+		return syst;
 	}
 
 	template <typename V = U, typename std::enable_if<is_counter_booker_v<V>,void>::type* = nullptr>
