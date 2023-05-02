@@ -56,15 +56,15 @@ public:
 
   // apply a method to all delayeds
   template <typename Lmbd, typename... Args>
-  void to_slots(Lmbd lmbd, const concurrent<Args>&... args) const;
+  void to_slots(Lmbd const& lmbd, const concurrent<Args>&... args) const;
 
   // check common value of function call from all delayeds
   template <typename Lmbd, typename... Args>
-  auto from_model(Lmbd lmbd, const Args&... args) const -> std::invoke_result_t<Lmbd,T&,const Args&...>;
+  auto from_model(Lmbd const& lmbd, const Args&... args) const -> std::invoke_result_t<Lmbd,T&,const Args&...>;
 
   // return (concurrent) result of function call from all delayeds
   template <typename Lmbd, typename... Args>
-  auto from_slots(Lmbd lmbd, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<Lmbd,T&,Args&...>::element_type>;
+  auto from_slots(Lmbd const& lmbd, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<Lmbd,T&,Args&...>::element_type>;
 
 protected:
   std::vector<std::shared_ptr<T>> m_slots;
@@ -134,7 +134,7 @@ size_t ana::concurrent<T>::concurrency() const
 
 template <typename T>
 template <typename Lmbd, typename... Args>
-void ana::concurrent<T>::to_slots(Lmbd lmbd, const concurrent<Args>&... args) const
+void ana::concurrent<T>::to_slots(Lmbd const& lmbd, const concurrent<Args>&... args) const
 {
   assert( ((concurrency()==args.concurrency())&&...) );
   for(size_t i=0 ; i<concurrency() ; ++i) {
@@ -144,7 +144,7 @@ void ana::concurrent<T>::to_slots(Lmbd lmbd, const concurrent<Args>&... args) co
 
 template <typename T>
 template <typename Lmbd, typename... Args>
-auto ana::concurrent<T>::from_model(Lmbd lmbd, const Args&... args) const -> std::invoke_result_t<Lmbd,T&,const Args&...>
+auto ana::concurrent<T>::from_model(Lmbd const& lmbd, const Args&... args) const -> std::invoke_result_t<Lmbd,T&,const Args&...>
 {
   auto result = lmbd(*model(),args...);
   for(size_t i=1 ; i<concurrency() ; ++i) {
@@ -155,7 +155,7 @@ auto ana::concurrent<T>::from_model(Lmbd lmbd, const Args&... args) const -> std
 
 template <typename T>
 template <typename Lmbd, typename... Args>
-auto ana::concurrent<T>::from_slots(Lmbd lmbd, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<Lmbd,T&,Args&...>::element_type>
+auto ana::concurrent<T>::from_slots(Lmbd const& lmbd, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<Lmbd,T&,Args&...>::element_type>
 {
   assert( ((concurrency()==args.concurrency())&&...) );
   concurrent<typename std::invoke_result_t<Lmbd,T&,Args&...>::element_type> invoked;

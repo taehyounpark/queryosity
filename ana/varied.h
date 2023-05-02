@@ -73,7 +73,8 @@ public:
 	 node<Act>(*nom.m_analysis),
 	 m_nominal(nom)
 	{}
-	~varied() = default;
+
+	virtual ~varied() = default;
 
 	varied(varied const& other) :
 		node<Act>(*other.m_analysis),

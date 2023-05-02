@@ -22,9 +22,12 @@ public:
   template <typename... Args>
   void open(Args&&... args);
 
-  // shortcut for file paths provided with initializer braces
+  // shortcuts for file paths provided with initializer braces
   template <typename U = T, typename std::enable_if_t<std::is_constructible_v<U,std::string,std::initializer_list<std::string>>, U>* = nullptr>
   void open(const std::string& key, std::initializer_list<std::string> file_paths);
+  // shortcuts for file paths provided with initializer braces
+  template <typename U = T, typename std::enable_if_t<std::is_constructible_v<U,std::initializer_list<std::string>,std::string>, U>* = nullptr>
+  void open(std::initializer_list<std::string> file_paths, const std::string& key);
 
   template <typename... Args>
   void prepare(std::unique_ptr<T> dataset);
@@ -55,8 +58,8 @@ ana::sample<T>::sample(long long max_entries) :
 template <typename T>
 template <typename... Args>
 void ana::sample<T>::open(Args&&... args)
+// make the dataset according to user implementation
 {
-  // make the dataset according to user implementation
   this->prepare(std::make_unique<T>(std::forward<Args>(args)...));
 }
 
@@ -64,8 +67,14 @@ template <typename T>
 template <typename U, typename std::enable_if_t<std::is_constructible_v<U,std::string,std::initializer_list<std::string>>, U>* ptr >
 void ana::sample<T>::open(const std::string& key, std::initializer_list<std::string> file_paths)
 {
-  // make the dataset according to user implementation
   this->prepare(std::make_unique<T>(key, file_paths));
+}
+
+template <typename T>
+template <typename U, typename std::enable_if_t<std::is_constructible_v<U,std::initializer_list<std::string>,std::string>, U>* ptr >
+void ana::sample<T>::open(std::initializer_list<std::string> file_paths, const std::string& key)
+{
+  this->prepare(std::make_unique<T>(file_paths, key));
 }
 
 template <typename T>
