@@ -18,7 +18,7 @@ A clear _abstraction_ layer between the analyzer and the dataset to specify the 
   - They are transparently propagated through any other nodes that the varied node(s) participate it.
 
 # Prerequisites
-- C++17 standard compiler (tested with Clang 14 and GCC 11)
+- C++17 compiler
 - CMake 3.24 or newer
 
 # Walkthrough
