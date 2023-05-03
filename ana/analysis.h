@@ -126,8 +126,11 @@ public:
 	template <typename Sel, typename... Cols>
 	auto evaluate_selection(delayed<selection::calculator<Sel>> const& calc, delayed<Cols> const&... columns) -> delayed<selection>;
 
-	template <typename Cnt, typename Sel>
-	auto count_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>;
+	template <typename Cnt>
+	auto count_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<selection> const& sel) -> delayed<Cnt>;
+
+	template <typename Cnt, typename... Sels>
+	auto count_selections(delayed<counter::booker<Cnt>> const& bkr, delayed<Sels> const&... sels) -> delayed<counter::booker<Cnt>>;
 
 	void clear_counters();
 
@@ -156,8 +159,8 @@ protected:
 	template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* = nullptr>
 	auto vary_definition(delayed<column::calculator<V>> const& nom, Lmbd const& lmbd) -> delayed<column::calculator<V>>;
 
-  template <typename Cnt>
-  auto repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>;
+  // template <typename Cnt>
+  // auto repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>;
 
 protected:
 	void add_column(delayed<column> var);
@@ -350,14 +353,28 @@ auto ana::analysis<T>::book(Args&&... args) -> delayed<ana::counter::booker<Cnt>
 }
 
 template <typename T>
-template <typename Cnt, typename Sel>
-auto ana::analysis<T>::count_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<Sel> const& sel) -> delayed<Cnt>
+template <typename Cnt>
+auto ana::analysis<T>::count_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<selection> const& sel) -> delayed<Cnt>
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sel const& sel) { return lpr.template count_selection<Cnt>(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
+	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, const selection& sel) { return lpr.count_selection(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
 	this->add_counter(cnt);
   return cnt;
+}
+
+template <typename T>
+template <typename Cnt, typename... Sels>
+auto ana::analysis<T>::count_selections(delayed<counter::booker<Cnt>> const& bkr, delayed<Sels> const&... sels) -> delayed<counter::booker<Cnt>>
+{
+	// any time a new counter is booked, means the analysis must run: so reset its status
+	this->reset();
+	auto bkr2 = delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sels const&... sels) { return lpr.count_selections(bkr,sels...); }, bkr.get_slots(), sels.get_slots()... ));
+	// add all counters that were booked
+	for (auto const& sel_path : bkr2.list_selection_paths()) {
+		this->add_counter(bkr2.get_counter_at(sel_path));
+	}
+  return bkr2;
 }
 
 template <typename T>
@@ -435,12 +452,12 @@ void ana::analysis<T>::add_counter(typename ana::analysis<T>::template delayed<c
 	m_counter_list.push_back(delayed);
 }
 
-template <typename T>
-template <typename Cnt>
-auto ana::analysis<T>::repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>
-{
-	return delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, counter::booker<Cnt> const& bkr){ return lpr.repeat_booker(bkr); }, bkr.get_slots() ));
-}
+// template <typename T>
+// template <typename Cnt>
+// auto ana::analysis<T>::repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>
+// {
+// 	return delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, counter::booker<Cnt> const& bkr){ return lpr.repeat_booker(bkr); }, bkr.get_slots() ));
+// }
 
 template <typename... Nodes>
 auto ana::list_all_variation_names(Nodes const&... nodes) -> std::set<std::string> {

@@ -25,11 +25,14 @@ public:
 	template <typename Cnt, typename... Args>
 	std::shared_ptr<booker<Cnt>> book(Args&&... args);
 
-	template <typename Cnt>
-	auto repeat_booker(counter::booker<Cnt> const& bkr) const -> std::shared_ptr<counter::booker<Cnt>>;
+	// template <typename Cnt, typename... Cols>
+	// auto enter_columns(booker<Cnt> const& bkr, Cols const&... cols) const -> std::shared_ptr<booker<Cnt>>;
 
-	template <typename Cnt, typename Sel>
-	std::shared_ptr<Cnt> count_selection(booker<Cnt>& bkr, Sel const& sel);
+	template <typename Cnt>
+	auto count_selection(booker<Cnt> const& bkr, const selection& sel) -> std::shared_ptr<Cnt>;
+
+	template <typename Cnt, typename... Sels>
+	auto count_selections(booker<Cnt> const& bkr, Sels const&... sels) -> std::shared_ptr<booker<Cnt>>;
 
 	void clear_counters();
 
@@ -51,21 +54,35 @@ std::shared_ptr<ana::counter::booker<Cnt>> ana::counter::experiment::book(Args&&
 	return bkr;
 }
 
-template <typename Cnt, typename Sel>
-std::shared_ptr<Cnt> ana::counter::experiment::count_selection(booker<Cnt>& bkr, Sel const& sel)
+template <typename Cnt>
+auto ana::counter::experiment::count_selection(booker<Cnt> const& bkr, const selection& sel) -> std::shared_ptr<Cnt>
 {
-	auto cnt = bkr.set_counter_at(sel);
+	auto cnt = bkr.book_at(sel);
 	cnt->set_scale(m_norm);
 	this->add_counter(*cnt);
 	return cnt;
 }
 
-template <typename Cnt>
-auto ana::counter::experiment::repeat_booker(counter::booker<Cnt> const& bkr) const -> std::shared_ptr<counter::booker<Cnt>>
+template <typename Cnt, typename... Sels>
+auto ana::counter::experiment::count_selections(booker<Cnt> const& bkr, Sels const&... sels) -> std::shared_ptr<booker<Cnt>>
 {
-	// a single booker always requires a one-to-map between booked selection path and counter instance
-	// so if a new variation is needed, the only way is to make a new copy of the booker
-	// then varied counter bookers can each book a counter at given selection path
-	// a trivial copy constructor (that copies the constructor and fill call functions) does the job
-	return std::make_shared<counter::booker<Cnt>>(bkr);
+	// get a booker that has all the selections added
+	auto bkr2 = bkr.book_at(sels...);
+	// add all the counters (each with one selection) into the experiment
+	for (auto const& sel_path : bkr2->list_selection_paths()) {
+		auto cnt = bkr2->get_counter_at(sel_path);
+		cnt->set_scale(m_norm);
+		this->add_counter(*cnt);
+	}	
+	return bkr2;
 }
+
+// template <typename Cnt>
+// auto ana::counter::experiment::repeat_booker(counter::booker<Cnt> const& bkr) const -> std::shared_ptr<counter::booker<Cnt>>
+// {
+// 	// a single booker always requires a one-to-map between booked selection path and counter instance
+// 	// so if a new variation is needed, the only way is to make a new copy of the booker
+// 	// then varied counter bookers can each book a counter at given selection path
+// 	// a trivial copy constructor (that copies the constructor and fill call functions) does the job
+// 	return std::make_shared<counter::booker<Cnt>>(bkr);
+// }

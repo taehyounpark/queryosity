@@ -86,6 +86,7 @@ public:
 	using selection_calculator_t = typename decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...))::action_type;
 
 public:
+	// friends with the main analysis graph & any other delayed nodes
 	friend class analysis<T>;
 	template <typename> friend class delayed;
 
@@ -115,6 +116,7 @@ public:
 		return *this;
 	}
 
+	// implemented as as nominal-only node
 	virtual void set_nominal(const delayed& nom) override;
  	virtual void set_variation(const std::string& var_name, const delayed& var) override;
 
@@ -124,12 +126,7 @@ public:
 	virtual bool has_variation(const std::string& var_name) const override;
 	virtual std::set<std::string> list_variation_names() const override;
 
-	// filter: regular selection operation
-  template <typename Sel, typename... Args>
-  auto filter(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>;
-  template <typename Sel, typename... Args>
-  auto channel(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>;
-
+	// ONLY FOR COLUMNS
 	// created a varied node that will contain the original as nominal
 	// and a single variation under the specified name and constructor arguments
 	// further calls to add more variations are handled by varied<V>::vary()
@@ -138,6 +135,8 @@ public:
 	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V>,V>* = nullptr>
 	auto vary(const std::string& var_name, Args&&... args) -> varied<V>;
 
+	// evaluate a column definition with input columns
+	// propagate any incoming variations through
 	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_calculator_v<V>,V>* = nullptr>
 	auto evaluate(Args&&... args) const -> decltype(std::declval<delayed<V>>().evaluate_column(std::declval<Args>()...))
 	{
@@ -163,6 +162,15 @@ public:
 		return syst;
 	}
 
+	// ONLY FOR SELECTIONS
+	// downstream additional selections	
+  template <typename Sel, typename... Args>
+  auto filter(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>;
+  template <typename Sel, typename... Args>
+  auto channel(const std::string& name, Args&&... args) -> delayed_selection_calculator_t<Sel,Args...>;
+
+	// apply a selection based on input columns
+	// propagate any incoming variations through
 	template <typename... Args, typename V = U, typename std::enable_if_t<is_selection_calculator_v<V>,V>* = nullptr>
 	auto apply(Args&&... args) const -> decltype(std::declval<delayed<V>>().evaluate_selection(std::declval<Args>()...))
 	{
@@ -187,93 +195,89 @@ public:
 		return syst;
 	}
 
+	// ONLY FOR COUNTER BOOKERS
+	// filling a counter booker results in a new booker with the fill calls booked for any new counters out of it
 	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_counter_booker_v<V>,V>* = nullptr>
-	auto fill(Args&&... args) const -> decltype(std::declval<delayed<V>>().fill_counter(std::declval<Args>()...))
+	auto fill(Args&&... args) const -> decltype(std::declval<delayed<V>>().enter_columns(std::declval<Args>()...))
 	{
 		static_assert( is_counter_booker_v<U>, "non-counter(booker) cannot be filled");
-		return this->fill_counter(std::forward<Args>(args)...);
+		return this->enter_columns(std::forward<Args>(args)...);
 	}
-
+	// nominal
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_counter_booker_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>
-	auto fill_counter(Nodes const&... columns) const -> delayed<U>
+	auto enter_columns(Nodes const&... columns) const -> delayed<V>
 	{
-		m_threaded.to_slots( [] (U& fillable, typename Nodes::action_type&... cols) { fillable.enter_columns(cols...); }, columns.nominal().get_slots()... );
-		return *this;
+		auto filled = delayed<V>(*this->m_analysis, m_threaded.from_slots( [] (U& fillable, typename Nodes::action_type&... cols) { return fillable.book_fill(cols...); }, columns.get_slots()... ));
+		return filled;
 	}
-
+	// variations
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_counter_booker_v<V> && has_variation_v<Nodes...>,V>* = nullptr>
-	auto fill_counter(Nodes const&... columns) const -> varied<U>
+	auto enter_columns(Nodes const&... columns) const -> varied<V>
 	{
-		// use a copy for each so each variation can book the same selection
-		auto nom = this->m_analysis->repeat_booker(*this);
-		auto syst = varied<U>(nom.fill_counter(columns.nominal()...));
+		auto syst = varied<V>(this->enter_columns(columns.nominal()...));
 		for (auto const& var_name : list_all_variation_names(columns...)) {
-			auto var = this->m_analysis->repeat_booker(*this);
-			var.fill_counter(columns.variation(var_name)...);
-			syst.set_variation(var_name,var);
+			syst.set_variation(var_name, this->enter_columns(columns.variation(var_name)...));
 		}
 		return syst;
 	}
-	
+	// setting selection(s) instantiates the counter(s)
 	template <typename Arg>
 	auto at(Arg&& arg) const
+	// single selection
 	{
 		static_assert( is_counter_booker_v<U>, "non-counter(booker) cannot be counted at selection" );
 		return this->count_selection(std::forward<Arg>(arg));
 	}
-
 	template <typename... Args>
 	auto at(Args&&... args) const
+	// multiple selections
 	{
 		static_assert( is_counter_booker_v<U>, "non-counter(booker) cannot be counted at selection" );
 		return this->count_selections(std::forward<Args>(args)...);
 	}
-
 	template <typename Node, typename V = U, std::enable_if_t<is_counter_booker_v<V> && is_nominal_v<Node>, V>* = nullptr>
 	auto count_selection(Node const& sel) const -> delayed<booked_counter_t<V>>
-	// nominal booker + nominal fill -> nominal counter
+	// nominal booker + nominal selection -> nominal counter
 	{
+		// ensure a copy is used every time
+		// auto nom = this->annalysis->repeat_booker(*this);
 		return this->m_analysis->count_selection(*this, sel);
 	}
-
 	template <typename Node, typename V = U, std::enable_if_t<is_counter_booker_v<V> && is_varied_v<Node>, V>* = nullptr>
-	auto count_selection(Node const& sel) const -> delayed<booked_counter_t<V>>
-	// nominal booker + varied fill -> varied counter
+	auto count_selection(Node const& sel) const -> varied<booked_counter_t<V>>
+	// nominal booker + varied selection -> varied counter
 	{
-		// use a copy for each so each variation can book the same selection
-		auto nom = this->m_analysis->repeat_booker(*this);
-		auto syst = varied<booked_counter_t<V>>(nom.count_selection(sel));
+		auto syst = varied<booked_counter_t<V>>(this->m_analysis->count_selection(*this, sel.nominal()));
 		for (auto const& var_name : list_all_variation_names(sel)) {
-			auto var = this->m_analysis->repeat_booker(*this);
-			syst.set_variation(var_name,var.count_selection(sel.variation(var_name)));
+			syst.set_variation(var_name,this->m_analysis->count_selection(*this, sel.variation(var_name)));
 		}
 		return syst;
 	}
-
 	template <typename... Nodes, typename V = U, std::enable_if_t<is_counter_booker_v<V> && has_no_variation_v<Nodes...>, V>* = nullptr>
-	auto count_selections(Nodes const&... sels) const -> delayed<U>
-	// nominal booker + nominal fills -> this (nominal) booker
+	auto count_selections(Nodes const&... sels) const -> delayed<V>
+	// nominal booker + nominal selections -> nominal booker
 	{
-		(this->count_selection(sels),...);
-		return *this;
+		// apply selections in sequence
+		return this->m_analysis->count_selections(*this,sels...);
 	}
-
 	template <typename... Nodes, typename V = U, std::enable_if_t<is_counter_booker_v<V> && has_variation_v<Nodes...>, V>* = nullptr>
 	auto count_selections(Nodes const&... sels) const -> varied<V>
-	// nominal booker + varied fills -> varied booker
+	// nominal booker + varied selections -> varied booker
 	{
-		// use a copy for each so each variation can book the same selection
-		auto nom = this->m_analysis->repeat_booker(*this);
-		auto syst = varied<V>(nom.count_selections(sels...));
+		auto syst = varied<V>(this->analysis->count_selections(*this,sels.nominmal()...));
 		for (auto const& var_name : list_all_variation_names(sels...)) {
-			auto var = this->m_analysis->repeat_booker(*this);
-			syst.set_variation(var_name,var.count_selections(sels.variation(var_name)...));
+			syst.set_variation(var_name,this->m_analysis->count_selections(*this,sels.variation(var_name)...));
 		}
 		return syst;
 	}
-
-	template <typename V = U, typename std::enable_if<is_counter_booker_v<V>,void>::type* = nullptr>
-	auto operator[](const std::string& sel_path) const-> delayed<booked_counter_t<V>>
+	// access more information about the booked counters
+	template <typename V = U, typename std::enable_if_t<is_counter_booker_v<V>,V>* = nullptr>
+	auto list_selection_paths() const-> std::vector<std::string>
+	{
+		return m_threaded.from_model([=](U& bkr){ return bkr.list_selection_paths(); });
+	}
+	template <typename V = U, typename std::enable_if_t<is_counter_booker_v<V>,V>* = nullptr>
+	auto get_counter_at(const std::string& sel_path) const-> delayed<booked_counter_t<V>>
 	{
 		return delayed<typename V::counter_type>(*this->m_analysis, m_threaded.from_slots([=](U& bkr){ return bkr.get_counter_at(sel_path); }) );
 	}
@@ -286,22 +290,32 @@ public:
 		return m_threaded.model()->result();
 	}
 
+	// short-hand operations for some above methods
 	template <typename... Args, typename V = U, typename std::enable_if_t<is_column_calculator_v<V>,V>* = nullptr>
 	auto operator()(Args&&... args) -> decltype(std::declval<delayed<V>>().evaluate(std::declval<Args>()...))
+	// function = evaluate a column based on input columns
 	{
 		return this->evaluate(std::forward<Args>(args)...);
 	}
-
 	template <typename... Args, typename V = U, typename std::enable_if_t<is_selection_calculator_v<V>,V>* = nullptr>
 	auto operator()(Args&&... args) -> decltype(std::declval<delayed<V>>().apply(std::declval<Args>()...))
+	// function = evaluate a selection based on input columns
 	{
 		return this->apply(std::forward<Args>(args)...);
 	}
+	template <typename V = U, typename std::enable_if_t<is_counter_booker_v<V>,V>* = nullptr>
+	auto operator[](const std::string& sel_path) const-> delayed<booked_counter_t<V>>
+	// subscript = access a counter at a selection path
+	{
+		return this->get_counter_at(sel_path);
+	}
 
-	analysis<T>* get_analysis() const { return this->m_analysis; }
-
+	// access the threaded container
 	concurrent<U> const& get_slots() const { return m_threaded; }
 
+	// mathematical operations
+	DEFINE_DELAYED_UNARY_OP(logical_not,!)
+	DEFINE_DELAYED_UNARY_OP(minus,-)
 	DEFINE_DELAYED_BINARY_OP(equality,==)
 	DEFINE_DELAYED_BINARY_OP(addition,+)
 	DEFINE_DELAYED_BINARY_OP(subtraction,-)
@@ -313,10 +327,6 @@ public:
 	DEFINE_DELAYED_BINARY_OP(less_than,<)
 	DEFINE_DELAYED_BINARY_OP(greater_than_or_equal_to,>=)
 	DEFINE_DELAYED_BINARY_OP(less_than_or_equal_to,<=)
-
-	DEFINE_DELAYED_UNARY_OP(logical_not,!)
-	DEFINE_DELAYED_UNARY_OP(minus,-)
-
 	template <typename Arg, typename V = U, typename std::enable_if_t<is_column_v<V> && op_check::has_subscript_v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>,V>* = nullptr>
 	auto operator[](Arg const& arg) const
 	{
@@ -334,6 +344,7 @@ protected:
 			slot->set_merged(true);
 		}
 	}
+
 
 protected:
 	concurrent<U> m_threaded;
