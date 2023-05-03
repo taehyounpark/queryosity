@@ -165,7 +165,7 @@ A __counter__ is an arbitrary action performed for each entry:
 - Perform the action only if its booked selection passed the cut, with knowledge of its weight.
 - (Optional) receive the values from input columns to be "filled" with.
 
-The aggregated results of this operation comprises the final output that analyzers extract from the dataset; as such, its logic is fully open to implementation via `ana::counter::logic<Result(Columns...)>`.
+The aggregated results of this operation comprise the final output that analyzers extract from the dataset; as such, it is is fully open to implementation via `ana::counter::logic<Result(Columns...)>`.
 ```cpp
 // Histogram<1,float> : ana::counter::logic<std::shared_ptr<TH1F>(float)> (i.e. user-immplementable)
 auto pth_2los = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
