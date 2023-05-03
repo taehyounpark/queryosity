@@ -160,11 +160,11 @@ auto cut_2lsf = cut_2los.channel<cut>("2lsf", [](const ROOT::RVec<int>& lep_type
 
 // even though multiple selections with the same name are applied,
 // their paths remain unique from each other
-auto mll_cut = hww.constant(80.0), met_cut = hww.constant(30.0);
-auto cut_2ldf_sr = cut_2ldf.filter<cut>("sr")(mll > mll_cut);  // 2ldf/sr
-auto cut_2lsf_sr = cut_2lsf.filter<cut>("sr")(met > met_cut);  // 2lsf/sr
-auto cut_2ldf_cr = cut_2ldf.filter<cut>("cr")(mll > mll_cut);  // 2ldf/cr
-auto cut_2lsf_cr = cut_2lsf.filter<cut>("cr")(met > met_cut);  // 2lsf/cr
+auto mll_cut = hww.constant(60.0);
+auto cut_2ldf_sr = cut_2ldf.filter<cut>("sr")(mll < mll_cut);  // 2ldf/sr
+auto cut_2lsf_sr = cut_2lsf.filter<cut>("sr")(mll < mll_cut);  // 2lsf/sr
+auto cut_2ldf_wwcr = cut_2ldf.filter<cut>("wwcr")(mll > mll_cut);  // 2ldf/cr
+auto cut_2lsf_wwcr = cut_2lsf.filter<cut>("wwcr")(mll > mll_cut);  // 2lsf/cr
 ```
 
 As was the case for column definitions, the decisions (pass/fail and weight value) of a selection is not redundantly computed for an entry if an upstream selection is already determined to have failed.
@@ -198,17 +198,17 @@ The above is the most trivial use-case, but the `fill` and `at` operations that 
 auto l1n2_pt_hist = data.book<Histogram<1,float>>("l1n2_pt",20,0,100).fill(l1pt).fill(l2pt);
 
 // - make histograms for 2ldf signal & control regions
-auto l1n2_pt_hists_2ldf = l1n2_pt_hist.at(cut_2ldf_sr, cut_2ldf_cr);
+auto l1n2_pt_hists_2ldf = l1n2_pt_hist.at(cut_2ldf_sr, cut_2ldf_wwcr);
 
 // - make histograms for 2lsf signal & control regions
-auto l1n2_pt_hists_2lsf = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_cr);
+auto l1n2_pt_hists_2lsf = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_wwcr);
 ```
 The modularity allows extensions of the analysis to occur naturally and additively instead of requiring an existing call be altered.
 
 When a counter is booked at multiple selections like the above, the result at any specific selection can be later accessed by specifying the path.
 ```cpp
 l1n2_pt_hist_2ldf_sr = l1n2_pt_hists_2ldf["2ldf/sr"].result();
-l1n2_pt_hist_2ldf_cr = l1n2_pt_hists_2ldf["2ldf/cr"].result();
+l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_2ldf["2ldf/wwcr"].result();
 ```
 
 ### 3.4 Non-redundancy of counter operations
@@ -292,13 +292,19 @@ auto pth_2ldf_vars = data.book<Histogram<1,float>>("pth",100,0,200).fill(pth).at
 pth_2ldf_vars.has_variation("lp4_up"); // true
 pth_2ldf_vars.has_variation("sf_var"); // true
 
-// ...
-
 // additional nominal() & variation access
 auto pth_nom_hist = pth_hists.nominal().result();
 auto pth_var_hist = pth_hists["lp4_up"].result();
 ```
 ![pth_varied](images/pth_varied.png)
+
+The access of multiple systematic variations and selections via their names and paths are compatible with each other
+```
+auto mll_vars = data.book<Histogram<1,float>>("pth",100,0,200).fill(mll).at(cut_2ldf_sr, cut_2ldf_wwcr);
+
+auto mll_nom_2ldf_sr = mll_vars.nominal()["2ldf/sr"].result();
+auto mll_var_2ldf_wwcr = mll_vars["sf_var"]["2ldf/wwcr"].result();
+```
 
 # Known issues
 
