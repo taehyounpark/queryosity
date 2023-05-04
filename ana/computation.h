@@ -34,7 +34,7 @@ public:
 	auto define(const Args&... vars) const -> std::shared_ptr<calculator<Def>>;
 
 	template <typename Fn>
-	auto define(Fn const& fn) const -> std::shared_ptr<calculator<ana::equation_t<Fn>>>;
+	auto define(Fn fn) const -> std::shared_ptr<calculator<ana::equation_t<Fn>>>;
 
 	template <typename Def, typename... Cols>
 	auto evaluate_column(column::calculator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>;
@@ -89,7 +89,7 @@ auto ana::column::computation<T>::define(const Args&... args) const -> std::shar
 
 template <typename T>
 template <typename Fn>
-auto ana::column::computation<T>::define(Fn const& fn) const -> std::shared_ptr<calculator<ana::equation_t<Fn>>>
+auto ana::column::computation<T>::define(Fn fn) const -> std::shared_ptr<calculator<ana::equation_t<Fn>>>
 {
 	auto eqn = std::make_shared<calculator<ana::equation_t<Fn>>>(fn);
 	return eqn;

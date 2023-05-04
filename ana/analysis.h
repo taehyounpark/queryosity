@@ -88,7 +88,9 @@ public:
 	template <typename... Args> static constexpr bool has_no_variation_v = (is_nominal_v<Args>&&...);
 	template <typename... Args> static constexpr bool has_variation_v = (is_varied_v<Args>||...);
 
-	template <typename Lmbd> using custom_selection_calculator_t = typename selection::template calculator<ana::equation_t<Lmbd>>;
+	template <typename Lmbd> using function_t = decltype(std::function(std::declval<Lmbd>()));
+	template <typename Lmbd> using equation_calculator_t = typename column::template calculator<ana::equation_t<function_t<Lmbd>>>;
+	template <typename Lmbd> using custom_selection_calculator_t = typename selection::template calculator<ana::equation_t<function_t<Lmbd>>>;
 	using simple_selection_calculator_type = typename selection::template calculator<ana::equation_t<std::function<double(double)>>>;
 
 public:
@@ -106,12 +108,12 @@ public:
   template <typename Def, typename... Args>
   auto define(const Args&... arguments) -> delayed<column::calculator<Def>>;
   template <typename Lmbd>
-  auto define(Lmbd const& lmbd) -> delayed<column::calculator<ana::equation_t<Lmbd>>>;
+  auto define(Lmbd lmbd) -> delayed<equation_calculator_t<Lmbd>>;
 
 	template <typename Sel, typename Lmbd>
-  auto filter(const std::string& name, Lmbd const& lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
+  auto filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
   template <typename Sel, typename Lmbd>
-  auto channel(const std::string& name, Lmbd const& lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
+  auto channel(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
 	template <typename Sel>
   auto filter(const std::string& name) -> delayed<simple_selection_calculator_type>;
   template <typename Sel>
@@ -141,9 +143,9 @@ protected:
   void process_dataset();
 
 	template <typename Sel, typename Lmbd>
-  auto filter(delayed<selection> const& prev, const std::string& name, Lmbd const& lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
+  auto filter(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
   template <typename Sel, typename Lmbd>
-  auto channel(delayed<selection> const& prev, const std::string& name, Lmbd const& lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
+  auto channel(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
 	template <typename Sel>
   auto filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_type>;
   template <typename Sel>
@@ -157,7 +159,7 @@ protected:
 	template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V>, V>* = nullptr>
 	auto vary_definition(delayed<column::calculator<V>> const& nom, Args&&... args) -> delayed<column::calculator<V>>;
 	template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* = nullptr>
-	auto vary_definition(delayed<column::calculator<V>> const& nom, Lmbd const& lmbd) -> delayed<column::calculator<V>>;
+	auto vary_definition(delayed<column::calculator<V>> const& nom, Lmbd lmbd) -> delayed<column::calculator<V>>;
 
   // template <typename Cnt>
   // auto repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>;
@@ -262,10 +264,10 @@ auto ana::analysis<T>::define(const Args&... arguments) -> typename analysis<T>:
 
 template <typename T>
 template <typename Lmbd>
-auto ana::analysis<T>::define(Lmbd const& lmbd) ->  typename analysis<T>::template delayed<column::calculator<ana::equation_t<Lmbd>>>
+auto ana::analysis<T>::define(Lmbd lmbd) ->  typename analysis<T>::template delayed<equation_calculator_t<Lmbd>>
 {
-	auto expression = std::function(lmbd);
-	return delayed<column::calculator<ana::equation_t<Lmbd>>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template define(lmbd); } ));
+	auto fn = std::function(lmbd);
+	return delayed<equation_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template define(fn); } ));
 }
 
 template <typename T>
@@ -279,16 +281,18 @@ auto ana::analysis<T>::evaluate_column(delayed<column::calculator<Def>> const& c
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::filter(const std::string& name, Lmbd const& lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
+auto ana::analysis<T>::filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
 {
-	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,lmbd); } ));
+	auto fn = std::function(lmbd);
+	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,fn); } ));
 }
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::channel(const std::string& name, Lmbd const& lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
+auto ana::analysis<T>::channel(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
 {
-	auto sel = delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,lmbd); } ));
+	auto fn = std::function(lmbd);
+	auto sel = delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,fn); } ));
 	return sel;	
 }
 
@@ -296,7 +300,8 @@ template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::filter(const std::string& name) -> delayed<simple_selection_calculator_type>
 {
-	auto sel = delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,[](double x){return x;}); } ));
+	auto fn = std::function([](double x){return x;});
+	auto sel = delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,fn); } ));
 	return sel;	
 }
 
@@ -304,36 +309,41 @@ template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::channel(const std::string& name) -> delayed<simple_selection_calculator_type>
 {
-	auto sel = delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,[](double x){return x;}); } ));
+	auto fn = std::function([](double x){return x;});
+	auto sel = delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,fn); } ));
 	return sel;	
 }
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name, Lmbd const& lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
+auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
 {
-	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,lmbd); }, prev.get_slots() ));
+	auto fn = std::function(lmbd);
+	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,fn); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name, Lmbd const& lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
+auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>
 {
-	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,lmbd); }, prev.get_slots() ));
+	auto fn = std::function(lmbd);
+	return delayed<custom_selection_calculator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,fn); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_type>
 {
-	return delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
+	auto fn = std::function([](double x){return x;});
+	return delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,fn); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_calculator_type>
 {
-	return delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,[](double x){return x;}); }, prev.get_slots() ));
+	auto fn = std::function([](double x){return x;});
+	return delayed<simple_selection_calculator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,fn); }, prev.get_slots() ));
 }
 
 template <typename T>
@@ -489,7 +499,7 @@ auto ana::analysis<T>::vary_definition(delayed<column::calculator<V>> const&, Ar
 
 template <typename T>
 template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr>
-auto ana::analysis<T>::vary_definition(delayed<column::calculator<V>> const& nom, Lmbd const& lmbd) -> delayed<column::calculator<V>>
+auto ana::analysis<T>::vary_definition(delayed<column::calculator<V>> const& nom, Lmbd lmbd) -> delayed<column::calculator<V>>
 {
 	return this->define(lmbd);
 }

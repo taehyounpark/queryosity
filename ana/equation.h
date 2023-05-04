@@ -9,25 +9,19 @@
 namespace ana
 {
 
-template <typename Ret, typename... Args>
-auto make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>;
-template <typename Fn> using equation_t = typename decltype(make_equation(std::function(std::declval<Fn>())))::element_type;
-
+// a shortcut for column::definition<Ret(Args...)>
+// where an std::function<Ret(Args const&...)> is used as the evaluation
 template <typename Ret, typename... Args>
 class column::equation<Ret(Args...)> : public column::definition<Ret(Args...)>
 {
 
 public:
   using argtuple_type = typename definition<Ret(Args...)>::argtup_type;
-  using evalfunc_type = std::function<Ret(Args...)>;
+  using evalfunc_type = std::function<Ret(std::decay_t<Args> const&...)>;
 
 public:
-  equation(std::function<Ret(Args...)>);
+  equation(std::function<Ret(Args const&...)>);
 	virtual ~equation() = default;
-
-  // convert each input argument type
-  // template <typename... UArgs>
-  // void set_arguments(cell<UArgs> const&... args);
 
   virtual Ret evaluate(observable<Args>... args) const override;
 
@@ -37,17 +31,27 @@ protected:
 
 };
 
+template <typename T>
+struct eqn_traits {};
+template <typename Ret, typename... Args>
+struct eqn_traits<std::function<Ret(Args...)>> { using equation_type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>; };
+
+template <typename Fn>
+using equation_t = typename eqn_traits<Fn>::equation_type;
+
+template <typename Ret, typename... Args>
+auto make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<equation_t<std::function<Ret(Args...)>>>;
+
 }
 
 template <typename Ret, typename... Args>
-ana::column::equation<Ret(Args...)>::equation(std::function<Ret(Args...)> expression) :
+ana::column::equation<Ret(Args...)>::equation(std::function<Ret(Args const&...)> expression) :
 	definition<Ret(Args...)>(),
   m_evaluate(expression)
 {
   m_evaluate = expression;
 }
 
-// user-defined expression with input arguments
 template <typename Ret, typename... Args>
 Ret ana::column::equation<Ret(Args...)>::evaluate(ana::observable<Args>... args) const
 {
@@ -55,7 +59,7 @@ Ret ana::column::equation<Ret(Args...)>::evaluate(ana::observable<Args>... args)
 }
 
 template <typename Ret, typename... Args>
-auto ana::make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<ana::column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>
+auto ana::make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<ana::equation_t<std::function<Ret(Args...)>>>
 {
 	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(func);
 	return eqn;
