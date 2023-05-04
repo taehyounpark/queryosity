@@ -88,8 +88,8 @@ public:
 	template <typename... Args> static constexpr bool has_no_variation_v = (is_nominal_v<Args>&&...);
 	template <typename... Args> static constexpr bool has_variation_v = (is_varied_v<Args>||...);
 
-	template <typename Lmbd> using custom_selection_calculator_t = typename selection::template calculator<column::equation_t<Lmbd>>;
-	using simple_selection_calculator_type = typename selection::template calculator<column::equation_t<std::function<double(double)>>>;
+	template <typename Lmbd> using custom_selection_calculator_t = typename selection::template calculator<ana::equation_t<Lmbd>>;
+	using simple_selection_calculator_type = typename selection::template calculator<ana::equation_t<std::function<double(double)>>>;
 
 public:
   analysis(long long max_entries=-1);
@@ -106,7 +106,7 @@ public:
   template <typename Def, typename... Args>
   auto define(const Args&... arguments) -> delayed<column::calculator<Def>>;
   template <typename Lmbd>
-  auto define(Lmbd const& lmbd) -> delayed<column::calculator<column::equation_t<Lmbd>>>;
+  auto define(Lmbd const& lmbd) -> delayed<column::calculator<ana::equation_t<Lmbd>>>;
 
 	template <typename Sel, typename Lmbd>
   auto filter(const std::string& name, Lmbd const& lmbd) -> delayed<custom_selection_calculator_t<Lmbd>>;
@@ -262,10 +262,10 @@ auto ana::analysis<T>::define(const Args&... arguments) -> typename analysis<T>:
 
 template <typename T>
 template <typename Lmbd>
-auto ana::analysis<T>::define(Lmbd const& lmbd) ->  typename analysis<T>::template delayed<column::calculator<column::equation_t<Lmbd>>>
+auto ana::analysis<T>::define(Lmbd const& lmbd) ->  typename analysis<T>::template delayed<column::calculator<ana::equation_t<Lmbd>>>
 {
-	auto nd = delayed<column::calculator<column::equation_t<Lmbd>>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template define(lmbd); } ));
-  return nd;
+	auto expression = std::function(lmbd);
+	return delayed<column::calculator<ana::equation_t<Lmbd>>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template define(lmbd); } ));
 }
 
 template <typename T>

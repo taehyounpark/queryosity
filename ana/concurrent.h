@@ -5,6 +5,7 @@
 #include <memory>
 #include <thread>
 #include <algorithm>
+#include <functional>
 
 namespace ana
 {

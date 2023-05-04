@@ -264,7 +264,7 @@ public:
 	auto count_selections(Nodes const&... sels) const -> varied<V>
 	// nominal booker + varied selections -> varied booker
 	{
-		auto syst = varied<V>(this->analysis->count_selections(*this,sels.nominmal()...));
+		auto syst = varied<V>(this->m_analysis->count_selections(*this,sels.nominal()...));
 		for (auto const& var_name : list_all_variation_names(sels...)) {
 			syst.set_variation(var_name,this->m_analysis->count_selections(*this,sels.variation(var_name)...));
 		}

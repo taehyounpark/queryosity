@@ -1,39 +1,35 @@
 #pragma once
 
-#include <string>
 #include <memory>
+#include <tuple>
 #include <functional>
 
-#include "ana/column.h"
-#include "ana/calculation.h"
+#include "ana/definition.h"
 
 namespace ana
 {
 
-template <typename Ret>
-template <typename... Args>
-class term<Ret>::evaluated_from : public term<Ret>::calculation
+template <typename Ret, typename... Args>
+auto make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>;
+template <typename Fn> using equation_t = typename decltype(make_equation(std::function(std::declval<Fn>())))::element_type;
+
+template <typename Ret, typename... Args>
+class column::equation<Ret(Args...)> : public column::definition<Ret(Args...)>
 {
 
 public:
-  using argtuple_type = std::tuple<std::shared_ptr<cell<Args>>...>;
-  using evalfunc_type = std::function<Ret(const Args&...)>;
+  using argtuple_type = typename definition<Ret(Args...)>::argtup_type;
+  using evalfunc_type = std::function<Ret(Args...)>;
 
 public:
-  template <typename Lmbd>
-  evaluated_from(Lmbd&& lmbd);
-	virtual ~evaluated_from() = default;
-
-  // template <typename Lmbd>
-	// void set_expression(Lmbd&& lmbd);
+  equation(std::function<Ret(Args...)>);
+	virtual ~equation() = default;
 
   // convert each input argument type
-  template <typename... UArgs>
-  void set_arguments(cell<UArgs> const&... args);
+  // template <typename... UArgs>
+  // void set_arguments(cell<UArgs> const&... args);
 
-  virtual Ret calculate() const override;
-
-  auto get_arguments() const -> argtuple_type;
+  virtual Ret evaluate(observable<Args>... args) const override;
 
 protected:
 	argtuple_type m_arguments;
@@ -41,67 +37,25 @@ protected:
 
 };
 
-template <typename Ret, typename... Args>
-class column::equation<Ret(Args...)> : public term<Ret>::template evaluated_from<Args...>
-{
-public:
-  template <typename Lmbd>
-  equation(Lmbd&& lmbd);
-	virtual ~equation() = default;
-};
-
-}
-
-template <typename Ret>
-template <typename... Args>
-template <typename Lmbd>
-ana::term<Ret>::evaluated_from<Args...>::evaluated_from(Lmbd&& lmbd) :
-	term<Ret>::calculation()
-{
-  m_evaluate = std::function<Ret(const Args&...)>(std::forward<Lmbd>(lmbd));
 }
 
 template <typename Ret, typename... Args>
-template <typename Lmbd>
-ana::column::equation<Ret(Args...)>::equation(Lmbd&& lmbd) :
-	term<Ret>::template evaluated_from<Args...>(std::forward<Lmbd>(lmbd))
-{}
-
-template <typename Ret>
-template <typename... Args>
-template <typename... UArgs>
-void ana::term<Ret>::evaluated_from<Args...>::set_arguments(cell<UArgs> const&... args)
+ana::column::equation<Ret(Args...)>::equation(std::function<Ret(Args...)> expression) :
+	definition<Ret(Args...)>(),
+  m_evaluate(expression)
 {
-  static_assert(sizeof...(Args)==sizeof...(UArgs));
-  m_arguments = std::make_tuple(
-    std::invoke(
-      [](cell<UArgs> const& args) -> std::shared_ptr<cell<Args>> {
-        return ana::cell_as<Args>(args);
-    },args)...
-  );
-}
-
-template <typename Ret>
-template <typename... Args>
-auto ana::term<Ret>::evaluated_from<Args...>::get_arguments() const -> argtuple_type
-{
-  return m_arguments;
+  m_evaluate = expression;
 }
 
 // user-defined expression with input arguments
-template <typename Ret>
-template <typename... Args>
-Ret ana::term<Ret>::evaluated_from<Args...>::calculate() const
+template <typename Ret, typename... Args>
+Ret ana::column::equation<Ret(Args...)>::evaluate(ana::observable<Args>... args) const
 {
-  return std::apply(
-    [this](const std::shared_ptr<cell<Args>>&... args) { 
-      return this->m_evaluate(args->value()...);
-    },m_arguments
-  );
+  return this->m_evaluate(args.value()...);
 }
 
 template <typename Ret, typename... Args>
-auto ana::column::make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<ana::column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>
+auto ana::make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<ana::column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>
 {
 	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(func);
 	return eqn;
