@@ -18,7 +18,7 @@ A clear _abstraction_ layer between the analyzer and the dataset to specify the 
   - They are transparently propagated through any other nodes that the varied node(s) participate it.
 
 # Prerequisites
-- C++17 standard compiler (tested with Clang 14 and GCC 11)
+- C++17 compiler
 - CMake 3.24 or newer
 
 # Walkthrough
@@ -40,7 +40,7 @@ data.open({"hww.root"}, "mini");
 
 ## 1. Accessing quantities of interest
 ### 1.1 Reading columns in the dataset
-Existing *columns* in the dataset can be accessed by supplying their types and names.
+Existing columns in the dataset can be accessed by supplying their types and names.
 ```cpp
 // see: ana::input::reader<T>, ana::column::reader<T>  (i.e. user-implementable)
 auto mc_weight = data.read<float>("mcWeight");
@@ -53,47 +53,42 @@ auto lep_eta = data.read<ROOT::RVec<float>>("lep_eta");
 
 // etc. etc.
 ```
-The `analysis<Dataset>` actions always returns a `delayed<Action>` for some action, which represents the action having been booked, but is only executed at a later point when needed.
+Performing operations on `analysis<Dataset>` returns a `delayed<Action>` (in this case of the columns).
 
 ### 1.2 Computing new quantities
 ### Simplest way
-Mathematical binary and unary operations supported by the underlying data types are passed through:
+Mathematical binary and unary operations available for the the underlying data types are supported:
 ```cpp
-// - ROOT::RVec<float> support division by double
 auto GeV = ana.constant(1000.0);
-auto lep_pt = lep_pt_MeV / GeV;
+auto lep_pt = lep_pt_MeV / GeV;  // ROOT::RVec<float> / double
 // etc. for all other magnitudes
 
-// - operations need not be atomic, commposite ones are okay
 auto lep_eta_max = hww.constant(2.4);
 auto lep_pt_sel = lep_pt[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 // etc. for all other lep_X
 ```
 ### Custom functions
-As a superset of the above approach as well as to access non-trivial methods of the underlying data, custom lambda expressions can be provided.
+As a superset of the above as well as to access non-trivial methods of the underlying data, any function (namely, lambda expression) can be provided.
 ```cpp
-// (see below for l1p4 and l2p4 definitions)
+// see below for l1p4 and l2p4 definitions
 auto dilepP4 = data.define([](TLV const& p4, TLV const& q4) {return (p4+q4);})(l1p4,l2p4);
-// - first argument is the functor
-// - second set are the input columns
 ```
-Note the modularity of defining the function body versus its input arguments, which enables recycling of common definitions.
+The separation of defining the function body separately from its input arguments enables "recycling" of common functions.
 ```
-// evaluate two different quantities out of a common definition
 auto get_pt = hww.define([](TLV const& p4){return p4.Pt();});
 auto l1pt = get_pt(l1p4);
 auto l2pt = get_pt(l2p4);
 ```
 ### Custom classes
-For more complicated definitions, they can be explicitly specified by implementing the `ana::column::defintion<Ret(Args...)>` base class.
+Even more complicated computations be fully implemented through `ana::column::defintion<Return(Arguments...)>`.
 ```cpp
 using TLV = TLorentzVector;
 using RVecD = ROOT::RVec<double>;
 class NthP4 : public ana::column::definition<TLV(RVecD, RVecD, RVecD, RVecD)>
-// - define an ith TLorenzVector out of (pt,eta,phi,e) vectors
+// define an ith TLorenzVector out of (pt,eta,phi,e) vectors
 {
 public:
-  NthP4(unsigned int index, double scale=1.0) : 
+  NthP4(unsigned int index) : 
     ana::column::definition<TLV(RVecD, RVecD, RVecD, RVecD)>(),
     m_index(index)
   {}
@@ -104,30 +99,27 @@ public:
   virtual TLV evaluate(ana::observable<RVecD> pt, ana::observable<RVecD> eta, ana::observable<RVecD> phi, ana::observable<RVecD> es) const override {
     TLV p4;
     p4.SetPtEtaPhiE(pt->at(m_index),eta->at(m_index),phi->at(m_index),es->at(m_index));
-    return p4*m_scale;
+    return p4;
   }
 
+// important: it is up to implementation to ensure thread-safety
 protected:
   unsigned int m_index;
-  double m_scale;
-  // - it is up to implementation to ensure thread-safety
   // int* g_modifiable_global_var;  // <- bad idea
 };
 
 // ...
 
 auto l1p4 = hww.define<NthP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
-// - first set of arguments is now the class constructor
-// - second set remains the input columns
 ```
 The computation graph formed out of these columns are guaranteed to be
 - Recursion-free: the grammar forbids this by construction.
-- Non-redundant: the value of a column is computed at most once per entry.
 - No-copy: unless a conversion is required, their values are never copied when used as input values for other columns.
+- "Lazy": the value of each column is computed at most once per entry and only if needed (see selections and counters below).
 
 ## 2. Applying selections
 ### 2.1 Cut versus weight
-Filtering entries in a dataset is done via a *selection*, which is either a boolean decision for floating-point value that chooses to ignore or assign statistical significance to an entry, respectively.
+Filtering entries in a dataset is done via a __selection__, which can be either a boolean or floating-point value that chooses to ignore or assign statistical significance to an entry, respectively.
 
 The simplest way to define a selection would be to simply provide the value of the column that actually corresponds to the cut decision or weight value, which is done by
 ```cpp
@@ -137,37 +129,35 @@ using weight = ana::selection::weight;
 auto n_lep_sel = hww.define([](ROOT::RVec<float> const& lep){return lep.size();})(lep_pt_sel);
 auto n_lep_req = data.constant<int>(2);
 auto cut_2l = data.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
-                 .filter<cut>("2l")(n_lep_sel == n_lep_req);
-                 // final cut = (true) && (n_lep == 2)
-                 // final weight = (mc_weight * el_sf * mu_sf) * (1.0)
+                  .filter<cut>("2l")(n_lep_sel == n_lep_req);
+                   // final cut = (true) && (n_lep == 2)
+                   // final weight = (mc_weight * el_sf * mu_sf) * (1.0)
 ```
-Note that the two types are non-overlapping, so any mixed sequence of `<cut>` or `<weight>` can be made. Selections applied in sequence this way must be chained from their respective upstream selection, whereas the `analysis` object always represents the inclusive dataset.
+Since that the two types are non-overlapping, any combination of `<cut>` or `<weight>` can be applied in sequence. Selections must be chained from one another to compound them, whereas the `analysis` object always represents the inclusive, unweighted dataset.
 
 ### 2.2 Branching out & channels
-Each selection is associated with an identifier _name_, but they need not be unique. Also, multiple selections can be applied from a common point to form "branches", but selections in separate branches also need not be mutually exclusive from one another (although it will the case in the example below coincidentally)
+Each selection is associated with an identifier _name_, which need not be unique. Also, multiple selections can be applied from a single selection to form "branches", but these selections in separate branches need not be mutually exclusive from one another.
 
-This approach can accommodate any arbitrary selection structure possible. Should the analyzer wish to resolve any ambiguities in the names of selections in different branches, this is easily done by a replacement of `filter` calls with `channel` at some at or after the branching point, such that the _path_ of a selection includes the upstream selection.
+This approach can accommodate any arbitrary selection structure. Should the analyzer wish to resolve any ambiguities in the names of selections in different branches, it is easily done by a replacement of `filter` call with `channel` at some selection after the branching point, such that the _path_ of a selection includes the upstream selection to form a unique string.
 ```cpp
-// using complicated selection expressions to evaluate selection
 auto nlep_req = hww.constant(2);
-auto cut_2los = incl.filter<cut>("2l")(nlep_sel == nlep_req).filter<cut>("2los", [](const RVecF& lep_charge){return lep_charge.at(0)+lep_charge.at(1)==0;})(lep_Q);
+auto cut_2los = cut_2l.filter<cut>("2los", [](const RVecF& lep_charge){return lep_charge.at(0)+lep_charge.at(1)==0;})(lep_Q);
 
-// note: channel designation to branch out from here
-// - different-flavour leptons, path = "2los/2ldf"
+// note: channel designation when branching out
+// - different-flavour leptons
 auto cut_2ldf = cut_2los.channel<cut>("2ldf", [](const ROOT::RVec<int>& lep_type){return lep_type.at(0)+lep_type.at(1)==24;})(lep_type);
-// - same-flavour leptons, path = "2los/2ldf"
+// - same-flavour leptons
 auto cut_2lsf = cut_2los.channel<cut>("2lsf", [](const ROOT::RVec<int>& lep_type){return (lep_type.at(0)+lep_type.at(1)==22)||(lep_type.at(0)+lep_type.at(1)==26);})(lep_type);
 
-// even though multiple selections with the same name are applied,
-// their paths remain unique from each other
-auto mll_cut = hww.constant(80.0), met_cut = hww.constant(30.0);
-auto cut_2ldf_sr = cut_2ldf.filter<cut>("sr")(mll > mll_cut);  // 2ldf/sr
-auto cut_2lsf_sr = cut_2lsf.filter<cut>("sr")(met > met_cut);  // 2lsf/sr
-auto cut_2ldf_cr = cut_2ldf.filter<cut>("cr")(mll > mll_cut);  // 2ldf/cr
-auto cut_2lsf_cr = cut_2lsf.filter<cut>("cr")(met > met_cut);  // 2lsf/cr
+// same cuts at different branches
+auto mll_cut = hww.constant(60.0);
+auto cut_2ldf_sr = cut_2ldf.filter<cut>("sr")(mll < mll_cut);  // 2ldf/sr
+auto cut_2lsf_sr = cut_2lsf.filter<cut>("sr")(mll < mll_cut);  // 2lsf/sr
+auto cut_2ldf_wwcr = cut_2ldf.filter<cut>("wwcr")(mll > mll_cut);  // 2ldf/cr
+auto cut_2lsf_wwcr = cut_2lsf.filter<cut>("wwcr")(mll > mll_cut);  // 2lsf/cr
 ```
 
-As was the case for column definitions, the decisions (pass/fail and weight value) of a selection is not redundantly computed for an entry if an upstream selection is already determined to have failed.
+The decision (pass/fail and weight value) of each selection is lazily evaluated based on for an entry only if all upstream selections have passed and when neede (see counters below).
 
 ## 3. Counting entries
 ### 3.1 Booking counters and accessing their results
@@ -175,53 +165,55 @@ A __counter__ is an arbitrary action performed for each entry:
 - Perform the action only if its booked selection passed the cut, with knowledge of its weight.
 - (Optional) receive the values from input columns to be "filled" with.
 
-The aggregated results of this operation comprises the final output that analyzers would want to extract from the dataset; as such, any logic is open to implementable by the end-user via `ana::column::logic<Result(Columns...)>`.
+The aggregated results of this operation comprise the final output that analyzers extract from the dataset; as such, it is is fully open to implementation via `ana::counter::logic<Result(Columns...)>`.
 ```cpp
 // Histogram<1,float> : ana::counter::logic<std::shared_ptr<TH1F>(float)> (i.e. user-immplementable)
 auto pth_2los = data.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
-// what essentially happens:
+// for each entry:
   // if (cut_2los.passed_cut()) { 
   //   pth_hist->Fill(pth, cut_2los.get_weight());
   // }
 ```
-Accessing the result of any counter triggers all the delayed actions that have been booked up to that point in the analysis:
+Accessing the result of any counter triggers the dataset processing to retrieve the needed results at once:
 ```cpp
-// trigger dataset processing
+// triggers dataset processing
 pth_2los_res.result();  // -> std::shared_ptr<TH1>
 ```
-### 3.3 Expanded `counter`-`selection`-`counter` interactions
-The above is the most trivial use-case, but the `fill` and `at` operations that counters accept to receive columns and selections are completely flexible, aside from grammatical single restriction that the former must precede the latter:
+### 3.3 Modular `counter`-`selection`-`counter` interactions
+The `fill` and `at` operations that counters accept to enter columns and selections are completely flexible, aside from one restriction that the former must precede the latter:
 - A counter can be filled with any set of columns any number of times.
-- A counter can be booked at any set of separate selections at a time.
+- A counter can be booked at any set of selections at a time.
 ```cpp
-// - fill the histogram with pT of both leptons
+// fill the histogram with pT of both leptons
 auto l1n2_pt_hist = data.book<Histogram<1,float>>("l1n2_pt",20,0,100).fill(l1pt).fill(l2pt);
 
-// - make histograms for 2ldf signal & control regions
-auto l1n2_pt_hists_2ldf = l1n2_pt_hist.at(cut_2ldf_sr, cut_2ldf_cr);
+// make histograms for 2ldf signal & control regions
+auto l1n2_pt_hists_2ldf = l1n2_pt_hist.at(cut_2ldf_sr, cut_2ldf_wwcr);
 
-// - make histograms for 2lsf signal & control regions
-auto l1n2_pt_hists_2lsf = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_cr);
+// make histograms for 2lsf signal & control regions
+auto l1n2_pt_hists_2lsf = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_wwcr);
 ```
-The modularity allows extensions of the analysis to occur naturally and additively instead of requiring an existing call be altered.
-
-When a counter is booked at multiple selections like the above, the result at any specific selection can be later accessed by specifying the path.
+When a counter is booked at multiple selections such as the above, the result at any specific selection can be later accessed by specifying the path.
 ```cpp
 l1n2_pt_hist_2ldf_sr = l1n2_pt_hists_2ldf["2ldf/sr"].result();
-l1n2_pt_hist_2ldf_cr = l1n2_pt_hists_2ldf["2ldf/cr"].result();
+l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_2ldf["2ldf/wwcr"].result();
 ```
 
 ### 3.4 Non-redundancy of counter operations
-As a corollary of the column and selection computation non-redundancy, the counter operations are performed exactly and only when needed. In the above example:
-- The filled columns ($p_\text{T}^H$ and $p_\text{T}^{\ell_2}$) require at least 2 elements in the input lepton vectors, without protections against otherwise.
-- The counters, nevertheless, were (correctly) booked only under a $n_\ell = 2$ selection.
-- Therefore, the computation of dilepton quantities are never be triggered for entries that would haven otherwise thrown an exception.
 
-In summary, the counting operation is exactly as safe as what the user specifies it to be.
+As the final consequence of the lazy-nature of the actions, each counter operation is performed once per entry only when needed as the following:
+1. The counter will not perform any action unless its booked selection has passed.
+2. The selection will only evaluate its cut decision only if it knows all of its upstream selections have passed, otherwise return fail.
+3. If a certain column was defined in an analysis but ultimately not needed for any computation of the selection result and/or the counter operation above, it is never computed.
+
+In the above example:
+- The filled columns ($p_\text{T}^H$ and $p_\text{T}^{\ell_2}$) require at least 2 elements in the input lepton vectors, without protection against otherwise.
+- The counters, nevertheless, were (correctly) booked only under a $n_\ell = 2$ selection.
+- Therefore, the computation of dilepton quantities are never triggered for entries that would haven thrown an exception.
 
 ### 3.5 Bonus: dumping out results
 
-How the counter results are organized/manipulated the obtained results remains completely up to the analyzer. Alternatively, a `ana::counter::summary<T>` class can also be implemented to be used by a `ana::output::dump<T>` helper function for convenience.
+The organization and manipulation of the results are, primarily, left completely up to the analyzer's discretion. Alternatively, a `ana::counter::summary<T>` class can also be implemented to be used by a `ana::output::dump<T>` helper function for convenience.
 ```cpp
 // Folder : ana::counter::summary<Folder> (i.e. user-implementable)
 // - make a folder with the path of all selections booked
@@ -245,18 +237,20 @@ Under a stricter definition that a __systematic variation__ constitutes a __chan
 
 ### 4.1 Varying a column
 
-Any column can be varied via an alternative argument of their instantiation, which translates to:
+Any column can be varied via an definition of the same type, which translates to:
 - `reader` of the dataset can be varied to be one of a different column name, as long as they are of the same data type.
 - `constant` can be changed from any value to another.
-- `equation` can be evaluated with any other function with the same signature and return type.
-- `definition` can be created with a different set of constructor arguments.
-  - A more advanced way to manually access and manipulate the in-memory instances is also possible (e.g. to call some method function added into the implemented class).
-
-
+- `equation` can be evaluated using function with the same signature and return type.
+- `definition` can be instantiated with a different set of constructor arguments.
+  - If the user-implemented class has a custom method to be called prior to the dataset processing, the in-memory instances can also be manually accessed.
+ 
 ```cpp
 // use a different scale factor
 auto el_sf = hww.read<float>("scaleFactor_ELE").vary("sf_var","scaleFactor_PILEUP");
 // (non-sensical, purely for illustration)
+
+// change mll cut to compare signal efficiencies
+auto mll_cut = hww.constant(55.0).vary("mll_tight",50).vary("mll_loose",60);
 
 // change the energy scale by +/-1%
 auto Escale = hww.define([](RVecD E){return E;}).vary("lp4_up",[](RVecD E){return E*1.01;}).vary("lp4_dn",[](RVecD E){return E*0.99;});
@@ -283,7 +277,7 @@ l1p4.has_variation("lp4_up");  // true
 // ...
 
 auto cut_2l = data.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
-                 .filter<cut>("2l")(n_lep_sel == n_lep_req);
+                  .filter<cut>("2l")(n_lep_sel == n_lep_req);
 cut_2l.has_variation("sf_var");  // true
 
 // ...
@@ -292,13 +286,19 @@ auto pth_2ldf_vars = data.book<Histogram<1,float>>("pth",100,0,200).fill(pth).at
 pth_2ldf_vars.has_variation("lp4_up"); // true
 pth_2ldf_vars.has_variation("sf_var"); // true
 
-// ...
-
 // additional nominal() & variation access
 auto pth_nom_hist = pth_hists.nominal().result();
 auto pth_var_hist = pth_hists["lp4_up"].result();
 ```
 ![pth_varied](images/pth_varied.png)
+
+The access of multiple systematic variations and selections via their names and paths are compatible with each other
+```
+auto mll_vars = data.book<Histogram<1,float>>("pth",100,0,200).fill(mll).at(cut_2ldf_sr, cut_2ldf_wwcr);
+
+auto mll_nom_2ldf_sr = mll_vars.nominal()["2ldf/sr"].result();
+auto mll_var_2ldf_wwcr = mll_vars["mll_tight"]["2ldf/wwcr"].result();
+```
 
 # Known issues
 
