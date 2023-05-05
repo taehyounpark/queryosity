@@ -11,7 +11,7 @@ class selection::cut : public selection
 
 public:
 	template <typename T>
-	class calculator;
+	class evaluator;
 
 public:
 	cut(const std::string& name);

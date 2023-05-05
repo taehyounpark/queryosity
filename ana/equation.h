@@ -32,12 +32,15 @@ protected:
 };
 
 template <typename T>
-struct eqn_traits {};
+struct function_trait_impl {};
 template <typename Ret, typename... Args>
-struct eqn_traits<std::function<Ret(Args...)>> { using equation_type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>; };
+struct function_trait_impl<std::function<Ret(Args...)>> { using equation_type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>; };
+
+template <typename T>
+struct function_trait { using equation_type = typename function_trait_impl<decltype(std::function{std::declval<T>()})>::equation_type; };
 
 template <typename Fn>
-using equation_t = typename eqn_traits<Fn>::equation_type;
+using equation_t = typename function_trait<Fn>::equation_type;
 
 template <typename Ret, typename... Args>
 auto make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<equation_t<std::function<Ret(Args...)>>>;

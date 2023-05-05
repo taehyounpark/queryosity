@@ -11,7 +11,7 @@ class selection::weight : public selection
 
 public:
 	template <typename T>
-	class calculator;
+	class evaluator;
 
 public:
 	weight(const std::string& name);
@@ -24,7 +24,7 @@ public:
 };
 
 template <typename T>
-class ana::selection::weight::calculator
+class ana::selection::weight::evaluator
 {
 
 public:
@@ -32,8 +32,8 @@ public:
 	using equation_type = T;
 
 public:
-	calculator(const std::string& name, std::shared_ptr<T> eqn);
-	~calculator() = default;
+	evaluator(const std::string& name, std::shared_ptr<T> eqn);
+	~evaluator() = default;
 
 	void set_previous( selection const& prev );
 	void set_channel(bool ch);
@@ -53,7 +53,7 @@ protected:
 }
 
 template <typename T>
-ana::selection::weight::calculator<T>::calculator(const std::string& name, std::shared_ptr<T> eqn) :
+ana::selection::weight::evaluator<T>::evaluator(const std::string& name, std::shared_ptr<T> eqn) :
 	m_name(name),
 	m_make_shared_weight(std::bind([](const std::string& name){return std::make_shared<weight>(name);}, name)),
 	m_equation(eqn),
@@ -62,20 +62,20 @@ ana::selection::weight::calculator<T>::calculator(const std::string& name, std::
 {}
 
 template <typename T>
-void ana::selection::weight::calculator<T>::set_channel(bool ch)
+void ana::selection::weight::evaluator<T>::set_channel(bool ch)
 {
 	m_channel = ch;
 }
 
 template <typename T>
-void ana::selection::weight::calculator<T>::set_previous(selection const& previous)
+void ana::selection::weight::evaluator<T>::set_previous(selection const& previous)
 {
 	m_set_previous = std::bind([](weight& curr, selection const& prev){curr.set_previous(prev);}, std::placeholders::_1, std::cref(previous));
 }
 
 template <typename T>
 template <typename... Vals>
-std::shared_ptr<ana::selection::weight> ana::selection::weight::calculator<T>::evaluate_selection(cell<Vals> const&... columns) const
+std::shared_ptr<ana::selection::weight> ana::selection::weight::evaluator<T>::evaluate_selection(cell<Vals> const&... columns) const
 {
 	// make this selection
   auto sel = m_make_shared_weight();

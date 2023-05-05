@@ -28,19 +28,22 @@ public:
 	auto read(const std::string& name) -> std::shared_ptr<read_column_t<T,Val>>;
 
 	template <typename Val>
-	auto constant(const Val& val) -> std::shared_ptr<column::constant<Val>>;
+	auto constant(Val const& val) -> std::shared_ptr<column::constant<Val>>;
 
 	template <typename Def, typename... Args>
-	auto define(const Args&... vars) const -> std::shared_ptr<calculator<Def>>;
+	auto define(Args const&... vars) const -> std::shared_ptr<evaluator<Def>>;
 
-	template <typename Fn>
-	auto define(Fn fn) const -> std::shared_ptr<calculator<ana::equation_t<Fn>>>;
+	template <typename Ret, typename... Args>
+	auto calculate(std::function<Ret(Args...)> fn) const -> std::shared_ptr<evaluator<ana::equation_t<std::function<Ret(Args...)>>>>;
+
+	// template <typename Def, typename... Args>
+	// auto vary_definition(column::evaluator<Def> const& calc, Args&&... args) const -> std::shared_ptr<column::evaluator<Def>>;
+
+	// template <typename Eqn, typename Lmbd>
+	// auto vary_equation(column::evaluator<Eqn> const& calc, Lmbd lmbd) const -> std::shared_ptr<column::evaluator<Eqn>>;
 
 	template <typename Def, typename... Cols>
-	auto evaluate_column(column::calculator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>;
-
-	template <typename Def, typename... Args>
-	auto vary_column(column::calculator<Def> const& calc, Args&&... args) const -> std::shared_ptr<column::calculator<Def>>;
+	auto evaluate_column(column::evaluator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>;
 
 protected:
 	void add_column(column& column);
@@ -72,7 +75,7 @@ auto ana::column::computation<T>::read(const std::string& name) -> std::shared_p
 
 template <typename T>
 template <typename Val>
-auto ana::column::computation<T>::constant(const Val& val) -> std::shared_ptr<ana::column::constant<Val>>
+auto ana::column::computation<T>::constant(Val const& val) -> std::shared_ptr<ana::column::constant<Val>>
 {
 	auto cnst = std::make_shared<typename column::constant<Val>>(val);
 	this->add_column(*cnst);
@@ -81,36 +84,43 @@ auto ana::column::computation<T>::constant(const Val& val) -> std::shared_ptr<an
 
 template <typename T>
 template <typename Def, typename... Args>
-auto ana::column::computation<T>::define(const Args&... args) const -> std::shared_ptr<calculator<Def>>
+auto ana::column::computation<T>::define(Args const&... args) const -> std::shared_ptr<evaluator<Def>>
 {
-	auto defn = std::make_shared<calculator<Def>>(args...);
+	auto defn = std::make_shared<evaluator<Def>>(args...);
 	return defn;
 }
 
 template <typename T>
-template <typename Fn>
-auto ana::column::computation<T>::define(Fn fn) const -> std::shared_ptr<calculator<ana::equation_t<Fn>>>
+template <typename Ret, typename... Args>
+auto ana::column::computation<T>::calculate(std::function<Ret(Args...)> fn) const -> std::shared_ptr<evaluator<ana::equation_t<std::function<Ret(Args...)>>>>
 {
-	auto eqn = std::make_shared<calculator<ana::equation_t<Fn>>>(fn);
+	auto eqn = std::make_shared<evaluator<ana::equation_t<std::function<Ret(Args...)>>>>(fn);
 	return eqn;
 }
 
+// template <typename T>
+// template <typename Def, typename... Args>
+// auto ana::column::computation<T>::vary_definition(column::evaluator<Def> const& calc, Args&&... args) const -> std::shared_ptr<evaluator<Def>>
+// {
+// 	return std::make_shared<evaluator<Def>>(std::forward<Args>(args)...);
+// }
+
+// template <typename T>
+// template <typename Eqn, typename Lmbd>
+// auto ana::column::computation<T>::vary_equation(column::evaluator<Eqn> const& calc, Lmbd lmbd) const -> std::shared_ptr<evaluator<Eqn>>
+// {
+// 	return std::make_shared<evaluator<Eqn>>(lmbd);
+// }
+
 template <typename T>
 template <typename Def, typename... Cols>
-auto ana::column::computation<T>::evaluate_column(column::calculator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>
+auto ana::column::computation<T>::evaluate_column(column::evaluator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>
 {
-	// use the calculator to actually make the column
-	auto defn = calc.calculate_from(columns...);
+	// use the evaluator to actually make the column
+	auto defn = calc.evaluate_column(columns...);
 	// and add it
 	this->add_column(*defn);
 	return defn;
-}
-
-template <typename T>
-template <typename Def, typename... Args>
-auto ana::column::computation<T>::vary_column(column::calculator<Def> const& calc, Args&&... args) const -> std::shared_ptr<calculator<Def>>
-{
-	return std::make_shared<calculator<Def>>(std::forward<Args>(args)...);
 }
 
 template <typename T>
