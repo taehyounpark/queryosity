@@ -85,8 +85,8 @@ public:
 	std::shared_ptr<selection> evaluate_selection( cell<Vals> const&... columns) const;
 
 protected:
-	std::shared_ptr<T> m_equation;
 	std::function<std::shared_ptr<selection>()> m_make_shared_selection;
+	std::shared_ptr<T> m_equation;
 	std::function<void(selection&)> m_set_previous;
 	bool m_channel;
 

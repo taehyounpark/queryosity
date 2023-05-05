@@ -174,10 +174,9 @@ public:
 	// apply a selection based on input columns
 	// propagate any incoming variations through
 	template <typename... Args, typename V = U, typename std::enable_if_t<is_selection_evaluator_v<V>,V>* = nullptr>
-	auto apply(Args&&... args) const -> decltype(std::declval<delayed<V>>().evaluate_selection(std::declval<Args>()...))
+	auto apply(Args const&... args) const -> decltype(std::declval<delayed<V>>().evaluate_selection(std::declval<Args const&>()...))
 	{
-		static_assert( is_selection_evaluator_v<U>, "non-selections cannot be applied" );
-		return this->evaluate_selection(std::forward<Args>(args)...);
+		return this->evaluate_selection(args...);
 	}
 
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_selection_evaluator_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>

@@ -39,8 +39,8 @@ public:
 template <typename T>
  ana::term<T>::reader::reader(const std::string& name) :
   term<T>(),
-  m_addr(nullptr),
-  m_name(name)
+  m_name(name),
+  m_addr(nullptr)
 {}
 
 template <typename T>

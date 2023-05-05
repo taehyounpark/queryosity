@@ -57,7 +57,7 @@ template <typename T> constexpr bool is_selection_evaluator_v = is_selection_eva
 template <typename Lmbd> using function_t = decltype(std::function(std::declval<Lmbd>()));
 template <typename Lmbd> using equation_evaluator_t = typename column::template evaluator<ana::equation_t<Lmbd>>;
 template <typename Lmbd> using custom_selection_evaluator_t = typename selection::template evaluator<ana::equation_t<Lmbd>>;
-using simple_selection_evaluator_type = typename selection::template evaluator<ana::equation_t<std::function<double(double)>>>;
+using simple_selection_evaluator_type = typename selection::template evaluator<ana::column::equation<double(double)>>;
 
 template <typename T>
 class analysis : public sample<T>
