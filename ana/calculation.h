@@ -40,7 +40,7 @@ protected:
 template <typename T>
 ana::term<T>::calculation::calculation() :
   term<T>(),
-  m_updated(true)
+  m_updated(false)
 {}
 
 template <typename T>

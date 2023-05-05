@@ -29,20 +29,21 @@ public:
   template <typename U = T, typename std::enable_if_t<std::is_constructible_v<U,std::initializer_list<std::string>,std::string>, U>* = nullptr>
   void open(std::initializer_list<std::string> file_paths, const std::string& key);
 
-  template <typename... Args>
-  void prepare(std::unique_ptr<T> dataset);
-
   void scale(double w);
 
   long long get_entries() const;
   double get_weight() const;
 
 protected:
-  long long                                  m_max_entries;
-  double                                     m_scale;
-  std::unique_ptr<T>                         m_dataset;
-  input::partition                           m_partition;
-  concurrent<dataset_reader_type>            m_readers;
+  template <typename... Args>
+  void prepare(std::unique_ptr<T> dataset);
+
+protected:
+  long long                               m_max_entries;
+  double                                  m_scale;
+  std::unique_ptr<T>                      m_dataset;
+  input::partition                        m_partition;
+  concurrent<dataset_reader_type>         m_readers;
   concurrent<looper<dataset_reader_type>> m_loopers;
 
 };
@@ -58,7 +59,6 @@ ana::sample<T>::sample(long long max_entries) :
 template <typename T>
 template <typename... Args>
 void ana::sample<T>::open(Args&&... args)
-// make the dataset according to user implementation
 {
   this->prepare(std::make_unique<T>(std::forward<Args>(args)...));
 }
@@ -81,18 +81,19 @@ template <typename T>
 template <typename... Args>
 void ana::sample<T>::prepare(std::unique_ptr<T> dataset)
 {
+  // take ownership of dataset
   m_dataset = std::move(dataset);
 
-  // first, allocate the dataset partition according to user implementation
-  // then, truncate to the maximum requested entries
-  // finally, downsize to the maximum requested concurrency
+  // 1. allocate the dataset partition
+  // 2. truncate entries to the maximum
+  // 3. downsize concurrency to the maximum 
 	m_partition = m_dataset->allocate_partition().truncate(m_max_entries).merge(ana::multithread::concurrency());
 
-  // calculate a normalization factor according to user implementation
-  // globally scale the sample by the inverse
+  // calculate a normalization factor
+  // scale the sample by its inverse
   m_scale /= m_dataset->normalize_scale();
 
-  // open the dataset reader and looper for each available thread
+  // open dataset reader and looper for each thread
   m_readers.clear();
   m_loopers.clear();
   for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
@@ -101,9 +102,6 @@ void ana::sample<T>::prepare(std::unique_ptr<T> dataset)
     auto lpr = std::make_shared<looper<dataset_reader_type>>(*rdr,m_scale);
     m_loopers.add_slot(lpr);
 	}
-
-  // done -- sample is opened and ready for analysis
-  return;
 }
 
 template <typename T>

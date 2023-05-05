@@ -136,8 +136,7 @@ public:
 
 };
 
-// *hold* a cell 
-// negligible performance cost in passing this around
+// costly to move around
 template <typename T>
 class variable
 {
@@ -158,7 +157,7 @@ protected:
 
 };
 
-// lightweight proxy to a variable (that lives somewhere safely)
+// easy to move around
 template <typename T>
 class observable
 {
