@@ -286,9 +286,8 @@ auto pth_var_hist = pth_hists["lp4_up"].result();
 ```
 ![pth_varied](images/pth_varied.png)
 
-The access of multiple systematic variations and selections via their names and paths are compatible with each other
+Accessing multiple systematic variations at multiple selections is possibly by providing both their names and paths:
 ```
-// multiple variations at multiple selections
 auto mll_vars = hww.book<Histogram<1,float>>("pth",100,0,200).fill(mll).at(cut_2ldf_sr, cut_2ldf_wwcr);
 
 // double-key access
