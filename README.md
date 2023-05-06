@@ -124,7 +124,7 @@ auto cut_2l = data.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
                    // final cut = (true) && (n_lep == 2)
                    // final weight = (mc_weight * el_sf * mu_sf) * (1.0)
 ```
-Any combination of `cut` or `weight` can be applied in sequence. Selections must be chained from one another to compound them, whereas the `analysis` will otherwise always start out from the inclusive, unweighted dataset.
+Any combination of `cut` or `weight` can be applied in sequence. Selections can be chained from one another to compound them, whereas the `analysis` will otherwise always start out from the inclusive, unweighted dataset.
 
 ### 2.2 Branching out & channels
 Each selection is associated with an identifier _name_, which need not be unique. Also, multiple selections can be applied from a single selection to form "branches", but these selections in separate branches need not be mutually exclusive from one another.
