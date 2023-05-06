@@ -157,11 +157,11 @@ auto cut_2lsf_wwcr = cut_2lsf.filter<cut>("wwcr")(mll > mll_cut);  // 2lsf/cr
 
 ## 3. Counting entries
 ### 3.1 Booking counters and accessing their results
-A __counter__ is an arbitrary action performed for each entry:
-- Perform the action only if its booked selection passed the cut, with knowledge of its weight.
+A __counter__ is an action that is for each entry:
+- If its "booked" selection passed the cut, with its weight.
 - (Optional) receive the values from input columns to be "filled" with.
 
-The aggregated results of this operation comprise the final output that analyzers extract from the dataset; as such, it is is fully open to implementation via `ana::counter::logic<Result(Columns...)>`.
+A full implementation of `ana::counter::logic<Result(Columns...)>` defines what (arbitrary) action is to be performed as the counting operation, its output result, and how they should be merged from multiple threads.
 ```cpp
 // Histogram<1,float> : ana::counter::logic<std::shared_ptr<TH1F>(float)> (i.e. user-immplementable)
 auto pth_2los = hww.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
@@ -170,14 +170,15 @@ auto pth_2los = hww.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut_2
   //   pth_hist->Fill(pth, cut_2los.get_weight());
   // }
 ```
-Accessing the result of any counter triggers the dataset processing to retrieve the needed results at once:
+Accessing the result of a counter triggers the dataset processing:
 ```cpp
-// triggers dataset processing
 pth_2los.result();  // -> std::shared_ptr<TH1>
 ```
-The `fill` and `at` operations that counters accept to enter columns and selections are completely flexible, aside from one restriction that the former must precede the latter:
-- A counter can be filled with any set of columns any number of times.
-- A counter can be booked at any set of selections at a time.
+Each `fill` and `at` call returns a new node with those operations applied, such that any counter can be:
+- Filled with columns any number of times.
+  - As long as the dimensionality of the column(s) matches the implementation.
+- Booked at any (set of) selection(s).
+  - (As long as no selection path is repeated in each set).
 ```cpp
 // fill the histogram with pT of both leptons
 auto l1n2_pt_hist = hww.book<Histogram<1,float>>("l1n2_pt",20,0,100).fill(l1pt).fill(l2pt);
@@ -188,15 +189,14 @@ auto l1n2_pt_hists_2ldf = l1n2_pt_hist.at(cut_2ldf_sr, cut_2ldf_wwcr);
 // for 2lsf signal & control regions
 auto l1n2_pt_hists_2lsf = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_wwcr);
 ```
-When a counter is booked at multiple selections such as the above, the result at any specific selection can be later accessed by specifying the path.
+When a counter is booked at multiple selections such as the above, the booked node can output the result at any specific selection by its path:
 ```cpp
 l1n2_pt_hist_2ldf_sr = l1n2_pt_hists_2ldf["2ldf/sr"].result();
 l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_2ldf["2ldf/wwcr"].result();
 ```
 ### 3.2 (Optional) "Dumping" results
 
-It is possible to book a counter at multiple selections, and the result at each be accessed by providing their path. Alternatively, it may be convenient to have a uniform way to write out the results across all selections at once; for such cases, `ana::counter::summary<T>` class can be implemented.
-
+It a counter is booked at numerous selections, it may be convenient to have a uniform way to write out the results across all selections at once instead of dealing with the bookeeping challenges. For example, an implementation of `ana::counter::summary<T>` (or any other user-defined method) can provide a skeleton to consistently perform across multiple counters and selections:
 ```cpp
 // booked at multiple selections
 auto pth_hists = hww.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, cut_2ldf, cut_2lsf);
@@ -204,7 +204,7 @@ auto pth_hists = hww.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut_
 // Folder : ana::counter::summary<Folder>
 // write histogram at each folder of the selection path
 auto out_file = TFile::Open("hww_hists.root","recreate");
-ana::output::dump<Folder>(pth_hists, out_file);
+ana::output::dump<Folder>(pth_hists, out_file, "hww");
 delete out_file;
 ```
 ![pth_hists](images/hww_hists.png)
@@ -236,8 +236,7 @@ Any column can be varied via a definition of the same type, which translates to:
 - `reader` of the dataset can be varied to be one of a different column name holding the same data type.
 - `constant` can be changed from any value to another.
 - `equation` can be evaluated with another function of the same signature and return type.
-- `definition` can be constructed with another set of arguments.
-  - (instance-access also available per-variation).
+- `definition` can be constructed with another set of arguments (instance-access still available per-variation).
  
 ```cpp
 // use a different scale factor
