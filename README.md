@@ -197,8 +197,8 @@ Each is performed once per entry only when needed as the following:
 
 In the above example:
 - The filled columns ($p_\text{T}^H$ and $p_\text{T}^{\ell_2}$) require at least 2 elements in the input lepton vectors, without protection against otherwise.
-- The counters, nevertheless, were (correctly) booked only under a $n_\ell = 2$ selection.
-- Therefore, the computation of dilepton quantities are never triggered for entries that would haven thrown an exception.
+- The histograms were (correctly) booked under a $n_\ell = 2$ selection.
+- The computation of dilepton quantities are never triggered for entries that would haven thrown an exception.
 
 ### 3.5 (Optional) "Dumping" results
 
