@@ -94,11 +94,24 @@ public:
 	template <typename... Args> static constexpr bool has_variation_v = (is_varied_v<Args>||...);
 
 public:
-  analysis(long long max_entries=-1);
+  analysis();
   virtual ~analysis() = default;
+
+	// catch-all
+  template <typename... Args>
+  analysis(Args&&... args);
+  // shortcuts for file paths provided with initializer braces
+  template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<U,std::string,std::vector<std::string>>>>
+  analysis(const std::string& key, const std::vector<std::string>& file_paths);
+  // shortcuts for file paths provided with initializer braces
+  template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<U,std::vector<std::string>,std::string>>>
+  analysis(const std::vector<std::string>& file_paths, const std::string& key);
 
 	analysis(analysis const&) = delete;
 	analysis& operator=(analysis const&) = delete;
+
+	analysis(analysis&&) = default;
+	analysis& operator=(analysis&&) = default;
 
   template <typename Val>
   auto read(const std::string& name) -> delayed<read_column_t<read_dataset_t<T>,Val>>;
@@ -230,16 +243,42 @@ auto list_all_variation_names(Nodes const&... nodes) -> std::set<std::string>;
 // ----------------------------------------------------------------------------
 
 template <typename T>
-ana::analysis<T>::analysis(long long max_entries) :
-	sample<T>(max_entries),
+ana::analysis<T>::analysis() :
+  sample<T>::sample(),
 	m_analyzed(false)
 {}
+
+template <typename T>
+template <typename... Args>
+ana::analysis<T>::analysis(Args&&... args) :
+  analysis<T>::analysis()
+{
+	this->open(std::forward<Args>(args)...);
+}
+
+template <typename T>
+template <typename U, typename>
+ana::analysis<T>::analysis(const std::string& key, const std::vector<std::string>& file_paths) :
+  analysis<T>::analysis()
+{
+	this->open(key, file_paths);
+}
+
+template <typename T>
+template <typename U, typename>
+ana::analysis<T>::analysis(const std::vector<std::string>& file_paths, const std::string& key) :
+  analysis<T>::analysis()
+{
+	this->open(file_paths, key);
+}
+
 
 template <typename T>
 template <typename Val>
 // typename ana::analysis<T>::template delayed<ana::term<Val>> ana::analysis<T>::read(const std::string& name)
 auto ana::analysis<T>::read(const std::string& name) -> delayed<read_column_t<read_dataset_t<T>,Val>>
 {
+	this->prepare();
 	auto nd = delayed<read_column_t<read_dataset_t<T>,Val>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template read<Val>(name); } ));
 	this->add_column(nd);
 	return nd;
@@ -390,10 +429,9 @@ auto ana::analysis<T>::count_selections(delayed<counter::booker<Cnt>> const& bkr
 template <typename T>
 void ana::analysis<T>::analyze()
 { 
-	if (!m_analyzed) {
-		this->process_dataset();
-		this->clear_counters();
-	}
+	if (m_analyzed) return;
+	this->process_dataset();
+	this->clear_counters();
 	m_analyzed = true;
 }
 

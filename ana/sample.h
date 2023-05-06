@@ -15,33 +15,34 @@ public:
   using dataset_reader_type = read_dataset_t<T>;
 
 public:
-  sample(long long max_entries=-1);
+  sample();
   virtual ~sample() = default;
 
-  // general case (cannot handle arguments with initializer braces)
   template <typename... Args>
   void open(Args&&... args);
 
-  // shortcuts for file paths provided with initializer braces
-  template <typename U = T, typename std::enable_if_t<std::is_constructible_v<U,std::string,std::initializer_list<std::string>>, U>* = nullptr>
-  void open(const std::string& key, std::initializer_list<std::string> file_paths);
-  // shortcuts for file paths provided with initializer braces
-  template <typename U = T, typename std::enable_if_t<std::is_constructible_v<U,std::initializer_list<std::string>,std::string>, U>* = nullptr>
-  void open(std::initializer_list<std::string> file_paths, const std::string& key);
+	sample(sample const&) = delete;
+	sample& operator=(sample const&) = delete;
 
-  void scale(double w);
+	sample(sample&&) = default;
+	sample& operator=(sample&&) = default;
 
-  long long get_entries() const;
-  double get_weight() const;
+  void limit(long long max_entries=-1);
+  void scale(double scale);
 
-protected:
-  template <typename... Args>
-  void prepare(std::unique_ptr<T> dataset);
+  long long get_limited_entries() const;
+  double get_normalized_scale() const;
 
 protected:
+  void prepare();
+
+protected:
+  // open
+  std::unique_ptr<T>                      m_dataset;
+  // prepare
+  bool                                    m_prepared;
   long long                               m_max_entries;
   double                                  m_scale;
-  std::unique_ptr<T>                      m_dataset;
   input::partition                        m_partition;
   concurrent<dataset_reader_type>         m_readers;
   concurrent<looper<dataset_reader_type>> m_loopers;
@@ -51,8 +52,10 @@ protected:
 }
 
 template <typename T>
-ana::sample<T>::sample(long long max_entries) :
-  m_max_entries(max_entries),
+ana::sample<T>::sample() :
+  m_dataset(nullptr),
+  m_prepared(false),
+  m_max_entries(-1),
   m_scale(1.0)
 {}
 
@@ -60,29 +63,32 @@ template <typename T>
 template <typename... Args>
 void ana::sample<T>::open(Args&&... args)
 {
-  this->prepare(std::make_unique<T>(std::forward<Args>(args)...));
+  if (m_dataset) throw std::logic_error("sample dataset already opened");
+  m_dataset = std::make_unique<T>(std::forward<Args>(args)...);
 }
 
 template <typename T>
-template <typename U, typename std::enable_if_t<std::is_constructible_v<U,std::string,std::initializer_list<std::string>>, U>* ptr >
-void ana::sample<T>::open(const std::string& key, std::initializer_list<std::string> file_paths)
+void ana::sample<T>::limit(long long max_entries)
 {
-  this->prepare(std::make_unique<T>(key, file_paths));
+  if (m_prepared) throw std::logic_error("sample dataset partition already allocated");
+  m_max_entries = max_entries;
 }
 
 template <typename T>
-template <typename U, typename std::enable_if_t<std::is_constructible_v<U,std::initializer_list<std::string>,std::string>, U>* ptr >
-void ana::sample<T>::open(std::initializer_list<std::string> file_paths, const std::string& key)
+void ana::sample<T>::scale(double scale)
 {
-  this->prepare(std::make_unique<T>(file_paths, key));
+  if (m_prepared) throw std::logic_error("sample dataset normalization already applied");
+  m_scale *= scale;
 }
 
 template <typename T>
-template <typename... Args>
-void ana::sample<T>::prepare(std::unique_ptr<T> dataset)
+void ana::sample<T>::prepare()
 {
-  // take ownership of dataset
-  m_dataset = std::move(dataset);
+  // can never be prepared twice
+  if (m_prepared) return;
+
+  // dataset must exist
+  if (!m_dataset) throw std::runtime_error("no sample dataset opened");
 
   // 1. allocate the dataset partition
   // 2. truncate entries to the maximum
@@ -98,26 +104,25 @@ void ana::sample<T>::prepare(std::unique_ptr<T> dataset)
   m_loopers.clear();
   for (unsigned int islot=0 ; islot<m_partition.size() ; ++islot) {
     auto rdr = m_dataset->read_dataset(m_partition.get_part(islot));
-    m_readers.add_slot(rdr);
     auto lpr = std::make_shared<looper<dataset_reader_type>>(*rdr,m_scale);
+    m_readers.add_slot(rdr);
     m_loopers.add_slot(lpr);
 	}
+
+  // sample is prepared
+  m_prepared = true;
 }
 
 template <typename T>
-void ana::sample<T>::scale(double s)
+long long ana::sample<T>::get_limited_entries() const
 {
-  m_scale *= s;
-}
-
-template <typename T>
-long long ana::sample<T>::get_entries() const
-{
+  this->prepare();
   return m_partition.total().entries();
 }
 
 template <typename T>
-double ana::sample<T>::get_weight() const
+double ana::sample<T>::get_normalized_scale() const
 {
+  this->prepare();
   return m_scale;
 }

@@ -2,20 +2,19 @@ Coherent data analysis in C++.
 
 # Features
 - Multithreaded processing of the dataset.
-- Declarative computation of column values.
-- Easy bookkeeping of selections.
-- Arbitrary counting operations and their results.
-- Propagation of systematic variations through an analysis.
+- Manipulation of any data types as column values.
+- Arbitrary action execution results retrieval.
+- Systematic propagation of variations through an analysis.
 
-# Idea
+# Introduction
 
-A clear _abstraction_ layer between the analyzer and the dataset to specify the dataset transformation procedures involved is instrumental in not only ensuring the reproducibility and technical robustness of the analysis, but also for it to be consistently extendable as the study matures.
+A clear _abstraction_ layer between the analyzer and the dataset to define dataset transformation procedures is instrumental in not only ensuring the technical robustness of an analysis, but also for its ease of reproducibility and extensibility as the project develops.
 
-- An `analysis` entity represents the dataset to be processed.
-- An operation performed on it results in a `delayed` action representing the operation, but only executed when its result is requested.
-  - These nodes can also interact with one another such that new operations can be done in the context of existing ones.
-- A node can be systematically `varied` for which an alternate definition of the action is included in the analysis.
-  - They are transparently propagated through any other nodes that the varied node(s) participate it.
+- The `analysis` entity represents the dataset to be analyzed.
+- Any operation on it results in a `delayed` node representing the action to be performed.
+  - The nodes can also interact with one another such that new operations can be defined in the context of existing ones.
+- A node can be `varied`, meaning an alternate definition of the action is additionally included in the analysis.
+  - They are propagated through any other nodes, such that the final results contain both the original and varied outcomes.
 
 # Prerequisites
 - C++17 compiler
@@ -26,16 +25,16 @@ A clear _abstraction_ layer between the analyzer and the dataset to specify the 
 The following example uses an implementation of the interface for the [CERN ROOT framework](https://root.cern/) to illustrate a conceptual demonstration of physics collision data analysis reconstructing the Higgs boson transverse momentum in a simulated $H\rightarrow WW^{\ast}\rightarrow e\nu\mu\nu$ dataset. See [here](https://github.com/taehyounpark/RAnalysis) for the implementation and example code and [here](https://opendata.cern.ch/record/700) for the publicly-available dataset.
 
 ## 0. Opening the dataset
-Any data structure that can be represented as a (per-row) $\times$ (column-value) layout is supported. The initialization of an *analysis* proceeds as:
+Any data structure that can be represented as a (per-row) $\times$ (column-value) layout is supported. The initializatio nproceeds as:
 ```cpp
-// provide or default to maximum number of thread count
-ana::multithread::enable();  
+// enable/disable multithreading
+ana::multithread::enable(/* 10 */);  // provide thread count (default: system maximum)
 
 // Tree : ana::input::dataset<Tree> (i.e. user-implemented)
-auto data = ana::analysis<Tree>();
+auto data = ana::analysis<Tree>({"hww.root"}, "mini");  // constructor arguments for Tree
 
-// constructor arguments of Tree
-data.open({"hww.root"}, "mini");  
+// open the dataset
+data.open(/* 100 */);  // provide maximum entries processed (default: all entries)
 ```
 
 ## 1. Accessing quantities of interest
@@ -56,8 +55,8 @@ auto lep_eta = data.read<ROOT::RVec<float>>("lep_eta");
 Performing operations on `analysis<Dataset>` returns a `delayed<Action>` (in this case of the columns).
 
 ### 1.2 Computing new quantities
-### Simplest way
-Mathematical binary and unary operations available for the the underlying data types are supported:
+### Simple expressions
+Mathematical binary and unary operations available for the underlying data types are supported:
 ```cpp
 auto GeV = ana.constant(1000.0);
 auto lep_pt = lep_pt_MeV / GeV;  // ROOT::RVec<float> / double
@@ -67,19 +66,18 @@ auto lep_eta_max = hww.constant(2.4);
 auto lep_pt_sel = lep_pt[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 // etc. for all other lep_X
 ```
-### Custom functions
 As a superset of the above as well as to access non-trivial methods of the underlying data, any function (namely, lambda expression) can be provided.
 ```cpp
 // see below for l1p4 and l2p4 definitions
-auto dilepP4 = data.define([](TLV const& p4, TLV const& q4) {return (p4+q4);})(l1p4,l2p4);
+auto dilepP4 = data.calculate([](TLV const& p4, TLV const& q4) {return (p4+q4);})(l1p4,l2p4);
 ```
-The separation of defining the function body separately from its input arguments enables "recycling" of common functions.
+__Note:__ defining the function body separately from its input arguments enables "recycling" of common functions.
 ```
-auto get_pt = hww.define([](TLV const& p4){return p4.Pt();});
+auto get_pt = hww.calculate([](TLV const& p4){return p4.Pt();});
 auto l1pt = get_pt(l1p4);
 auto l2pt = get_pt(l2p4);
 ```
-### Custom classes
+### (Advanced) Custom definitions
 Even more complicated computations be fully implemented through `ana::column::defintion<Return(Arguments...)>`.
 ```cpp
 using TLV = TLorentzVector;
@@ -112,33 +110,30 @@ protected:
 
 auto l1p4 = hww.define<NthP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
 ```
-The computation graph formed out of these columns are guaranteed to be
-- Recursion-free: the grammar forbids this by construction.
-- No-copy: unless a conversion is required, their values are never copied when used as input values for other columns.
-- "Lazy": the value of each column is computed at most once per entry and only if needed (see selections and counters below).
+The computation graph is guaranteed to be recursion-free, as the grammar forbids this by construction. Furthermore, unless a conversion is required, column values are never copied when used as inputs for others.
 
 ## 2. Applying selections
 ### 2.1 Cut versus weight
 Filtering entries in a dataset is done via a __selection__, which can be either a boolean or floating-point value that chooses to ignore or assign statistical significance to an entry, respectively.
 
-The simplest way to define a selection would be to simply provide the value of the column that actually corresponds to the cut decision or weight value, which is done by
+The simplest way to define a selection would be to simply provide the value of the column that corresponds to the selection value, such as the following:
 ```cpp
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
 
-auto n_lep_sel = hww.define([](ROOT::RVec<float> const& lep){return lep.size();})(lep_pt_sel);
+auto n_lep_sel = hww.calculate([](ROOT::RVec<float> const& lep){return lep.size();})(lep_pt_sel);
 auto n_lep_req = data.constant<int>(2);
 auto cut_2l = data.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
                   .filter<cut>("2l")(n_lep_sel == n_lep_req);
                    // final cut = (true) && (n_lep == 2)
                    // final weight = (mc_weight * el_sf * mu_sf) * (1.0)
 ```
-Since that the two types are non-overlapping, any combination of `<cut>` or `<weight>` can be applied in sequence. Selections must be chained from one another to compound them, whereas the `analysis` object always represents the inclusive, unweighted dataset.
+Any combination of `cut` or `weight` can be applied in sequence. Selections must be chained from one another to compound them, whereas the `analysis` will otherwise always start out from the inclusive, unweighted dataset.
 
 ### 2.2 Branching out & channels
 Each selection is associated with an identifier _name_, which need not be unique. Also, multiple selections can be applied from a single selection to form "branches", but these selections in separate branches need not be mutually exclusive from one another.
 
-This approach can accommodate any arbitrary selection structure. Should the analyzer wish to resolve any ambiguities in the names of selections in different branches, it is easily done by a replacement of `filter` call with `channel` at some selection after the branching point, such that the _path_ of a selection includes the upstream selection to form a unique string.
+This approach can accommodate any arbitrary selection structure. Should the analyzer wish to resolve any ambiguities in the names of selections in different branches that may arise, it is easily done by replacing a `filter` call with `channel` for any selection (or more) after the branching point, such that the _path_ of a selection includes the upstream selection to form a unique string.
 ```cpp
 auto nlep_req = hww.constant(2);
 auto cut_2los = cut_2l.filter<cut>("2los", [](const RVecF& lep_charge){return lep_charge.at(0)+lep_charge.at(1)==0;})(lep_Q);
@@ -156,8 +151,6 @@ auto cut_2lsf_sr = cut_2lsf.filter<cut>("sr")(mll < mll_cut);  // 2lsf/sr
 auto cut_2ldf_wwcr = cut_2ldf.filter<cut>("wwcr")(mll > mll_cut);  // 2ldf/cr
 auto cut_2lsf_wwcr = cut_2lsf.filter<cut>("wwcr")(mll > mll_cut);  // 2lsf/cr
 ```
-
-The decision (pass/fail and weight value) of each selection is lazily evaluated based on for an entry only if all upstream selections have passed and when neede (see counters below).
 
 ## 3. Counting entries
 ### 3.1 Booking counters and accessing their results
@@ -199,27 +192,26 @@ l1n2_pt_hist_2ldf_sr = l1n2_pt_hists_2ldf["2ldf/sr"].result();
 l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_2ldf["2ldf/wwcr"].result();
 ```
 
-### 3.4 Non-redundancy of counter operations
+### 3.4 Non-redundancy of `delayed` operations
 
-As the final consequence of the lazy-nature of the actions, each counter operation is performed once per entry only when needed as the following:
-1. The counter will not perform any action unless its booked selection has passed.
-2. The selection will only evaluate its cut decision only if it knows all of its upstream selections have passed, otherwise return fail.
-3. If a certain column was defined in an analysis but ultimately not needed for any computation of the selection result and/or the counter operation above, it is never computed.
+Each is performed once per entry only when needed as the following:
+1. A counter will perform its action only if its booked selection has passed its cut.
+2. A selection will evaluate its cut decision only if it all of its upstream selections have passed; its weight value will only be evaluated if the cut has passed.
+4. A column value will be evaluated only if it is needed for any of the above evaluations.
 
 In the above example:
 - The filled columns ($p_\text{T}^H$ and $p_\text{T}^{\ell_2}$) require at least 2 elements in the input lepton vectors, without protection against otherwise.
 - The counters, nevertheless, were (correctly) booked only under a $n_\ell = 2$ selection.
 - Therefore, the computation of dilepton quantities are never triggered for entries that would haven thrown an exception.
 
-### 3.5 Bonus: dumping out results
+### 3.5 (Optional) "Dumping" results
 
-The organization and manipulation of the results are, primarily, left completely up to the analyzer's discretion. Alternatively, a `ana::counter::summary<T>` class can also be implemented to be used by a `ana::output::dump<T>` helper function for convenience.
+It may be convenient to have a uniform way to write out the results of a particular counter implementation across all of its booked selections; for such cases, `ana::counter::summary<T>` class can also be implemented to be used by a `ana::output::dump<T>` helper function.
+
 ```cpp
 // Folder : ana::counter::summary<Folder> (i.e. user-implementable)
-// - make a folder with the path of all selections booked
-// - and write the histogram in each folder
+// write the histogram at each selection inside a folder of its path
 auto out_file = TFile::Open("hww_hists.root","recreate");
-// ana::output::dump<T> is a helper function
 ana::output::dump<Folder>(pth_2los_res, out_file);
 ana::output::dump<Folder>(l1n2_pt_hists, out_file);
 delete out_file;
@@ -228,21 +220,21 @@ delete out_file;
 
 ## 4. Systematic variations
 
-In general, the above approaches to construct an "analysis graph" (set of columns, selections, counters in effect) means that an arbitrary change one of its components usually must be performed by an independently created `analysis` instance.
+In general, the above approach to construct an "analysis graph" (set of columns, selections, counters in effect) means that any arbitrary change can constitutes an independent construction of the graph.
 
-Under a stricter definition that a __systematic variation__ constitutes a __change in a column__ that propagates to affect the outcome of an exact set of selection and counters, the variation from the nominal computation graph to another can be concretely defined and all be processed within a single analysis graph, which offers the following benefits:
+Under a stricter definition that a __systematic variation__ means a __change in a column value that affects the outcome of a fixed set of selection and counters__, the variations can be placed inside a single computation graph and all be processed at once, which offers the following benefits:
 
-- Coupled graphs guarantee that each variation and only the variation is in effect between the nominal and varied results.
-- Eliminate the performance overhead associated with repeated dataset processing.
+- Coupled instantiation of other actions guarantee that each variation and only the variation is in effect between the nominal and varied results.
+- Eliminates the runtime overhead associated with repeated dataset processing.
 
 ### 4.1 Varying a column
 
-Any column can be varied via an definition of the same type, which translates to:
-- `reader` of the dataset can be varied to be one of a different column name, as long as they are of the same data type.
+Any column can be varied via a definition of the same type, which translates to:
+- `reader` of the dataset can be varied to be one of a different column name holding the same data type.
 - `constant` can be changed from any value to another.
-- `equation` can be evaluated using function with the same signature and return type.
-- `definition` can be instantiated with a different set of constructor arguments.
-  - If the user-implemented class has a custom method to be called prior to the dataset processing, the in-memory instances can also be manually accessed.
+- `equation` can be evaluated with another function of the same signature and return type.
+- `definition` can be constructed with another set of arguments.
+  - (instance-access also available per-variation).
  
 ```cpp
 // use a different scale factor
@@ -253,7 +245,7 @@ auto el_sf = hww.read<float>("scaleFactor_ELE").vary("sf_var","scaleFactor_PILEU
 auto mll_cut = hww.constant(55.0).vary("mll_tight",50).vary("mll_loose",60);
 
 // change the energy scale by +/-1%
-auto Escale = hww.define([](RVecD E){return E;}).vary("lp4_up",[](RVecD E){return E*1.01;}).vary("lp4_dn",[](RVecD E){return E*0.99;});
+auto Escale = hww.calculate([](RVecD E){return E;}).vary("lp4_up",[](RVecD E){return E*1.01;}).vary("lp4_dn",[](RVecD E){return E*0.99;});
 // apply it to leptons
 auto lep_pt_sel = Escale(lep_pt)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 auto lep_E_sel = Escale(lep_E)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
@@ -262,13 +254,13 @@ This transforms the returned `delayed` into a `varied`, which simply means that 
 
 ### 4.2 Propagation of variations through selections and counters
 
-Aside from vary each column as desired, the rest of the analysis interface remains the unchanged without requiring any further treatment:
-- Any column definitions whose input columns contain variations will be varied correspondingly.
-- Any selections and counters evaluated out varied column will be varied correspondingly.
+The rest of the analysis interface remains the unchanged without requiring any further treatment:
+- Any column evaluated from input columns containing variations will be varied correspondingly.
+- Any selections and counters performed with varied columns will be varied correspondingly.
 
-The propagation of variations that may (or may not) exist in different sets of columns participating in a downstream action occur "transparently", meaning:
-- If two input columns each have a variation with the same name, they are considered together.
-- If one column has a variation while the other doesn't, then the nominal is used from the latter.
+The propagation of variations that may or may not exist in different sets of `delayed` and `varied` actions occur "transparently", meaning:
+- If two input actions each have a variation with the same name, they are in effect together.
+- If one action has a variation while the other doesn't, then the nominal is used from the latter.
 
 ```cpp
 auto l1p4 = data.define<NthP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
@@ -302,5 +294,4 @@ auto mll_var_2ldf_wwcr = mll_vars["mll_tight"]["2ldf/wwcr"].result();
 
 # Known issues
 
-- :warning: Math operators not working with GCC, works with Clang.
-- :x: (PyROOT) `delayed` and `varied` manipulations not working.
+- :x: (PyROOT) `delayed` and `varied` manipulations not working (SFINAE).
