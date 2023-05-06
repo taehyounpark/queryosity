@@ -192,7 +192,7 @@ l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_2ldf["2ldf/wwcr"].result();
 
 Each is performed once per entry only when needed as the following:
 1. A counter will perform its action only if its booked selection has passed its cut.
-2. A selection will evaluate its cut decision only if it all of its upstream selections have passed; its weight value will only be evaluated if the cut has passed.
+2. A selection will evaluate its cut decision only if it all of its upstream selections have passed, and weight value only if the cut passes.
 4. A column value will be evaluated only if it is needed for any of the above evaluations.
 
 In the above example:
