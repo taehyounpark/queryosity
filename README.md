@@ -46,8 +46,7 @@ auto mu_sf = data.read<float>("scaleFactor_MUON");
 // - arbitrary data types can be implemented
 auto lep_pt_MeV = data.read<ROOT::RVec<float>>("lep_pt");
 auto lep_eta = data.read<ROOT::RVec<float>>("lep_eta");
-
-// etc. etc.
+// ...
 ```
 Performing operations on `analysis<Dataset>` returns a `delayed<Action>` (in this case of the columns).
 
@@ -57,11 +56,11 @@ Mathematical binary and unary operations available for the underlying data types
 ```cpp
 auto GeV = ana.constant(1000.0);
 auto lep_pt = lep_pt_MeV / GeV;  // ROOT::RVec<float> / double
-// etc. for all other magnitudes
+// ...
 
 auto lep_eta_max = hww.constant(2.4);
 auto lep_pt_sel = lep_pt[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
-// etc. for all other lep_X
+// ...
 ```
 As a superset of the above as well as to access non-trivial methods of the underlying data, any function (namely, lambda expression) can be provided.
 ```cpp
