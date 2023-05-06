@@ -10,10 +10,6 @@ class selection::cut : public selection
 {
 
 public:
-	template <typename T>
-	class calculator;
-
-public:
 	cut(const std::string& name);
   virtual ~cut() = default;
 

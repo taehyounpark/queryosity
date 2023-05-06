@@ -17,7 +17,7 @@ public:
 	class weight;
 
 	template <typename T>
-	class calculator;
+	class evaluator;
 
 	class cutflow;
 
@@ -66,15 +66,15 @@ private:
 };
 
 template <typename T>
-class ana::selection::calculator
+class ana::selection::evaluator
 {
 
 public:
 	using equation_type = T;
 
 public:
-	calculator(std::shared_ptr<T> eqn);
-	~calculator() = default;
+	evaluator(std::shared_ptr<T> eqn);
+	~evaluator() = default;
 
 	template <typename Sel>
 	void set_selection( const std::string& name );
@@ -85,8 +85,8 @@ public:
 	std::shared_ptr<selection> evaluate_selection( cell<Vals> const&... columns) const;
 
 protected:
-	std::shared_ptr<T> m_equation;
 	std::function<std::shared_ptr<selection>()> m_make_shared_selection;
+	std::shared_ptr<T> m_equation;
 	std::function<void(selection&)> m_set_previous;
 	bool m_channel;
 
@@ -114,7 +114,7 @@ void ana::selection::set_decision(std::shared_ptr<term<T>> decision)
 }
 
 template <typename T>
-ana::selection::calculator<T>::calculator(std::shared_ptr<T> eqn) :
+ana::selection::evaluator<T>::evaluator(std::shared_ptr<T> eqn) :
 	m_make_shared_selection([]()->std::shared_ptr<selection>{return nullptr;}),
 	m_equation(eqn),
 	m_set_previous([](selection&){return;}),
@@ -123,27 +123,27 @@ ana::selection::calculator<T>::calculator(std::shared_ptr<T> eqn) :
 
 template <typename T>
 template <typename Sel>
-void ana::selection::calculator<T>::set_selection(const std::string& name)
+void ana::selection::evaluator<T>::set_selection(const std::string& name)
 {
 	m_make_shared_selection = std::bind([](const std::string& name)->std::shared_ptr<selection>{return std::make_shared<Sel>(name);}, name);
 }
 
 
 template <typename T>
-void ana::selection::calculator<T>::set_channel(bool ch)
+void ana::selection::evaluator<T>::set_channel(bool ch)
 {
 	m_channel = ch;
 }
 
 template <typename T>
-void ana::selection::calculator<T>::set_previous(ana::selection const& previous)
+void ana::selection::evaluator<T>::set_previous(ana::selection const& previous)
 {
 	m_set_previous = std::bind([](selection& curr, selection const& prev){curr.set_previous(prev);}, std::placeholders::_1, std::cref(previous));
 }
 
 template <typename T>
 template <typename... Vals> 
-std::shared_ptr<ana::selection> ana::selection::calculator<T>::evaluate_selection( cell<Vals> const&... columns) const
+std::shared_ptr<ana::selection> ana::selection::evaluator<T>::evaluate_selection( cell<Vals> const&... columns) const
 {
 	// make this selection
   auto sel = m_make_shared_selection();

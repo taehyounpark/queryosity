@@ -30,18 +30,7 @@ public:
   class equation;
 
   template <typename T>
-  class calculator;
-
-public:
-  // accept a std::function<Ret(Args...)> to make an equation<Ret(Args...)>
-  template <typename Ret, typename... Args>
-  static auto make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>;
-  // dummy function to direct all others
-  // IMPORTANT: G++ will NOT compile without this
-  template <typename X>
-  static bool make_equation(X const& x);
-  // create a well-formed equation<Ret(Args...)> out of a lambda expression
-  template <typename Lmbd> using equation_t = typename decltype(make_equation(std::function(std::declval<Lmbd>())))::element_type;
+  class evaluator;
 
 public: 
   column();
@@ -147,8 +136,7 @@ public:
 
 };
 
-// *hold* a cell 
-// negligible performance cost in passing this around
+// costly to move around
 template <typename T>
 class variable
 {
@@ -169,7 +157,7 @@ protected:
 
 };
 
-// lightweight proxy to a variable (that lives somewhere safely)
+// easy to move around
 template <typename T>
 class observable
 {
@@ -190,7 +178,7 @@ protected:
 };
 
 template <typename T>
-class column::calculator
+class column::evaluator
 {
 
 public:
@@ -198,14 +186,14 @@ public:
 
 public:
 	template <typename... Args>
-	calculator(Args const&... args);
-	~calculator() = default;
+	evaluator(Args const&... args);
+	~evaluator() = default;
 
 	template <typename... Args>
   void set_constructor(Args const&... args);
 
 	template <typename... Vals> 
-	std::shared_ptr<T> calculate_from( cell<Vals> const&... cols ) const;
+	std::shared_ptr<T> evaluate_column( cell<Vals> const&... cols ) const;
 
 protected:
 	std::function<std::shared_ptr<T>()> m_make_shared_counter;
@@ -285,25 +273,25 @@ std::shared_ptr<ana::cell<To>> ana::cell_as(const cell<From>& from)
 }
 
 // ---------
-// calculator
+// evaluator
 // ---------
 
 template <typename T>
 template <typename... Args>
-ana::column::calculator<T>::calculator(Args const&... args) :
+ana::column::evaluator<T>::evaluator(Args const&... args) :
 	m_make_shared_counter(std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... ))
 {}
 
 template <typename T>
 template <typename... Args>
-void ana::column::calculator<T>::set_constructor(Args const&... args)
+void ana::column::evaluator<T>::set_constructor(Args const&... args)
 {
   m_make_shared_counter = std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... );
 }
 
 template <typename T>
 template <typename... Vals>
-std::shared_ptr<T> ana::column::calculator<T>::calculate_from(cell<Vals> const&... columns) const
+std::shared_ptr<T> ana::column::evaluator<T>::evaluate_column(cell<Vals> const&... columns) const
 {
   auto defn = m_make_shared_counter();
 

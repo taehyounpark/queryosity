@@ -25,8 +25,8 @@ public:
   defined_from();
   virtual ~defined_from() = default;
 
-  template <typename... UArgs>
-  void set_arguments(const cell<UArgs>&... args);
+  template <typename... Vals>
+  void set_arguments(const cell<Vals>&... args);
 
   virtual Ret calculate() const override;
   virtual Ret evaluate(observable<Args>... args) const = 0;
@@ -63,13 +63,13 @@ ana::column::definition<Ret(Args...)>::definition() :
 
 template <typename Ret>
 template <typename... Args>
-template <typename... UArgs>
-void ana::term<Ret>::defined_from<Args...>::set_arguments(cell<UArgs> const&... args)
+template <typename... Vals>
+void ana::term<Ret>::defined_from<Args...>::set_arguments(cell<Vals> const&... args)
 {
-  static_assert(sizeof...(Args)==sizeof...(UArgs));
+  static_assert(sizeof...(Args)==sizeof...(Vals));
   m_arguments = std::make_tuple(
     std::invoke(
-      [](const cell<UArgs>& args) -> variable<Args> {
+      [](const cell<Vals>& args) -> variable<Args> {
         return variable<Args>(args);
     },args)...
   );
