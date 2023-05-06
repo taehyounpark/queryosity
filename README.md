@@ -4,7 +4,7 @@ Coherent data analysis in C++.
 - Multithreaded processing of the dataset.
 - Manipulation of any data types as column values.
 - Arbitrary action execution and results retrieval.
-- Systematic propagation of variations through an analysis.
+- Propagation of systematic variations.
 
 # Introduction
 
