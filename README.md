@@ -25,7 +25,7 @@ A clear _abstraction_ layer between the analyzer and the dataset to define datas
 The following example uses an implementation of the interface for the [CERN ROOT framework](https://root.cern/) to illustrate a conceptual demonstration of physics collision data analysis reconstructing the Higgs boson transverse momentum in a simulated $H\rightarrow WW^{\ast}\rightarrow e\nu\mu\nu$ dataset. See [here](https://github.com/taehyounpark/RAnalysis) for the implementation and example code and [here](https://opendata.cern.ch/record/700) for the publicly-available dataset.
 
 ## 0. Opening the dataset
-Any data structure that can be represented as a (per-row) $\times$ (column-value) layout is supported. The initializatio nproceeds as:
+Any data structure that can be represented as a (per-row) $\times$ (column-value) layout is supported. The initialization proceeds as:
 ```cpp
 // enable/disable multithreading
 ana::multithread::enable(/* 10 */);  // provide thread count (default: system maximum)
