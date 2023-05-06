@@ -130,8 +130,8 @@ auto n_lep_req = hww.constant(2);
 
 auto cut_2l = hww.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
                   .filter<cut>("2l")(n_lep_sel == n_lep_req);
-                   // final cut = (true) && (n_lep == 2)
-                   // final weight = (mc_weight * el_sf * mu_sf) * (1.0)
+                   // cut = (true) && (n_lep == 2)
+                   // weight = (mc_weight * el_sf * mu_sf) * (1.0)
 ```
 Any combination of `cut` or `weight` can be applied in sequence. Selections can be chained from one another to compound them, whereas the `analysis` will otherwise always start out from the inclusive, unweighted dataset.
 
