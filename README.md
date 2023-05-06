@@ -31,10 +31,7 @@ Any data structure that can be represented as a (per-row) $\times$ (column-value
 ana::multithread::enable(/* 10 */);  // provide thread count (default: system maximum)
 
 // Tree : ana::input::dataset<Tree> (i.e. user-implemented)
-auto data = ana::analysis<Tree>({"hww.root"}, "mini");  // constructor arguments for Tree
-
-// open the dataset
-data.open(/* 100 */);  // provide maximum entries processed (default: all entries)
+auto data = ana::analysis<Tree>({"hww.root"}, "mini");
 ```
 
 ## 1. Accessing quantities of interest
