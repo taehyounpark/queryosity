@@ -186,7 +186,7 @@ A __counter__ is an action that is for each entry:
 
 A full implementation of `ana::counter::logic<Result(Columns...)>` defines what (arbitrary) action is to be performed as the counting operation, its output result, and how they should be merged from multiple threads.
 ```cpp
-// Histogram<1,float> : ana::counter::logic<std::shared_ptr<TH1F>(float)> (i.e. user-implemented)
+// Histogram<1,float> : ana::counter::logic<std::shared_ptr<TH1>(float)> (i.e. user-implemented)
 auto pth_2los = hww.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
 // for each entry:
   // if (cut_2los.passed_cut()) { 
