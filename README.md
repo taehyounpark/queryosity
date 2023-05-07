@@ -311,7 +311,7 @@ Accessing multiple systematic variations at multiple selections is possibly by p
 ```cpp
 auto mll_channels_vars = hww.book<Histogram<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
 auto mll_2ldf_nom = mll_channels_vars.nominal()["2ldf"].result();
-auto mll_2lsf_var = mll_channels_vars.["lp4_up"]["2lsf"].result();
+auto mll_2lsf_var = mll_channels_vars["lp4_up"]["2lsf"].result();
 ```
 
 # Known issues
