@@ -199,9 +199,7 @@ pth_2los.result();  // -> std::shared_ptr<TH1>
 ```
 Each `fill` and `at` call returns a new node with those operations applied, such that any counter can be:
 - Filled with columns any number of times.
-  - As long as the dimensionality of the column(s) matches the implementation.
 - Booked at any (set of) selection(s).
-  - (As long as no selection path is repeated in each set).
 ```cpp
 // fill the histogram with pT of both leptons
 auto l1n2_pt_hist = hww.book<Histogram<1,float>>("l1n2_pt",20,0,100).fill(l1pt).fill(l2pt);
