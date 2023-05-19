@@ -11,10 +11,10 @@ Coherent data analysis in C++.
 A clear _abstraction_ layer between the analyzer and the dataset to define dataset transformation procedures is instrumental in not only ensuring the technical robustness of an analysis, but also for its ease of reproducibility and extensibility as the project develops.
 
 - The `analysis` entity represents the dataset to be analyzed.
-- Any operation on it results in a `delayed` node representing the action to be performed.
-  - The nodes can also interact with one another such that new operations can be defined in the context of existing ones.
-- A node can be `varied`, meaning an alternate definition of the action is additionally included in the analysis.
-  - They are propagated through any other nodes, such that the final results contain both the original and varied outcomes.
+- Any operation returns a `delayed` node representing the action to be performed.
+  - The nodes can also interact with one another to perform further operations in the context of existing ones.
+- A node can be `varied`, meaning an alternate definition of the action is included in the analysis.
+  - The final outcome of both the original and varied scenarios are available simultaneously.
 
 # Prerequisites
 - C++17 compiler (tested with Clang 14 and GCC 11)
@@ -196,6 +196,7 @@ auto pth_2los = hww.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut_2
 Accessing the result of a counter triggers the dataset processing:
 ```cpp
 pth_2los.result();  // -> std::shared_ptr<TH1>
+pth_2los->GetEntries();  // or just access it through pointer indirection
 ```
 Each `fill` and `at` call returns a new node with those operations applied, such that any counter can be:
 - Filled with columns any number of times.
@@ -212,8 +213,8 @@ auto l1n2_pt_hists_2lsf = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_wwcr);
 ```
 When a counter is booked at multiple selections such as the above, the booked node can output the result at any specific selection by its path:
 ```cpp
-l1n2_pt_hist_2ldf_sr = l1n2_pt_hists_2ldf["2ldf/sr"].result();
-l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_2ldf["2ldf/wwcr"].result();
+l1n2_pt_hist_2ldf_sr = l1n2_pt_hists_2ldf["2ldf/sr"];
+l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_2ldf["2ldf/wwcr"];
 ```
 ### 3.2 (Optional) "Dumping" results
 
@@ -232,15 +233,15 @@ delete out_file;
 
 ## Non-redundancy of `delayed` actions
 
-Each action is performed once per entry only when needed as the following:
+Each action is performed once per entry only when needed:
 1. A counter will perform its action only if its booked selection has passed its cut.
 2. A selection will evaluate its cut decision only if it all of its upstream selections have passed, and weight value only if the cut passes.
 4. A column value will be evaluated only if it is needed for any of the above.
 
-In the above example:
-- The filled columns ($p_\text{T}^H$ and $p_\text{T}^{\ell_2}$) require at least 2 elements in the input lepton vectors, without protection against otherwise.
-- The histograms were (correctly) booked under a $n_\ell = 2$ selection.
-- The computation of dilepton quantities are never triggered for entries that would haven thrown an exception.
+Consider the above example:
+- The computation of ($p_\text{T}^H$ and $m_{\ell\ell}$) accesses (i.e. requires) the first 2 elements of the $p^{\ell_1,\ell_2,\ell_3...}$ vector.
+- The histograms that fill those quantities were (correctly) booked under a $n_\ell = 2$ selection.
+- The computation is never triggered for entries for which the vector has less than 2 entries.
 
 ## 4. Systematic variations
 
@@ -285,33 +286,40 @@ The propagation of variations that may or may not exist in different sets of `de
 auto l1p4 = hww.define<NthP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
 auto l2p4 = hww.define<NthP4>(1)(lep_pt, lep_eta, lep_phi, lep_E);
 l1p4.has_variation("lp4_up");  // true
-l2p4.has_variation("lp4_up");  // true
+l1p4.has_variation("sf_var");  // false
 
 // ...
 
 auto cut_2l = hww.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
                  .filter<cut>("2l")(n_lep_sel == n_lep_req);
+cut_2l.has_variation("lp4_up");  // true
 cut_2l.has_variation("sf_var");  // true
 
 // ...
 
 auto mll_vars = hww.book<Histogram<1,float>>("mll",50,0,100).fill(mll).at(cut_2los);
-mll_vars.has_variation("lp4_up"); // true
-mll_vars.has_variation("sf_var"); // true
-
-// additional nominal() & variation access
-auto mll_nom = mll_vars.nominal().result();
-auto mll_var = mll_vars["lp4_up"].result();
+mll_vars.has_variation("lp4_up"); // true : mll & cut_2los varied
+mll_vars.has_variation("sf_var"); // true : mll nominal & cut_2los varied
+```
+Accessing a variation by its name, much like a selection by its path, is done by the subscript operator:
+```cpp
+// access nominal vs variation
+mll_vars.nominal()->Draw();
+mll_vars["lp4_up"]->Draw("same");
 ```
 ![mll_varied](images/mll_varied.png)
 
-Accessing multiple systematic variations at multiple selections is possibly by providing both their names and paths:
+Keeping track of multiple systematic variations *and* selections is easily done by specifying both as such:
 ```cpp
+// mll contains variations = {lp4_up, sf_var}
+// booked at selections = {cut_2ldf, cut_2lsf}
 auto mll_channels_vars = hww.book<Histogram<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
-auto mll_2ldf_nom = mll_channels_vars.nominal()["2ldf"].result();
-auto mll_2lsf_var = mll_channels_vars["lp4_up"]["2lsf"].result();
+
+// specify variation name, followed by selection path
+std::cout << mll_channels_vars.nominal()["2ldf"]->GetEntries() << std::endl;;
+std::cout << mll_channels_vars["lp4_up"]["2lsf"]->GetEntries() << std::endl;;
 ```
 
 # Known issues
 
-- :x: (PyROOT) `delayed` and `varied` manipulations not working (SFINAE).
+- :x: (PyROOT) `delayed` and `varied` not working (SFINAE).
