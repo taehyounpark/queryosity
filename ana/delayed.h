@@ -312,6 +312,18 @@ public:
 		return this->get_counter_at(sel_path);
 	}
 
+	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
+	decltype(std::declval<V>().result()) operator*() const
+	{
+		return this->result();
+	}
+
+	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
+	decltype(std::declval<V>().result()) operator->() const
+	{
+		return this->result();
+	}
+
 	// access the threaded container
 	concurrent<U> const& get_slots() const { return m_threaded; }
 
