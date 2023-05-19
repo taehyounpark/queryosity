@@ -104,7 +104,7 @@ class analysis<T>::node : public concurrent<U>
 {
 
 public:
-	using model_type = typename concurrent<U>::model_type;
+	using action_type = typename concurrent<U>::model_type;
 
 public:
 	friend class analysis<T>;
