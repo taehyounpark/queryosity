@@ -30,7 +30,7 @@ void ana::output::dump(Node const& node, Dest&& dest, Args&&... args)
   Sum summary(std::forward<Args>(args)...);
 
   // get selection paths
-  auto selection_paths = node.nominal().get_slots().from_model([](const typename Node::action_type& node){return node.list_selection_paths();});
+  auto selection_paths = node.get_nominal().get_slots().from_model([](const typename Node::action_type& node){return node.list_selection_paths();});
 
   // record all results
   if constexpr( analysis_t<Node>::template is_nominal_v<Node> ) {
@@ -41,7 +41,7 @@ void ana::output::dump(Node const& node, Dest&& dest, Args&&... args)
   } else {
     // if it has variations
     for (auto const& sel_path : selection_paths) {
-      summary.record(sel_path, node.nominal()[sel_path].result());
+      summary.record(sel_path, node.get_nominal()[sel_path].result());
     }
     for (auto const& var_name : list_all_variation_names(node)) {
       for (auto const& sel_path : selection_paths) {

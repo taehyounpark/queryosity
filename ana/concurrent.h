@@ -39,7 +39,7 @@ public:
 
 public:
   // main delayed = slot(0)
-  std::shared_ptr<T> model() const;
+  std::shared_ptr<T> get_model() const;
 
   // add/get slots
   void add_slot(std::shared_ptr<T> slot);
@@ -116,15 +116,15 @@ void ana::concurrent<T>::downsize(size_t n)
 }
 
 template <typename T>
-std::shared_ptr<T> ana::concurrent<T>::model() const
+std::shared_ptr<T> ana::concurrent<T>::get_model() const
 {
-  return m_slots[0];
+  return m_slots.at(0);
 }
 
 template <typename T>
 std::shared_ptr<T> ana::concurrent<T>::get_slot(size_t i) const
 {
-  return m_slots[i];
+  return m_slots.at(1);
 }
 
 template <typename T>
@@ -147,7 +147,7 @@ template <typename T>
 template <typename Lmbd, typename... Args>
 auto ana::concurrent<T>::from_model(Lmbd const& lmbd, const Args&... args) const -> std::invoke_result_t<Lmbd,T&,const Args&...>
 {
-  auto result = lmbd(*model(),args...);
+  auto result = lmbd(*get_model(),args...);
   for(size_t i=1 ; i<concurrency() ; ++i) {
     assert(result==lmbd(*this->get_slot(i),args...));
   }

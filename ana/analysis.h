@@ -54,7 +54,7 @@ template <typename T> struct is_selection_evaluator<selection::evaluator<T>>: st
 // template <typename T> struct is_selection_evaluator<selection::weight::evaluator<T>>: std::true_type {};
 template <typename T> constexpr bool is_selection_evaluator_v = is_selection_evaluator<T>::value;
 
-template <typename Lmbd> using function_t = decltype(std::function(std::declval<Lmbd>()));
+// template <typename Lmbd> using function_t = decltype(std::function(std::declval<Lmbd>()));
 template <typename Lmbd> using equation_evaluator_t = typename column::template evaluator<ana::equation_t<Lmbd>>;
 template <typename Lmbd> using custom_selection_evaluator_t = typename selection::template evaluator<ana::equation_t<Lmbd>>;
 using simple_selection_evaluator_type = typename selection::template evaluator<ana::column::equation<double(double)>>;
@@ -142,10 +142,10 @@ public:
 	auto evaluate_selection(delayed<selection::evaluator<Sel>> const& calc, delayed<Cols> const&... columns) -> delayed<selection>;
 
 	template <typename Cnt>
-	auto count_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<selection> const& sel) -> delayed<Cnt>;
+	auto book_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<selection> const& sel) -> delayed<Cnt>;
 
 	template <typename Cnt, typename... Sels>
-	auto count_selections(delayed<counter::booker<Cnt>> const& bkr, delayed<Sels> const&... sels) -> delayed<counter::booker<Cnt>>;
+	auto book_selections(delayed<counter::booker<Cnt>> const& bkr, delayed<Sels> const&... sels) -> delayed<counter::booker<Cnt>>;
 
 	void clear_counters();
 
@@ -174,20 +174,17 @@ protected:
 	template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* = nullptr>
 	auto vary_equation(delayed<column::evaluator<V>> const& nom, Lmbd lmbd) -> delayed<column::evaluator<V>>;
 
-  // template <typename Cnt>
-  // auto repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>;
-
 protected:
-	void add_column(delayed<column> var);
-	void add_selection(delayed<selection> sel);
-	void add_counter(delayed<counter> cnt);
+	void add_column(delayed<column> const& var);
+	void add_selection(delayed<selection> const& sel);
+	void add_counter(delayed<counter> const& cnt);
 
 protected:
 	bool m_analyzed;
 
-	std::vector<delayed<column>>    m_column_list;
-	std::vector<delayed<selection>> m_selection_list;
-	std::vector<delayed<counter>>   m_counter_list;
+	std::vector<concurrent<column>>    m_column_list;
+	std::vector<concurrent<selection>> m_selection_list;
+	std::vector<concurrent<counter>>   m_counter_list;
 
 };
 
@@ -206,18 +203,14 @@ public:
 	template <typename> friend class node;
 
 public:
-	node() :
-		m_analysis(nullptr)
-	{}
-	node(analysis<T>& analysis) :
-		m_analysis(&analysis)
-	{}
+	node(analysis<T>& analysis);
+
 	virtual ~node() = default;
 
 public:
 
-	virtual delayed<U> nominal() const = 0;
-	virtual delayed<U> variation(const std::string& var_name) const = 0;
+	virtual delayed<U> get_nominal() const = 0;
+	virtual delayed<U> get_variation(const std::string& var_name) const = 0;
 
 	virtual void set_nominal(delayed<U> const& nom) = 0;
 	virtual void set_variation(const std::string& var_name, delayed<U> const& nom) = 0;
@@ -237,6 +230,16 @@ auto list_all_variation_names(Nodes const&... nodes) -> std::set<std::string>;
 
 #include "ana/delayed.h"
 #include "ana/varied.h"
+
+// ----------------------------------------------------------------------------
+// node
+// ----------------------------------------------------------------------------
+
+template <typename T>
+template <typename U>
+ana::analysis<T>::node<U>::node(analysis<T>& analysis) :
+	m_analysis(&analysis)
+{}
 
 // ----------------------------------------------------------------------------
 // analysis
@@ -403,25 +406,25 @@ auto ana::analysis<T>::book(Args&&... args) -> delayed<ana::counter::booker<Cnt>
 
 template <typename T>
 template <typename Cnt>
-auto ana::analysis<T>::count_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<selection> const& sel) -> delayed<Cnt>
+auto ana::analysis<T>::book_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<selection> const& sel) -> delayed<Cnt>
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, const selection& sel) { return lpr.count_selection(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
+	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, const selection& sel) { return lpr.book_selection(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
 	this->add_counter(cnt);
   return cnt;
 }
 
 template <typename T>
 template <typename Cnt, typename... Sels>
-auto ana::analysis<T>::count_selections(delayed<counter::booker<Cnt>> const& bkr, delayed<Sels> const&... sels) -> delayed<counter::booker<Cnt>>
+auto ana::analysis<T>::book_selections(delayed<counter::booker<Cnt>> const& bkr, delayed<Sels> const&... sels) -> delayed<counter::booker<Cnt>>
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto bkr2 = delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sels const&... sels) { return lpr.count_selections(bkr,sels...); }, bkr.get_slots(), sels.get_slots()... ));
+	auto bkr2 = delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sels const&... sels) { return lpr.book_selections(bkr,sels...); }, bkr.get_slots(), sels.get_slots()... ));
 	// add all counters that were booked
 	for (auto const& sel_path : bkr2.list_selection_paths()) {
-		this->add_counter(bkr2.get_counter_at(sel_path));
+		this->add_counter(bkr2.get_counter(sel_path));
 	}
   return bkr2;
 }
@@ -483,29 +486,22 @@ void ana::analysis<T>::process_dataset()
 }
 
 template <typename T>
-void ana::analysis<T>::add_column(typename ana::analysis<T>::template delayed<column> delayed)
+void ana::analysis<T>::add_column(typename ana::analysis<T>::template delayed<column> const& delayed)
 {
-	m_column_list.push_back(delayed);
+	m_column_list.emplace_back(delayed.get_slots());
 }
 
 template <typename T>
-void ana::analysis<T>::add_selection(typename ana::analysis<T>::template delayed<selection> delayed)
+void ana::analysis<T>::add_selection(typename ana::analysis<T>::template delayed<selection> const& delayed)
 {
-	m_selection_list.push_back(delayed);
+	m_selection_list.emplace_back(delayed.get_slots());
 }
 
 template <typename T>
-void ana::analysis<T>::add_counter(typename ana::analysis<T>::template delayed<counter> delayed)
+void ana::analysis<T>::add_counter(typename ana::analysis<T>::template delayed<counter> const& delayed)
 {
-	m_counter_list.push_back(delayed);
+	m_counter_list.emplace_back(delayed.get_slots());
 }
-
-// template <typename T>
-// template <typename Cnt>
-// auto ana::analysis<T>::repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>
-// {
-// 	return delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, counter::booker<Cnt> const& bkr){ return lpr.repeat_booker(bkr); }, bkr.get_slots() ));
-// }
 
 template <typename... Nodes>
 auto ana::list_all_variation_names(Nodes const&... nodes) -> std::set<std::string> {
@@ -539,6 +535,9 @@ template <typename T>
 template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr>
 auto ana::analysis<T>::vary_equation(delayed<column::evaluator<V>> const& nom, Lmbd lmbd) -> delayed<column::evaluator<V>>
 {
-	// auto fn = std::function{lmbd};
-	return this->calculate<Lmbd>(lmbd);
+	// return this->calculate(lmbd);
+	typename V::evalfunc_type fn(lmbd);
+	return this->calculate(fn);
+	// auto fn = std::function<function_t<V>>(lmbd);
+	// return this->calculate<decltype(fn)>(fn);
 }
