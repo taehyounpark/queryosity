@@ -65,7 +65,6 @@ public:
 
 	virtual void initialize() override;
 	virtual void execute() override;
-	virtual void finalize() override;
 
 	virtual void count(double w) = 0;
 
@@ -91,13 +90,33 @@ public:
 	implementation();
 	virtual ~implementation() = default;
 
-	bool is_merged() const;
-	void set_merged(bool merged=true);
-
+	/**
+	 * @brief Create the result of the counter.
+	 * @return The result.
+	*/
 	virtual T result() const = 0;
-	virtual void merge(T res) = 0;
+
+	/**
+	 * @brief Merge the results from concurrent slots into one.
+	 * @param results Incoming results.
+	 * @return The merged result.
+	*/
+	virtual T merge(std::vector<T> results) const = 0;
+
+	/**
+	 * @details Set the result of the counter.
+	*/
+	virtual void finalize() override;
+	T get_result() const;
+
+	bool is_merged() const;
+	void merge_results(std::vector<T> results);
 
 protected:
+	void set_merged(bool merged=true);
+
+protected:
+	T m_result;
 	bool m_merged;
 
 };
@@ -238,6 +257,25 @@ template <typename T>
 void ana::counter::implementation<T>::set_merged(bool merged)
 {
 	m_merged = merged;
+}
+
+template <typename T>
+void ana::counter::implementation<T>::finalize()
+{
+	m_result = this->result();
+}
+
+template <typename T>
+T ana::counter::implementation<T>::get_result() const
+{
+	return m_result;
+}
+
+template <typename T>
+void ana::counter::implementation<T>::merge_results(std::vector<T> results)
+{
+	m_result = this->merge(results);
+	this->set_merged(true);
 }
 
 template <typename T>

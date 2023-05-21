@@ -38,6 +38,3 @@ void ana::counter::execute()
 {
 	if (m_selection->passed_cut()) this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
 }
-
-void ana::counter::finalize()
-{}

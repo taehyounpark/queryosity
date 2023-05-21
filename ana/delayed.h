@@ -372,11 +372,11 @@ public:
 	 * @return `Result` the result of the implemented counter.
 	 */
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
-	decltype(std::declval<V>().result()) result() const
+	auto get_result() const -> decltype(std::declval<V>().get_result())
 	{
 		this->m_analysis->analyze();
 		this->merge_results();
-		return m_threaded.get_model()->result();
+		return m_threaded.get_model()->get_result();
 	}
 
 	/**
@@ -414,9 +414,9 @@ public:
 	 * @return `Result` the result of the implemented counter.
 	 */
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
-	decltype(std::declval<V>().result()) operator*() const
+	auto operator*() const -> decltype(std::declval<V>().get_result())
 	{
-		return this->result();
+		return this->get_result();
 	}
 
 	/**
@@ -424,9 +424,9 @@ public:
 	 * @return `Result` the result of the implemented counter.
 	 */
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
-	decltype(std::declval<V>().result()) operator->() const
+	auto operator->() const -> decltype(std::declval<V>().get_result())
 	{
-		return this->result();
+		return this->get_result();
 	}
 
 	/**
@@ -463,11 +463,15 @@ protected:
 	void merge_results() const
 	{
 		auto model = m_threaded.get_model();
-		for (size_t islot=1 ; islot<m_threaded.concurrency() ; ++islot) {
-			auto slot = m_threaded.get_slot(islot);
-			if (!slot->is_merged()) model->merge(slot->result());
-			slot->set_merged(true);
+		if (!model->is_merged()) {
+			std::vector<decltype(model->get_result())> results;
+			for (size_t islot=0 ; islot<m_threaded.concurrency() ; ++islot) {
+				auto slot = m_threaded.get_slot(islot);
+				results.push_back(slot->get_result());
+			}
+			model->merge_results(results);
 		}
+		// return model->get_result();
 	}
 
 
