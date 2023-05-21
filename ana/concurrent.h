@@ -124,7 +124,7 @@ std::shared_ptr<T> ana::concurrent<T>::get_model() const
 template <typename T>
 std::shared_ptr<T> ana::concurrent<T>::get_slot(size_t i) const
 {
-  return m_slots.at(1);
+  return m_slots.at(i);
 }
 
 template <typename T>
