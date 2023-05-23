@@ -492,7 +492,7 @@ auto ana::analysis<T>::vary_definition(delayed<column::evaluator<V>> const&, Arg
 
 template <typename T>
 template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr>
-auto ana::analysis<T>::vary_equation(delayed<column::evaluator<V>> const& nom, Lmbd lmbd) -> delayed<column::evaluator<V>>
+auto ana::analysis<T>::vary_equation(delayed<column::evaluator<V>> const&, Lmbd lmbd) -> delayed<column::evaluator<V>>
 {
 	// return this->calculate(lmbd);
 	typename V::evalfunc_type fn(lmbd);

@@ -13,14 +13,21 @@ public:
   reader(const std::string& name);
   virtual ~reader() = default;
 
-  virtual const T& value() const override;
-  void read(const T& val);
+  virtual void execute() override;
+
+  virtual T const& read() const = 0;
+  virtual T const& value() const override;
 
   std::string get_name() const;
 
 protected:
+  void update() const;
+  void reset();
+
+protected:
   const std::string m_name;
-	const T* m_addr;
+	mutable T const* m_addr;
+  mutable bool m_updated;
 
 };
 
@@ -49,15 +56,29 @@ template <typename T>
 {}
 
 template <typename T>
-void ana::term<T>::reader::read(const T& val)
+void ana::term<T>::reader::execute()
 {
-  m_addr = &val;
+  this->reset();
 }
 
 template <typename T>
-const T& ana::term<T>::reader::value() const
+T const& ana::term<T>::reader::value() const
 {
+  if (!this->m_updated) this->update();
   return *m_addr;
+}
+
+template <typename T>
+void ana::term<T>::reader::update() const
+{
+  m_addr = &(this->read()); 
+  m_updated = true;
+}
+
+template <typename T>
+void ana::term<T>::reader::reset()
+{
+  m_updated = false;
 }
 
 template <typename T>

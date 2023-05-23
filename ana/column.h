@@ -138,14 +138,6 @@ public:
   using value_type = typename cell<T>::value_type;
 
 public:
-  term();
-  virtual ~term() = default;
-
-  virtual void initialize() override;
-  virtual void execute() override;
-  virtual void finalize() override;
-
-public:
   class constant;
 
   class reader;
@@ -157,6 +149,14 @@ public:
 
   template <typename... Args>
   class evaluated_from;
+
+public:
+  term() = default;
+  virtual ~term() = default;
+
+  virtual void initialize() override;
+  virtual void execute() override;
+  virtual void finalize() override;
 
 };
 
@@ -230,12 +230,6 @@ std::shared_ptr<cell<To>> cell_as(const cell<From>& from);
 template <typename T> using cell_value_t = std::decay_t<decltype(std::declval<T>().value())>;
 
 }
-
-template <typename T>
-ana::term<T>::term() : 
-  column(),
-  cell<T>()
-{}
 
 template <typename T>
 void ana::term<T>::initialize()
