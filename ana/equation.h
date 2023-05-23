@@ -9,15 +9,13 @@
 namespace ana
 {
 
-// a shortcut for column::definition<Ret(Args...)>
-// where an std::function<Ret(Args const&...)> is used as the evaluation
 template <typename Ret, typename... Args>
 class column::equation<Ret(Args...)> : public column::definition<Ret(Args...)>
 {
 
 public:
   using argtuple_type = typename definition<Ret(Args...)>::argtup_type;
-  using evalfunc_type = std::function<Ret(std::decay_t<Args> const&...)>;
+  using evalfunc_type = std::function<std::decay_t<Ret>(std::decay_t<Args> const&...)>;
 
 public:
   equation(std::function<Ret(Args const&...)>);
@@ -32,18 +30,32 @@ protected:
 };
 
 template <typename T>
-struct function_trait_impl {};
+struct equation_trait_impl {};
 template <typename Ret, typename... Args>
-struct function_trait_impl<std::function<Ret(Args...)>> { using equation_type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>; };
+struct equation_trait_impl<std::function<Ret(Args...)>> { using equation_type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>; };
 
-template <typename T>
-struct function_trait { using equation_type = typename function_trait_impl<decltype(std::function{std::declval<T>()})>::equation_type; };
+template <typename F>
+struct equation_trait { using equation_type = typename equation_trait_impl<decltype(std::function{std::declval<F>()})>::equation_type; };
+template <typename Ret, typename... Args>
+struct equation_trait<std::function<Ret(Args...)>> { using equation_type = typename equation_trait_impl<std::function<Ret(Args...)>>::equation_type; };
 
-template <typename Fn>
-using equation_t = typename function_trait<Fn>::equation_type;
+template <typename F>
+using equation_t = typename equation_trait<F>::equation_type;
 
 template <typename Ret, typename... Args>
 auto make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<equation_t<std::function<Ret(Args...)>>>;
+
+template <typename T>
+struct is_callable
+{
+  typedef char yes;
+  typedef long no;
+  template <typename C> static yes check_callable( decltype(&C::operator()) ) ;
+  template <typename C> static no check_callable(...);    
+  enum { value = sizeof(check_callable<T>(0)) == sizeof(char) };
+};
+template <typename T>
+constexpr bool is_callable_v = is_callable<T>::value;
 
 }
 
@@ -64,6 +76,5 @@ Ret ana::column::equation<Ret(Args...)>::evaluate(ana::observable<Args>... args)
 template <typename Ret, typename... Args>
 auto ana::make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<ana::equation_t<std::function<Ret(Args...)>>>
 {
-	auto eqn = std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(func);
-	return eqn;
+	return std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(func);
 }

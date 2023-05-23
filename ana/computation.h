@@ -82,16 +82,14 @@ template <typename T>
 template <typename Def, typename... Args>
 auto ana::column::computation<T>::define(Args const&... args) const -> std::shared_ptr<evaluator<Def>>
 {
-	auto defn = std::make_shared<evaluator<Def>>(args...);
-	return defn;
+	return std::make_shared<evaluator<Def>>(args...);
 }
 
 template <typename T>
 template <typename Ret, typename... Args>
 auto ana::column::computation<T>::calculate(std::function<Ret(Args...)> fn) const -> std::shared_ptr<evaluator<ana::equation_t<std::function<Ret(Args...)>>>>
 {
-	auto eqn = std::make_shared<evaluator<ana::equation_t<std::function<Ret(Args...)>>>>(fn);
-	return eqn;
+	return std::make_shared<evaluator<ana::equation_t<std::function<Ret(Args...)>>>>(fn);
 }
 
 template <typename T>
@@ -100,7 +98,6 @@ auto ana::column::computation<T>::evaluate_column(column::evaluator<Def>& calc, 
 {
 	// use the evaluator to actually make the column
 	auto defn = calc.evaluate_column(columns...);
-	// and add it
 	this->add_column(*defn);
 	return defn;
 }

@@ -145,10 +145,7 @@ public:
   class calculation;
 
   template <typename... Args>
-  class defined_from;
-
-  template <typename... Args>
-  class evaluated_from;
+  class calculated_with;
 
 public:
   term() = default;

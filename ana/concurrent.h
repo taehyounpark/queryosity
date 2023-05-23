@@ -53,17 +53,41 @@ public:
   // number of slots
   size_t concurrency() const;
 
-  // check common value of function call from all delayeds
+  /**
+   * @brief Get the result of calling method(s) on the model.
+   * @param fn Function to be called. The first argument must accept the slot type by `const&`.
+   * @param args Arguments to be applied for all slots to `fn`.
+   * @return result The value of the result from model.
+   * @details The result *must* be equal by value between the model and all slots.
+  */
   template <typename F, typename... Args>
-  auto get_model_result(F const& fn, Args const&... args) const -> std::invoke_result_t<F,T&,Args const&...>;
+  auto get_model_value(F const& fn, Args const&... args) const -> std::invoke_result_t<F,T const&,Args const&...>;
 
+  /**
+   * @brief Get the result of calling method(s) on each underlying model and slots.
+   * @param fn Function to be called. The first argument must accept the slot type by reference.
+   * @param args `concurrent<Args>` that holds an `Args const&` applied as the argument for each slot call.
+   * @details Call method(s) on all held underlying objects.
+  */
+  template <typename F, typename... Args>
+  void call_all(F const& fn, concurrent<Args> const&... args) const;
+
+  /**
+   * @brief Get the result of calling method(s) on each underlying model and slots.
+   * @param fn Function to be called. The first argument must accept the slot type by `&`, and return a `std::shared_ptr<Result>`.
+   * @param args (Optional) arguments that are applied per-slot to `fn`.
+   * @return result `concurrent<Result>` where `std::shared_ptr<Result>` is returned by `fn`.
+   * @details Preserve the concurrency of result of operations performed on the underlying objects.
+  */
   template <typename F, typename... Args>
   auto get_concurrent_result(F const& fn, concurrent<Args> const&... args) const -> concurrent<typename std::invoke_result_t<F,T&,Args&...>::element_type>;
 
-  // apply a method to all delayeds
-  template <typename F, typename... Args>
-  void broadcast_all(F const& fn, concurrent<Args> const&... args) const;
-
+  /**
+   * @brief Run the function on the underlying slots, multi-threading if enabled.
+   * @param fn Function to be called. The first argument must accept the slot type by `&`.
+   * @param args (Optional) arguments that are applied per-slot to `fn`.
+   * @details The methods are called on slots, while the model is left untouched (as it is meant to represent the "merged" instance of all slots).
+  */
   template <typename F, typename... Args>
   void run_slots(F const& fn, concurrent<Args> const&... args) const;
 
@@ -127,7 +151,7 @@ void ana::concurrent<T>::set_model(std::shared_ptr<T> model)
 template <typename T>
 std::shared_ptr<T> ana::concurrent<T>::get_model() const
 {
-  return m_slots.at(0);
+  return m_model;
 }
 
 template <typename T>
@@ -144,7 +168,7 @@ size_t ana::concurrent<T>::concurrency() const
 
 template <typename T>
 template <typename F, typename... Args>
-auto ana::concurrent<T>::get_model_result(F const& fn, Args const&... args) const -> std::invoke_result_t<F,T&,Args const&...>
+auto ana::concurrent<T>::get_model_value(F const& fn, Args const&... args) const -> std::invoke_result_t<F,T const&,Args const&...>
 {
   auto result = fn(static_cast<const T&>(*this->get_model()),args...);
   // result at each slot must match the model's
@@ -169,7 +193,7 @@ auto ana::concurrent<T>::get_concurrent_result(F const& fn, concurrent<Args> con
 
 template <typename T>
 template <typename F, typename... Args>
-void ana::concurrent<T>::broadcast_all(F const& fn, concurrent<Args> const&... args) const
+void ana::concurrent<T>::call_all(F const& fn, concurrent<Args> const&... args) const
 {
   assert( ((concurrency()==args.concurrency())&&...) );
   fn(*this->get_model(),*args.get_model()...);

@@ -27,12 +27,10 @@ template <typename T> constexpr bool is_column_evaluator_v = is_column_evaluator
 
 template <typename T> struct is_selection_evaluator: std::false_type {};
 template <typename T> struct is_selection_evaluator<selection::evaluator<T>>: std::true_type {};
-// template <typename T> struct is_selection_evaluator<selection::weight::evaluator<T>>: std::true_type {};
 template <typename T> constexpr bool is_selection_evaluator_v = is_selection_evaluator<T>::value;
 
-// template <typename Lmbd> using function_t = decltype(std::function(std::declval<Lmbd>()));
-template <typename Lmbd> using equation_evaluator_t = typename column::template evaluator<ana::equation_t<Lmbd>>;
-template <typename Lmbd> using custom_selection_evaluator_t = typename selection::template evaluator<ana::equation_t<Lmbd>>;
+template <typename F> using equation_evaluator_t = typename column::template evaluator<ana::equation_t<F>>;
+template <typename F> using custom_selection_evaluator_t = typename selection::template evaluator<ana::equation_t<F>>;
 using simple_selection_evaluator_type = typename selection::template evaluator<ana::column::equation<double(double)>>;
 
 template <typename T>
@@ -92,16 +90,15 @@ public:
   auto read(const std::string& name) -> delayed<read_column_t<read_dataset_t<T>,Val>>;
   template <typename Val>
   auto constant(const Val& value) -> delayed<column::constant<Val>>;
-
-  template <typename Def, typename... Args, typename = std::enable_if_t<std::is_constructible_v<Def,Args&&...>>>
+  template <typename Def, typename... Args>
   auto define(Args&&... arguments) -> delayed<column::evaluator<Def>>;
-  template <typename Lmbd, typename = std::enable_if_t<!is_column_definition_v<Lmbd>>>
-  auto calculate(Lmbd lmbd) -> delayed<equation_evaluator_t<Lmbd>>;
+  template <typename F>
+  auto calculate(F callable) -> delayed<equation_evaluator_t<F>>;
 
-	template <typename Sel, typename Lmbd>
-  auto filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>;
-  template <typename Sel, typename Lmbd>
-  auto channel(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>;
+	template <typename Sel, typename F>
+  auto filter(const std::string& name, F callable) -> delayed<custom_selection_evaluator_t<F>>;
+  template <typename Sel, typename F>
+  auto channel(const std::string& name, F callable) -> delayed<custom_selection_evaluator_t<F>>;
 	template <typename Sel>
   auto filter(const std::string& name) -> delayed<simple_selection_evaluator_type>;
   template <typename Sel>
@@ -113,8 +110,8 @@ public:
   template <typename Def, typename... Cols>
 	auto evaluate_column(delayed<column::evaluator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>;
 
-	template <typename Sel, typename... Cols>
-	auto evaluate_selection(delayed<selection::evaluator<Sel>> const& calc, delayed<Cols> const&... columns) -> delayed<selection>;
+	template <typename Eqn, typename... Cols>
+	auto evaluate_selection(delayed<selection::evaluator<Eqn>> const& calc, delayed<Cols> const&... columns) -> delayed<selection>;
 
 	template <typename Cnt>
 	auto book_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<selection> const& sel) -> delayed<Cnt>;
@@ -136,10 +133,10 @@ protected:
 
   void process_dataset();
 
-	template <typename Sel, typename Lmbd>
-  auto filter(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>;
-  template <typename Sel, typename Lmbd>
-  auto channel(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>;
+	template <typename Sel, typename F>
+  auto filter(delayed<selection> const& prev, const std::string& name, F callable) -> delayed<custom_selection_evaluator_t<F>>;
+  template <typename Sel, typename F>
+  auto channel(delayed<selection> const& prev, const std::string& name, F callable) -> delayed<custom_selection_evaluator_t<F>>;
 	template <typename Sel>
   auto filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_evaluator_type>;
   template <typename Sel>
@@ -152,8 +149,8 @@ protected:
 	auto vary_column(delayed<V> const& nom, Val const& val) -> delayed<V>;
 	template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V> && !ana::is_column_equation_v<V>, V>* = nullptr>
 	auto vary_definition(delayed<column::evaluator<V>> const& nom, Args&&... args) -> delayed<column::evaluator<V>>;
-	template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* = nullptr>
-	auto vary_equation(delayed<column::evaluator<V>> const& nom, Lmbd lmbd) -> delayed<column::evaluator<V>>;
+	template <typename F, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* = nullptr>
+	auto vary_equation(delayed<column::evaluator<V>> const& nom, F callable) -> delayed<column::evaluator<V>>;
 
 protected:
 	void add_column(delayed<column> const& var);
@@ -278,7 +275,7 @@ auto ana::analysis<T>::constant(const Val& val) -> delayed<ana::column::constant
 }
 
 template <typename T>
-template <typename Def, typename... Args, typename>
+template <typename Def, typename... Args>
 auto ana::analysis<T>::define(Args&&... arguments) -> typename analysis<T>::template delayed<column::evaluator<Def>>
 {
 	auto nd = delayed<column::evaluator<Def>>(*this, this->m_processors.get_concurrent_result( [&](processor<dataset_reader_type>& proc) { return proc.template define<Def>(arguments...); } ));
@@ -286,36 +283,36 @@ auto ana::analysis<T>::define(Args&&... arguments) -> typename analysis<T>::temp
 }
 
 template <typename T>
-template <typename Lmbd, typename>
-auto ana::analysis<T>::calculate(Lmbd lmbd) ->  typename analysis<T>::template delayed<equation_evaluator_t<Lmbd>>
+template <typename F>
+auto ana::analysis<T>::calculate(F callable) ->  typename analysis<T>::template delayed<equation_evaluator_t<F>>
 {
-	auto fn = std::function{lmbd};
-	return delayed<equation_evaluator_t<Lmbd>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template calculate(fn); } ));
+	auto fn = std::function{callable};
+	return delayed<equation_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template calculate(fn); } ));
 }
 
 template <typename T>
 template <typename Def, typename... Cols>
 auto ana::analysis<T>::evaluate_column(delayed<column::evaluator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>
 {
-	auto col = delayed<Def>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, column::evaluator<Def>& calc, Cols const&... cols) { return proc.template evaluate_column(calc, cols...); }, calc.get_concurrent(), columns.get_concurrent()... ));
+	auto col = delayed<Def>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, column::evaluator<Def>& calc, Cols const&... cols) { return proc.template evaluate_column(calc, cols...); }, calc, columns... ));
 	this->add_column(col);
   return col;
 }
 
 template <typename T>
-template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>
+template <typename Sel, typename F>
+auto ana::analysis<T>::filter(const std::string& name, F callable) -> delayed<custom_selection_evaluator_t<F>>
 {
-	auto fn = std::function{lmbd};
-	return delayed<custom_selection_evaluator_t<Lmbd>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,fn); } ));
+	auto fn = std::function{callable};
+	return delayed<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,fn); } ));
 }
 
 template <typename T>
-template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::channel(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>
+template <typename Sel, typename F>
+auto ana::analysis<T>::channel(const std::string& name, F callable) -> delayed<custom_selection_evaluator_t<F>>
 {
-	auto fn = std::function{lmbd};
-	auto sel = delayed<custom_selection_evaluator_t<Lmbd>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,fn); } ));
+	auto fn = std::function{callable};
+	auto sel = delayed<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,fn); } ));
 	return sel;	
 }
 
@@ -338,19 +335,19 @@ auto ana::analysis<T>::channel(const std::string& name) -> delayed<simple_select
 }
 
 template <typename T>
-template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>
+template <typename Sel, typename F>
+auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name, F callable) -> delayed<custom_selection_evaluator_t<F>>
 {
-	auto fn = std::function{lmbd};
-	return delayed<custom_selection_evaluator_t<Lmbd>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,fn); }, prev.get_concurrent() ));
+	auto fn = std::function{callable};
+	return delayed<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,fn); }, prev ));
 }
 
 template <typename T>
-template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>
+template <typename Sel, typename F>
+auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name, F callable) -> delayed<custom_selection_evaluator_t<F>>
 {
-	auto fn = std::function{lmbd};
-	return delayed<custom_selection_evaluator_t<Lmbd>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,fn); }, prev.get_concurrent() ));
+	auto fn = std::function{callable};
+	return delayed<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,fn); }, prev ));
 }
 
 template <typename T>
@@ -358,7 +355,7 @@ template <typename Sel>
 auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_evaluator_type>
 {
 	auto fn = std::function([](double x){return x;});
-	return delayed<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,fn); }, prev.get_concurrent() ));
+	return delayed<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,fn); }, prev ));
 }
 
 template <typename T>
@@ -366,14 +363,14 @@ template <typename Sel>
 auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_evaluator_type>
 {
 	auto fn = std::function([](double x){return x;});
-	return delayed<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,fn); }, prev.get_concurrent() ));
+	return delayed<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,fn); }, prev ));
 }
 
 template <typename T>
-template <typename Sel, typename... Cols>
-auto ana::analysis<T>::evaluate_selection(delayed<selection::evaluator<Sel>> const& calc, delayed<Cols> const&... columns) -> typename ana::analysis<T>::template delayed<selection>
+template <typename Eqn, typename... Cols>
+auto ana::analysis<T>::evaluate_selection(delayed<selection::evaluator<Eqn>> const& calc, delayed<Cols> const&... columns) -> delayed<selection>
 {
-	auto sel = delayed<selection>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection::evaluator<Sel>& calc, Cols&... cols) { return proc.template evaluate_selection(calc, cols...); }, calc.get_concurrent(), columns.get_concurrent()... ));
+	auto sel = delayed<selection>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection::evaluator<Eqn>& calc, Cols&... cols) { return proc.template evaluate_selection(calc, cols...); }, calc, columns... ));
 	this->add_selection(sel);
   return sel;
 }
@@ -391,7 +388,7 @@ auto ana::analysis<T>::book_selection(delayed<counter::booker<Cnt>> const& bkr, 
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto cnt = delayed<Cnt>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, const selection& sel) { return proc.book_selection(bkr,sel); }, bkr.get_concurrent(), sel.get_concurrent() ));
+	auto cnt = delayed<Cnt>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, const selection& sel) { return proc.book_selection(bkr,sel); }, bkr, sel ));
 	this->add_counter(cnt);
   return cnt;
 }
@@ -402,7 +399,7 @@ auto ana::analysis<T>::book_selections(delayed<counter::booker<Cnt>> const& bkr,
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto bkr2 = delayed<counter::booker<Cnt>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, Sels const&... sels) { return proc.book_selections(bkr,sels...); }, bkr.get_concurrent(), sels.get_concurrent()... ));
+	auto bkr2 = delayed<counter::booker<Cnt>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, Sels const&... sels) { return proc.book_selections(bkr,sels...); }, bkr, sels... ));
 	// add all counters that were booked
 	for (auto const& sel_path : bkr2.list_selection_paths()) {
 		this->add_counter(bkr2.get_counter(sel_path));
@@ -429,7 +426,7 @@ template <typename T>
 void ana::analysis<T>::clear_counters()
 { 
 	m_counter_list.clear();
-	this->m_processors.broadcast_all( [] (processor<dataset_reader_type>& proc) { proc.clear_counters(); } );
+	this->m_processors.call_all( [] (processor<dataset_reader_type>& proc) { proc.clear_counters(); } );
 }
 
 template <typename T>
@@ -447,19 +444,19 @@ void ana::analysis<T>::process_dataset()
 template <typename T>
 void ana::analysis<T>::add_column(typename ana::analysis<T>::template delayed<column> const& delayed)
 {
-	m_column_list.emplace_back(delayed.get_concurrent());
+	m_column_list.emplace_back(delayed);
 }
 
 template <typename T>
 void ana::analysis<T>::add_selection(typename ana::analysis<T>::template delayed<selection> const& delayed)
 {
-	m_selection_list.emplace_back(delayed.get_concurrent());
+	m_selection_list.emplace_back(delayed);
 }
 
 template <typename T>
 void ana::analysis<T>::add_counter(typename ana::analysis<T>::template delayed<counter> const& delayed)
 {
-	m_counter_list.emplace_back(delayed.get_concurrent());
+	m_counter_list.emplace_back(delayed);
 }
 
 template <typename... Nodes>
@@ -491,12 +488,9 @@ auto ana::analysis<T>::vary_definition(delayed<column::evaluator<V>> const&, Arg
 }
 
 template <typename T>
-template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr>
-auto ana::analysis<T>::vary_equation(delayed<column::evaluator<V>> const&, Lmbd lmbd) -> delayed<column::evaluator<V>>
+template <typename F, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr>
+auto ana::analysis<T>::vary_equation(delayed<column::evaluator<V>> const&, F callable) -> delayed<column::evaluator<V>>
 {
-	// return this->calculate(lmbd);
-	typename V::evalfunc_type fn(lmbd);
+	typename V::evalfunc_type fn(callable);
 	return this->calculate(fn);
-	// auto fn = std::function<function_t<V>>(lmbd);
-	// return this->calculate<decltype(fn)>(fn);
 }
