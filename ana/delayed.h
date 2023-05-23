@@ -414,16 +414,6 @@ public:
 	 * @return `Result` the result of the implemented counter.
 	 */
 	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
-	auto operator*() const -> decltype(std::declval<V>().get_result())
-	{
-		return this->get_result();
-	}
-
-	/**
-	 * @brief Shorthand for `result` of counter.
-	 * @return `Result` the result of the implemented counter.
-	 */
-	template <typename V = U, typename std::enable_if<is_counter_implemented_v<V>,void>::type* = nullptr>
 	auto operator->() const -> decltype(std::declval<V>().get_result())
 	{
 		return this->get_result();

@@ -69,9 +69,8 @@ public:
 	virtual void count(double w) = 0;
 
 protected:
-	double m_scale;
-	bool   m_raw;
-
+	bool             m_raw;
+	double           m_scale;
 	const selection* m_selection;
 
 };
@@ -107,7 +106,12 @@ public:
 	 * @details Set the result of the counter.
 	*/
 	virtual void finalize() override;
+
 	T get_result() const;
+	T operator->() const
+	{
+		return this->get_result();
+	}
 
 	bool is_merged() const;
 	void merge_results(std::vector<T> results);

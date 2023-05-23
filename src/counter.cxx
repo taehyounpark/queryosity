@@ -4,9 +4,9 @@
 
 ana::counter::counter() :
 	action(),
-	m_selection(nullptr),
+	m_raw(false),
 	m_scale(1.0),
-	m_raw(false)
+	m_selection(nullptr)
 {}
 
 void ana::counter::set_selection(const selection& selection)

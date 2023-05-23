@@ -36,14 +36,14 @@ protected:
   void initialize();
 
 protected:
-  std::unique_ptr<T>                      m_dataset;
-  bool                                    m_initialized;
+  std::unique_ptr<T>                         m_dataset;
+  bool                                       m_initialized;
 
-  long long                               m_max_entries;
-  double                                  m_scale;
+  long long                                  m_max_entries;
+  double                                     m_scale;
   
-  input::partition                        m_partition;
-  concurrent<dataset_reader_type>         m_readers;
+  input::partition                           m_partition;
+  concurrent<dataset_reader_type>            m_readers;
   concurrent<processor<dataset_reader_type>> m_processors;
 
 };
