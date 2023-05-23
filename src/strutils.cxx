@@ -7,7 +7,7 @@
 
 #include "ana/vecutils.h"
 
-std::string str::enclose(const std::string& str, const std::string& lside, const std::string& rside)
+std::string str::enfinish(const std::string& str, const std::string& lside, const std::string& rside)
 {
 	std::string enclosed = lside;
 	enclosed += str;

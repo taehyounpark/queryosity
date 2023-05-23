@@ -273,7 +273,7 @@ public:
 	auto fill_counter(Nodes const&... columns) const -> delayed<V>
 	{
 		// nominal
-		auto filled = delayed<V>(*this->m_analysis, m_threaded.from_slots( [] (U& fillable, typename Nodes::action_type&... cols) { return fillable.book_fill(cols...); }, columns.get_slots()... ));
+		auto filled = delayed<V>(*this->m_analysis, m_threaded.get_concurrent_result( [] (U& fillable, typename Nodes::action_type&... cols) { return fillable.book_fill(cols...); }, columns.get_concurrent()... ));
 		return filled;
 	}
 
@@ -354,7 +354,7 @@ public:
 	template <typename V = U, typename std::enable_if_t<is_counter_booker_v<V>,V>* = nullptr>
 	auto list_selection_paths() const-> std::vector<std::string>
 	{
-		return m_threaded.from_model([=](U& bkr){ return bkr.list_selection_paths(); });
+		return m_threaded.get_model_result([=](U const& bkr){ return bkr.list_selection_paths(); });
 	}
 
 	/**
@@ -363,7 +363,7 @@ public:
 	template <typename V = U, typename std::enable_if_t<is_counter_booker_v<V>,V>* = nullptr>
 	auto get_counter(const std::string& sel_path) const-> delayed<booked_counter_t<V>>
 	{
-		return delayed<typename V::counter_type>(*this->m_analysis, m_threaded.from_slots([=](U& bkr){ return bkr.get_counter(sel_path); }) );
+		return delayed<typename V::counter_type>(*this->m_analysis, m_threaded.get_concurrent_result([=](U& bkr){ return bkr.get_counter(sel_path); }) );
 	}
 
 	/**
@@ -436,7 +436,7 @@ public:
 	 * For any `delayed` node, multiple instances of the type exist, one to be used for each thread in multithreaded runs.
 	 * This returns the container of those instances, which in turn can access individual ones to perform manual operations on them.
 	 */
-	concurrent<U> const& get_slots() const { return m_threaded; }
+	concurrent<U> const& get_concurrent() const { return m_threaded; }
 
 	// mathematical operations
 	DEFINE_DELAYED_UNARY_OP(logical_not,!)
@@ -584,7 +584,7 @@ auto ana::analysis<T>::delayed<Act>::filter(const std::string& name, Args&&... a
 {
 	if constexpr(std::is_base_of_v<selection,Act>) {
 		auto sel = this->m_analysis->template filter<Sel>(*this, name, std::forward<Args>(args)...);
-		// sel.get_slots().to_slots( [](typename delayed_selection_evaluator_t<Sel,Args...>::action_type& calc, selection const& prev){calc.set_previous(prev);}, this->get_slots() );
+		// sel.get_concurrent().broadcast_all( [](typename delayed_selection_evaluator_t<Sel,Args...>::action_type& calc, selection const& prev){calc.set_previous(prev);}, this->get_concurrent() );
 		return sel;
 	} else {
 		static_assert(std::is_base_of_v<selection,Act>, "filter must be called from a selection");
@@ -598,7 +598,7 @@ auto ana::analysis<T>::delayed<Act>::channel(const std::string& name, Args&&... 
 {
 	if constexpr(std::is_base_of_v<selection,Act>) {
 		auto sel = this->m_analysis->template channel<Sel>(*this, name, std::forward<Args>(args)...);
-		// sel.get_slots().to_slots( [](typename delayed_selection_evaluator_t<Sel,Args...>::action_type& calc, selection const& prev){calc.set_previous(prev);}, this->get_slots() );
+		// sel.get_concurrent().broadcast_all( [](typename delayed_selection_evaluator_t<Sel,Args...>::action_type& calc, selection const& prev){calc.set_previous(prev);}, this->get_concurrent() );
 		return sel;
 	} else {
 		static_assert(std::is_base_of_v<selection,Act>, "channel must be called from a selection");

@@ -11,7 +11,7 @@ int count_instances(const std::string& str, const std::string& substr);
 bool starts_with(const std::string& str, const std::string& prefix);
 bool ends_with(const std::string& str, const std::string& suffix);
 
-std::string enclose(const std::string& str, const std::string& lside, const std::string& rside="");
+std::string enfinish(const std::string& str, const std::string& lside, const std::string& rside="");
 
 std::string repeat(const std::string& str, unsigned int n=1);
 

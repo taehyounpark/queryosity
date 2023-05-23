@@ -4,12 +4,6 @@
 #include "ana/strutils.h"
 #include "ana/vecutils.h"
 
-ana::input::range::range() :
-	slot(0),
-	begin(0),
-	end(-1)
-{}
-
 ana::input::range::range(size_t slot, long long begin, long long end) :
 	slot(slot),
 	begin(begin),
@@ -18,6 +12,7 @@ ana::input::range::range(size_t slot, long long begin, long long end) :
 
 long long ana::input::range::entries() const
 {
+	assert(this->end > this->begin);
 	return end-begin;
 }
 
@@ -39,11 +34,6 @@ void ana::input::partition::add_part(size_t islot, long long begin, long long en
 	this->parts.push_back(range(islot,begin,end));
 }
 
-void ana::input::partition::add_part(const range& part)
-{
-	this->parts.push_back(part);
-}
-
 ana::input::range ana::input::partition::get_part(size_t islot) const
 {
 	return this->parts[islot];
@@ -59,29 +49,30 @@ size_t ana::input::partition::size() const
 	return this->parts.size();
 }
 
-ana::input::partition ana::input::partition::merge(size_t max_parts) const
+void ana::input::partition::merge(size_t max_parts)
 {
-	if (fixed) return *this;
+	if (fixed) return;
 	partition merged;
 	auto groups = vec::group(this->parts,max_parts);
 	for (const auto& group : groups) {
 		merged.parts.push_back(vec::sum(group));
 	}
-	return merged;
 }
 
-ana::input::partition ana::input::partition::truncate(long long max_entries) const
+void ana::input::partition::truncate(long long max_entries)
 {
-	if (fixed) return *this;
-	if (max_entries<0) return *this;
-	partition trunced;
-	for (const auto& part : this->parts) {
+	if (fixed) return;
+	if (max_entries<0) return;
+	// remember the full parts
+	auto full_parts = this->parts;
+	// clear the parts to be added anew
+	this->parts.clear();
+	for (const auto& part : full_parts) {
 		auto part_end = max_entries >= 0 ? std::min(part.begin+max_entries,part.end) : part.end;
-		trunced.parts.push_back(range(part.slot, part.begin, part_end));
+		this->parts.push_back(range(part.slot, part.begin, part_end));
 		max_entries -= part_end;
 		if (!max_entries) break;
 	}
-	return trunced;
 }
 
 ana::input::progress::progress(long long tot) : 

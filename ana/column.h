@@ -38,6 +38,30 @@ public:
 
 };
 
+constexpr std::true_type check_column(const column&);
+constexpr std::false_type check_column(...);
+template <typename T> constexpr bool is_column_v = decltype(check_column(std::declval<T>()))::value;
+
+template <typename T>
+constexpr std::true_type check_column_reader(typename column::reader<T> const&);
+constexpr std::false_type check_column_reader(...);
+template <typename T> constexpr bool is_column_reader_v = decltype(check_column_reader(std::declval<T>()))::value;
+
+template <typename T>
+constexpr std::true_type check_column_constant(typename column::constant<T> const&);
+constexpr std::false_type check_column_constant(...);
+template <typename T> constexpr bool is_column_constant_v = decltype(check_column_constant(std::declval<T>()))::value;
+
+template <typename T>
+constexpr std::true_type check_column_equation(typename column::equation<T> const&);
+constexpr std::false_type check_column_equation(...);
+template <typename T> constexpr bool is_column_equation_v = decltype(check_column_equation(std::declval<T>()))::value;
+
+template <typename T>
+constexpr std::true_type check_column_definition(typename column::definition<T> const&);
+constexpr std::false_type check_column_definition(...);
+template <typename T> constexpr bool is_column_definition_v = decltype(check_column_definition(std::declval<T>()))::value;
+
 //---------------------------------------------------
 // cell can actually report on the concrete data type
 //---------------------------------------------------

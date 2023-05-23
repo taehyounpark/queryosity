@@ -30,7 +30,7 @@ void ana::output::dump(Node const& node, Dest&& dest, Args&&... args)
   Sum summary(std::forward<Args>(args)...);
 
   // get selection paths
-  auto selection_paths = node.get_nominal().get_slots().from_model([](const typename Node::action_type& node){return node.list_selection_paths();});
+  auto selection_paths = node.get_nominal().get_concurrent().get_model_result([](typename Node::action_type const& node){return node.list_selection_paths();});
 
   // record all results
   if constexpr( analysis_t<Node>::template is_nominal_v<Node> ) {

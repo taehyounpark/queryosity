@@ -19,7 +19,7 @@ const ana::selection* ana::counter::get_selection() const
 	return m_selection;
 }
 
-void ana::counter::set_scale(double scale)
+void ana::counter::apply_scale(double scale)
 {
 	m_scale *= scale;
 }

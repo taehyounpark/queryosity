@@ -55,7 +55,7 @@ template <typename Cnt>
 auto ana::counter::experiment::book_selection(booker<Cnt> const& bkr, const selection& sel) -> std::shared_ptr<Cnt>
 {
 	auto cnt = bkr.book_selection(sel);
-	cnt->set_scale(m_norm);
+	cnt->apply_scale(m_norm);
 	this->add_counter(*cnt);
 	return cnt;
 }
@@ -68,7 +68,7 @@ auto ana::counter::experiment::book_selections(booker<Cnt> const& bkr, Sels cons
 	// add all the counters (each with one selection) into the experiment
 	for (auto const& sel_path : bkr2->list_selection_paths()) {
 		auto cnt = bkr2->get_counter(sel_path);
-		cnt->set_scale(m_norm);
+		cnt->apply_scale(m_norm);
 		this->add_counter(*cnt);
 	}	
 	return bkr2;

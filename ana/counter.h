@@ -57,7 +57,7 @@ public:
 	counter();
 	virtual ~counter() = default;
 
-	void set_scale(double scale);
+	void apply_scale(double scale);
 	void use_weight(bool use=true);
 
 	void set_selection(const selection& selection);
@@ -274,6 +274,9 @@ T ana::counter::implementation<T>::get_result() const
 template <typename T>
 void ana::counter::implementation<T>::merge_results(std::vector<T> results)
 {
+	if (!results.size()) {
+		throw std::logic_error("merging requires at least one result");
+	}
 	m_result = this->merge(results);
 	this->set_merged(true);
 }

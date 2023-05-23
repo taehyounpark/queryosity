@@ -39,15 +39,13 @@ public:
 
 public:
   // main delayed = slot(0)
+  void set_model(std::shared_ptr<T> model);
   std::shared_ptr<T> get_model() const;
 
   // add/get slots
   void add_slot(std::shared_ptr<T> slot);
   std::shared_ptr<T> get_slot(size_t i) const;
-  std::vector<std::shared_ptr<T>> slots() const;
-
-  // downsize slots
-  void clear();
+  void clear_slots();
 
   // downsize slots
   void downsize(size_t n);
@@ -55,19 +53,22 @@ public:
   // number of slots
   size_t concurrency() const;
 
-  // apply a method to all delayeds
-  template <typename Lmbd, typename... Args>
-  void to_slots(Lmbd const& lmbd, const concurrent<Args>&... args) const;
-
   // check common value of function call from all delayeds
-  template <typename Lmbd, typename... Args>
-  auto from_model(Lmbd const& lmbd, const Args&... args) const -> std::invoke_result_t<Lmbd,T&,const Args&...>;
+  template <typename F, typename... Args>
+  auto get_model_result(F const& fn, Args const&... args) const -> std::invoke_result_t<F,T&,Args const&...>;
 
-  // return (concurrent) result of function call from all delayeds
-  template <typename Lmbd, typename... Args>
-  auto from_slots(Lmbd const& lmbd, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<Lmbd,T&,Args&...>::element_type>;
+  template <typename F, typename... Args>
+  auto get_concurrent_result(F const& fn, concurrent<Args> const&... args) const -> concurrent<typename std::invoke_result_t<F,T&,Args&...>::element_type>;
+
+  // apply a method to all delayeds
+  template <typename F, typename... Args>
+  void broadcast_all(F const& fn, concurrent<Args> const&... args) const;
+
+  template <typename F, typename... Args>
+  void run_slots(F const& fn, concurrent<Args> const&... args) const;
 
 protected:
+  std::shared_ptr<T> m_model;
   std::vector<std::shared_ptr<T>> m_slots;
 
 };
@@ -79,6 +80,7 @@ template <typename U>
 ana::concurrent<T>::concurrent(const concurrent<U>& other)
 {
   static_assert( std::is_base_of_v<T,U>, "incompatible concurrent types" );
+  this->m_model = other.m_model;
   this->m_slots.clear();
   for(size_t i=0 ; i<other.concurrency() ; ++i) {
     this->m_slots.push_back(other.get_slot(i));
@@ -89,6 +91,7 @@ template <typename T>
 template <typename U>
 ana::concurrent<T>& ana::concurrent<T>::operator=(const concurrent<U>& other)
 {
+  this->m_model = other.m_model;
   this->m_slots.clear();
   for(size_t i=0 ; i<other.concurrency() ; ++i) {
     this->m_slots.push_back(other.get_slot(i));
@@ -103,7 +106,7 @@ void ana::concurrent<T>::add_slot(std::shared_ptr<T> slot)
 }
 
 template <typename T>
-void ana::concurrent<T>::clear()
+void ana::concurrent<T>::clear_slots()
 {
   m_slots.clear();
 }
@@ -113,6 +116,12 @@ void ana::concurrent<T>::downsize(size_t n)
 {
   assert(n <= this->concurrency());
   m_slots.resize(n);
+}
+
+template <typename T>
+void ana::concurrent<T>::set_model(std::shared_ptr<T> model)
+{
+  m_model = model;
 }
 
 template <typename T>
@@ -134,34 +143,64 @@ size_t ana::concurrent<T>::concurrency() const
 }
 
 template <typename T>
-template <typename Lmbd, typename... Args>
-void ana::concurrent<T>::to_slots(Lmbd const& lmbd, const concurrent<Args>&... args) const
+template <typename F, typename... Args>
+auto ana::concurrent<T>::get_model_result(F const& fn, Args const&... args) const -> std::invoke_result_t<F,T&,Args const&...>
 {
-  assert( ((concurrency()==args.concurrency())&&...) );
+  auto result = fn(static_cast<const T&>(*this->get_model()),args...);
+  // result at each slot must match the model's
   for(size_t i=0 ; i<concurrency() ; ++i) {
-    lmbd(*this->get_slot(i),*args.get_slot(i)...);
-  }
-}
-
-template <typename T>
-template <typename Lmbd, typename... Args>
-auto ana::concurrent<T>::from_model(Lmbd const& lmbd, const Args&... args) const -> std::invoke_result_t<Lmbd,T&,const Args&...>
-{
-  auto result = lmbd(*get_model(),args...);
-  for(size_t i=1 ; i<concurrency() ; ++i) {
-    assert(result==lmbd(*this->get_slot(i),args...));
+    assert(result==fn(static_cast<const T&>(*this->get_slot(i)),args...));
   }
   return result;
 }
 
 template <typename T>
-template <typename Lmbd, typename... Args>
-auto ana::concurrent<T>::from_slots(Lmbd const& lmbd, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<Lmbd,T&,Args&...>::element_type>
+template <typename F, typename... Args>
+auto ana::concurrent<T>::get_concurrent_result(F const& fn, concurrent<Args> const&... args) const -> concurrent<typename std::invoke_result_t<F,T&,Args&...>::element_type>
 {
   assert( ((concurrency()==args.concurrency())&&...) );
-  concurrent<typename std::invoke_result_t<Lmbd,T&,Args&...>::element_type> invoked;
+  concurrent<typename std::invoke_result_t<F,T&,Args&...>::element_type> invoked;
+  invoked.set_model(fn(*this->get_model(),*args.get_model()...));
   for(size_t i=0 ; i<concurrency() ; ++i) {
-    invoked.add_slot(lmbd(*this->get_slot(i),*args.get_slot(i)...));
+    invoked.add_slot(fn(*this->get_slot(i),*args.get_slot(i)...));
   }
   return invoked;
+}
+
+template <typename T>
+template <typename F, typename... Args>
+void ana::concurrent<T>::broadcast_all(F const& fn, concurrent<Args> const&... args) const
+{
+  assert( ((concurrency()==args.concurrency())&&...) );
+  fn(*this->get_model(),*args.get_model()...);
+  for(size_t i=0 ; i<concurrency() ; ++i) {
+    fn(*this->get_slot(i),*args.get_slot(i)...);
+  }
+}
+
+template <typename T>
+template <typename F, typename... Args>
+void ana::concurrent<T>::run_slots(F const& fn, concurrent<Args> const&... args) const
+{
+  assert( ((concurrency()==args.concurrency())&&...) );
+
+  // multi-threaded
+  if (multithread::status()) {
+		std::vector<std::thread> pool;
+		for (size_t islot=0 ; islot<this->concurrency() ; ++islot) {
+			pool.emplace_back(
+				fn,
+				std::ref(*this->get_slot(islot)),
+        std::ref(*args.get_slot(islot))...
+			);
+		}
+		for (auto&& thread : pool) {
+			thread.join();
+		}
+	// single-threaded
+	} else {
+		for (size_t islot=0 ; islot<this->concurrency() ; ++islot) {
+			fn(*this->get_slot(islot), *args.get_slot(islot)...);
+		}
+	}
 }
