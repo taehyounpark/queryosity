@@ -24,7 +24,7 @@ template <typename T, typename Arg = T> static constexpr bool has_ ## op_name ##
 template <typename Arg, typename V = U, std::enable_if_t<ana::is_column_v<V> && ana::is_column_v<typename Arg::action_type> && op_check::has_ ## op_name ## _v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>,bool> = false>\
 auto operator op_symbol(Arg const& arg) const\
 {\
-	return this->m_analysis->calculate([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me op_symbol you; }).evaluate(*this,arg);\
+	return this->m_analysis->define([](cell_value_t<V> const& me, cell_value_t<typename Arg::action_type> const& you){ return me op_symbol you; }).evaluate(*this,arg);\
 }
 
 #define CHECK_FOR_UNARY_OP(op_name,op_symbol)\
@@ -37,7 +37,7 @@ template <typename T> static constexpr bool has_ ## op_name ## _v = has_ ## op_n
 template <typename V = U, std::enable_if_t<ana::is_column_v<V> && op_check::has_ ## op_name ## _v<cell_value_t<V>>,bool> = false>\
 auto operator op_symbol() const\
 {\
-	return this->m_analysis->calculate([](cell_value_t<V> const& me){ return (op_symbol me); }).evaluate(*this);\
+	return this->m_analysis->define([](cell_value_t<V> const& me){ return (op_symbol me); }).evaluate(*this);\
 }
 
 namespace ana
@@ -425,7 +425,7 @@ public:
 	template <typename Arg, typename V = U, std::enable_if_t<is_column_v<V> && op_check::has_subscript_v<cell_value_t<V>, cell_value_t<typename Arg::action_type>>,bool> = false>
 	auto operator[](Arg const& arg) const
 	{
-		return this->m_analysis->calculate( [](cell_value_t<V> me, cell_value_t<typename Arg::action_type> index){return me[index];})(*this, arg);
+		return this->m_analysis->define( [](cell_value_t<V> me, cell_value_t<typename Arg::action_type> index){return me[index];})(*this, arg);
 	}
 
 protected:

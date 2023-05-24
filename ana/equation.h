@@ -14,36 +14,32 @@ class column::equation<Ret(Args...)> : public column::definition<Ret(Args...)>
 {
 
 public:
-  using argtuple_type = typename definition<Ret(Args...)>::argtup_type;
-  using evalfunc_type = std::function<std::decay_t<Ret>(std::decay_t<Args> const&...)>;
+  using argtuple_type = typename definition<Ret(Args...)>::argtuple_type;
+  using function_type = std::function<std::decay_t<Ret>(std::decay_t<Args> const&...)>;
 
 public:
-  equation(std::function<Ret(Args const&...)>);
+  template <typename F>
+  equation(F callable);
 	virtual ~equation() = default;
 
   virtual Ret evaluate(observable<Args>... args) const override;
 
 protected:
 	argtuple_type m_arguments;
-	evalfunc_type m_evaluate;
+	function_type m_evaluate;
 
 };
 
-template <typename T>
-struct equation_trait_impl {};
+template <typename F>
+struct equation_traits { using equation_type = typename equation_traits<decltype(std::function{std::declval<F>()})>::equation_type; };
 template <typename Ret, typename... Args>
-struct equation_trait_impl<std::function<Ret(Args...)>> { using equation_type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>; };
+struct equation_traits<std::function<Ret(Args...)>> { using equation_type = typename column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>; };
 
 template <typename F>
-struct equation_trait { using equation_type = typename equation_trait_impl<decltype(std::function{std::declval<F>()})>::equation_type; };
-template <typename Ret, typename... Args>
-struct equation_trait<std::function<Ret(Args...)>> { using equation_type = typename equation_trait_impl<std::function<Ret(Args...)>>::equation_type; };
+using equation_t = typename equation_traits<F>::equation_type;
 
 template <typename F>
-using equation_t = typename equation_trait<F>::equation_type;
-
-template <typename Ret, typename... Args>
-auto make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<equation_t<std::function<Ret(Args...)>>>;
+auto make_equation(F expression) -> std::shared_ptr<equation_t<F>>;
 
 template <typename T>
 struct is_callable
@@ -57,15 +53,16 @@ struct is_callable
 template <typename T>
 constexpr bool is_callable_v = is_callable<T>::value;
 
+template <typename F> struct column_evaluator_traits<F, typename std::enable_if_t<!ana::is_column_definition_v<F> && ana::is_callable_v<F>>> { using evaluator_type = typename ana::column::template evaluator<ana::equation_t<F>>; };
+template <typename T> using column_evaluator_t = typename column_evaluator_traits<T>::evaluator_type;
+
 }
 
 template <typename Ret, typename... Args>
-ana::column::equation<Ret(Args...)>::equation(std::function<Ret(Args const&...)> expression) :
-	definition<Ret(Args...)>(),
-  m_evaluate(expression)
-{
-  m_evaluate = expression;
-}
+template <typename F>
+ana::column::equation<Ret(Args...)>::equation(F callable) :
+  m_evaluate(callable)
+{}
 
 template <typename Ret, typename... Args>
 Ret ana::column::equation<Ret(Args...)>::evaluate(ana::observable<Args>... args) const
@@ -73,8 +70,8 @@ Ret ana::column::equation<Ret(Args...)>::evaluate(ana::observable<Args>... args)
   return this->m_evaluate(args.value()...);
 }
 
-template <typename Ret, typename... Args>
-auto ana::make_equation(std::function<Ret(Args...)> func) -> std::shared_ptr<ana::equation_t<std::function<Ret(Args...)>>>
+template <typename F>
+auto ana::make_equation(F expression) -> std::shared_ptr<ana::equation_t<F>>
 {
-	return std::make_shared<column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>(func);
+	return std::make_shared<ana::equation_t<F>>(expression);
 }

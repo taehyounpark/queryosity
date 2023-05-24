@@ -14,7 +14,7 @@ class column : public action
 {
 
 public:
-  template <typename Dat>
+  template <typename T>
   class computation;
 
   template <typename T>

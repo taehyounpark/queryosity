@@ -19,7 +19,7 @@ class term<Ret>::calculated_with : public term<Ret>::calculation
 {
 
 public:
-  using argtup_type = std::tuple<variable<Args>...>;
+  using argtuple_type = std::tuple<variable<Args>...>;
 
 public:
   calculated_with();
@@ -31,10 +31,10 @@ public:
   virtual Ret calculate() const override;
   virtual Ret evaluate(observable<Args>... args) const = 0;
 
-  auto get_arguments() const -> argtup_type;
+  auto get_arguments() const -> argtuple_type;
 
 protected:
-	argtup_type m_arguments;
+	argtuple_type m_arguments;
 
 };
 
@@ -47,6 +47,9 @@ public:
   virtual ~definition() = default;
 
 };
+
+template <typename T, typename = void> struct column_evaluator_traits;
+template <typename T> struct column_evaluator_traits<T, typename std::enable_if_t<ana::is_column_definition_v<T>>> { using evaluator_type = typename ana::column::template evaluator<T>; };
 
 }
 
@@ -77,7 +80,7 @@ void ana::term<Ret>::calculated_with<Args...>::set_arguments(cell<Vals> const&..
 
 template <typename Ret>
 template <typename... Args>
-auto ana::term<Ret>::calculated_with<Args...>::get_arguments() const -> argtup_type
+auto ana::term<Ret>::calculated_with<Args...>::get_arguments() const -> argtuple_type
 {
   return m_arguments;
 }
