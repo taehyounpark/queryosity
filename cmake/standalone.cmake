@@ -2,8 +2,8 @@
 project(ana)
 include_directories("${PROJECT_SOURCE_DIR}")
 
-file(GLOB ana_headers ana/*.h*)
-file(GLOB ana_sources src/*.cxx)
+file(GLOB ana_headers ana/*.h)
+file(GLOB ana_sources ana/*.cxx)
 
 # register the shared object
 add_library( ana SHARED ${ana_sources} ${ana_headers})
@@ -47,8 +47,6 @@ install(DIRECTORY
   "${CMAKE_CURRENT_BINARY_DIR}/ana"
   DESTINATION lib
   )
-
-message(${CMAKE_CURRENT_BINARY_DIR})
 
 # link everything together at the end
 install(
