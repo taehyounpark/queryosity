@@ -11,7 +11,7 @@ Coherent data analysis in C++.
 A clear _abstraction_ layer between the analyzer and the dataset to define dataset transformation procedures is instrumental in not only ensuring the technical robustness of an analysis, but also for its ease of reproducibility and extensibility as the project develops.
 
 - The `analysis` entity represents the dataset to be analyzed.
-- Any operation returns a `delayed` node representing the action to be performed.
+- Any operation returns a `lazy` node representing the action to be performed.
   - The nodes can also interact with one another to perform further operations in the context of existing ones.
 - A node can be `varied`, meaning an alternate definition of the action is included in the analysis.
   - The final outcome of both the original and varied scenarios are available simultaneously.
@@ -55,7 +55,7 @@ auto lep_type = hww.read<RVecUI>("lep_type");
 auto met_MeV = hww.read<float>("met_et");
 auto met_phi = hww.read<float>("met_phi");
 ```
-Performing operations on `analysis<Dataset>` returns a `delayed<Action>` (in this case of the columns).
+Performing operations on `analysis<Dataset>` returns a `lazy<Action>` (in this case of the columns).
 
 ### 1.2 Computing new quantities
 ### Simple expressions
@@ -72,10 +72,10 @@ auto lep_pt_sel = lep_pt[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 As a superset of the above as well as to access non-trivial methods of the underlying data, any function (namely, lambda expression) can be provided.
 ```cpp
 // 1. define dilepton four-momentum
-auto p4ll = hww.calculate([](TLV const& p4, TLV const& q4) {return (p4+q4);})(l1p4,l2p4);
+auto p4ll = hww.define([](TLV const& p4, TLV const& q4) {return (p4+q4);})(l1p4,l2p4);
 
 // 2. define (dilepton+MET) transverse momentum
-auto pth = hww.calculate(
+auto pth = hww.define(
   [](const TLV& p3, float q, float q_phi) {
     TVector2 p2; p2.SetMagPhi(p3.Pt(), p3.Phi());
     TVector2 q2; q2.SetMagPhi(q, q_phi);
@@ -84,7 +84,7 @@ auto pth = hww.calculate(
 ```
 __Bonus:__ defining the function body separately from its input arguments enables "recycling" of common functions.
 ```cpp
-auto get_pt = hww.calculate([](TLV const& p4){return p4.Pt();});
+auto get_pt = hww.define([](TLV const& p4){return p4.Pt();});
 auto l1pt = get_pt(l1p4);
 auto l2pt = get_pt(l2p4);
 ```
@@ -127,10 +127,10 @@ auto l2p4 = hww.define<NthP4>(1)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel
 auto p4ll = l1p4+l2p4;
 
 // dilepton invariant mass
-auto mll = hww.calculate([](const TLV& p4){return p4.M();})(p4ll);
+auto mll = hww.define([](const TLV& p4){return p4.M();})(p4ll);
 
 // dilepton+MET(=higgs) transverse momentum
-auto pth = hww.calculate(
+auto pth = hww.define(
   [](const TLV& p4, float q, float q_phi) {
     TVector2 p2; p2.SetMagPhi(p4.Pt(), p4.Phi());
     TVector2 q2; q2.SetMagPhi(q, q_phi);
@@ -148,7 +148,7 @@ The simplest way to define a selection is to provide the column that corresponds
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
 
-auto n_lep_sel = hww.calculate([](ROOT::RVec<float> const& lep){return lep.size();})(lep_pt_sel);
+auto n_lep_sel = hww.define([](ROOT::RVec<float> const& lep){return lep.size();})(lep_pt_sel);
 auto n_lep_req = hww.constant(2);
 
 auto cut_2l = hww.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
@@ -180,9 +180,10 @@ auto cut_2lsf_wwcr = cut_2lsf.filter<cut>("wwcr")(mll > mll_cut);  // 2lsf/cr
 
 ## 3. Counting entries
 ### 3.1 Booking counters and accessing their results
-A __counter__ is an action that is for each entry:
-- If its "booked" selection passed the cut, with its weight.
-- (Optional) receive the values from input columns to be "filled" with.
+A __counter__ runs for each entry such that:
+- Perform a "counting" operation If its `book()`ed at selection(s) that passed its cut.
+  - The weight of the selection is also known to the counter.
+- (Optional) receive the values from input columns to be `fill()`ed with.
 
 A full implementation of `ana::counter::logic<Result(Columns...)>` defines what (arbitrary) action is to be performed as the counting operation, its output result, and how they should be merged from multiple threads.
 ```cpp
@@ -231,7 +232,7 @@ delete out_file;
 ```
 ![pth_hists](images/hww_hists.png)
 
-## Non-redundancy of `delayed` actions
+## Laziness of `lazy` actions
 
 Each action is performed once per entry only when needed:
 1. A counter will perform its action only if its booked selection has passed its cut.
@@ -266,19 +267,19 @@ auto el_sf = hww.read<float>("scaleFactor_ELE").vary("sf_var","scaleFactor_PILEU
 // (purely for illustration)
 
 // change the energy scale by +/-2%
-auto Escale = hww.calculate([](RVecD E){return E;}).vary("lp4_up",[](RVecD E){return E*1.02;}).vary("lp4_dn",[](RVecD E){return E*0.98;});
+auto Escale = hww.define([](RVecD E){return E;}).vary("lp4_up",[](RVecD E){return E*1.02;}).vary("lp4_dn",[](RVecD E){return E*0.98;});
 auto lep_pt_sel = Escale(lep_pt)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 auto lep_E_sel = Escale(lep_E)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 ```
-This results in a `varied` node, which now contain multiple variations of the `delayed` action.
+This results in a `varied` node, which now contain multiple variations of the `lazy` action.
 
 ### 4.2 Propagation of variations through selections and counters
 
-The rest of the analysis interface remains exactly the same with respect to handling `delayed` and `varied` nodes:
+The rest of the analysis interface remains exactly the same with respect to handling `lazy` and `varied` nodes:
 - Any column evaluated from varied input columns containing will be varied correspondingly.
 - Any selections and counters performed with varied columns will be varied correspondingly.
 
-The propagation of variations that may or may not exist in different sets of `delayed` and `varied` actions occur "in lockstep" and "transparently", meaning:
+The propagation of variations that may or may not exist in different sets of `lazy` and `varied` actions occur "in lockstep" and "transparently", meaning:
 - If two actions each have a variation with the same name, they are in effect together.
 - If one action has a variation while another doesn't, then the nominal is used for the latter.
 
@@ -322,4 +323,4 @@ std::cout << mll_channels_vars["lp4_up"]["2lsf"]->GetEntries() << std::endl;;
 
 # Known issues
 
-- :x: (PyROOT) `delayed` and `varied` not working (SFINAE).
+- :x: (PyROOT) `lazy` and `varied` not working (SFINAE).
