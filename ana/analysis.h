@@ -282,7 +282,6 @@ template <typename T>
 template <typename F>
 auto ana::analysis<T>::define(F callable) -> delayed<column_evaluator_t<F>>
 {
-	std::cout << "ho" << std::endl;
 	return delayed<equation_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template define(callable); } ));
 }
 
