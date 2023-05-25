@@ -75,14 +75,14 @@ template <typename Calc> using evaluated_column_t = typename Calc::column_type;
 template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
 
 /**
- * @brief Node representing a delayed action to be performed in an analysis.
- * @details Depending on the concrete type of the delayed action, further operations may be performed on it.
+ * @brief Node representing a lazy action to be performed in an analysis.
+ * @details Depending on the concrete type of the lazy action, further operations may be performed on it.
  * @tparam T Input dataset type
  * @tparam U Action to be performed lazily
  */
 template <typename T>
 template <typename U>
-class analysis<T>::delayed : public node<U>
+class analysis<T>::lazy : public node<U>
 {
 
 public:
@@ -91,47 +91,47 @@ public:
 	using action_type = typename node<U>::action_type;
 
 	template <typename Sel, typename... Args>
-	using delayed_selection_evaluator_t = decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...));
+	using lazy_selection_evaluator_t = decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...));
 
 	template <typename Sel, typename... Args>
 	using selection_evaluator_t = typename decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...))::action_type;
 
 public:
-	// friends with the main analysis graph & any other delayed nodes
+	// friends with the main analysis graph & any other lazy nodes
 	friend class analysis<T>;
-	template <typename> friend class delayed;
+	template <typename> friend class lazy;
 
 public:
-	delayed() :
+	lazy() :
 		node<U>::node()
 	{}
 
-	delayed(analysis<T>& analysis, const concurrent<U>& action) :
+	lazy(analysis<T>& analysis, const concurrent<U>& action) :
 		node<U>::node(analysis),
 		m_threaded(action)
 	{}
 
-	virtual ~delayed() = default;
+	virtual ~lazy() = default;
 
 	template <typename V>
-	delayed(const delayed<V>& other) :
+	lazy(const lazy<V>& other) :
 		node<U>::node(*other.m_analysis),
 		m_threaded(other.m_threaded)
 	{}
 
 	template <typename V>
-	delayed& operator=(const delayed<V>& other)
+	lazy& operator=(const lazy<V>& other)
 	{
 		this->m_analysis = other.m_analysis;
 		this->m_threaded = other.m_threaded;	
 		return *this;
 	}
 
-	virtual void set_nominal(const delayed& nom) override;
- 	virtual void set_variation(const std::string& var_name, const delayed& var) override;
+	virtual void set_nominal(const lazy& nom) override;
+ 	virtual void set_variation(const std::string& var_name, const lazy& var) override;
 
-	virtual delayed<U> nominal() const override;
-	virtual delayed<U> variation(const std::string& var_name) const override;
+	virtual lazy<U> nominal() const override;
+	virtual lazy<U> variation(const std::string& var_name) const override;
 	
 	virtual bool has_variation(const std::string& var_name) const override;
 	virtual std::set<std::string> list_variation_names() const override;
@@ -141,7 +141,7 @@ public:
 	 * @param var_name Name of the systematic variation.
 	 * @param args... Alternate column name (`reader`) or value (`constant`).
 	 * @return Varied column.
-	 * @details Creates a `varied<U>` node whose `nominal()` is the original delayed node, and `variation(var_name)` is the newly-constructed one
+	 * @details Creates a `varied<U>` node whose `nominal()` is the original lazy node, and `variation(var_name)` is the newly-constructed one
 	 */
 	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>,V>* = nullptr>
 	auto vary(const std::string& var_name, Args&&... args) -> varied<V>;
@@ -151,7 +151,7 @@ public:
 	 * @param var_name Name of the systematic variation.
 	 * @param args... Constructor arguments for `definition`.
 	 * @return Varied definition.
-	 * @details Creates a `varied<U>` node whose `nominal()` is the original delayed node, and `variation(var_name)` is the newly-constructed one
+	 * @details Creates a `varied<U>` node whose `nominal()` is the original lazy node, and `variation(var_name)` is the newly-constructed one
 	 */
 	template <typename... Args, typename V = U, typename std::enable_if_t<ana::is_column_evaluator_v<V> && !ana::is_column_equation_v<ana::evaluated_column_t<V>>,V>* = nullptr>
 	auto vary(const std::string& var_name, Args&&... args) -> varied<V>;
@@ -161,7 +161,7 @@ public:
 	 * @param var_name Name of the systematic variation.
 	 * @param lmbd Lambda expression for `equation`. **Note**: the function return type and signature must be the same as the original.
 	 * @return Varied equation.
-	 * @details Creates a `varied<U>` node whose `nominal()` is the original delayed node, and `variation(var_name)` is the newly-constructed one
+	 * @details Creates a `varied<U>` node whose `nominal()` is the original lazy node, and `variation(var_name)` is the newly-constructed one
 	 */
 	template <typename Lmbd, typename V = U, typename std::enable_if_t<ana::is_column_evaluator_v<V> && ana::is_column_equation_v<ana::evaluated_column_t<V>>,V>* = nullptr>
 	auto vary(const std::string& var_name, Lmbd lmbd) -> varied<V>;
@@ -170,17 +170,17 @@ public:
 	 * @brief Evaluate the column out of existing ones.
 	 * @param columns Input columns.
 	 * @return Evaluated column.
-	 * @details The input column(s) can be `delayed` or `varied`. Correspondingly, the evaluated column will be as well.
+	 * @details The input column(s) can be `lazy` or `varied`. Correspondingly, the evaluated column will be as well.
 	 */
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<ana::is_column_evaluator_v<V>,V>* = nullptr>
-	auto evaluate(Nodes&&... columns) const -> decltype(std::declval<delayed<V>>().evaluate_column(std::declval<Nodes>()...))
+	auto evaluate(Nodes&&... columns) const -> decltype(std::declval<lazy<V>>().evaluate_column(std::declval<Nodes>()...))
 	{
 		static_assert( is_column_evaluator_v<V>, "not a column (evaluator)" );
 		return this->evaluate_column(std::forward<Nodes>(columns)...);
 	}
 
   template <typename... Nodes, typename V = U, typename std::enable_if_t<ana::is_column_evaluator_v<V> && ana::analysis<T>::template has_no_variation_v<Nodes...>,V>* = nullptr>
-	auto evaluate_column(Nodes const&... columns) const -> delayed<evaluated_column_t<V>>
+	auto evaluate_column(Nodes const&... columns) const -> lazy<evaluated_column_t<V>>
 	{
 		// nominal
 		return this->m_analysis->evaluate_column(*this, columns...);
@@ -213,7 +213,7 @@ public:
 	 * ```
 	 */
   template <typename Sel, typename... Args>
-  auto filter(const std::string& name, Args&&... args) -> delayed_selection_evaluator_t<Sel,Args...>;
+  auto filter(const std::string& name, Args&&... args) -> lazy_selection_evaluator_t<Sel,Args...>;
 
 	/** 
 	 * @brief Channel from an existing selection. 
@@ -228,7 +228,7 @@ public:
 	 * ```
 	 */
   template <typename Sel, typename... Args>
-  auto channel(const std::string& name, Args&&... args) -> delayed_selection_evaluator_t<Sel,Args...>;
+  auto channel(const std::string& name, Args&&... args) -> lazy_selection_evaluator_t<Sel,Args...>;
 
 	/** 
 	 * @brief Evaluate a selection with input columns.
@@ -236,14 +236,14 @@ public:
 	 * @return Selection evaluated with the input columns.
 	 */
 	template <typename... Args, typename V = U, typename std::enable_if_t<is_selection_evaluator_v<V>,V>* = nullptr>
-	auto apply(Args&&... args) const -> decltype(std::declval<delayed<V>>().evaluate_selection(std::declval<Args>()...))
+	auto apply(Args&&... args) const -> decltype(std::declval<lazy<V>>().evaluate_selection(std::declval<Args>()...))
 	{
 		static_assert( is_selection_evaluator_v<V>, "not a selection (evaluator)" );
 		return this->evaluate_selection(std::forward<Args>(args)...);
 	}
 
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_selection_evaluator_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>
-	auto evaluate_selection(Nodes const&... columns) const -> delayed<selection>
+	auto evaluate_selection(Nodes const&... columns) const -> lazy<selection>
 	{
 		// nominal
 		return this->m_analysis->evaluate_selection(*this,columns...);
@@ -263,21 +263,21 @@ public:
 
 	/** 
 	 * @brief Fill the counter with input columns.
-	 * @param columns Input (`delayed` or `varied`) columns.
-	 * @return delayed<selection> Filled (`delayed` or `varied`) counter.
+	 * @param columns Input (`lazy` or `varied`) columns.
+	 * @return lazy<selection> Filled (`lazy` or `varied`) counter.
 	 */
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<ana::is_counter_booker_v<V>,V>* = nullptr>
-	auto fill(Nodes&&... columns) const -> decltype(std::declval<delayed<V>>().enter_columns(std::declval<Nodes>()...))
+	auto fill(Nodes&&... columns) const -> decltype(std::declval<lazy<V>>().enter_columns(std::declval<Nodes>()...))
 	{
 		static_assert( is_counter_booker_v<V>, "non-counter(booker) cannot be filled");
 		return this->enter_columns(std::forward<Nodes>(columns)...);
 	}
 
 	template <typename... Nodes, typename V = U, typename std::enable_if_t<is_counter_booker_v<V> && has_no_variation_v<Nodes...>,V>* = nullptr>
-	auto enter_columns(Nodes const&... columns) const -> delayed<V>
+	auto enter_columns(Nodes const&... columns) const -> lazy<V>
 	{
 		// nominal
-		auto filled = delayed<V>(*this->m_analysis, m_threaded.from_slots( [] (U& fillable, typename Nodes::action_type&... cols) { return fillable.book_fill(cols...); }, columns.get_slots()... ));
+		auto filled = lazy<V>(*this->m_analysis, m_threaded.from_slots( [] (U& fillable, typename Nodes::action_type&... cols) { return fillable.book_fill(cols...); }, columns.get_slots()... ));
 		return filled;
 	}
 
@@ -295,7 +295,7 @@ public:
 	/** 
 	 * @brief Book the counter at a selection.
 	 * @param selection Selection to be counted.
-	 * @return `Counter` the (`delayed` or `varied`) counter with the selection booked.
+	 * @return `Counter` the (`lazy` or `varied`) counter with the selection booked.
 	 */
 	template <typename Node>
 	auto at(Node&& selection) const
@@ -305,7 +305,7 @@ public:
 	}
 
 	template <typename Node, typename V = U, std::enable_if_t<is_counter_booker_v<V> && is_nominal_v<Node>, V>* = nullptr>
-	auto count_selection(Node const& sel) const -> delayed<booked_counter_t<V>>
+	auto count_selection(Node const& sel) const -> lazy<booked_counter_t<V>>
 	{
 		// nominal
 		return this->m_analysis->count_selection(*this, sel);
@@ -325,7 +325,7 @@ public:
 	/** 
 	 * @brief Book the counter at multiple selections.
 	 * @param selection Selections to be counted.
-	 * @return `counter::booker<Counter>` a (`delayed` or `varied`) counter "booker" which keeps track of the booked selection(s).
+	 * @return `counter::booker<Counter>` a (`lazy` or `varied`) counter "booker" which keeps track of the booked selection(s).
 	 */
 	template <typename... Nodes>
 	auto at(Nodes&&... nodes) const
@@ -335,7 +335,7 @@ public:
 	}
 	
 	template <typename... Nodes, typename V = U, std::enable_if_t<is_counter_booker_v<V> && has_no_variation_v<Nodes...>, V>* = nullptr>
-	auto count_selections(Nodes const&... sels) const -> delayed<V>
+	auto count_selections(Nodes const&... sels) const -> lazy<V>
 	{
 		// nominal
 		return this->m_analysis->count_selections(*this,sels...);
@@ -365,9 +365,9 @@ public:
 	 * @return `Counter` the counter booked at a specific selection path.
 	 */
 	template <typename V = U, typename std::enable_if_t<is_counter_booker_v<V>,V>* = nullptr>
-	auto get_counter_at(const std::string& sel_path) const-> delayed<booked_counter_t<V>>
+	auto get_counter_at(const std::string& sel_path) const-> lazy<booked_counter_t<V>>
 	{
-		return delayed<typename V::counter_type>(*this->m_analysis, m_threaded.from_slots([=](U& bkr){ return bkr.get_counter_at(sel_path); }) );
+		return lazy<typename V::counter_type>(*this->m_analysis, m_threaded.from_slots([=](U& bkr){ return bkr.get_counter_at(sel_path); }) );
 	}
 
 	/**
@@ -384,18 +384,18 @@ public:
 	}
 
 	/**
-	 * @brief Context-dependent shorthands for `delayed` nodes.
+	 * @brief Context-dependent shorthands for `lazy` nodes.
 	 * @details A chained function call is equivalent to `evaluate` and `apply` for column and selection evaluators, respectively.
-	 * @return Node the resulting (`delayed` or `varied`) counter/selection from its evaluator/application.
+	 * @return Node the resulting (`lazy` or `varied`) counter/selection from its evaluator/application.
 	 */
 	template <typename... Args, typename V = U, typename std::enable_if_t<is_column_evaluator_v<V>,V>* = nullptr>
-	auto operator()(Args&&... args) -> decltype(std::declval<delayed<V>>().evaluate(std::declval<Args>()...))
+	auto operator()(Args&&... args) -> decltype(std::declval<lazy<V>>().evaluate(std::declval<Args>()...))
 	// function = evaluate a column based on input columns
 	{
 		return this->evaluate(std::forward<Args>(args)...);
 	}
 	template <typename... Args, typename V = U, typename std::enable_if_t<is_selection_evaluator_v<V>,V>* = nullptr>
-	auto operator()(Args&&... args) -> decltype(std::declval<delayed<V>>().apply(std::declval<Args>()...))
+	auto operator()(Args&&... args) -> decltype(std::declval<lazy<V>>().apply(std::declval<Args>()...))
 	// function = evaluate a selection based on input columns
 	{
 		return this->apply(std::forward<Args>(args)...);
@@ -404,10 +404,10 @@ public:
 	/**
 	 * @brief Shorthand for `get_counter_at` of counter booker.
 	 * @param sel_path The path of booked selection.
-	 * @return Counter the `delayed` counter booked at the selection.
+	 * @return Counter the `lazy` counter booked at the selection.
 	 */
 	template <typename V = U, typename std::enable_if_t<is_counter_booker_v<V>,V>* = nullptr>
-	auto operator[](const std::string& sel_path) const-> delayed<booked_counter_t<V>>
+	auto operator[](const std::string& sel_path) const-> lazy<booked_counter_t<V>>
 	// subscript = access a counter at a selection path
 	{
 		return this->get_counter_at(sel_path);
@@ -437,7 +437,7 @@ public:
 	 * @brief Access the threaded instances of the node.
 	 * @details **Advanced usage**
 	 * 
-	 * For any `delayed` node, multiple instances of the type exist, one to be used for each thread in multithreaded runs.
+	 * For any `lazy` node, multiple instances of the type exist, one to be used for each thread in multithreaded runs.
 	 * This returns the container of those instances, which in turn can access individual ones to perform manual operations on them.
 	 */
 	concurrent<U> const& get_slots() const { return m_threaded; }
@@ -493,7 +493,7 @@ template <typename T> using action_t = typename T::action_type;
 
 template <typename T>
 template <typename Act>
-void ana::analysis<T>::delayed<Act>::set_nominal(delayed const& nom)
+void ana::analysis<T>::lazy<Act>::set_nominal(lazy const& nom)
 {
 	// get nominal from other action
 	this->m_analysis = nom.m_analysis; 
@@ -502,15 +502,15 @@ void ana::analysis<T>::delayed<Act>::set_nominal(delayed const& nom)
 
 template <typename T>
 template <typename Act>
-void ana::analysis<T>::delayed<Act>::set_variation(const std::string&, delayed const&)
+void ana::analysis<T>::lazy<Act>::set_variation(const std::string&, lazy const&)
 {
 	// this is nomial -- should never be called!
-	throw std::logic_error("cannot vary to a nominal-only delayed action");
+	throw std::logic_error("cannot vary to a nominal-only lazy action");
 }
 
 template <typename T>
 template <typename Act>
-auto ana::analysis<T>::delayed<Act>::nominal() const -> delayed<Act>
+auto ana::analysis<T>::lazy<Act>::nominal() const -> lazy<Act>
 {
 	// this is nomial -- return itself
 	return *this;
@@ -518,7 +518,7 @@ auto ana::analysis<T>::delayed<Act>::nominal() const -> delayed<Act>
 
 template <typename T>
 template <typename Act>
-auto ana::analysis<T>::delayed<Act>::variation(const std::string&) const -> delayed<Act>
+auto ana::analysis<T>::lazy<Act>::variation(const std::string&) const -> lazy<Act>
 {
 	// used when other variations ask the same of this, which it doesn't have -- return itself
 	return *this;
@@ -526,14 +526,14 @@ auto ana::analysis<T>::delayed<Act>::variation(const std::string&) const -> dela
 
 template <typename T>
 template <typename Act>
-std::set<std::string>  ana::analysis<T>::delayed<Act>::list_variation_names() const
+std::set<std::string>  ana::analysis<T>::lazy<Act>::list_variation_names() const
 {
 	return std::set<std::string>();
 }
 
 template <typename T>
 template <typename Act>
-bool ana::analysis<T>::delayed<Act>::has_variation(const std::string&) const
+bool ana::analysis<T>::lazy<Act>::has_variation(const std::string&) const
 {
 	return false;
 }
@@ -541,9 +541,9 @@ bool ana::analysis<T>::delayed<Act>::has_variation(const std::string&) const
 template <typename T>
 template <typename Act>
 template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_reader_v<V> || ana::is_column_constant_v<V>,V>* ptr>
-auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
+auto ana::analysis<T>::lazy<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
 {
-  // create a delayed varied with the this as nominal
+  // create a lazy varied with the this as nominal
   auto syst = varied<V>(*this);
 	// set variation of the column according to new constructor arguments
   syst.set_variation(var_name, this->m_analysis->vary_column(*this, std::forward<Args>(args)...));
@@ -554,9 +554,9 @@ auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&...
 template <typename T>
 template <typename Act>
 template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_evaluator_v<V> && !ana::is_column_equation_v<ana::evaluated_column_t<V>>,V>* ptr>
-auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
+auto ana::analysis<T>::lazy<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
 {
-  // create a delayed varied with the this as nominal
+  // create a lazy varied with the this as nominal
   auto syst = varied<V>(*this);
 	// set variation of the column according to new constructor arguments
   syst.set_variation(var_name, this->m_analysis->vary_definition(*this, std::forward<Args>(args)...));
@@ -567,9 +567,9 @@ auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Args&&...
 template <typename T>
 template <typename Act>
 template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_evaluator_v<V> && ana::is_column_equation_v<ana::evaluated_column_t<V>>,V>* ptr>
-auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Lmbd lmbd) -> varied<V>
+auto ana::analysis<T>::lazy<Act>::vary(const std::string& var_name, Lmbd lmbd) -> varied<V>
 {
-  // create a delayed varied with the this as nominal
+  // create a lazy varied with the this as nominal
   auto syst = varied<V>(*this);
 	// set variation of the column according to new constructor arguments
   syst.set_variation(var_name, this->m_analysis->vary_equation(*this, lmbd));
@@ -580,11 +580,11 @@ auto ana::analysis<T>::delayed<Act>::vary(const std::string& var_name, Lmbd lmbd
 template <typename T>
 template <typename Act>
 template <typename Sel, typename... Args>
-auto ana::analysis<T>::delayed<Act>::filter(const std::string& name, Args&&... args) -> delayed_selection_evaluator_t<Sel,Args...>
+auto ana::analysis<T>::lazy<Act>::filter(const std::string& name, Args&&... args) -> lazy_selection_evaluator_t<Sel,Args...>
 {
 	if constexpr(std::is_base_of_v<selection,Act>) {
 		auto sel = this->m_analysis->template filter<Sel>(*this, name, std::forward<Args>(args)...);
-		// sel.get_slots().to_slots( [](typename delayed_selection_evaluator_t<Sel,Args...>::action_type& calc, selection const& prev){calc.set_previous(prev);}, this->get_slots() );
+		// sel.get_slots().to_slots( [](typename lazy_selection_evaluator_t<Sel,Args...>::action_type& calc, selection const& prev){calc.set_previous(prev);}, this->get_slots() );
 		return sel;
 	} else {
 		static_assert(std::is_base_of_v<selection,Act>, "filter must be called from a selection");
@@ -594,11 +594,11 @@ auto ana::analysis<T>::delayed<Act>::filter(const std::string& name, Args&&... a
 template <typename T>
 template <typename Act>
 template <typename Sel, typename... Args>
-auto ana::analysis<T>::delayed<Act>::channel(const std::string& name, Args&&... args) -> delayed_selection_evaluator_t<Sel,Args...>
+auto ana::analysis<T>::lazy<Act>::channel(const std::string& name, Args&&... args) -> lazy_selection_evaluator_t<Sel,Args...>
 {
 	if constexpr(std::is_base_of_v<selection,Act>) {
 		auto sel = this->m_analysis->template channel<Sel>(*this, name, std::forward<Args>(args)...);
-		// sel.get_slots().to_slots( [](typename delayed_selection_evaluator_t<Sel,Args...>::action_type& calc, selection const& prev){calc.set_previous(prev);}, this->get_slots() );
+		// sel.get_slots().to_slots( [](typename lazy_selection_evaluator_t<Sel,Args...>::action_type& calc, selection const& prev){calc.set_previous(prev);}, this->get_slots() );
 		return sel;
 	} else {
 		static_assert(std::is_base_of_v<selection,Act>, "channel must be called from a selection");

@@ -38,7 +38,7 @@ public:
   concurrent& operator=(const concurrent<U>& other);
 
 public:
-  // main delayed = slot(0)
+  // main lazy = slot(0)
   void set_model(std::shared_ptr<T> model);
   std::shared_ptr<T> get_model() const;
 

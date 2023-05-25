@@ -38,7 +38,7 @@ public:
   concurrent& operator=(const concurrent<U>& other);
 
 public:
-  // main delayed = slot(0)
+  // main lazy = slot(0)
   std::shared_ptr<T> model() const;
 
   // add/get slots
@@ -55,15 +55,15 @@ public:
   // number of slots
   size_t concurrency() const;
 
-  // apply a method to all delayeds
+  // apply a method to all lazys
   template <typename Lmbd, typename... Args>
   void to_slots(Lmbd const& lmbd, const concurrent<Args>&... args) const;
 
-  // check common value of function call from all delayeds
+  // check common value of function call from all lazys
   template <typename Lmbd, typename... Args>
   auto from_model(Lmbd const& lmbd, const Args&... args) const -> std::invoke_result_t<Lmbd,T&,const Args&...>;
 
-  // return (concurrent) result of function call from all delayeds
+  // return (concurrent) result of function call from all lazys
   template <typename Lmbd, typename... Args>
   auto from_slots(Lmbd const& lmbd, const concurrent<Args>&... args) const -> concurrent<typename std::invoke_result_t<Lmbd,T&,Args&...>::element_type>;
 

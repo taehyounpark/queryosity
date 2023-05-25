@@ -26,10 +26,6 @@ public:
   aggregated_with() = default;
   virtual ~aggregated_with() = default;
 
-  virtual void execute() override;
-  virtual void aggregate(ana::observable<Cmps>... observables);
-
-
   template <typename... Vals>
   void set_components(cell<Vals> const&... args);
 
@@ -38,13 +34,17 @@ public:
   auto value() -> decltype(std::get<N>(std::declval<vartuple_type>()).value());
 
 protected:
-	vartuple_type m_components;
+	vartuple_type m_observables;
 
 };
 
 template <typename Ret, typename... Cmps>
 class column::aggregate<Ret(Cmps...)> : public term<Ret>::template aggregated_with<Cmps...>
 {
+
+public:
+  template <typenane Enum>
+  class proxy;
 
 public:
   using vartuple_type = typename term<Ret>::template aggregated_with<Ret(Cmps...)>::vartuple_type;
@@ -71,7 +71,7 @@ template <typename... Vals>
 void ana::term<Ret>::aggregated_with<Cmps...>::set_components(ana::cell<Vals> const&... args)
 {
   static_assert(sizeof...(Cmps)==sizeof...(Vals));
-  m_components = std::make_tuple(
+  m_observables = std::make_tuple(
     std::invoke(
       [](const cell<Vals>& args) -> variable<Cmps> {
         return variable<Cmps>(args);
@@ -81,28 +81,8 @@ void ana::term<Ret>::aggregated_with<Cmps...>::set_components(ana::cell<Vals> co
 
 template <typename Ret>
 template <typename... Cmps>
-void ana::term<Ret>::aggregated_with<Cmps...>::aggregate(ana::observable<Cmps>... observables)
-{
-  // do nothing (unless user wants)
-}
-
-template <typename Ret>
-template <typename... Cmps>
-void ana::term<Ret>::aggregated_with<Cmps...>::execute()
-{
-  std::apply(
-    [this](const variable<Cmps>&... args) { 
-      this->aggregate(args...);
-    },m_components
-  );
-  return;
-}
-
-
-template <typename Ret>
-template <typename... Cmps>
 template <unsigned int N>
 auto ana::term<Ret>::aggregated_with<Cmps...>::value() -> decltype(std::get<N>(std::declval<vartuple_type>()).value())
 {
-  return std::get<N>(m_components).value();
+  return std::get<N>(m_observables).value();
 }

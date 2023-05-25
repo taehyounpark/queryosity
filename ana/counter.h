@@ -204,7 +204,7 @@ class counter::summary
 
 public:
 
-	// version for delayed<counter>
+	// version for lazy<counter>
 	template <typename Res>
 	void record(const std::string& selection_path, std::decay_t<Res> counter_result)
 	{

@@ -71,9 +71,9 @@ public:
 	class node;
 
 	template <typename U>
-	class delayed;
+	class lazy;
 	template <typename U>
-	friend class delayed;
+	friend class lazy;
 
 	template <typename U>
 	class varied;
@@ -81,7 +81,7 @@ public:
 	friend class varied;
 
 	template <typename U>
-	static constexpr std::true_type check_nominal(typename analysis<T>::template delayed<U> const&);
+	static constexpr std::true_type check_nominal(typename analysis<T>::template lazy<U> const&);
 	static constexpr std::false_type check_nominal(...);
 	template <typename V> static constexpr bool is_nominal_v = decltype(check_nominal(std::declval<V>()))::value;
 
@@ -114,38 +114,38 @@ public:
 	analysis& operator=(analysis&&) = default;
 
   template <typename Val>
-  auto read(const std::string& name) -> delayed<read_column_t<read_dataset_t<T>,Val>>;
+  auto read(const std::string& name) -> lazy<read_column_t<read_dataset_t<T>,Val>>;
   template <typename Val>
-  auto constant(const Val& value) -> delayed<column::constant<Val>>;
+  auto constant(const Val& value) -> lazy<column::constant<Val>>;
 
   template <typename Def, typename... Args, typename = std::enable_if_t<std::is_constructible_v<Def,Args&&...>>>
-  auto define(Args&&... arguments) -> delayed<column::evaluator<Def>>;
+  auto define(Args&&... arguments) -> lazy<column::evaluator<Def>>;
   template <typename Lmbd, typename = std::enable_if_t<!is_column_definition_v<Lmbd>>>
-  auto calculate(Lmbd lmbd) -> delayed<equation_evaluator_t<Lmbd>>;
+  auto calculate(Lmbd lmbd) -> lazy<equation_evaluator_t<Lmbd>>;
 
 	template <typename Sel, typename Lmbd>
-  auto filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>;
+  auto filter(const std::string& name, Lmbd lmbd) -> lazy<custom_selection_evaluator_t<Lmbd>>;
   template <typename Sel, typename Lmbd>
-  auto channel(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>;
+  auto channel(const std::string& name, Lmbd lmbd) -> lazy<custom_selection_evaluator_t<Lmbd>>;
 	template <typename Sel>
-  auto filter(const std::string& name) -> delayed<simple_selection_evaluator_type>;
+  auto filter(const std::string& name) -> lazy<simple_selection_evaluator_type>;
   template <typename Sel>
-  auto channel(const std::string& name) -> delayed<simple_selection_evaluator_type>;
+  auto channel(const std::string& name) -> lazy<simple_selection_evaluator_type>;
 
 	template <typename Cnt, typename... Args>
-	auto book(Args&&... args) -> delayed<counter::booker<Cnt>>;
+	auto book(Args&&... args) -> lazy<counter::booker<Cnt>>;
 
   template <typename Def, typename... Cols>
-	auto evaluate_column(delayed<column::evaluator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>;
+	auto evaluate_column(lazy<column::evaluator<Def>> const& calc, lazy<Cols> const&... columns) -> lazy<Def>;
 
 	template <typename Sel, typename... Cols>
-	auto evaluate_selection(delayed<selection::evaluator<Sel>> const& calc, delayed<Cols> const&... columns) -> delayed<selection>;
+	auto evaluate_selection(lazy<selection::evaluator<Sel>> const& calc, lazy<Cols> const&... columns) -> lazy<selection>;
 
 	template <typename Cnt>
-	auto count_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<selection> const& sel) -> delayed<Cnt>;
+	auto count_selection(lazy<counter::booker<Cnt>> const& bkr, lazy<selection> const& sel) -> lazy<Cnt>;
 
 	template <typename Cnt, typename... Sels>
-	auto count_selections(delayed<counter::booker<Cnt>> const& bkr, delayed<Sels> const&... sels) -> delayed<counter::booker<Cnt>>;
+	auto count_selections(lazy<counter::booker<Cnt>> const& bkr, lazy<Sels> const&... sels) -> lazy<counter::booker<Cnt>>;
 
 	void clear_counters();
 
@@ -156,38 +156,38 @@ protected:
   void process_dataset();
 
 	template <typename Sel, typename Lmbd>
-  auto filter(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>;
+  auto filter(lazy<selection> const& prev, const std::string& name, Lmbd lmbd) -> lazy<custom_selection_evaluator_t<Lmbd>>;
   template <typename Sel, typename Lmbd>
-  auto channel(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>;
+  auto channel(lazy<selection> const& prev, const std::string& name, Lmbd lmbd) -> lazy<custom_selection_evaluator_t<Lmbd>>;
 	template <typename Sel>
-  auto filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_evaluator_type>;
+  auto filter(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>;
   template <typename Sel>
-  auto channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_evaluator_type>;
+  auto channel(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>;
 
-	// recreate a delayed node as a variation under new arguments
+	// recreate a lazy node as a variation under new arguments
 	template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* = nullptr>
-	auto vary_column(delayed<V> const& nom, const std::string& colname) -> delayed<V>;
+	auto vary_column(lazy<V> const& nom, const std::string& colname) -> lazy<V>;
 	template <typename Val, typename V, typename std::enable_if_t<ana::is_column_constant_v<V>, V>* = nullptr>
-	auto vary_column(delayed<V> const& nom, Val const& val) -> delayed<V>;
+	auto vary_column(lazy<V> const& nom, Val const& val) -> lazy<V>;
 	template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V> && !ana::is_column_equation_v<V>, V>* = nullptr>
-	auto vary_definition(delayed<column::evaluator<V>> const& nom, Args&&... args) -> delayed<column::evaluator<V>>;
+	auto vary_definition(lazy<column::evaluator<V>> const& nom, Args&&... args) -> lazy<column::evaluator<V>>;
 	template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* = nullptr>
-	auto vary_equation(delayed<column::evaluator<V>> const& nom, Lmbd lmbd) -> delayed<column::evaluator<V>>;
+	auto vary_equation(lazy<column::evaluator<V>> const& nom, Lmbd lmbd) -> lazy<column::evaluator<V>>;
 
   // template <typename Cnt>
-  // auto repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>;
+  // auto repeat_booker(lazy<counter::booker<Cnt>> const& bkr) -> lazy<counter::booker<Cnt>>;
 
 protected:
-	void add_column(delayed<column> var);
-	void add_selection(delayed<selection> sel);
-	void add_counter(delayed<counter> cnt);
+	void add_column(lazy<column> var);
+	void add_selection(lazy<selection> sel);
+	void add_counter(lazy<counter> cnt);
 
 protected:
 	bool m_analyzed;
 
-	std::vector<delayed<column>>    m_column_list;
-	std::vector<delayed<selection>> m_selection_list;
-	std::vector<delayed<counter>>   m_counter_list;
+	std::vector<lazy<column>>    m_column_list;
+	std::vector<lazy<selection>> m_selection_list;
+	std::vector<lazy<counter>>   m_counter_list;
 
 };
 
@@ -216,11 +216,11 @@ public:
 
 public:
 
-	virtual delayed<U> nominal() const = 0;
-	virtual delayed<U> variation(const std::string& var_name) const = 0;
+	virtual lazy<U> nominal() const = 0;
+	virtual lazy<U> variation(const std::string& var_name) const = 0;
 
-	virtual void set_nominal(delayed<U> const& nom) = 0;
-	virtual void set_variation(const std::string& var_name, delayed<U> const& nom) = 0;
+	virtual void set_nominal(lazy<U> const& nom) = 0;
+	virtual void set_variation(const std::string& var_name, lazy<U> const& nom) = 0;
 
 	virtual bool has_variation(const std::string& var_name) const = 0;
 	virtual std::set<std::string> list_variation_names() const = 0;
@@ -235,7 +235,7 @@ auto list_all_variation_names(Nodes const&... nodes) -> std::set<std::string>;
 
 }
 
-#include "ana/delayed.h"
+#include "ana/lazy.h"
 #include "ana/varied.h"
 
 // ----------------------------------------------------------------------------
@@ -275,150 +275,150 @@ ana::analysis<T>::analysis(const std::vector<std::string>& file_paths, const std
 
 template <typename T>
 template <typename Val>
-// typename ana::analysis<T>::template delayed<ana::term<Val>> ana::analysis<T>::read(const std::string& name)
-auto ana::analysis<T>::read(const std::string& name) -> delayed<read_column_t<read_dataset_t<T>,Val>>
+// typename ana::analysis<T>::template lazy<ana::term<Val>> ana::analysis<T>::read(const std::string& name)
+auto ana::analysis<T>::read(const std::string& name) -> lazy<read_column_t<read_dataset_t<T>,Val>>
 {
 	this->prepare();
-	auto nd = delayed<read_column_t<read_dataset_t<T>,Val>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template read<Val>(name); } ));
+	auto nd = lazy<read_column_t<read_dataset_t<T>,Val>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template read<Val>(name); } ));
 	this->add_column(nd);
 	return nd;
 }
 
 template <typename T>
 template <typename Val>
-auto ana::analysis<T>::constant(const Val& val) -> delayed<ana::column::constant<Val>>
+auto ana::analysis<T>::constant(const Val& val) -> lazy<ana::column::constant<Val>>
 {
-	auto nd = delayed<column::constant<Val>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template constant<Val>(val); } ));
+	auto nd = lazy<column::constant<Val>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template constant<Val>(val); } ));
 	this->add_column(nd);
   return nd;
 }
 
 template <typename T>
 template <typename Def, typename... Args, typename>
-auto ana::analysis<T>::define(Args&&... arguments) -> typename analysis<T>::template delayed<column::evaluator<Def>>
+auto ana::analysis<T>::define(Args&&... arguments) -> typename analysis<T>::template lazy<column::evaluator<Def>>
 {
-	auto nd = delayed<column::evaluator<Def>>(*this, this->m_loopers.from_slots( [&](looper<dataset_reader_type>& lpr) { return lpr.template define<Def>(arguments...); } ));
+	auto nd = lazy<column::evaluator<Def>>(*this, this->m_loopers.from_slots( [&](looper<dataset_reader_type>& lpr) { return lpr.template define<Def>(arguments...); } ));
 	return nd;
 }
 
 template <typename T>
 template <typename Lmbd, typename>
-auto ana::analysis<T>::calculate(Lmbd lmbd) ->  typename analysis<T>::template delayed<equation_evaluator_t<Lmbd>>
+auto ana::analysis<T>::calculate(Lmbd lmbd) ->  typename analysis<T>::template lazy<equation_evaluator_t<Lmbd>>
 {
 	auto fn = std::function{lmbd};
-	return delayed<equation_evaluator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template calculate(fn); } ));
+	return lazy<equation_evaluator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template calculate(fn); } ));
 }
 
 template <typename T>
 template <typename Def, typename... Cols>
-auto ana::analysis<T>::evaluate_column(delayed<column::evaluator<Def>> const& calc, delayed<Cols> const&... columns) -> delayed<Def>
+auto ana::analysis<T>::evaluate_column(lazy<column::evaluator<Def>> const& calc, lazy<Cols> const&... columns) -> lazy<Def>
 {
-	auto col = delayed<Def>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, column::evaluator<Def>& calc, Cols const&... cols) { return lpr.template evaluate_column(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
+	auto col = lazy<Def>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, column::evaluator<Def>& calc, Cols const&... cols) { return lpr.template evaluate_column(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
 	this->add_column(col);
   return col;
 }
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::filter(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>
+auto ana::analysis<T>::filter(const std::string& name, Lmbd lmbd) -> lazy<custom_selection_evaluator_t<Lmbd>>
 {
 	auto fn = std::function{lmbd};
-	return delayed<custom_selection_evaluator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,fn); } ));
+	return lazy<custom_selection_evaluator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,fn); } ));
 }
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::channel(const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>
+auto ana::analysis<T>::channel(const std::string& name, Lmbd lmbd) -> lazy<custom_selection_evaluator_t<Lmbd>>
 {
 	auto fn = std::function{lmbd};
-	auto sel = delayed<custom_selection_evaluator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,fn); } ));
+	auto sel = lazy<custom_selection_evaluator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,fn); } ));
 	return sel;	
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::filter(const std::string& name) -> delayed<simple_selection_evaluator_type>
+auto ana::analysis<T>::filter(const std::string& name) -> lazy<simple_selection_evaluator_type>
 {
 	auto fn = std::function([](double x){return x;});
-	auto sel = delayed<simple_selection_evaluator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,fn); } ));
+	auto sel = lazy<simple_selection_evaluator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template filter<Sel>(name,fn); } ));
 	return sel;	
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::channel(const std::string& name) -> delayed<simple_selection_evaluator_type>
+auto ana::analysis<T>::channel(const std::string& name) -> lazy<simple_selection_evaluator_type>
 {
 	auto fn = std::function([](double x){return x;});
-	auto sel = delayed<simple_selection_evaluator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,fn); } ));
+	auto sel = lazy<simple_selection_evaluator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr) { return lpr.template channel<Sel>(name,fn); } ));
 	return sel;	
 }
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>
+auto ana::analysis<T>::filter(lazy<selection> const& prev, const std::string& name, Lmbd lmbd) -> lazy<custom_selection_evaluator_t<Lmbd>>
 {
 	auto fn = std::function{lmbd};
-	return delayed<custom_selection_evaluator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,fn); }, prev.get_slots() ));
+	return lazy<custom_selection_evaluator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,fn); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel, typename Lmbd>
-auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name, Lmbd lmbd) -> delayed<custom_selection_evaluator_t<Lmbd>>
+auto ana::analysis<T>::channel(lazy<selection> const& prev, const std::string& name, Lmbd lmbd) -> lazy<custom_selection_evaluator_t<Lmbd>>
 {
 	auto fn = std::function{lmbd};
-	return delayed<custom_selection_evaluator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,fn); }, prev.get_slots() ));
+	return lazy<custom_selection_evaluator_t<Lmbd>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,fn); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::filter(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_evaluator_type>
+auto ana::analysis<T>::filter(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>
 {
 	auto fn = std::function([](double x){return x;});
-	return delayed<simple_selection_evaluator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,fn); }, prev.get_slots() ));
+	return lazy<simple_selection_evaluator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template filter<Sel>(prev,name,fn); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::channel(delayed<selection> const& prev, const std::string& name) -> delayed<simple_selection_evaluator_type>
+auto ana::analysis<T>::channel(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>
 {
 	auto fn = std::function([](double x){return x;});
-	return delayed<simple_selection_evaluator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,fn); }, prev.get_slots() ));
+	return lazy<simple_selection_evaluator_type>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection const& prev) { return lpr.template channel<Sel>(prev,name,fn); }, prev.get_slots() ));
 }
 
 template <typename T>
 template <typename Sel, typename... Cols>
-auto ana::analysis<T>::evaluate_selection(delayed<selection::evaluator<Sel>> const& calc, delayed<Cols> const&... columns) -> typename ana::analysis<T>::template delayed<selection>
+auto ana::analysis<T>::evaluate_selection(lazy<selection::evaluator<Sel>> const& calc, lazy<Cols> const&... columns) -> typename ana::analysis<T>::template lazy<selection>
 {
-	auto sel = delayed<selection>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection::evaluator<Sel>& calc, Cols&... cols) { return lpr.template evaluate_selection(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
+	auto sel = lazy<selection>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, selection::evaluator<Sel>& calc, Cols&... cols) { return lpr.template evaluate_selection(calc, cols...); }, calc.get_slots(), columns.get_slots()... ));
 	this->add_selection(sel);
   return sel;
 }
 
 template <typename T>
 template <typename Cnt, typename... Args>
-auto ana::analysis<T>::book(Args&&... args) -> delayed<ana::counter::booker<Cnt>>
+auto ana::analysis<T>::book(Args&&... args) -> lazy<ana::counter::booker<Cnt>>
 {
-	return delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [&](looper<dataset_reader_type>& lpr) { return lpr.template book<Cnt>(std::forward<Args>(args)...); } ));
+	return lazy<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [&](looper<dataset_reader_type>& lpr) { return lpr.template book<Cnt>(std::forward<Args>(args)...); } ));
 }
 
 template <typename T>
 template <typename Cnt>
-auto ana::analysis<T>::count_selection(delayed<counter::booker<Cnt>> const& bkr, delayed<selection> const& sel) -> delayed<Cnt>
+auto ana::analysis<T>::count_selection(lazy<counter::booker<Cnt>> const& bkr, lazy<selection> const& sel) -> lazy<Cnt>
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto cnt = delayed<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, const selection& sel) { return lpr.count_selection(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
+	auto cnt = lazy<Cnt>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, const selection& sel) { return lpr.count_selection(bkr,sel); }, bkr.get_slots(), sel.get_slots() ));
 	this->add_counter(cnt);
   return cnt;
 }
 
 template <typename T>
 template <typename Cnt, typename... Sels>
-auto ana::analysis<T>::count_selections(delayed<counter::booker<Cnt>> const& bkr, delayed<Sels> const&... sels) -> delayed<counter::booker<Cnt>>
+auto ana::analysis<T>::count_selections(lazy<counter::booker<Cnt>> const& bkr, lazy<Sels> const&... sels) -> lazy<counter::booker<Cnt>>
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto bkr2 = delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sels const&... sels) { return lpr.count_selections(bkr,sels...); }, bkr.get_slots(), sels.get_slots()... ));
+	auto bkr2 = lazy<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [=](looper<dataset_reader_type>& lpr, counter::booker<Cnt>& bkr, Sels const&... sels) { return lpr.count_selections(bkr,sels...); }, bkr.get_slots(), sels.get_slots()... ));
 	// add all counters that were booked
 	for (auto const& sel_path : bkr2.list_selection_paths()) {
 		this->add_counter(bkr2.get_counter_at(sel_path));
@@ -483,28 +483,28 @@ void ana::analysis<T>::process_dataset()
 }
 
 template <typename T>
-void ana::analysis<T>::add_column(typename ana::analysis<T>::template delayed<column> delayed)
+void ana::analysis<T>::add_column(typename ana::analysis<T>::template lazy<column> lazy)
 {
-	m_column_list.push_back(delayed);
+	m_column_list.push_back(lazy);
 }
 
 template <typename T>
-void ana::analysis<T>::add_selection(typename ana::analysis<T>::template delayed<selection> delayed)
+void ana::analysis<T>::add_selection(typename ana::analysis<T>::template lazy<selection> lazy)
 {
-	m_selection_list.push_back(delayed);
+	m_selection_list.push_back(lazy);
 }
 
 template <typename T>
-void ana::analysis<T>::add_counter(typename ana::analysis<T>::template delayed<counter> delayed)
+void ana::analysis<T>::add_counter(typename ana::analysis<T>::template lazy<counter> lazy)
 {
-	m_counter_list.push_back(delayed);
+	m_counter_list.push_back(lazy);
 }
 
 // template <typename T>
 // template <typename Cnt>
-// auto ana::analysis<T>::repeat_booker(delayed<counter::booker<Cnt>> const& bkr) -> delayed<counter::booker<Cnt>>
+// auto ana::analysis<T>::repeat_booker(lazy<counter::booker<Cnt>> const& bkr) -> lazy<counter::booker<Cnt>>
 // {
-// 	return delayed<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, counter::booker<Cnt> const& bkr){ return lpr.repeat_booker(bkr); }, bkr.get_slots() ));
+// 	return lazy<counter::booker<Cnt>>(*this, this->m_loopers.from_slots( [](looper<dataset_reader_type>& lpr, counter::booker<Cnt> const& bkr){ return lpr.repeat_booker(bkr); }, bkr.get_slots() ));
 // }
 
 template <typename... Nodes>
@@ -516,28 +516,28 @@ auto ana::list_all_variation_names(Nodes const&... nodes) -> std::set<std::strin
 
 template <typename T>
 template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* ptr>
-auto ana::analysis<T>::vary_column(delayed<V> const&, const std::string& colname) -> delayed<V>
+auto ana::analysis<T>::vary_column(lazy<V> const&, const std::string& colname) -> lazy<V>
 {
   return this->read<cell_value_t<std::decay_t<V>>>(colname);
 }
 
 template <typename T>
 template <typename Val, typename V, typename std::enable_if_t<ana::is_column_constant_v<V>, V>* ptr>
-auto ana::analysis<T>::vary_column(delayed<V> const& nom, Val const& val) -> delayed<V>
+auto ana::analysis<T>::vary_column(lazy<V> const& nom, Val const& val) -> lazy<V>
 {
 	return this->constant<Val>(val);
 }
 
 template <typename T>
 template <typename... Args, typename V, typename std::enable_if_t<ana::is_column_definition_v<V> && !ana::is_column_equation_v<V>, V>* ptr>
-auto ana::analysis<T>::vary_definition(delayed<column::evaluator<V>> const&, Args&&... args) -> delayed<column::evaluator<V>>
+auto ana::analysis<T>::vary_definition(lazy<column::evaluator<V>> const&, Args&&... args) -> lazy<column::evaluator<V>>
 {
   return this->define<V>(std::forward<Args>(args)...);
 }
 
 template <typename T>
 template <typename Lmbd, typename V, typename std::enable_if_t<ana::is_column_equation_v<V>, V>* ptr>
-auto ana::analysis<T>::vary_equation(delayed<column::evaluator<V>> const& nom, Lmbd lmbd) -> delayed<column::evaluator<V>>
+auto ana::analysis<T>::vary_equation(lazy<column::evaluator<V>> const& nom, Lmbd lmbd) -> lazy<column::evaluator<V>>
 {
 	// auto fn = std::function{lmbd};
 	return this->calculate<Lmbd>(lmbd);
