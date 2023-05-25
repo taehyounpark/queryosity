@@ -11,20 +11,19 @@ namespace ana
 {
 
 //------------------------------------------------------------------------------
-// calculated_with: term<T>::calculation with input arguments <U,V,W,...>
+// defined_from: term<T>::calculation with input arguments <U,V,W,...>
 //------------------------------------------------------------------------------
 template <typename Ret>
 template <typename... Args>
-class term<Ret>::calculated_with : public term<Ret>::calculation
+class term<Ret>::defined_from : public term<Ret>::calculation
 {
 
 public:
-  using vartuple_type = std::tuple<variable<Args>...>;
-  using obstuple_type = std::tuple<observable<Args>...>;
+  using argtup_type = std::tuple<variable<Args>...>;
 
 public:
-  calculated_with() = default;
-  virtual ~calculated_with() = default;
+  defined_from();
+  virtual ~defined_from() = default;
 
   template <typename... Vals>
   void set_arguments(const cell<Vals>&... args);
@@ -32,36 +31,40 @@ public:
   virtual Ret calculate() const override;
   virtual Ret evaluate(observable<Args>... args) const = 0;
 
-  auto get_arguments() const -> vartuple_type;
+  auto get_arguments() const -> argtup_type;
 
 protected:
-	vartuple_type m_arguments;
+	argtup_type m_arguments;
 
 };
 
 template <typename Ret, typename... Args>
-class column::definition<Ret(Args...)> : public term<Ret>::template calculated_with<Args...>
+class column::definition<Ret(Args...)> : public term<Ret>::template defined_from<Args...>
 {
 
 public:
-  using vartuple_type = typename term<Ret>::template calculated_with<Ret(Args...)>::vartuple_type;
-  using obstuple_type = typename term<Ret>::template calculated_with<Ret(Args...)>::obstuple_type;
-
-public:
-  definition() = default;
+  definition();
   virtual ~definition() = default;
 
 };
-
-template <typename T, typename = void> struct column_evaluator_traits;
-template <typename T> struct column_evaluator_traits<T, typename std::enable_if_t<ana::is_column_definition_v<T>>> { using evaluator_type = typename ana::column::template evaluator<T>; };
 
 }
 
 template <typename Ret>
 template <typename... Args>
+ana::term<Ret>::defined_from<Args...>::defined_from() :
+  term<Ret>::calculation()
+{}
+
+template <typename Ret, typename... Args>
+ana::column::definition<Ret(Args...)>::definition() :
+  term<Ret>::template defined_from<Args...>()
+{}
+
+template <typename Ret>
+template <typename... Args>
 template <typename... Vals>
-void ana::term<Ret>::calculated_with<Args...>::set_arguments(cell<Vals> const&... args)
+void ana::term<Ret>::defined_from<Args...>::set_arguments(cell<Vals> const&... args)
 {
   static_assert(sizeof...(Args)==sizeof...(Vals));
   m_arguments = std::make_tuple(
@@ -74,7 +77,7 @@ void ana::term<Ret>::calculated_with<Args...>::set_arguments(cell<Vals> const&..
 
 template <typename Ret>
 template <typename... Args>
-auto ana::term<Ret>::calculated_with<Args...>::get_arguments() const -> vartuple_type
+auto ana::term<Ret>::defined_from<Args...>::get_arguments() const -> argtup_type
 {
   return m_arguments;
 }
@@ -82,7 +85,7 @@ auto ana::term<Ret>::calculated_with<Args...>::get_arguments() const -> vartuple
 // user-defined expression with input arguments
 template <typename Ret>
 template <typename... Args>
-Ret ana::term<Ret>::calculated_with<Args...>::calculate() const
+Ret ana::term<Ret>::defined_from<Args...>::calculate() const
 {
   return std::apply(
     [this](const variable<Args>&... args) { 

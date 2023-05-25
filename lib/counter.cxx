@@ -4,9 +4,9 @@
 
 ana::counter::counter() :
 	action(),
-	m_selection(nullptr),
+	m_raw(false),
 	m_scale(1.0),
-	m_raw(false)
+	m_selection(nullptr)
 {}
 
 void ana::counter::set_selection(const selection& selection)
@@ -19,7 +19,7 @@ const ana::selection* ana::counter::get_selection() const
 	return m_selection;
 }
 
-void ana::counter::set_scale(double scale)
+void ana::counter::apply_scale(double scale)
 {
 	m_scale *= scale;
 }
@@ -38,6 +38,3 @@ void ana::counter::execute()
 {
 	if (m_selection->passed_cut()) this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
 }
-
-void ana::counter::finalize()
-{}

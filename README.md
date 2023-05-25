@@ -304,7 +304,7 @@ mll_vars.has_variation("sf_var"); // true : mll nominal & cut_2los varied
 Accessing a variation by its name, much like a selection by its path, is done by the subscript operator:
 ```cpp
 // access nominal vs variation
-mll_vars.nominal()->Draw();
+mll_vars.get_nominal()->Draw();
 mll_vars["lp4_up"]->Draw("same");
 ```
 ![mll_varied](images/mll_varied.png)
@@ -316,7 +316,7 @@ Keeping track of multiple systematic variations *and* selections is easily done 
 auto mll_channels_vars = hww.book<Histogram<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
 
 // specify variation name, followed by selection path
-std::cout << mll_channels_vars.nominal()["2ldf"]->GetEntries() << std::endl;;
+std::cout << mll_channels_vars.get_nominal()["2ldf"]->GetEntries() << std::endl;;
 std::cout << mll_channels_vars["lp4_up"]["2lsf"]->GetEntries() << std::endl;;
 ```
 

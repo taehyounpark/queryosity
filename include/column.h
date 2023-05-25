@@ -14,7 +14,7 @@ class column : public action
 {
 
 public:
-  template <typename T>
+  template <typename Dat>
   class computation;
 
   template <typename T>
@@ -22,9 +22,6 @@ public:
 
   template <typename T>
   class constant;
-
-  template <typename T>
-  class aggregate;
 
   template <typename T>
   class definition;
@@ -40,30 +37,6 @@ public:
   virtual ~column() = default;
 
 };
-
-constexpr std::true_type check_column(const column&);
-constexpr std::false_type check_column(...);
-template <typename T> constexpr bool is_column_v = decltype(check_column(std::declval<T>()))::value;
-
-template <typename T>
-constexpr std::true_type check_column_reader(typename column::reader<T> const&);
-constexpr std::false_type check_column_reader(...);
-template <typename T> constexpr bool is_column_reader_v = decltype(check_column_reader(std::declval<T>()))::value;
-
-template <typename T>
-constexpr std::true_type check_column_constant(typename column::constant<T> const&);
-constexpr std::false_type check_column_constant(...);
-template <typename T> constexpr bool is_column_constant_v = decltype(check_column_constant(std::declval<T>()))::value;
-
-template <typename T>
-constexpr std::true_type check_column_equation(typename column::equation<T> const&);
-constexpr std::false_type check_column_equation(...);
-template <typename T> constexpr bool is_column_equation_v = decltype(check_column_equation(std::declval<T>()))::value;
-
-template <typename T>
-constexpr std::true_type check_column_definition(typename column::definition<T> const&);
-constexpr std::false_type check_column_definition(...);
-template <typename T> constexpr bool is_column_definition_v = decltype(check_column_definition(std::declval<T>()))::value;
 
 //---------------------------------------------------
 // cell can actually report on the concrete data type
@@ -141,6 +114,14 @@ public:
   using value_type = typename cell<T>::value_type;
 
 public:
+  term();
+  virtual ~term() = default;
+
+  virtual void initialize() override;
+  virtual void execute() override;
+  virtual void finalize() override;
+
+public:
   class constant;
 
   class reader;
@@ -148,18 +129,10 @@ public:
   class calculation;
 
   template <typename... Args>
-  class calculated_with;
+  class defined_from;
 
   template <typename... Args>
-  class aggregated_with;
-
-public:
-  term() = default;
-  virtual ~term() = default;
-
-  virtual void initialize() override;
-  virtual void execute() override;
-  virtual void finalize() override;
+  class evaluated_from;
 
 };
 
@@ -233,6 +206,12 @@ std::shared_ptr<cell<To>> cell_as(const cell<From>& from);
 template <typename T> using cell_value_t = std::decay_t<decltype(std::declval<T>().value())>;
 
 }
+
+template <typename T>
+ana::term<T>::term() : 
+  column(),
+  cell<T>()
+{}
 
 template <typename T>
 void ana::term<T>::initialize()

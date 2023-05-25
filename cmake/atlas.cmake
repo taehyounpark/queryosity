@@ -8,7 +8,7 @@ atlas_subdir( ana )
 find_package( Threads REQUIRED )
 
 atlas_add_library( 
-  ana ana/*.h src/*.cxx
+  ana ana/*.h ana/*.cxx
 
   PUBLIC_HEADERS ana
 

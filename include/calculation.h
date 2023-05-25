@@ -27,7 +27,7 @@ public:
 
 protected:
   void update() const;
-  void reset() const;
+  void reset();
 
 protected:
   mutable T    m_value;
@@ -58,7 +58,7 @@ void ana::term<T>::calculation::update() const
 }
 
 template <typename T>
-void ana::term<T>::calculation::reset() const
+void ana::term<T>::calculation::reset()
 {
   m_updated = false;
 }
