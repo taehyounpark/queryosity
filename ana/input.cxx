@@ -57,6 +57,10 @@ void ana::input::partition::merge(size_t max_parts)
 	for (const auto& group : groups) {
 		merged.parts.push_back(vec::sum(group));
 	}
+	this->parts.clear();
+	for (const auto& group : groups) {
+		this->parts.push_back(vec::sum(group));
+	}
 }
 
 void ana::input::partition::truncate(long long max_entries)
