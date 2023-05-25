@@ -48,7 +48,7 @@ public:
   using obstuple_type = typename term<Ret>::template calculated_with<Ret(Args...)>::obstuple_type;
 
 public:
-  definition();
+  definition() = default;
   virtual ~definition() = default;
 
 };
@@ -57,11 +57,6 @@ template <typename T, typename = void> struct column_evaluator_traits;
 template <typename T> struct column_evaluator_traits<T, typename std::enable_if_t<ana::is_column_definition_v<T>>> { using evaluator_type = typename ana::column::template evaluator<T>; };
 
 }
-
-template <typename Ret, typename... Args>
-ana::column::definition<Ret(Args...)>::definition() :
-  term<Ret>::template calculated_with<Args...>()
-{}
 
 template <typename Ret>
 template <typename... Args>

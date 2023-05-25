@@ -16,7 +16,7 @@ class selection::cutflow
 {
 
 public:
-	cutflow();
+	cutflow() = default;
 	~cutflow() = default;
 
 public:

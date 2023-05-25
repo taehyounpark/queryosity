@@ -10,7 +10,9 @@
 #include "ana/input.h"
 #include "ana/column.h"
 #include "ana/constant.h"
+#include "ana/definition.h"
 #include "ana/equation.h"
+#include "ana/aggregate.h"
 
 namespace ana 
 {
@@ -93,6 +95,17 @@ template <typename F>
 auto ana::column::computation<T>::define(F expression) const -> std::shared_ptr<ana::column_evaluator_t<F>>
 {
 	return std::make_shared<evaluator<ana::equation_t<F>>>(expression);
+}
+
+template <typename T>
+template <typename Agg, typename... Cols>
+auto ana::column::computation<T>::proxy(Cols const&... columns) const -> std::shared_ptr<Agg>
+{
+	static_assert( std::is_default_constructible_v<Agg>, "aggregate proxies must be default-constructible" );
+	auto agg = std::make_shared<Agg>();
+	agg->set_components(columns...);
+	this->add_column(*agg);
+	return agg;
 }
 
 template <typename T>
