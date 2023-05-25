@@ -24,6 +24,9 @@ public:
   class constant;
 
   template <typename T>
+  class aggregate;
+
+  template <typename T>
   class definition;
 
   template <typename T>
@@ -146,6 +149,9 @@ public:
 
   template <typename... Args>
   class calculated_with;
+
+  template <typename... Args>
+  class aggregated_with;
 
 public:
   term() = default;

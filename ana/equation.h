@@ -14,7 +14,7 @@ class column::equation<Ret(Args...)> : public column::definition<Ret(Args...)>
 {
 
 public:
-  using argtuple_type = typename definition<Ret(Args...)>::argtuple_type;
+  using vartuple_type = typename definition<Ret(Args...)>::vartuple_type;
   using function_type = std::function<std::decay_t<Ret>(std::decay_t<Args> const&...)>;
 
 public:
@@ -25,7 +25,7 @@ public:
   virtual Ret evaluate(observable<Args>... args) const override;
 
 protected:
-	argtuple_type m_arguments;
+	vartuple_type m_arguments;
 	function_type m_evaluate;
 
 };

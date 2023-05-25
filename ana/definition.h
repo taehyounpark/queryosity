@@ -19,10 +19,11 @@ class term<Ret>::calculated_with : public term<Ret>::calculation
 {
 
 public:
-  using argtuple_type = std::tuple<variable<Args>...>;
+  using vartuple_type = std::tuple<variable<Args>...>;
+  using obstuple_type = std::tuple<observable<Args>...>;
 
 public:
-  calculated_with();
+  calculated_with() = default;
   virtual ~calculated_with() = default;
 
   template <typename... Vals>
@@ -31,16 +32,20 @@ public:
   virtual Ret calculate() const override;
   virtual Ret evaluate(observable<Args>... args) const = 0;
 
-  auto get_arguments() const -> argtuple_type;
+  auto get_arguments() const -> vartuple_type;
 
 protected:
-	argtuple_type m_arguments;
+	vartuple_type m_arguments;
 
 };
 
 template <typename Ret, typename... Args>
 class column::definition<Ret(Args...)> : public term<Ret>::template calculated_with<Args...>
 {
+
+public:
+  using vartuple_type = typename term<Ret>::template calculated_with<Ret(Args...)>::vartuple_type;
+  using obstuple_type = typename term<Ret>::template calculated_with<Ret(Args...)>::obstuple_type;
 
 public:
   definition();
@@ -52,12 +57,6 @@ template <typename T, typename = void> struct column_evaluator_traits;
 template <typename T> struct column_evaluator_traits<T, typename std::enable_if_t<ana::is_column_definition_v<T>>> { using evaluator_type = typename ana::column::template evaluator<T>; };
 
 }
-
-template <typename Ret>
-template <typename... Args>
-ana::term<Ret>::calculated_with<Args...>::calculated_with() :
-  term<Ret>::calculation()
-{}
 
 template <typename Ret, typename... Args>
 ana::column::definition<Ret(Args...)>::definition() :
@@ -80,7 +79,7 @@ void ana::term<Ret>::calculated_with<Args...>::set_arguments(cell<Vals> const&..
 
 template <typename Ret>
 template <typename... Args>
-auto ana::term<Ret>::calculated_with<Args...>::get_arguments() const -> argtuple_type
+auto ana::term<Ret>::calculated_with<Args...>::get_arguments() const -> vartuple_type
 {
   return m_arguments;
 }

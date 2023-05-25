@@ -36,6 +36,9 @@ public:
 	template <typename F>
 	auto define(F expression) const -> std::shared_ptr<ana::column_evaluator_t<F>>;
 
+	template <typename Agg, typename... Cols>
+	auto proxy(Cols const&... columns) const -> std::shared_ptr<Agg>;
+
 	template <typename Def, typename... Cols>
 	auto evaluate_column(column::evaluator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>;
 
