@@ -12,17 +12,16 @@ class selection : public action
 {
 
 public:
+	class cutflow;
 
 	class cut;
-	class weight;
-
 	class a_or_b;
 	class a_and_b;
 
+	class weight;
+
 	template <typename T>
 	class evaluator;
-
-	class cutflow;
 
 public:
 	selection(const std::string& name, bool channel);

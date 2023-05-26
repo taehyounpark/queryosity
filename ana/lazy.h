@@ -361,7 +361,7 @@ public:
 	 * @details Triggers the processing of the dataset if that the result of the counter is not already available.
 	 * @return `Result` the result of the implemented counter.
 	 */
-	template <typename V = U, typename std::enable_if<ana::is_counter_implemented_v<V>,void>::type* = nullptr>
+	template <typename V = U, std::enable_if_t<ana::is_counter_implemented_v<V>,bool> = false>
 	auto get_result() const -> decltype(std::declval<V>().get_result())
 	{
 		this->m_analysis->analyze();
@@ -451,7 +451,7 @@ public:
 	 * @brief Shorthand for `result` of counter.
 	 * @return `Result` the result of the implemented counter.
 	 */
-	template <typename V = U, typename std::enable_if<ana::is_counter_implemented_v<V>,void>::type* = nullptr>
+	template <typename V = U, std::enable_if_t<ana::is_counter_implemented_v<V>,bool> = false>
 	auto operator->() const -> decltype(std::declval<V>().get_result())
 	{
 		return this->get_result();
