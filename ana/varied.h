@@ -124,6 +124,12 @@ public:
 	template <typename V = Act, typename std::enable_if<ana::is_counter_booker_v<V> || ana::is_counter_implemented_v<V>,void>::type* = nullptr>
 	auto operator[](const std::string& sel_path) const -> lazy<V>;
 
+	template <typename Node, typename V = Act, std::enable_if_t<ana::is_selection_v<V>,bool> = false>
+	auto operator||(const Node& selection) const -> varied<V>;
+
+	template <typename Node, typename V = Act, std::enable_if_t<ana::is_selection_v<V>,bool> = false>
+	auto operator&&(const Node& selection) const -> varied<V>;
+
 	DECLARE_VARIED_UNARY_OP(-)
 	DECLARE_VARIED_UNARY_OP(!)
 	DECLARE_VARIED_BINARY_OP(+)
@@ -325,6 +331,30 @@ auto ana::analysis<T>::varied<Act>::operator()(Args&&... args) -> varied<typenam
 		syst.set_variation(var_name, get_variation(var_name).operator()(std::forward<Args>(args).get_variation(var_name)...) );
 	}
 	return syst;
+}
+
+template <typename T>
+template <typename Act>
+template <typename Node, typename V, std::enable_if_t<ana::is_selection_v<V>,bool>>
+auto ana::analysis<T>::varied<Act>::operator||(const Node& b) const -> varied<V>
+{
+	auto syst = varied<typename decltype(std::declval<lazy<Act>>().operator||(b.get_nominal()))::action_type>(this->get_nominal().operator||(b.get_nominal()));
+	for (auto const& var_name : list_all_variation_names(*this, b)) {
+		syst.set_variation(var_name, this->get_variation(var_name).operator||(b.get_variation(var_name)) );
+	}
+	return syst;	
+}
+
+template <typename T>
+template <typename Act>
+template <typename Node, typename V, std::enable_if_t<ana::is_selection_v<V>,bool>>
+auto ana::analysis<T>::varied<Act>::operator&&(const Node& b) const -> varied<V>
+{
+	auto syst = varied<typename decltype(std::declval<lazy<Act>>().operator&&(b.get_nominal()))::action_type>(this->get_nominal().operator&&(b.get_nominal()));
+	for (auto const& var_name : list_all_variation_names(*this, b)) {
+		syst.set_variation(var_name, this->get_variation(var_name).operator&&(b.get_variation(var_name)) );
+	}
+	return syst;	
 }
 
 DEFINE_VARIED_UNARY_OP(minus,-)

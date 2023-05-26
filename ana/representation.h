@@ -53,21 +53,6 @@ public:
 
 };
 
-// template <typename Ret, typename... Obs>
-// class column::representation<Ret(Obs...)>::property : public column::template representation<Ret(Obs...)>
-// {
-
-// public:
-//   using vartuple_type = typename term<Ret>::template representation_of<Ret(Obs...)>::vartuple_type;
-//   using obstuple_type = typename term<Ret>::template representation_of<Ret(Obs...)>::obstuple_type;
-
-// public:
-//   property() = default;
-//   virtual ~property() = default;
-
-
-// };
-
 }
 
 template <typename Ret>

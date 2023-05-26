@@ -137,6 +137,8 @@ protected:
   auto filter(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>;
   template <typename Sel>
   auto channel(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>;
+	template <typename Sel>
+  auto join(lazy<selection> const& a, lazy<selection> const& b) -> lazy<selection>;
 
 	// recreate a lazy node as a variation under new arguments
 	template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>* = nullptr>
@@ -149,16 +151,16 @@ protected:
 	auto vary_equation(lazy<column::evaluator<V>> const& nom, F callable) -> lazy<column::evaluator<V>>;
 
 protected:
-	void add_column(lazy<column> const& var);
-	void add_selection(lazy<selection> const& sel);
-	void add_counter(lazy<counter> const& cnt);
+	void add_action(lazy<action> const& act);
 
 protected:
 	bool m_analyzed;
 
-	std::vector<concurrent<column>>    m_column_list;
-	std::vector<concurrent<selection>> m_selection_list;
-	std::vector<concurrent<counter>>   m_counter_list;
+	std::vector<concurrent<action>> m_actions;
+
+	// std::vector<concurrent<column>>    m_column_list;
+	// std::vector<concurrent<selection>> m_selection_list;
+	// std::vector<concurrent<counter>>   m_counter_list;
 
 };
 
@@ -257,7 +259,7 @@ auto ana::analysis<T>::read(const std::string& name) -> lazy<read_column_t<read_
 {
 	this->initialize();
 	auto nd = lazy<read_column_t<read_dataset_t<T>,Val>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template read<Val>(name); }));
-	this->add_column(nd);
+	this->add_action(nd);
 	return nd;
 }
 
@@ -266,7 +268,7 @@ template <typename Val>
 auto ana::analysis<T>::constant(const Val& val) -> lazy<ana::column::constant<Val>>
 {
 	auto nd = lazy<column::constant<Val>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template constant<Val>(val); } ));
-	this->add_column(nd);
+	this->add_action(nd);
   return nd;
 }
 
@@ -290,7 +292,7 @@ template <typename Def, typename... Cols>
 auto ana::analysis<T>::evaluate_column(lazy<column::evaluator<Def>> const& calc, lazy<Cols> const&... columns) -> lazy<Def>
 {
 	auto col = lazy<Def>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, column::evaluator<Def>& calc, Cols const&... cols) { return proc.template evaluate_column(calc, cols...); }, calc, columns... ));
-	this->add_column(col);
+	this->add_action(col);
   return col;
 }
 
@@ -362,8 +364,15 @@ template <typename Eqn, typename... Cols>
 auto ana::analysis<T>::evaluate_selection(lazy<selection::evaluator<Eqn>> const& calc, lazy<Cols> const&... columns) -> lazy<selection>
 {
 	auto sel = lazy<selection>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection::evaluator<Eqn>& calc, Cols&... cols) { return proc.template evaluate_selection(calc, cols...); }, calc, columns... ));
-	this->add_selection(sel);
+	this->add_action(sel);
   return sel;
+}
+
+template <typename T>
+template <typename Sel>
+auto ana::analysis<T>::join(lazy<selection> const& a, lazy<selection> const& b) -> lazy<selection>
+{
+	return lazy<selection>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& a, selection const& b) { return proc.template join<Sel>(a,b); }, a, b ));
 }
 
 template <typename T>
@@ -380,7 +389,7 @@ auto ana::analysis<T>::book_selection(lazy<counter::booker<Cnt>> const& bkr, laz
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
 	auto cnt = lazy<Cnt>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, const selection& sel) { return proc.book_selection(bkr,sel); }, bkr, sel ));
-	this->add_counter(cnt);
+	this->add_action(cnt);
   return cnt;
 }
 
@@ -393,7 +402,7 @@ auto ana::analysis<T>::book_selections(lazy<counter::booker<Cnt>> const& bkr, la
 	auto bkr2 = lazy<counter::booker<Cnt>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, Sels const&... sels) { return proc.book_selections(bkr,sels...); }, bkr, sels... ));
 	// add all counters that were booked
 	for (auto const& sel_path : bkr2.list_selection_paths()) {
-		this->add_counter(bkr2.get_counter(sel_path));
+		this->add_action(bkr2.get_counter(sel_path));
 	}
   return bkr2;
 }
@@ -401,9 +410,26 @@ auto ana::analysis<T>::book_selections(lazy<counter::booker<Cnt>> const& bkr, la
 template <typename T>
 void ana::analysis<T>::analyze()
 { 
+	// do not analyze if already done
 	if (m_analyzed) return;
-	this->process_dataset();
-	this->clear_counters();
+
+	this->m_dataset->start_dataset();
+
+	// multithreaded (if enabled)
+	this->m_processors.run_slots(
+		[](processor<dataset_reader_type>& proc) {
+			proc.process();
+		}
+	);
+
+	this->m_dataset->finish_dataset();
+
+	// clear counters in counter::experiment
+	// if they are present, they will be repeated in future runs
+	this->m_processors.call_all( [](processor<dataset_reader_type>& proc){proc.clear_counters();} );
+
+	// ignore future analyze() requests,
+	// until reset() is called
 	m_analyzed = true;
 }
 
@@ -414,40 +440,9 @@ void ana::analysis<T>::reset()
 }
 
 template <typename T>
-void ana::analysis<T>::clear_counters()
-{ 
-	m_counter_list.clear();
-	this->m_processors.call_all( [](processor<dataset_reader_type>& proc){proc.clear_counters();} );
-}
-
-template <typename T>
-void ana::analysis<T>::process_dataset()
+void ana::analysis<T>::add_action(typename ana::analysis<T>::template lazy<action> const& action)
 {
-	this->m_dataset->start_dataset();
-	this->m_processors.run_slots(
-		[](processor<dataset_reader_type>& proc) {
-			proc.process();
-		}
-	);
-	this->m_dataset->finish_dataset();
-}
-
-template <typename T>
-void ana::analysis<T>::add_column(typename ana::analysis<T>::template lazy<column> const& lazy)
-{
-	m_column_list.emplace_back(lazy);
-}
-
-template <typename T>
-void ana::analysis<T>::add_selection(typename ana::analysis<T>::template lazy<selection> const& lazy)
-{
-	m_selection_list.emplace_back(lazy);
-}
-
-template <typename T>
-void ana::analysis<T>::add_counter(typename ana::analysis<T>::template lazy<counter> const& lazy)
-{
-	m_counter_list.emplace_back(lazy);
+	m_actions.emplace_back(action);
 }
 
 template <typename... Nodes>

@@ -3,10 +3,10 @@
 #include "ana/counter.h"
 #include "ana/strutils.h"
 
-ana::selection::selection(const std::string& name) :
+ana::selection::selection(const std::string& name, bool channel) :
 	m_name(name),
-	m_preselection(nullptr),
-	m_channel(false)
+	m_channel(channel),
+	m_preselection(nullptr)
 {}
 
 void ana::selection::set_initial()
@@ -27,11 +27,6 @@ bool ana::selection::is_initial() const
 const ana::selection* ana::selection::get_previous() const
 {
 	return m_preselection;
-}
-
-void ana::selection::set_channel(bool channel)
-{
-	m_channel = channel;
 }
 
 bool ana::selection::is_channel() const noexcept
