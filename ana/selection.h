@@ -24,6 +24,9 @@ public:
 	class evaluator;
 
 public:
+	static std::string concatenate_names(std::vector<std::string> const& names, std::string delimiter = "/");
+
+public:
 	selection(const std::string& name, bool channel);
   virtual ~selection() = default;
 

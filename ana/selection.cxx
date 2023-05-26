@@ -1,7 +1,15 @@
 #include "ana/selection.h"
-
 #include "ana/counter.h"
-#include "ana/strutils.h"
+
+std::string ana::selection::concatenate_names(std::vector<std::string> const& names, std::string delimiter)
+{
+	std::string joined;	
+	for (auto const& name : names) {
+		joined += name;
+		joined += delimiter;
+	}
+	return joined;
+}
 
 ana::selection::selection(const std::string& name, bool channel) :
 	m_name(name),
@@ -48,7 +56,7 @@ std::string ana::selection::get_path() const
 		presel = presel->get_previous();
 	}
 	std::reverse(channels.begin(),channels.end());
-	return ( channels.size() ? str::join(channels,"/")+"/"+this->get_name() : this->get_name() );
+	return concatenate_names(channels,"/")+this->get_name();
 }
 
 std::string ana::selection::get_full_path() const
@@ -60,7 +68,7 @@ std::string ana::selection::get_full_path() const
 		presel = presel->get_previous();
 	}
 	std::reverse(presels.begin(),presels.end());
-	return ( presels.size() ? str::ensure_trailing(str::join(presels,"/"),"/")+this->get_name() : this->get_name() );
+	return concatenate_names(presels,"/")+this->get_name();
 }
 
 void ana::selection::initialize()
