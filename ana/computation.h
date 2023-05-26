@@ -17,6 +17,13 @@
 namespace ana 
 {
 
+/**
+ * @brief Computation graph of columns.
+ * @details `column::computation<Dataset_t>` issues `shared::ptr<Column_t>` 
+ * for all columns, or their evaluators, used in the analysis.
+ * It keeps a raw pointer of each, only if their action needs to be called
+ * for each dataset entry (e.g. constant values are not stored).
+*/
 template <typename T>
 class column::computation
 {

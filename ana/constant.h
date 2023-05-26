@@ -37,7 +37,6 @@ public:
 
 template <typename Val>
 ana::term<Val>::constant::constant(const Val& val) :
-  ana::term<Val>(),
   m_value(val)
 {}
 

@@ -32,17 +32,18 @@ public:
   concurrent() = default;
   ~concurrent() = default;
 
+  concurrent(const concurrent& other) = default;
+  concurrent& operator=(const concurrent& other) = default;
+
   template <typename U>
-  concurrent(const concurrent<U>& other);
+  concurrent(const concurrent<U>& derived);
   template <typename U>
-  concurrent& operator=(const concurrent<U>& other);
+  concurrent& operator=(const concurrent<U>& derived);
 
 public:
-  // main lazy = slot(0)
   void set_model(std::shared_ptr<T> model);
   std::shared_ptr<T> get_model() const;
 
-  // add/get slots
   void add_slot(std::shared_ptr<T> slot);
   std::shared_ptr<T> get_slot(size_t i) const;
   void clear_slots();
@@ -101,24 +102,24 @@ protected:
 
 template <typename T>
 template <typename U>
-ana::concurrent<T>::concurrent(const concurrent<U>& other)
+ana::concurrent<T>::concurrent(const concurrent<U>& derived)
 {
   static_assert( std::is_base_of_v<T,U>, "incompatible concurrent types" );
-  this->m_model = other.m_model;
+  this->m_model = derived.m_model;
   this->m_slots.clear();
-  for(size_t i=0 ; i<other.concurrency() ; ++i) {
-    this->m_slots.push_back(other.get_slot(i));
+  for(size_t i=0 ; i<derived.concurrency() ; ++i) {
+    this->m_slots.push_back(derived.get_slot(i));
   }
 }
 
 template <typename T>
 template <typename U>
-ana::concurrent<T>& ana::concurrent<T>::operator=(const concurrent<U>& other)
+ana::concurrent<T>& ana::concurrent<T>::operator=(const concurrent<U>& derived)
 {
-  this->m_model = other.m_model;
+  this->m_model = derived.m_model;
   this->m_slots.clear();
-  for(size_t i=0 ; i<other.concurrency() ; ++i) {
-    this->m_slots.push_back(other.get_slot(i));
+  for(size_t i=0 ; i<derived.concurrency() ; ++i) {
+    this->m_slots.push_back(derived.get_slot(i));
   }
   return *this;
 }

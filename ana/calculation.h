@@ -5,15 +5,21 @@
 namespace ana
 {
 
-//------------------------------------------------------------------------------
-// calculation: value is reset (i.e. updated if needed) per-entry
-//------------------------------------------------------------------------------
+/**
+ * @brief Calculate a value for each dataset entry.
+ * @details `term<T>::calculation` is a `term<T>` abstract class 
+ * that holds a value of type `T` to be updated for each entry.
+ * Its action execution marks itself as "not updated" such that 
+ * if and when its value is requested for the first time in an entry, 
+ * it calculates the value and stores it for subsequent accesses in the entry.
+ * `T` must be *CopyConstructible* and *CopyAssignable*.
+*/
 template <typename T>
 class term<T>::calculation : public term<T>
 {
 
 public:
-	calculation();
+	calculation() = default;
   virtual ~calculation() = default;
 
 public:
@@ -36,12 +42,6 @@ protected:
 };
 
 }
-
-template <typename T>
-ana::term<T>::calculation::calculation() :
-  term<T>(),
-  m_updated(false)
-{}
 
 template <typename T>
 const T& ana::term<T>::calculation::value() const
