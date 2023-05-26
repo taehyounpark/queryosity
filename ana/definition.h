@@ -54,7 +54,7 @@ public:
 };
 
 template <typename T, typename = void> struct column_evaluator_traits;
-template <typename T> struct column_evaluator_traits<T, typename std::enable_if_t<ana::is_column_definition_v<T>>> { using evaluator_type = typename ana::column::template evaluator<T>; };
+template <typename T> struct column_evaluator_traits<T, typename std::enable_if_t<ana::is_column_v<T>>> { using evaluator_type = typename ana::column::template evaluator<T>; };
 
 }
 

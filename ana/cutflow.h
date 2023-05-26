@@ -35,11 +35,13 @@ public:
 	template <typename Sel, typename... Cols>
 	auto evaluate_selection(evaluator<Sel> const& calc, Cols const&... columns) -> std::shared_ptr<selection>;
 
+	template <typename Sel>
+	auto join(selection const& a, selection const& b) const -> std::shared_ptr<selection>;
+
 protected:
 	void add_selection(selection& selection);
 
 protected:
-	// const selection* m_latest;
 	std::vector<selection*> m_selections;
 
 };
@@ -55,8 +57,7 @@ auto ana::selection::cutflow::filter(const std::string& name, F expression) cons
 {
 	auto eqn = ana::make_equation(expression);
 	auto calc = std::make_shared<evaluator<ana::equation_t<F>>>(eqn);
-	calc->template set_selection<Sel>(name);
-	calc->set_channel(false);
+	calc->template set_selection<Sel>(name,false);
 	return calc;
 }
 
@@ -65,8 +66,7 @@ auto ana::selection::cutflow::channel(const std::string& name, F expression) con
 {
 	auto eqn = ana::make_equation(expression);
 	auto calc = std::make_shared<evaluator<ana::equation_t<F>>>(eqn);
-	calc->template set_selection<Sel>(name);
-	calc->set_channel(true);
+	calc->template set_selection<Sel>(name,true);
 	return calc;
 }
 
@@ -92,4 +92,10 @@ auto ana::selection::cutflow::evaluate_selection(evaluator<Sel> const& calc, Col
 	auto sel = calc.evaluate_selection(columns...);
 	this->add_selection(*sel);
 	return sel;
+}
+
+template <typename Sel>
+auto ana::selection::cutflow::join(ana::selection const& a, ana::selection const& b) const -> std::shared_ptr<ana::selection>
+{
+	return std::make_shared<Sel>(a,b);
 }

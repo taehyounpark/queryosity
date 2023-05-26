@@ -10,7 +10,7 @@ class selection::weight : public selection
 {
 
 public:
-	weight(const std::string& name);
+	weight(const std::string& name, bool channel);
   virtual ~weight() = default;
 
 public:

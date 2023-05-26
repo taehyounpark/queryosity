@@ -1,7 +1,7 @@
 #include "ana/weight.h"
 
-ana::selection::weight::weight(const std::string& name) :
-	selection(name)
+ana::selection::weight::weight(const std::string& name, bool channel) :
+	selection(name,channel)
 {}
 
 bool ana::selection::weight::passed_cut() const

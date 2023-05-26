@@ -24,9 +24,6 @@ public:
   class constant;
 
   template <typename T>
-  class aggregate;
-
-  template <typename T>
   class definition;
 
   template <typename T>
@@ -35,8 +32,14 @@ public:
   template <typename T>
   class evaluator;
 
+  template <typename T>
+  class representation;
+
+  template <typename T>
+  class representor;
+
 public: 
-  column();
+  column() = default;
   virtual ~column() = default;
 
 };
@@ -64,6 +67,11 @@ template <typename T>
 constexpr std::true_type check_column_definition(typename column::definition<T> const&);
 constexpr std::false_type check_column_definition(...);
 template <typename T> constexpr bool is_column_definition_v = decltype(check_column_definition(std::declval<T const&>()))::value;
+
+template <typename T>
+constexpr std::true_type check_column_representation(typename column::representation<T> const&);
+constexpr std::false_type check_column_representation(...);
+template <typename T> constexpr bool is_column_representation_v = decltype(check_column_representation(std::declval<T const&>()))::value;
 
 //---------------------------------------------------
 // cell can actually report on the concrete data type
@@ -151,7 +159,7 @@ public:
   class calculated_with;
 
   template <typename... Args>
-  class aggregated_with;
+  class representation_of;
 
 public:
   term() = default;
@@ -169,7 +177,7 @@ class variable
 {
 
 public:
-  variable();
+  variable() = default;
   template <typename U>
   variable(const cell<U>& val);
   virtual ~variable() = default;
@@ -223,7 +231,7 @@ public:
 	std::shared_ptr<T> evaluate_column( cell<Vals> const&... cols ) const;
 
 protected:
-	std::function<std::shared_ptr<T>()> m_make_shared_counter;
+	std::function<std::shared_ptr<T>()> m_make_shared;
 
 };
 
@@ -300,21 +308,21 @@ std::shared_ptr<ana::cell<To>> ana::cell_as(const cell<From>& from)
 template <typename T>
 template <typename... Args>
 ana::column::evaluator<T>::evaluator(Args const&... args) :
-	m_make_shared_counter(std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... ))
+	m_make_shared(std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... ))
 {}
 
 template <typename T>
 template <typename... Args>
 void ana::column::evaluator<T>::set_constructor(Args const&... args)
 {
-  m_make_shared_counter = std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... );
+  m_make_shared = std::bind([](Args const&... args){return std::make_shared<T>( args... );},  args... );
 }
 
 template <typename T>
 template <typename... Vals>
 std::shared_ptr<T> ana::column::evaluator<T>::evaluate_column(cell<Vals> const&... columns) const
 {
-  auto defn = m_make_shared_counter();
+  auto defn = m_make_shared();
 
   defn->set_arguments(columns...);
 
@@ -324,11 +332,6 @@ std::shared_ptr<T> ana::column::evaluator<T>::evaluate_column(cell<Vals> const&.
 // --------
 // variable
 // --------
-
-template <typename T>
-ana::variable<T>::variable() :
-  m_val(nullptr)
-{}
 
 template <typename T>
 template <typename U>

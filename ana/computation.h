@@ -12,7 +12,7 @@
 #include "ana/constant.h"
 #include "ana/definition.h"
 #include "ana/equation.h"
-#include "ana/aggregate.h"
+#include "ana/representation.h"
 
 namespace ana 
 {
@@ -37,9 +37,6 @@ public:
 
 	template <typename F>
 	auto define(F expression) const -> std::shared_ptr<ana::column_evaluator_t<F>>;
-
-	template <typename Agg, typename... Cols>
-	auto proxy(Cols const&... columns) const -> std::shared_ptr<Agg>;
 
 	template <typename Def, typename... Cols>
 	auto evaluate_column(column::evaluator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>;
@@ -78,9 +75,7 @@ template <typename T>
 template <typename Val>
 auto ana::column::computation<T>::constant(Val const& val) -> std::shared_ptr<ana::column::constant<Val>>
 {
-	auto cnst = std::make_shared<typename column::constant<Val>>(val);
-	this->add_column(*cnst);
-	return cnst;
+	return std::make_shared<typename column::constant<Val>>(val);
 }
 
 template <typename T>
@@ -98,23 +93,14 @@ auto ana::column::computation<T>::define(F expression) const -> std::shared_ptr<
 }
 
 template <typename T>
-template <typename Agg, typename... Cols>
-auto ana::column::computation<T>::proxy(Cols const&... columns) const -> std::shared_ptr<Agg>
-{
-	static_assert( std::is_default_constructible_v<Agg>, "aggregate proxies must be default-constructible" );
-	auto agg = std::make_shared<Agg>();
-	agg->set_components(columns...);
-	this->add_column(*agg);
-	return agg;
-}
-
-template <typename T>
 template <typename Def, typename... Cols>
 auto ana::column::computation<T>::evaluate_column(column::evaluator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>
 {
-	// use the evaluator to actually make the column
 	auto defn = calc.evaluate_column(columns...);
-	this->add_column(*defn);
+	// only if the evaluated column is a definition
+	if constexpr( is_column_definition_v<Def> ) {
+		this->add_column(*defn);
+	}
 	return defn;
 }
 

@@ -380,12 +380,60 @@ public:
 	{
 		return this->evaluate(std::forward<Args>(args)...);
 	}
-	// template <typename... Args, typename V = U, std::enable_if_t<is_selection_evaluator_v<V>,bool> = false>
-	// auto operator()(Args&&... args) -> decltype(std::declval<lazy<V>>().apply(std::declval<Args>()...))
-	// // function = evaluate a selection based on input columns
-	// {
-	// 	return this->apply(std::forward<Args>(args)...);
-	// }
+
+	/**
+	 * @brief Join two filters (OR)
+	 * @return selection Its decision is given by `passed_cut() = a.passed_cut() || b.passed_cut()`.
+	 * @details A joined filter should be treated as strictly a cut without any preselection (i.e. weight = 1.0), and one that cannot be designated as a `channel`.
+	 */
+	template <typename V = U, std::enable_if_t<ana::is_selection_v<V>,bool> = false>
+	auto operator||(const lazy<selection>& b) const -> lazy<selection>
+	{
+		return this->m_analysis->template join<selection::a_or_b>(*this,b);
+	}
+
+	/**
+	 * @brief Join two filters (AND)
+	 * @return `lazy<selection>` Its decision is given by `passed_cut() = a.passed_cut() && b.passed_cut()`.
+	 * @details A joined filter should be treated as strictly a cut without any preselection (i.e. weight = 1.0), and one that cannot be designated as a `channel`.
+	 */
+	template <typename V = U, std::enable_if_t<ana::is_selection_v<V>,bool> = false>
+	auto operator&&(const lazy<selection>& b) const -> lazy<selection>
+	{
+		return this->m_analysis->template join<selection::a_and_b>(*this,b);
+	}
+
+	/**
+	 * @brief Join two filters (OR)
+	 * @return selection Its decision is given by `passed_cut() = a.passed_cut() || b.passed_cut()`.
+	 * @details A joined filter should be treated as strictly a cut without any preselection (i.e. weight = 1.0), and one that cannot be designated as a `channel`.
+	 */
+	template <typename V = U, std::enable_if_t<ana::is_selection_v<V>,bool> = false>
+	auto operator||(const varied<selection>& b) const -> lazy<selection>
+	{
+		varied<selection> syst(this->get_nominal().operator||(b.get_nominal()));
+		auto var_names = list_all_variation_names(b);
+		for (auto const& var_name : var_names) {
+			syst.set_variation(var_name, this->get_variation(var_name).operator||(b.get_variation(var_name)));
+		}
+		return syst;
+	}
+
+	/**
+	 * @brief Join two filters (AND)
+	 * @return `lazy<selection>` Its decision is given by `passed_cut() = a.passed_cut() && b.passed_cut()`.
+	 * @details A joined filter should be treated as strictly a cut without any preselection (i.e. weight = 1.0), and one that cannot be designated as a `channel`.
+	 */
+	template <typename V = U, std::enable_if_t<ana::is_selection_v<V>,bool> = false>
+	auto operator&&(const varied<selection>& b) const -> lazy<selection>
+	{
+		varied<selection> syst(this->get_nominal().operator&&(b.get_nominal()));
+		auto var_names = list_all_variation_names(b);
+		for (auto const& var_name : var_names) {
+			syst.set_variation(var_name, this->get_variation(var_name).operator&&(b.get_variation(var_name)));
+		}
+		return syst;
+	}
 
 	/**
 	 * @brief Shorthand for `get_counter` of counter booker.
