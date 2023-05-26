@@ -187,8 +187,8 @@ A __counter__ runs for each entry such that:
 
 A full implementation of `ana::counter::logic<Result(Columns...)>` defines what (arbitrary) action is to be performed as the counting operation, its output result, and how they should be merged from multiple threads.
 ```cpp
-// Histogram<1,float> : ana::counter::logic<std::shared_ptr<TH1>(float)> (i.e. user-implemented)
-auto pth_2los = ds.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
+// Hist<1,float> : ana::counter::logic<std::shared_ptr<TH1>(float)> (i.e. user-implemented)
+auto pth_2los = ds.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
 // for each entry:
   // if (cut_2los.passed_cut()) { 
   //   pth_hist->Fill(pth, cut_2los.get_weight());
@@ -204,7 +204,7 @@ Each `fill` and `at` call returns a new node with those operations applied, such
 - Booked at any (set of) selection(s).
 ```cpp
 // fill the histogram with pT of both leptons
-auto l1n2_pt_hist = ds.book<Histogram<1,float>>("l1n2_pt",20,0,100).fill(l1pt).fill(l2pt);
+auto l1n2_pt_hist = ds.book<Hist<1,float>>("l1n2_pt",20,0,100).fill(l1pt).fill(l2pt);
 
 // 2ldf signal & control regions
 auto l1n2_pt_hists_2ldf = l1n2_pt_hist.at(cut_2ldf_sr, cut_2ldf_wwcr);
@@ -222,7 +222,7 @@ l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_2ldf["2ldf/wwcr"];
 It a counter is booked at numerous selections, it may be convenient to have a uniform way to write out the results across all selections at once instead of dealing with the bookeeping challenges. For example, an implementation of `ana::counter::summary<T>` (or any other user-defined method) can provide a skeleton to consistently perform across multiple counters and selections:
 ```cpp
 // booked at multiple selections
-auto pth_hists = ds.book<Histogram<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, cut_2ldf, cut_2lsf);
+auto pth_hists = ds.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, cut_2ldf, cut_2lsf);
 
 // Folder : ana::counter::summary<Folder>
 // write histogram at each folder of the selection path
@@ -298,7 +298,7 @@ cut_2l.has_variation("sf_var");  // true
 
 // ...
 
-auto mll_vars = ds.book<Histogram<1,float>>("mll",50,0,100).fill(mll).at(cut_2los);
+auto mll_vars = ds.book<Hist<1,float>>("mll",50,0,100).fill(mll).at(cut_2los);
 mll_vars.has_variation("lp4_up"); // true : mll & cut_2los varied
 mll_vars.has_variation("sf_var"); // true : mll nominal & cut_2los varied
 ```
@@ -314,7 +314,7 @@ Keeping track of multiple systematic variations *and* selections is easily done 
 ```cpp
 // mll contains variations = {lp4_up, sf_var}
 // booked at selections = {cut_2ldf, cut_2lsf}
-auto mll_channels_vars = ds.book<Histogram<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
+auto mll_channels_vars = ds.book<Hist<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
 
 // specify variation name, followed by selection path
 std::cout << mll_channels_vars.get_nominal()["2ldf"]->GetEntries() << std::endl;;
