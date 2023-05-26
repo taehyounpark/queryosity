@@ -53,7 +53,7 @@ struct is_callable
 template <typename T>
 constexpr bool is_callable_v = is_callable<T>::value;
 
-template <typename F> struct column_evaluator_traits<F, typename std::enable_if_t<!ana::is_column_definition_v<F> && ana::is_callable_v<F>>> { using evaluator_type = typename ana::column::template evaluator<ana::equation_t<F>>; };
+template <typename F> struct column_evaluator_traits<F, typename std::enable_if_t<!ana::is_column_v<F> && ana::is_callable_v<F>>> { using evaluator_type = typename ana::column::template evaluator<ana::equation_t<F>>; };
 template <typename T> using column_evaluator_t = typename column_evaluator_traits<T>::evaluator_type;
 
 }

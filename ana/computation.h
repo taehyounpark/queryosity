@@ -12,7 +12,7 @@
 #include "ana/constant.h"
 #include "ana/definition.h"
 #include "ana/equation.h"
-#include "ana/aggregate.h"
+#include "ana/representation.h"
 
 namespace ana 
 {
@@ -38,8 +38,8 @@ public:
 	template <typename F>
 	auto define(F expression) const -> std::shared_ptr<ana::column_evaluator_t<F>>;
 
-	template <typename Agg, typename... Cols>
-	auto proxy(Cols const&... columns) const -> std::shared_ptr<Agg>;
+	// template <typename Rpr, typename... Cols>
+	// auto proxy(Cols const&... columns) const -> std::shared_ptr<ana::column_evaluator_t<Rpr>>;
 
 	template <typename Def, typename... Cols>
 	auto evaluate_column(column::evaluator<Def>& calc, Cols const&... columns) -> std::shared_ptr<Def>;
@@ -97,16 +97,12 @@ auto ana::column::computation<T>::define(F expression) const -> std::shared_ptr<
 	return std::make_shared<evaluator<ana::equation_t<F>>>(expression);
 }
 
-template <typename T>
-template <typename Agg, typename... Cols>
-auto ana::column::computation<T>::proxy(Cols const&... columns) const -> std::shared_ptr<Agg>
-{
-	static_assert( std::is_default_constructible_v<Agg>, "aggregate proxies must be default-constructible" );
-	auto agg = std::make_shared<Agg>();
-	agg->set_components(columns...);
-	this->add_column(*agg);
-	return agg;
-}
+// template <typename T>
+// template <typename Rpr, typename... Args>
+// auto ana::column::computation<T>::proxy(Args const&... args) const -> std::shared_ptr<ana::column_evaluator_t<Rpr>>
+// {
+// 	return std::make_shared<evaluator<Rpr>>(args...);
+// }
 
 template <typename T>
 template <typename Def, typename... Cols>
