@@ -1,7 +1,7 @@
 #include "ana/input.h"
 
-
-#include "ana/vecutils.h"
+#include <numeric>
+#include <iterator>
 
 ana::input::range::range(size_t slot, long long begin, long long end) :
 	slot(slot),
@@ -28,6 +28,27 @@ ana::input::range& ana::input::range::operator+=(const range& next)
 	return *this;
 }
 
+std::vector<std::vector<ana::input::range>> ana::input::partition::group_parts(const std::vector<range>& parts, size_t n)
+{
+	std::vector<std::vector<range>> grouped_parts;
+	size_t length = parts.size() / n;
+	size_t remain = parts.size() % n;
+	size_t begin = 0;
+	size_t end = 0;
+	for (size_t i = 0; i < std::min(n, parts.size()); ++i)
+	{
+		end += (remain > 0) ? (length + !!(remain--)) : length;
+		grouped_parts.push_back(std::vector<range>(parts.begin()+begin, parts.begin()+end));
+		begin = end;
+	}
+	return grouped_parts;	
+}
+
+ana::input::range ana::input::partition::sum_parts(const std::vector<range>& parts)
+{
+	return std::accumulate(std::next(parts.begin()), parts.end(), parts.front());
+}
+
 void ana::input::partition::add_part(size_t islot, long long begin, long long end)
 {
 	this->parts.push_back(range(islot,begin,end));
@@ -40,7 +61,7 @@ ana::input::range ana::input::partition::get_part(size_t islot) const
 
 ana::input::range ana::input::partition::total() const
 {
-	return vec::sum(this->parts);
+	return sum_parts(this->parts);
 }
 
 size_t ana::input::partition::size() const
@@ -52,13 +73,13 @@ void ana::input::partition::merge(size_t max_parts)
 {
 	if (fixed) return;
 	partition merged;
-	auto groups = vec::group(this->parts,max_parts);
+	auto groups = group_parts(this->parts,max_parts);
 	for (const auto& group : groups) {
-		merged.parts.push_back(vec::sum(group));
+		merged.parts.push_back(sum_parts(group));
 	}
 	this->parts.clear();
 	for (const auto& group : groups) {
-		this->parts.push_back(vec::sum(group));
+		this->parts.push_back(sum_parts(group));
 	}
 }
 

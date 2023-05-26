@@ -32,15 +32,18 @@ struct range
 
 struct partition
 {
+	static std::vector<std::vector<ana::input::range>> group_parts(const std::vector<range>& parts, size_t n); 
+	static range sum_parts(const std::vector<range>& parts);
+
 	partition() = default;
 	~partition() = default;
 
-	void      add_part(size_t islot, long long begin, long long end);
+	void add_part(size_t islot, long long begin, long long end);
 
-	range     get_part(size_t irange) const;
-	range     total() const;
+	range get_part(size_t irange) const;
+	range total() const;
 
-	size_t    size() const;
+	size_t size() const;
 
 	void truncate(long long max_entries=-1);
 	void merge(size_t max_parts);
