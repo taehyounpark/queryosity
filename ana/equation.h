@@ -44,12 +44,16 @@ auto make_equation(F expression) -> std::shared_ptr<equation_t<F>>;
 template <typename T>
 struct is_callable
 {
-  typedef char yes;
-  typedef long no;
+  using yes = bool;
+  using no = int;
   template <typename C> static yes check_callable( decltype(&C::operator()) ) ;
   template <typename C> static no check_callable(...);    
-  enum { value = sizeof(check_callable<T>(0)) == sizeof(char) };
+  enum { value = sizeof(check_callable<T>(0)) == sizeof(yes) };
 };
+
+/**
+ * @brief Determine whether a type is callable, i.e. has a valid `operator()`.
+*/
 template <typename T>
 constexpr bool is_callable_v = is_callable<T>::value;
 
