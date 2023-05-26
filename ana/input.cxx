@@ -98,30 +98,3 @@ void ana::input::partition::truncate(long long max_entries)
 		if (!max_entries) break;
 	}
 }
-
-ana::input::progress::progress(long long tot) : 
-	tot(tot)
-{
-	prog.store(0);
-}
-
-void ana::input::progress::reset()
-{
-	prog.store(0);
-}
-
-ana::input::progress& ana::input::progress::operator++()
-{
-	prog++;
-	return *this;
-}
-
-double ana::input::progress::percent() const
-{ 
-	return double(prog.load()) / double(tot) * 100.0; 
-}
-
-bool ana::input::progress::done() const 
-{ 
-	return prog.load() == tot; 
-}

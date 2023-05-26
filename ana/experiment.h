@@ -44,6 +44,20 @@ protected:
 
 }
 
+inline ana::counter::experiment::experiment(double norm) :
+	m_norm(norm)
+{}
+
+inline void ana::counter::experiment::add_counter(ana::counter& cnt)
+{
+	m_counters.push_back(&cnt);
+}
+
+inline void ana::counter::experiment::clear_counters()
+{
+	m_counters.clear();
+}
+
 template <typename Cnt, typename... Args>
 std::shared_ptr<ana::counter::booker<Cnt>> ana::counter::experiment::book(Args&&... args)
 {

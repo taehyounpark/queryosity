@@ -245,6 +245,42 @@ constexpr bool is_counter_fillable_v = decltype(check_counter_fillable(std::decl
 #include "ana/column.h"
 #include "ana/selection.h"
 
+inline ana::counter::counter() :
+	m_selection(nullptr),
+	m_scale(1.0),
+	m_raw(false)
+{}
+
+inline void ana::counter::set_selection(const selection& selection)
+{
+	m_selection = &selection;
+}
+
+inline const ana::selection* ana::counter::get_selection() const
+{
+	return m_selection;
+}
+
+inline void ana::counter::apply_scale(double scale)
+{
+	m_scale *= scale;
+}
+
+inline void ana::counter::use_weight(bool use)
+{
+	m_raw = !use;
+}
+
+inline void ana::counter::initialize()
+{
+	if (!m_selection) throw std::runtime_error("no booked selection");
+}
+
+inline void ana::counter::execute()
+{
+	if (m_selection->passed_cut()) this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
+}
+
 template <typename T>
 ana::counter::implementation<T>::implementation() :
 	counter(),

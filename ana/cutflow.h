@@ -4,7 +4,6 @@
 #include <vector>
 #include <memory>
 
-
 #include "ana/selection.h"
 #include "ana/cut.h"
 #include "ana/weight.h"
@@ -98,4 +97,9 @@ template <typename Sel>
 auto ana::selection::cutflow::join(ana::selection const& a, ana::selection const& b) const -> std::shared_ptr<ana::selection>
 {
 	return std::make_shared<Sel>(a,b);
+}
+
+inline void ana::selection::cutflow::add_selection(ana::selection& sel)
+{
+	m_selections.push_back(&sel);
 }

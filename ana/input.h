@@ -52,25 +52,6 @@ struct partition
 	std::vector<range> parts = {};
 };
 
-class progress
-{
-
-public:
-	progress(long long total);
-	~progress() = default;
-
-	void      reset();
-	progress& operator++();
-
-	double percent() const;
-	bool   done() const;
-
-protected:
-	std::atomic<long long> prog;
-	const long long tot;
-
-};
-
 template<typename T>
 class dataset
 {
@@ -79,13 +60,11 @@ public:
 	dataset() = default;
 	virtual ~dataset() = default;
 
-	// allocation partitioning for multithreading
-	partition allocate_partition();
-
 	// normalize scale for all entries by some logic
 	double normalize_scale() const;
-	// do nothing by default
-	double normalize() const {return 1.0;}
+
+	// allocation partitioning for multithreading
+	partition allocate_partition();
 
 	// read data for range
   decltype(auto) read_dataset() const;
@@ -93,7 +72,9 @@ public:
 	void start_dataset();
 	void finish_dataset();
 
-	// run dataset
+	// 1.0 by default
+	double normalize() const;
+
 	void start();
 	void finish();
 
@@ -166,6 +147,12 @@ template<typename T>
 void ana::input::dataset<T>::finish()
 {
 	// nothing to do (yet)
+}
+
+template<typename T>
+inline double ana::input::dataset<T>::normalize() const
+{
+	return 1.0;
 }
 
 template<typename T>
