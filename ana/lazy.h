@@ -125,7 +125,6 @@ public:
 		return *this;
 	}
 
-	virtual void set_nominal(const lazy& nom) override;
  	virtual void set_variation(const std::string& var_name, const lazy& var) override;
 
 	virtual lazy<U> get_nominal() const override;
@@ -504,15 +503,6 @@ template <typename T> using action_t = typename T::action_type;
 #include "ana/reader.h"
 #include "ana/definition.h"
 #include "ana/equation.h"
-
-template <typename T>
-template <typename Act>
-void ana::analysis<T>::lazy<Act>::set_nominal(lazy const& nom)
-{
-	// get nominal from other action
-	concurrent<Act>::operator=(nom);
-	this->m_analysis = nom.m_analysis; 
-}
 
 template <typename T>
 template <typename Act>

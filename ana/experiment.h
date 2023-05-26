@@ -38,7 +38,7 @@ protected:
 
 protected:
 	std::vector<counter*> m_counters;
-	double m_norm;
+	const double m_norm;
 
 };
 

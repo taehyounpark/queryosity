@@ -52,7 +52,7 @@ protected:
 	void add_column(column& column);
 
 protected:
-	input::range m_part;
+	const input::range m_part;
 	input::reader<T>* m_reader;
 
 	std::vector<column*> m_columns;

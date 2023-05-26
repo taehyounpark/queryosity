@@ -185,11 +185,10 @@ public:
 
 public:
 
+	virtual void set_variation(const std::string& var_name, lazy<U> const& nom) = 0;
+
 	virtual lazy<U> get_nominal() const = 0;
 	virtual lazy<U> get_variation(const std::string& var_name) const = 0;
-
-	virtual void set_nominal(lazy<U> const& nom) = 0;
-	virtual void set_variation(const std::string& var_name, lazy<U> const& nom) = 0;
 
 	virtual bool has_variation(const std::string& var_name) const = 0;
 	virtual std::set<std::string> list_variation_names() const = 0;

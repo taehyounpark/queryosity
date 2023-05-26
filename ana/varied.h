@@ -82,7 +82,6 @@ public:
 		return *this;
 	}
 
-	virtual void set_nominal(lazy<Act> const& nom) override;
 	virtual void set_variation(const std::string& var_name, lazy<Act> const& var) override;
 
 	virtual lazy<Act> get_nominal() const override;
@@ -148,17 +147,10 @@ public:
 protected:
 	lazy<Act>                                 m_nominal;
 	std::unordered_map<std::string,lazy<Act>> m_variation_map;
-	std::set<std::string>                        m_variation_names;
+	std::set<std::string>                     m_variation_names;
 
 };
 
-}
-
-template <typename T>
-template <typename Act>
-void ana::analysis<T>::varied<Act>::set_nominal(lazy<Act> const& nom)
-{
-	m_nominal = nom;
 }
 
 template <typename T>
