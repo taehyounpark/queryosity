@@ -3,7 +3,6 @@
 #include <exception>
 
 ana::counter::experiment::experiment(double norm) :
-	selection::cutflow(),
 	m_norm(norm)
 {}
 
