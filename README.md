@@ -24,12 +24,13 @@ A clear _abstraction_ layer to define dataset transformation procedures helps en
 
 1. Clone this repository.
 2. Add `ana/include` to the include path:
-3. `#include "ana/abc.h"` to implement components.
-4. `#include "ana/analysis.h"` to do data analysis.
+3. `#include "ana/abc.h"` to implement components. Example: [rootana](github.com/taehyounpark/rootana.git) is an implemenation for the [CERN ROOT framework](https://root.cern/).
+5. `#include "ana/analysis.h"` to do data analysis.
 
-# Walkthrough
 
-The following example uses an implementation of the interface (see [here](github.com/taehyounpark/rootana.git)) for the [CERN ROOT framework](https://root.cern/) to analyze physics collision dataset reconstructing the Higgs boson transverse momentum in simulated $H\rightarrow WW^{\ast}\rightarrow e\nu\mu\nu$ events (publicly available [here](https://opendata.cern.ch/record/700)).
+# Walkthrough (using rootana)
+
+The following example uses  to analyze physics collision dataset reconstructing the Higgs boson transverse momentum in simulated $H\rightarrow WW^{\ast}\rightarrow e\nu\mu\nu$ events (publicly available [here](https://opendata.cern.ch/record/700)).
 
 ## 0. Opening the dataset
 
@@ -70,7 +71,7 @@ auto met_MeV = ds.read<float>("met_et");
 auto met_phi = ds.read<float>("met_phi");
 ```
 
-### 1.2 Computing new quantities
+### 1.2 Defining new quantities
 ### Simple expressions
 Mathematical binary and unary operations available for the underlying data types are supported:
 ```cpp
@@ -112,8 +113,8 @@ public:
   virtual ~NthP4() = default;
 
   // implement this
-  virtual P4 evaluate(ana::observable<VecD> pt, ana::observable<VecD> eta, ana::observable<VecD> phi, ana::observable<VecD> es) const override {
-    P4 p4; p4.SetPtEtaPhiE(pt->at(m_index),eta->at(m_index),phi->at(m_index),es->at(m_index));
+  virtual P4 evaluate(ana::observable<VecD> pt, ana::observable<VecD> eta, ana::observable<VecD> phi, ana::observable<VecD> energy) const override {
+    P4 p4; p4.SetPtEtaPhiE(pt->at(m_index),eta->at(m_index),phi->at(m_index),energy->at(m_index));
     return p4;
   }
 
@@ -122,6 +123,38 @@ protected:
   unsigned int m_index;
   // int* g_modifiable_global_var;  // <- bad idea
 };
+```
+
+#### Direct instance-access
+
+Deriving from `definition` poses no restriction on any additional functionalities that users may want to add to the class. This can be used to "configure" them prior to the dataset processing and/or "access" other quantities directly, such as:
+```cpp
+class MyDef : public ana::column::definition<double(double)>
+{
+public:
+  MyDef(double baseVal) : m_baseVal = default;
+  virtual ~MyDef() = default;
+  
+  // arbitrary "configuration" method
+  void setComputeMethod(bool thisOrThat) {m_thisOrThat = thisOrThat;}
+  
+  // arbitrary "access" method (must be const)
+  const double baseVal() const { return m_baseVal; }
+  
+ protected:
+  const double m_baseVal;
+  bool m_plusOrMinus;
+};
+
+// ...
+
+auto myDef = ds.define<MyDef>(1.0)(met);
+
+// dispatch configuration call to all threads
+myDef.call_all([](MyDef& md){md.setComputeMethod(true);});
+
+// define using derived access
+auto myEqn = ds.define([](MyDef const& md){ return md.baseVal(); })(myDef);
 ```
 
 Combining the above methods:
@@ -146,7 +179,7 @@ auto pth = ds.define(
 ```
 ### (Advanced) Column representations
 
-For cases in which values of multiple columns in a dataset correspond to attributes of a parent entity, such conceptual models can be accommodated by a `representation`
+For cases in which values of multiple columns in a dataset correspond to attributes of a parent entity, they can be accommodated by a `representation`:
 ```cpp
 // example: not used in rest of walkthrough
 enum class LeptonProperty { LV, Q, TYPE };
@@ -165,20 +198,20 @@ public:
 
 auto l1 = ds.define<Lepton>()(l1p4, lep_charge[0], lep_type[0]);
 ```
-Representations function complementary to column definitions, with the difference being that it has no output value to compute for itself.
 
 #### Why would I want this?
 
-For analysis workflows limited by compute power, the advantage of using representations versus a regular definition is apparent in the following example:
+For common column manipulations consisting of computation of some derived (i.e. simpler) quantity out of existing ones, the using `definition`s is the intuitive and efficient way to do so. On the other hand, a `representation`'s function is complementary to this, in that it allows to encapsulate individual columns into a bigger conceptual entity. Its advantage is apparent in the following example:
 ```cpp
+// consider using "Lep" definition instead of the "Lepton" representation.
 struct Lep { p4; q; type; };
 auto l1 = ds.define([](P4 const& p4, int q, unsigned int type){return Lep{p4,q,type};})(l1p4,lep_charge[0],lep_type[0]);
 ```
-Note that the following inefficiencies will occur: 
-- The function arguments require that all input column values be evaluated first. 
-- An instance of `Lep` is constructed and destructed for each entry that it is used for. 
+Note that the following computing inefficiencies will occur: 
+- All input column values will be evaluated in order to determine the properties of the `Lep` instance. 
+- An instance of `Lep` will be constructed and destructed for each entry that it is needed for.
 
-Representations resolve both of these shortcomings.
+Representations are subject to neither of these shortcomings.
 ## 2. Applying selections
 ### 2.1 Cut versus weight
 Filtering entries in a dataset is done through applying a `selection` associated with a decision based on column values:
@@ -302,7 +335,7 @@ Any column can be varied with an alternate definition of the same type, which tr
 - `reader` can read a different column holding the same data type.
 - `constant` can be a different value.
 - `equation` can be evaluated with another function of the same signature and return type.
-- `definition` can be constructed with another set of arguments (instance-access also available per-variation).
+- `definition`/`representation` can be constructed with another set of arguments (instance-access also available per-variation).
  
 ```cpp
 // use a different scale factor (electron vs. pileup...? purely for illustration)
