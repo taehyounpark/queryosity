@@ -20,6 +20,13 @@ A clear _abstraction_ layer to define dataset transformation procedures helps en
 - C++17 compiler (tested with Clang 14 and GCC 11)
 - CMake 3.24 or newer
 
+# Including `ana` 
+
+1. Clone this repository.
+2. Add `ana/include` to the include path:
+3. `#include "ana/abc.h"` to implement components.
+4. `#include "ana/analysis.h"` to do data analysis.
+
 # Walkthrough
 
 The following example uses an implementation of the interface (see [here](github.com/taehyounpark/rootana.git)) for the [CERN ROOT framework](https://root.cern/) to analyze physics collision dataset reconstructing the Higgs boson transverse momentum in simulated $H\rightarrow WW^{\ast}\rightarrow e\nu\mu\nu$ events (publicly available [here](https://opendata.cern.ch/record/700)).
