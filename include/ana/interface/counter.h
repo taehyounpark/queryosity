@@ -434,7 +434,6 @@ std::shared_ptr<T> ana::counter::booker<T>::get_counter(const std::string& sel_p
 {
 	if (m_booked_counter_map.find(sel_path)==m_booked_counter_map.end()) {
 		throw std::out_of_range("counter not booked at selection path");
-		// return nullptr;
 	}
 	return m_booked_counter_map.at(sel_path);
 }

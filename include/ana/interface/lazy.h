@@ -337,6 +337,12 @@ public:
 		return syst;
 	}
 
+	template <typename V = U, std::enable_if_t<ana::is_selection_v<V>,bool> = false>
+	std::string get_path() const
+	{
+		return this->get_model_value([](const selection& me){return me.get_path();});
+	}
+
 	/** 
 	 * @return `std::vector<std::string>` list of booked selection paths.
 	 */

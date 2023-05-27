@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 project(ana 
   VERSION 0.1
-  DESCRIPTION "A header-only c++ library that provides type safety and user defined literals for handling pyhsical values defined in the International System of Units."
+  DESCRIPTION "Coherent data analysis interface in C++"
   HOMEPAGE_URL "https://github.com/taehyounpark/ana.git"
   LANGUAGES CXX
   )
