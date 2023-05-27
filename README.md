@@ -72,7 +72,7 @@ auto met_phi = ds.read<float>("met_phi");
 ```
 
 ### 1.2 Defining new quantities
-### Simple expressions
+#### Simple expressions
 Mathematical binary and unary operations available for the underlying data types are supported:
 ```cpp
 auto GeV = ana.constant(1000.0);
@@ -100,7 +100,7 @@ auto pth = ds.define(
     return (p2+q2).Mod();
   })(p4ll, met, met_phi);
 ```
-### Custom definitions
+#### Custom definitions
 Complex computations can be fully specified by implementing a `definition`. 
 ```cpp
 // define an ith TLorenzVector out of (pt,eta,phi,e) vectors
@@ -125,7 +125,7 @@ protected:
 };
 ```
 
-#### Direct instance-access
+##### Direct instance-access
 
 Deriving from `definition` poses no restriction on any additional functionalities that users may want to add to the class. This can be used to "configure" them prior to the dataset processing and/or "access" other quantities directly, such as:
 ```cpp
@@ -177,7 +177,7 @@ auto pth = ds.define(
     return (p2+q2).Mod();
   })(p4ll, met, met_phi);
 ```
-### (Advanced) Column representations
+#### (Advanced) Column representations
 
 For cases in which values of multiple columns in a dataset correspond to attributes of a parent entity, they can be accommodated by a `representation`:
 ```cpp
@@ -199,7 +199,7 @@ public:
 auto l1 = ds.define<Lepton>()(l1p4, lep_charge[0], lep_type[0]);
 ```
 
-#### Why would I want this?
+##### Why would I want this?
 
 For common column manipulations consisting of computation of some derived (i.e. simpler) quantity out of existing ones, the using `definition`s is the intuitive and efficient way to do so. On the other hand, a `representation`'s function is complementary to this, in that it allows to encapsulate individual columns into a bigger conceptual entity. Its advantage is apparent in the following example:
 ```cpp
