@@ -217,7 +217,7 @@ class column::evaluator
 {
 
 public:
-	using column_type = T;
+	using evaluated_type = T;
 
 public:
 	template <typename... Args>

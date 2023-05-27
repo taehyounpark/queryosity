@@ -73,7 +73,7 @@ template <class T, class Index> using has_subscript = typename has_subscript_imp
 template <class T, class Index> static constexpr bool has_subscript_v = has_subscript<T,Index>::value;
 }
 
-template <typename Calc> using evaluated_column_t = typename Calc::column_type;
+template <typename Eval> using evaluated_t = typename Eval::evaluated_type;
 template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
 
 /**
@@ -150,7 +150,7 @@ public:
 	 * @return Varied definition.
 	 * @details Creates a `varied<U>` node whose `.get_nominal()` is the original lazy node, and `variation(var_name)` is the newly-constructed one
 	 */
-	template <typename... Args, typename V = U, std::enable_if_t<ana::is_column_evaluator_v<V> && !ana::is_column_equation_v<ana::evaluated_column_t<V>>,bool> = false>
+	template <typename... Args, typename V = U, std::enable_if_t<ana::is_column_evaluator_v<V> && !ana::is_column_equation_v<ana::evaluated_t<V>>,bool> = false>
 	auto vary(const std::string& var_name, Args&&... args) -> varied<V>;
 
 	/** 
@@ -160,7 +160,7 @@ public:
 	 * @return Varied equation.
 	 * @details Creates a `varied<U>` node whose `.get_nominal()` is the original lazy node, and `variation(var_name)` is the newly-constructed one
 	 */
-	template <typename F, typename V = U, std::enable_if_t<ana::is_column_evaluator_v<V> && ana::is_column_equation_v<ana::evaluated_column_t<V>>,bool> = false>
+	template <typename F, typename V = U, std::enable_if_t<ana::is_column_evaluator_v<V> && ana::is_column_equation_v<ana::evaluated_t<V>>,bool> = false>
 	auto vary(const std::string& var_name, F callable) -> varied<V>;
 
 	/** 
@@ -212,18 +212,18 @@ public:
 	}
 
   template <typename... Nodes, typename V = U, std::enable_if_t<ana::is_column_evaluator_v<V> && ana::analysis<T>::template has_no_variation_v<Nodes...>,bool> = false>
-	auto evaluate_column(Nodes const&... columns) const -> lazy<evaluated_column_t<V>>
+	auto evaluate_column(Nodes const&... columns) const -> lazy<evaluated_t<V>>
 	{
 		// nominal
 		return this->m_analysis->evaluate_column(*this, columns...);
 	}
 
 	template <typename... Nodes, typename V = U, std::enable_if_t<ana::is_column_evaluator_v<V> && ana::analysis<T>::template has_variation_v<Nodes...>,bool> = false>
-	auto evaluate_column(Nodes const&... columns) const -> varied<evaluated_column_t<V>>
+	auto evaluate_column(Nodes const&... columns) const -> varied<evaluated_t<V>>
 	{
 		// variations
 		auto nom = this->m_analysis->evaluate_column( *this, columns.get_nominal()... );
-		varied<evaluated_column_t<V>> syst(nom);
+		varied<evaluated_t<V>> syst(nom);
 		for (auto const& var_name : list_all_variation_names(columns...)) {
 			auto var = this->m_analysis->evaluate_column( *this, columns.get_variation(var_name)... );
 			syst.set_variation(var_name, var);
@@ -349,7 +349,7 @@ public:
 	template <typename V = U, std::enable_if_t<ana::is_counter_booker_v<V>,bool> = false>
 	auto list_selection_paths() const-> std::vector<std::string>
 	{
-		return this->get_model_value([=](U const& bkr){ return bkr.list_selection_paths(); });
+		return this->get_model_value([](U const& bkr){ return bkr.list_selection_paths(); });
 	}
 
 	/**
@@ -358,7 +358,7 @@ public:
 	template <typename V = U, std::enable_if_t<ana::is_counter_booker_v<V>,bool> = false>
 	auto get_counter(const std::string& sel_path) const-> lazy<booked_counter_t<V>>
 	{
-		return lazy<typename V::counter_type>(*this->m_analysis, this->get_concurrent_result([=](U& bkr){ return bkr.get_counter(sel_path); }) );
+		return lazy<typename V::counter_type>(*this->m_analysis, this->get_concurrent_result([sel_path=sel_path](U& bkr){ return bkr.get_counter(sel_path); }));
 	}
 
 	/**
@@ -381,7 +381,6 @@ public:
 	 */
 	template <typename... Args, typename V = U, std::enable_if_t<is_column_evaluator_v<V> || is_selection_evaluator_v<V>,bool> = false>
 	auto operator()(Args&&... args) -> decltype(std::declval<lazy<V>>().evaluate(std::declval<Args>()...))
-	// function = evaluate a column based on input columns
 	{
 		return this->evaluate(std::forward<Args>(args)...);
 	}
@@ -563,7 +562,7 @@ auto ana::analysis<T>::lazy<Act>::vary(const std::string& var_name, Args&&... ar
 
 template <typename T>
 template <typename Act>
-template <typename... Args, typename V, std::enable_if_t<ana::is_column_evaluator_v<V> && !ana::is_column_equation_v<ana::evaluated_column_t<V>>,bool>>
+template <typename... Args, typename V, std::enable_if_t<ana::is_column_evaluator_v<V> && !ana::is_column_equation_v<ana::evaluated_t<V>>,bool>>
 auto ana::analysis<T>::lazy<Act>::vary(const std::string& var_name, Args&&... args) -> varied<V>
 {
   // create a lazy varied with the this as nominal
@@ -576,7 +575,7 @@ auto ana::analysis<T>::lazy<Act>::vary(const std::string& var_name, Args&&... ar
 
 template <typename T>
 template <typename Act>
-template <typename F, typename V, std::enable_if_t<ana::is_column_evaluator_v<V> && ana::is_column_equation_v<ana::evaluated_column_t<V>>,bool>>
+template <typename F, typename V, std::enable_if_t<ana::is_column_evaluator_v<V> && ana::is_column_equation_v<ana::evaluated_t<V>>,bool>>
 auto ana::analysis<T>::lazy<Act>::vary(const std::string& var_name, F callable) -> varied<V>
 {
   // create a lazy varied with the this as nominal

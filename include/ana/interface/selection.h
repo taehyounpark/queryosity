@@ -69,18 +69,18 @@ class ana::selection::evaluator
 {
 
 public:
-	using equation_type = T;
+	using evaluated_type = selection;
 
 public:
 	evaluator(std::shared_ptr<T> eqn);
 	~evaluator() = default;
 
 	template <typename Sel>
-	void set_selection( const std::string& name, bool channel );
-	void set_previous( selection const& prev );
+	void set_selection(const std::string& name, bool channel);
+	void set_previous(selection const& prev);
 
 	template <typename... Vals> 
-	std::shared_ptr<selection> evaluate_selection( cell<Vals> const&... columns) const;
+	std::shared_ptr<selection> evaluate_selection(cell<Vals> const&... columns) const;
 
 protected:
 	std::function<std::shared_ptr<selection>()> m_make_shared;

@@ -94,7 +94,7 @@ public:
 	auto vary(const std::string& var_name, Args&&... args) -> varied<V>;
 
 	template <typename... Args, typename V = Act, std::enable_if_t<ana::is_column_evaluator_v<V>, bool> = false>
-	auto evaluate(Args&&... args) -> varied<evaluated_column_t<V>>;
+	auto evaluate(Args&&... args) -> varied<evaluated_t<V>>;
 
 	template <typename Sel, typename Lmbd, typename V = Act, std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto filter(const std::string& name, Lmbd&& args) -> varied<custom_selection_evaluator_t<Lmbd>>;
@@ -203,9 +203,9 @@ bool ana::analysis<T>::varied<Act>::has_variation(const std::string& var_name) c
 template <typename T>
 template <typename Act>
 template<typename... Args, typename V, std::enable_if_t<ana::is_column_evaluator_v<V>,bool>>
-auto ana::analysis<T>::varied<Act>::evaluate(Args&&... args) -> typename ana::analysis<T>::template varied<evaluated_column_t<V>>
+auto ana::analysis<T>::varied<Act>::evaluate(Args&&... args) -> typename ana::analysis<T>::template varied<evaluated_t<V>>
 {
-	varied<evaluated_column_t<V>> syst(this->get_nominal().evaluate(std::forward<Args>(args).get_nominal()...));
+	varied<evaluated_t<V>> syst(this->get_nominal().evaluate(std::forward<Args>(args).get_nominal()...));
 	for (auto const& var_name : list_all_variation_names(*this, std::forward<Args>(args)...)) {
 		syst.set_variation(var_name, get_variation(var_name).evaluate(std::forward<Args>(args).get_variation(var_name)...));
 	}

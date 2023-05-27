@@ -89,7 +89,7 @@ public:
   template <typename Val>
   auto constant(const Val& value) -> lazy<column::constant<Val>>;
   template <typename Def, typename... Args>
-  auto define(Args&&... arguments) -> lazy<column_evaluator_t<Def>>;
+  auto define(Args&&... args) -> lazy<column_evaluator_t<Def>>;
   template <typename F>
   auto define(F callable) -> lazy<column_evaluator_t<F>>;
 
@@ -253,7 +253,7 @@ template <typename Val>
 auto ana::analysis<T>::read(const std::string& name) -> lazy<read_column_t<read_dataset_t<T>,Val>>
 {
 	this->initialize();
-	auto nd = lazy<read_column_t<read_dataset_t<T>,Val>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template read<Val>(name); }));
+	auto nd = lazy<read_column_t<read_dataset_t<T>,Val>>(*this, this->m_processors.get_concurrent_result( [name=name](processor<dataset_reader_type>& proc) { return proc.template read<Val>(name); }));
 	this->add_action(nd);
 	return nd;
 }
@@ -262,16 +262,16 @@ template <typename T>
 template <typename Val>
 auto ana::analysis<T>::constant(const Val& val) -> lazy<ana::column::constant<Val>>
 {
-	auto nd = lazy<column::constant<Val>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template constant<Val>(val); } ));
+	auto nd = lazy<column::constant<Val>>(*this, this->m_processors.get_concurrent_result( [val=val](processor<dataset_reader_type>& proc) { return proc.template constant<Val>(val); } ));
 	this->add_action(nd);
   return nd;
 }
 
 template <typename T>
 template <typename Def, typename... Args>
-auto ana::analysis<T>::define(Args&&... arguments) -> lazy<ana::column_evaluator_t<Def>>
+auto ana::analysis<T>::define(Args&&... args) -> lazy<ana::column_evaluator_t<Def>>
 {
-	auto nd = lazy<column::evaluator<Def>>(*this, this->m_processors.get_concurrent_result( [&](processor<dataset_reader_type>& proc) { return proc.template define<Def>(arguments...); } ));
+	auto nd = lazy<column::evaluator<Def>>(*this, this->m_processors.get_concurrent_result( [&args...](processor<dataset_reader_type>& proc) { return proc.template define<Def>(std::forward<Args>(args)...); } ));
 	return nd;
 }
 
@@ -279,14 +279,14 @@ template <typename T>
 template <typename F>
 auto ana::analysis<T>::define(F callable) -> lazy<column_evaluator_t<F>>
 {
-	return lazy<equation_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template define(callable); } ));
+	return lazy<equation_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [callable=callable](processor<dataset_reader_type>& proc) { return proc.template define(callable); } ));
 }
 
 template <typename T>
 template <typename Def, typename... Cols>
 auto ana::analysis<T>::evaluate_column(lazy<column::evaluator<Def>> const& calc, lazy<Cols> const&... columns) -> lazy<Def>
 {
-	auto col = lazy<Def>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, column::evaluator<Def>& calc, Cols const&... cols) { return proc.template evaluate_column(calc, cols...); }, calc, columns... ));
+	auto col = lazy<Def>(*this, this->m_processors.get_concurrent_result( [](processor<dataset_reader_type>& proc, column::evaluator<Def>& calc, Cols const&... cols) { return proc.template evaluate_column(calc, cols...); }, calc, columns... ));
 	this->add_action(col);
   return col;
 }
@@ -295,14 +295,14 @@ template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::filter(const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>
 {
-	return lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,callable); } ));
+	return lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,callable); } ));
 }
 
 template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::channel(const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>
 {
-	auto sel = lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,callable); } ));
+	auto sel = lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,callable); } ));
 	return sel;	
 }
 
@@ -311,7 +311,7 @@ template <typename Sel>
 auto ana::analysis<T>::filter(const std::string& name) -> lazy<simple_selection_evaluator_type>
 {
 	auto callable = [](double x){return x;};
-	auto sel = lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,callable); } ));
+	auto sel = lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,callable); } ));
 	return sel;	
 }
 
@@ -320,7 +320,7 @@ template <typename Sel>
 auto ana::analysis<T>::channel(const std::string& name) -> lazy<simple_selection_evaluator_type>
 {
 	auto callable = [](double x){return x;};
-	auto sel = lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,callable); } ));
+	auto sel = lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,callable); } ));
 	return sel;	
 }
 
@@ -328,14 +328,14 @@ template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::filter(lazy<selection> const& prev, const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>
 {
-	return lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,callable); }, prev ));
+	return lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,callable); }, prev ));
 }
 
 template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::channel(lazy<selection> const& prev, const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>
 {
-	return lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,callable); }, prev ));
+	return lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,callable); }, prev ));
 }
 
 template <typename T>
@@ -343,7 +343,7 @@ template <typename Sel>
 auto ana::analysis<T>::filter(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>
 {
 	auto callable = [](double x){return x;};
-	return lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,callable); }, prev ));
+	return lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,callable); }, prev ));
 }
 
 template <typename T>
@@ -351,14 +351,14 @@ template <typename Sel>
 auto ana::analysis<T>::channel(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>
 {
 	auto callable = [](double x){return x;};
-	return lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,callable); }, prev ));
+	return lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,callable); }, prev ));
 }
 
 template <typename T>
 template <typename Eqn, typename... Cols>
 auto ana::analysis<T>::evaluate_selection(lazy<selection::evaluator<Eqn>> const& calc, lazy<Cols> const&... columns) -> lazy<selection>
 {
-	auto sel = lazy<selection>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection::evaluator<Eqn>& calc, Cols&... cols) { return proc.template evaluate_selection(calc, cols...); }, calc, columns... ));
+	auto sel = lazy<selection>(*this, this->m_processors.get_concurrent_result( [](processor<dataset_reader_type>& proc, selection::evaluator<Eqn>& calc, Cols&... cols) { return proc.template evaluate_selection(calc, cols...); }, calc, columns... ));
 	this->add_action(sel);
   return sel;
 }
@@ -367,14 +367,14 @@ template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::join(lazy<selection> const& a, lazy<selection> const& b) -> lazy<selection>
 {
-	return lazy<selection>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, selection const& a, selection const& b) { return proc.template join<Sel>(a,b); }, a, b ));
+	return lazy<selection>(*this, this->m_processors.get_concurrent_result( [](processor<dataset_reader_type>& proc, selection const& a, selection const& b) { return proc.template join<Sel>(a,b); }, a, b ));
 }
 
 template <typename T>
 template <typename Cnt, typename... Args>
 auto ana::analysis<T>::book(Args&&... args) -> lazy<counter::booker<Cnt>>
 {
-	return lazy<counter::booker<Cnt>>(*this, this->m_processors.get_concurrent_result( [&](processor<dataset_reader_type>& proc) { return proc.template book<Cnt>(std::forward<Args>(args)...); } ));
+	return lazy<counter::booker<Cnt>>(*this, this->m_processors.get_concurrent_result( [&args...](processor<dataset_reader_type>& proc) { return proc.template book<Cnt>(std::forward<Args>(args)...); } ));
 }
 
 template <typename T>
@@ -383,7 +383,7 @@ auto ana::analysis<T>::book_selection(lazy<counter::booker<Cnt>> const& bkr, laz
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto cnt = lazy<Cnt>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, const selection& sel) { return proc.book_selection(bkr,sel); }, bkr, sel ));
+	auto cnt = lazy<Cnt>(*this, this->m_processors.get_concurrent_result( [](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, const selection& sel) { return proc.book_selection(bkr,sel); }, bkr, sel ));
 	this->add_action(cnt);
   return cnt;
 }
@@ -394,7 +394,7 @@ auto ana::analysis<T>::book_selections(lazy<counter::booker<Cnt>> const& bkr, la
 {
 	// any time a new counter is booked, means the analysis must run: so reset its status
 	this->reset();
-	auto bkr2 = lazy<counter::booker<Cnt>>(*this, this->m_processors.get_concurrent_result( [=](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, Sels const&... sels) { return proc.book_selections(bkr,sels...); }, bkr, sels... ));
+	auto bkr2 = lazy<counter::booker<Cnt>>(*this, this->m_processors.get_concurrent_result( [](processor<dataset_reader_type>& proc, counter::booker<Cnt>& bkr, Sels const&... sels) { return proc.book_selections(bkr,sels...); }, bkr, sels... ));
 	// add all counters that were booked
 	for (auto const& sel_path : bkr2.list_selection_paths()) {
 		this->add_action(bkr2.get_counter(sel_path));
