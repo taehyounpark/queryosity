@@ -116,7 +116,6 @@ public:
     P4 p4; p4.SetPtEtaPhiE(pt->at(m_index),eta->at(m_index),phi->at(m_index),es->at(m_index));
     return p4;
   }
-  // (ana::observable<T> handles conversion/inheritance between compatible types)
 
 // important: it is up to implementation to ensure thread-safety
 protected:
@@ -177,17 +176,16 @@ auto l1 = ds.define([](P4 const& p4, int q, unsigned int type){return Lep{p4,q,t
 ```
 Note that the following inefficiencies will occur: 
 - The function arguments require that all input column values be evaluated first. 
-- An instance of `Lep` must be constructed and teared down for each entry that it is used for. 
+- An instance of `Lep` is constructed and destructed for each entry that it is used for. 
 
-Representations possess neither of these shortcomings.
-
+Representations resolve both of these shortcomings.
 ## 2. Applying selections
 ### 2.1 Cut versus weight
-Filtering entries in a dataset is done through applying a `selection`, for each of which a decision based on column values is associated:
-- If the decision is a boolean, it is a `cut` that ignores or considers the entry all-together.
+Filtering entries in a dataset is done through applying a `selection` associated with a decision based on column values:
+- If the decision is a boolean, it is a `cut` that determines whether to ignore the entry all-together.
 - If the decision is a float-point value, it is a `weight` that assigns a statistical significance to the entry.
 
-The simplest way to define a selection is to provide the column that corresponds to the selection value, such as the following:
+The selection can be applied by providing the column that corresponds to the decision value:
 ```cpp
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
@@ -198,7 +196,7 @@ auto n_lep_req = ds.constant(2);
 auto cut_2l = ds.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
                 .filter<cut>("2l")(n_lep_sel == n_lep_req);
 // selection decision after the two filter operations:
-// cut = (true) && (n_lep == 2)
+// cut = (true) && (n_lep_sel == 2)
 // weight = (mc_weight * el_sf * mu_sf) * (1.0)
 ```
 Any combination of `cut` or `weight` can be applied in sequence, which compounds them respectively.
@@ -230,7 +228,7 @@ A `counter` defines an action that is:
     -  Handling (or ignoring) the selection weight is also up to the counter.
 - Can be `fill()`ed with columns such that their values are also known for each entry.
 
-A full user-implementation must specify what (arbitrary) action is to be performed, its output result, and how they should be merged from multiple threads.
+A full user-implementation must specify what (arbitrary) action is to be performed and its output result.
 ```cpp
 // Hist<1,float> is user-implemented.
 auto pth_hist = ds.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
@@ -293,10 +291,10 @@ Consider the above example:
 
 ## 4. Systematic variations
 
-A __systematic variation__ constitutes a __change in a column value that affects the outcome of the set of selection and counters in an analysis__. These variations can be independently performed within a single computation graph at once, which offers the following benefits:
+A systematic variation of an analysis constitutes a __change in a column value that affects the outcome of the set of selection and counters in an analysis__. Processing these variations within a single computation graph at once offers the following benefits:
 
-- Guarantee that each variation and only the variation is in effect between the nominal and varied results.
-- Eliminate the runtime overhead associated with repeated processing runs of the dataset.
+- Guarantee that each variation and only the variation is in effect between the nominal and varied results in the rest of the analysis logic.
+- Eliminate the runtime overhead associated with repeated processing of the dataset.
 
 ### 4.1 Varying a column
 
@@ -319,13 +317,13 @@ This results in a `varied` action, which now contains multiple variations of the
 
 ### 4.2 Propagation of variations through selections and counters
 
-The rest of the analysis interface works uniformly with respect to handling `lazy` and `varied` actions:
+The rest of the analysis interface remain the same, whether an action is `lazy` or `varied`:
 - Any column evaluated from varied input columns containing will be varied correspondingly.
 - Any selections and counters performed with varied columns will be varied correspondingly.
 
 The propagation of variations that may or may not exist in different actions occur "in lockstep" and "transparently", meaning:
-- If two actions each have a variation with the same name, they are in effect together.
-- If one action has a variation while another doesn't, then the nominal is used for the latter.
+- If two actions each have a variation of the same name, they are in effect together.
+- If one action has a variation while another doesn't, then the nominal is in effect for the latter.
 
 ```cpp
 auto l1p4 = ds.define<NthP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
@@ -346,25 +344,20 @@ auto mll_vars = ds.book<Hist<1,float>>("mll",50,0,100).fill(mll).at(cut_2los);
 mll_vars.has_variation("lp4_up"); // true : mll & cut_2los varied
 mll_vars.has_variation("sf_var"); // true : mll nominal & cut_2los varied
 ```
-Accessing a variation by its name, much like a selection by its path, is done by the subscript operator:
+Each variation can be accessed by its name:
 ```cpp
-// access nominal vs variation
 mll_vars.get_nominal()->Draw();
 mll_vars["lp4_up"]->Draw("same");
 ```
 ![mll_varied](images/mll_varied.png)
 
-Keeping track of multiple systematic variations *and* selections is easily done by specifying both as such:
+Keeping track of multiple systematic variations *and* selections is also possible:
 ```cpp
 // mll contains variations = {lp4_up, sf_var}
 // booked at selections = {cut_2ldf, cut_2lsf}
 auto mll_channels_vars = ds.book<Hist<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
 
 // specify variation name, followed by selection path
-std::cout << mll_channels_vars.get_nominal()["2ldf"]->GetEntries() << std::endl;;
-std::cout << mll_channels_vars["lp4_up"]["2lsf"]->GetEntries() << std::endl;;
+mll_channels_vars.get_nominal()["2ldf"]->GetEntries();
+mll_channels_vars["lp4_up"]["2lsf"]->GetEntries();
 ```
-
-# Known issues
-
-- :x: (PyROOT) `lazy` and `varied` not working (SFINAE).
