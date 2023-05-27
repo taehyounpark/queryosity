@@ -1,9 +1,5 @@
-.asetup.save
-
-*.root
-*.pdf
-*.log
-
 .vscode/
 html/
 latex/
+
+*.DS_Store
