@@ -489,7 +489,7 @@ protected:
 	{
 		auto model = this->get_model();
 		if (!model->is_merged()) {
-			std::vector<decltype(model->get_result())> results;
+			std::vector<std::decay_t<decltype(model->get_result())>> results;
 			for (size_t islot=0 ; islot<this->concurrency() ; ++islot) {
 				auto slot = this->get_slot(islot);
 				results.push_back(slot->get_result());

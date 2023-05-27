@@ -107,8 +107,8 @@ public:
 	*/
 	virtual void finalize() override;
 
-	T get_result() const;
-	T operator->() const
+	T const& get_result() const;
+	T const& operator->() const
 	{
 		return this->get_result();
 	}
@@ -306,7 +306,7 @@ void ana::counter::implementation<T>::finalize()
 }
 
 template <typename T>
-T ana::counter::implementation<T>::get_result() const
+T const& ana::counter::implementation<T>::get_result() const
 {
 	return m_result;
 }
