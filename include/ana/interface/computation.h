@@ -7,12 +7,12 @@
 #include <type_traits>
 #include <functional>
 
-#include "ana/input.h"
-#include "ana/column.h"
-#include "ana/constant.h"
-#include "ana/definition.h"
-#include "ana/equation.h"
-#include "ana/representation.h"
+#include "input.h"
+#include "column.h"
+#include "constant.h"
+#include "definition.h"
+#include "equation.h"
+#include "representation.h"
 
 namespace ana 
 {

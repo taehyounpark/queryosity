@@ -4,9 +4,9 @@
 #include <vector>
 #include <memory>
 
-#include "ana/selection.h"
-#include "ana/cut.h"
-#include "ana/weight.h"
+#include "selection.h"
+#include "cut.h"
+#include "weight.h"
 
 namespace ana
 {
@@ -47,9 +47,9 @@ protected:
 
 }
 
-#include "ana/column.h"
-#include "ana/counter.h"
-#include "ana/equation.h"
+#include "column.h"
+#include "counter.h"
+#include "equation.h"
 
 template <typename Sel, typename F>
 auto ana::selection::cutflow::filter(const std::string& name, F expression) const -> std::shared_ptr<evaluator<ana::equation_t<F>>>

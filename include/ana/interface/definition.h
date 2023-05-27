@@ -4,8 +4,8 @@
 #include <tuple>
 #include <functional>
 
-#include "ana/column.h"
-#include "ana/calculation.h"
+#include "column.h"
+#include "calculation.h"
 
 namespace ana
 {

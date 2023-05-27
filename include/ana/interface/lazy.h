@@ -9,9 +9,9 @@
 #include <iostream>
 #include <type_traits>
 
-#include "ana/analysis.h"
-#include "ana/computation.h"
-#include "ana/experiment.h"
+#include "analysis.h"
+#include "computation.h"
+#include "experiment.h"
 
 // https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists
 #define CHECK_FOR_BINARY_OP(op_name,op_symbol)\
@@ -499,10 +499,10 @@ template <typename T> using action_t = typename T::action_type;
 
 }
 
-#include "ana/varied.h"
-#include "ana/reader.h"
-#include "ana/definition.h"
-#include "ana/equation.h"
+#include "varied.h"
+#include "reader.h"
+#include "definition.h"
+#include "equation.h"
 
 template <typename T>
 template <typename Act>

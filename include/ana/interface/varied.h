@@ -5,9 +5,9 @@
 #include <type_traits>
 #include <utility>
 
-#include "ana/analysis.h"
-#include "ana/lazy.h"
-#include "ana/column.h"
+#include "analysis.h"
+#include "lazy.h"
+#include "column.h"
 
 #define DECLARE_VARIED_BINARY_OP(op_symbol)\
 template <typename Arg>\

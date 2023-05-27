@@ -8,15 +8,13 @@
 #include <functional>
 #include <thread>
 
-#include "ana/input.h"
-#include "ana/sample.h"
-#include "ana/column.h"
-#include "ana/selection.h"
-#include "ana/cut.h"
-#include "ana/weight.h"
-#include "ana/counter.h"
-#include "ana/concurrent.h"
-#include "ana/processor.h"
+#include "input.h"
+#include "sample.h"
+#include "column.h"
+#include "selection.h"
+#include "counter.h"
+#include "concurrent.h"
+#include "processor.h"
 
 namespace ana
 {
@@ -117,9 +115,8 @@ public:
 	auto book_selections(lazy<counter::booker<Cnt>> const& bkr, lazy<Sels> const&... sels) -> lazy<counter::booker<Cnt>>;
 
 protected:
-	void reset();
-	void clear_counters();
 	void analyze();
+	void reset();
 
 	/**
 	 * @brief Default constructor for initial flags and values.
@@ -203,8 +200,8 @@ auto list_all_variation_names(Nodes const&... nodes) -> std::set<std::string>;
 
 }
 
-#include "ana/lazy.h"
-#include "ana/varied.h"
+#include "lazy.h"
+#include "varied.h"
 
 // ----------------------------------------------------------------------------
 // node
@@ -222,7 +219,6 @@ ana::analysis<T>::node<U>::node(analysis<T>& analysis) :
 
 template <typename T>
 ana::analysis<T>::analysis() :
-  sample<T>::sample(),
 	m_analyzed(false)
 {}
 

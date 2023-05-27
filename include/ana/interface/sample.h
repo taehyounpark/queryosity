@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ana/concurrent.h"
-#include "ana/input.h"
-#include "ana/processor.h"
+#include "concurrent.h"
+#include "input.h"
+#include "processor.h"
 
 namespace ana
 {
@@ -27,7 +27,7 @@ public:
   void limit_entries(long long max_entries=-1);
   void scale_weights(double scale);
 
-  long long get_total_entries() const;
+  long long get_processed_entries() const;
   double get_normalized_scale() const;
 
 protected:
@@ -123,7 +123,7 @@ void ana::sample<T>::initialize()
 }
 
 template <typename T>
-long long ana::sample<T>::get_total_entries() const
+long long ana::sample<T>::get_processed_entries() const
 {
   this->initialize();
   return m_partition.total().entries();

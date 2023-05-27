@@ -6,8 +6,8 @@
 #include <type_traits>
 #include <functional>
 
-#include "ana/analysis.h"
-#include "ana/counter.h"
+#include "analysis.h"
+#include "counter.h"
 
 namespace ana
 {

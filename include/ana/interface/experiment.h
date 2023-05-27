@@ -4,8 +4,8 @@
 #include <vector>
 #include <memory>
 
-#include "ana/counter.h"
-#include "ana/cutflow.h"
+#include "counter.h"
+#include "cutflow.h"
 
 namespace ana
 {

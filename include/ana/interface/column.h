@@ -5,7 +5,7 @@
 #include <functional>
 #include <type_traits>
 
-#include "ana/action.h"
+#include "action.h"
 
 namespace ana
 {

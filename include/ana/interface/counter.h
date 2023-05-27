@@ -6,7 +6,7 @@
 #include <functional>
 #include <utility>
 
-#include "ana/action.h"
+#include "action.h"
 
 namespace ana
 {
@@ -242,8 +242,8 @@ constexpr bool is_counter_fillable_v = decltype(check_counter_fillable(std::decl
 
 }
 
-#include "ana/column.h"
-#include "ana/selection.h"
+#include "column.h"
+#include "selection.h"
 
 inline ana::counter::counter() :
 	m_selection(nullptr),

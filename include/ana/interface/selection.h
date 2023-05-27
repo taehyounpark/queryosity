@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "ana/column.h"
-#include "ana/action.h"
+#include "column.h"
+#include "action.h"
 
 namespace ana
 {
@@ -94,8 +94,93 @@ constexpr bool is_selection_v = std::is_base_of_v<ana::selection, T>;
 
 }
 
-#include "ana/counter.h"
-#include "ana/equation.h"
+#include "counter.h"
+#include "equation.h"
+
+inline std::string ana::selection::concatenate_names(std::vector<std::string> const& names, std::string delimiter)
+{
+	std::string joined;	
+	for (auto const& name : names) {
+		joined += name;
+		joined += delimiter;
+	}
+	return joined;
+}
+
+inline ana::selection::selection(const std::string& name, bool channel) :
+	m_name(name),
+	m_channel(channel),
+	m_preselection(nullptr)
+{}
+
+inline void ana::selection::set_initial()
+{
+	m_preselection = nullptr;
+}
+
+inline void ana::selection::set_previous(const ana::selection& preselection)
+{
+	m_preselection = &preselection;
+}
+
+inline bool ana::selection::is_initial() const
+{
+	return m_preselection ? false : true;
+}
+
+inline const ana::selection* ana::selection::get_previous() const
+{
+	return m_preselection;
+}
+
+inline bool ana::selection::is_channel() const noexcept
+{
+	return m_channel;
+}
+
+inline std::string ana::selection::get_name() const
+{
+	return m_name;
+}
+
+inline std::string ana::selection::get_path() const
+{
+	std::vector<std::string> channels;
+	const selection* presel = this->get_previous();
+	while (presel) {
+		if (presel->is_channel()) channels.push_back(presel->get_name());
+		presel = presel->get_previous();
+	}
+	std::reverse(channels.begin(),channels.end());
+	return concatenate_names(channels,"/")+this->get_name();
+}
+
+inline std::string ana::selection::get_full_path() const
+{
+	std::vector<std::string> presels;
+	const selection* presel = this->get_previous();
+	while (presel) {
+		presels.push_back(presel->get_name());
+		presel = presel->get_previous();
+	}
+	std::reverse(presels.begin(),presels.end());
+	return concatenate_names(presels,"/")+this->get_name();
+}
+
+inline void ana::selection::initialize()
+{
+	m_decision->initialize();
+}
+
+inline void ana::selection::execute()
+{
+	m_decision->execute();
+}
+
+inline void ana::selection::finalize()
+{
+	m_decision->finalize();
+}
 
 template <typename T>
 void ana::selection::set_decision(std::shared_ptr<term<T>> decision)

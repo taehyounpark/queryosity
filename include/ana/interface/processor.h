@@ -4,9 +4,9 @@
 #include <vector>
 #include <memory>
 
-#include "ana/action.h"
-#include "ana/computation.h"
-#include "ana/experiment.h"
+#include "action.h"
+#include "computation.h"
+#include "experiment.h"
 
 namespace ana
 {
@@ -30,8 +30,8 @@ public:
 
 }
 
-#include "ana/selection.h"
-#include "ana/counter.h"
+#include "selection.h"
+#include "counter.h"
 
 template <typename T>
 ana::processor<T>::processor(const input::range& part, input::reader<T>& reader, double scale) :
