@@ -107,7 +107,6 @@ template <typename T>
 template <typename Def, typename... Cols>
 auto ana::column::computation<T>::evaluate_column(column::evaluator<Def> &calc,
                                                   Cols const &...columns)
-
     -> std::shared_ptr<Def> {
   auto defn = calc.evaluate_column(columns...);
   // only if the evaluated column is a definition

@@ -28,6 +28,7 @@ protected:
 };
 
 template <typename T> class column::reader : public term<T>::reader {
+
 public:
   reader(const std::string &name);
   virtual ~reader() = default;

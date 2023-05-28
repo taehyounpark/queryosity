@@ -68,7 +68,6 @@
         .evaluate(*this);                                                      \
   }
 
-// https://stackoverflow.com/questions/31305894/how-to-check-for-the-existence-of-a-subscript-operator
 #define CHECK_FOR_SUBSCRIPT_OP()                                               \
   template <class T, class Index> struct has_subscript_impl {                  \
     template <class T1, class IndexDeduced = Index,                            \
@@ -567,9 +566,8 @@ public:
    * @brief Join two filters (OR)
    * @return selection Its decision is given by `passed_cut() = a.passed_cut()
    * || b.passed_cut()`.
-   * @details A joined filter should be treated as strictly a cut without any
-   * preselection (i.e. weight = 1.0), and one that cannot be designated as a
-   * `channel`.
+   * @details A joined filter is a cut without any preselection (i.e. weight
+   * = 1.0), and one that cannot be designated as a `channel`.
    */
   template <typename V = U,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
@@ -587,9 +585,8 @@ public:
    * @brief Join two filters (AND)
    * @return `lazy<selection>` Its decision is given by `passed_cut() =
    * a.passed_cut() && b.passed_cut()`.
-   * @details A joined filter should be treated as strictly a cut without any
-   * preselection (i.e. weight = 1.0), and one that cannot be designated as a
-   * `channel`.
+   * @details A joined filter is a cut without any preselection (i.e. weight
+   * = 1.0), and one that cannot be designated as a `channel`.
    */
   template <typename V = U,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
