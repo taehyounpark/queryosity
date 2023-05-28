@@ -85,10 +85,10 @@ public:
 
 public:
   template <typename U>
-  class converted_from;
+  class conversion_of;
 
   template <typename U>
-  class interface_to;
+  class interface_of;
 
 public:
   cell() = default;
@@ -104,19 +104,19 @@ public:
 //------------------------------------
 template <typename To>
 template <typename From>
-class cell<To>::converted_from : public cell<To>
+class cell<To>::conversion_of : public cell<To>
 {
 
 public:
-  converted_from(const cell<From>& from);
-  virtual ~converted_from() = default;
+  conversion_of(const cell<From>& from);
+  virtual ~conversion_of() = default;
 
 public:
   virtual const To& value() const override;
 
 private:
   const cell<From>* m_from;
-	mutable To m_converted_from;
+	mutable To m_conversion_of;
 
 };
 
@@ -125,12 +125,12 @@ private:
 //------------------------------------------
 template <typename To>
 template <typename From>
-class cell<To>::interface_to : public cell<To>
+class cell<To>::interface_of : public cell<To>
 {
 
 public:
-  interface_to(const cell<From>& from);
-  virtual ~interface_to() = default;
+  interface_of(const cell<From>& from);
+  virtual ~interface_of() = default;
 
 public:
   virtual const To& value() const override;
@@ -156,7 +156,7 @@ public:
   class calculation;
 
   template <typename... Args>
-  class calculated_with;
+  class calculation_of;
 
   template <typename... Args>
   class representation_of;
@@ -184,8 +184,6 @@ public:
 
   const T& value() const;
   const T* field() const;
-
-  explicit operator bool() const noexcept;
 
 protected:
   std::shared_ptr<const cell<T>> m_val;
@@ -262,29 +260,29 @@ const T* ana::cell<T>::field() const
 
 template <typename To>
 template <typename From>
-ana::cell<To>::converted_from<From>::converted_from(const cell<From>& from) :
+ana::cell<To>::conversion_of<From>::conversion_of(const cell<From>& from) :
   ana::cell<To>(),
   m_from(&from)
 {}
 
 template <typename To>
 template <typename From>
-const To& ana::cell<To>::converted_from<From>::value() const
+const To& ana::cell<To>::conversion_of<From>::value() const
 {
-	m_converted_from = m_from->value();
-	return m_converted_from;
+	m_conversion_of = m_from->value();
+	return m_conversion_of;
 }
 
 template <typename Base>
 template <typename Impl>
-ana::cell<Base>::interface_to<Impl>::interface_to(const cell<Impl>& from) :
+ana::cell<Base>::interface_of<Impl>::interface_of(const cell<Impl>& from) :
   cell<Base>(),
   m_impl(&from)
 {}
 
 template <typename Base>
 template <typename Impl>
-const Base& ana::cell<Base>::interface_to<Impl>::value() const
+const Base& ana::cell<Base>::interface_of<Impl>::value() const
 {
   return m_impl->value();
 }
@@ -293,9 +291,9 @@ template <typename To, typename From>
 std::shared_ptr<ana::cell<To>> ana::cell_as(const cell<From>& from)
 {
   if constexpr(std::is_same_v<From,To> || std::is_base_of_v<From,To>) {
-    return std::make_shared<typename ana::cell<To>::template interface_to<From>>(from);
+    return std::make_shared<typename ana::cell<To>::template interface_of<From>>(from);
   } else if constexpr(std::is_convertible_v<From,To>) {
-    return std::make_shared<typename ana::cell<To>::template converted_from<From>>(from);
+    return std::make_shared<typename ana::cell<To>::template conversion_of<From>>(from);
   } else {
     static_assert( std::is_same_v<From,To> || std::is_base_of_v<From,To> || std::is_convertible_v<From,To>, "incompatible value types" );
   }
@@ -349,12 +347,6 @@ template <typename T>
 const T* ana::variable<T>::field() const
 {
   return m_val->field();
-}
-
-template <typename T>
-ana::variable<T>::operator bool() const noexcept
-{
-  return m_val;
 }
 
 template <typename T>

@@ -11,11 +11,11 @@ namespace ana
 {
 
 //------------------------------------------------------------------------------
-// calculated_with: term<T>::calculation with input arguments <U,V,W,...>
+// calculation_of: term<T>::calculation with input arguments <U,V,W,...>
 //------------------------------------------------------------------------------
 template <typename Ret>
 template <typename... Args>
-class term<Ret>::calculated_with : public term<Ret>::calculation
+class term<Ret>::calculation_of : public term<Ret>::calculation
 {
 
 public:
@@ -23,8 +23,8 @@ public:
   using obstuple_type = std::tuple<observable<Args>...>;
 
 public:
-  calculated_with() = default;
-  virtual ~calculated_with() = default;
+  calculation_of() = default;
+  virtual ~calculation_of() = default;
 
   template <typename... Vals>
   void set_arguments(const cell<Vals>&... args);
@@ -40,12 +40,12 @@ protected:
 };
 
 template <typename Ret, typename... Args>
-class column::definition<Ret(Args...)> : public term<Ret>::template calculated_with<Args...>
+class column::definition<Ret(Args...)> : public term<Ret>::template calculation_of<Args...>
 {
 
 public:
-  using vartuple_type = typename term<Ret>::template calculated_with<Ret(Args...)>::vartuple_type;
-  using obstuple_type = typename term<Ret>::template calculated_with<Ret(Args...)>::obstuple_type;
+  using vartuple_type = typename term<Ret>::template calculation_of<Ret(Args...)>::vartuple_type;
+  using obstuple_type = typename term<Ret>::template calculation_of<Ret(Args...)>::obstuple_type;
 
 public:
   definition() = default;
@@ -61,7 +61,7 @@ template <typename T> struct column_evaluator_traits<T, typename std::enable_if_
 template <typename Ret>
 template <typename... Args>
 template <typename... Vals>
-void ana::term<Ret>::calculated_with<Args...>::set_arguments(cell<Vals> const&... args)
+void ana::term<Ret>::calculation_of<Args...>::set_arguments(cell<Vals> const&... args)
 {
   static_assert(sizeof...(Args)==sizeof...(Vals));
   m_arguments = std::make_tuple(
@@ -74,7 +74,7 @@ void ana::term<Ret>::calculated_with<Args...>::set_arguments(cell<Vals> const&..
 
 template <typename Ret>
 template <typename... Args>
-auto ana::term<Ret>::calculated_with<Args...>::get_arguments() const -> vartuple_type
+auto ana::term<Ret>::calculation_of<Args...>::get_arguments() const -> vartuple_type
 {
   return m_arguments;
 }
@@ -82,7 +82,7 @@ auto ana::term<Ret>::calculated_with<Args...>::get_arguments() const -> vartuple
 // user-defined expression with input arguments
 template <typename Ret>
 template <typename... Args>
-Ret ana::term<Ret>::calculated_with<Args...>::calculate() const
+Ret ana::term<Ret>::calculation_of<Args...>::calculate() const
 {
   return std::apply(
     [this](const variable<Args>&... args) { 

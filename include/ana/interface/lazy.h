@@ -393,7 +393,7 @@ public:
 	template <typename V = U, std::enable_if_t<ana::is_selection_v<V>,bool> = false>
 	auto operator||(const lazy<selection>& b) const -> lazy<selection>
 	{
-		return this->m_analysis->template join<selection::a_or_b>(*this,b);
+		return this->m_analysis->template join<selection::cut::a_or_b>(*this,b);
 	}
 
 	/**
@@ -404,7 +404,7 @@ public:
 	template <typename V = U, std::enable_if_t<ana::is_selection_v<V>,bool> = false>
 	auto operator&&(const lazy<selection>& b) const -> lazy<selection>
 	{
-		return this->m_analysis->template join<selection::a_and_b>(*this,b);
+		return this->m_analysis->template join<selection::cut::a_and_b>(*this,b);
 	}
 
 	/**
