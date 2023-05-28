@@ -8,7 +8,7 @@ Coherent data analysis interface in C++.
 
 # Introduction
 
-A clear _abstraction_ layer to define dataset transformation procedures helps ensure the technical robustness of an analysis, as well as its reproducibility and extensibility as the project develops.
+A clear _abstraction_ layer to define dataset transformation procedures helps to ensure the robustness, extensibility, and reproducibility of a data anslysis project.
 
 - The `analysis` entity represents the dataset to be analyzed.
 - Any operation returns a `lazy` node representing the action to be performed.
