@@ -18,28 +18,6 @@
 
 namespace ana {
 
-template <typename T> struct is_column_evaluator : std::false_type {};
-template <typename T>
-struct is_column_evaluator<column::evaluator<T>> : std::true_type {};
-template <typename T>
-constexpr bool is_column_evaluator_v = is_column_evaluator<T>::value;
-
-template <typename T> struct is_selection_applicator : std::false_type {};
-template <typename T>
-struct is_selection_applicator<selection::applicator<T>> : std::true_type {};
-template <typename T>
-constexpr bool is_selection_applicator_v = is_selection_applicator<T>::value;
-
-template <typename F>
-using equation_evaluator_t =
-    typename column::template evaluator<ana::equation_t<F>>;
-template <typename F>
-using custom_selection_applicator_t =
-    typename selection::template applicator<ana::equation_t<F>>;
-using simple_selection_applicator_type =
-    typename selection::template applicator<
-        ana::column::equation<double(double)>>;
-
 template <typename T> class analysis : public sample<T> {
 
 public:
@@ -101,21 +79,22 @@ public:
   template <typename Val>
   auto constant(const Val &value) -> lazy<column::constant<Val>>;
   template <typename Def, typename... Args>
-  auto define(Args &&...args) -> lazy<column_evaluator_t<Def>>;
-  template <typename F> auto define(F callable) -> lazy<column_evaluator_t<F>>;
+  auto define(Args &&...args) -> lazy<column::template evaluator_t<Def>>;
+  template <typename F>
+  auto define(F callable) -> lazy<column::template evaluator_t<F>>;
 
   template <typename Sel, typename F>
   auto filter(const std::string &name, F callable)
-      -> lazy<custom_selection_applicator_t<F>>;
+      -> lazy<selection::template custom_applicator_t<F>>;
   template <typename Sel, typename F>
   auto channel(const std::string &name, F callable)
-      -> lazy<custom_selection_applicator_t<F>>;
+      -> lazy<selection::template custom_applicator_t<F>>;
   template <typename Sel>
   auto filter(const std::string &name)
-      -> lazy<simple_selection_applicator_type>;
+      -> lazy<selection::trivial_applicator_type>;
   template <typename Sel>
   auto channel(const std::string &name)
-      -> lazy<simple_selection_applicator_type>;
+      -> lazy<selection::trivial_applicator_type>;
 
   template <typename Cnt, typename... Args>
   auto book(Args &&...args) -> lazy<counter::booker<Cnt>>;
@@ -148,37 +127,39 @@ protected:
 
   template <typename Sel, typename F>
   auto filter(lazy<selection> const &prev, const std::string &name, F callable)
-      -> lazy<custom_selection_applicator_t<F>>;
+      -> lazy<selection::template custom_applicator_t<F>>;
   template <typename Sel, typename F>
   auto channel(lazy<selection> const &prev, const std::string &name, F callable)
-      -> lazy<custom_selection_applicator_t<F>>;
+      -> lazy<selection::template custom_applicator_t<F>>;
   template <typename Sel>
   auto filter(lazy<selection> const &prev, const std::string &name)
-      -> lazy<simple_selection_applicator_type>;
+      -> lazy<selection::trivial_applicator_type>;
   template <typename Sel>
   auto channel(lazy<selection> const &prev, const std::string &name)
-      -> lazy<simple_selection_applicator_type>;
+      -> lazy<selection::trivial_applicator_type>;
   template <typename Sel>
   auto join(lazy<selection> const &a, lazy<selection> const &b)
       -> lazy<selection>;
 
   // recreate a lazy node as a variation under new arguments
-  template <typename V, typename std::enable_if_t<ana::is_column_reader_v<V>, V>
-                            * = nullptr>
+  template <typename V,
+            typename std::enable_if_t<ana::column::template is_reader_v<V>, V>
+                * = nullptr>
   auto vary_column(lazy<V> const &nom, const std::string &colname) -> lazy<V>;
-  template <
-      typename Val, typename V,
-      typename std::enable_if_t<ana::is_column_constant_v<V>, V> * = nullptr>
+  template <typename Val, typename V,
+            typename std::enable_if_t<ana::column::template is_constant_v<V>, V>
+                * = nullptr>
   auto vary_column(lazy<V> const &nom, Val const &val) -> lazy<V>;
-  template <typename... Args, typename V,
-            typename std::enable_if_t<ana::is_column_definition_v<V> &&
-                                          !ana::is_column_equation_v<V>,
-                                      V> * = nullptr>
+  template <
+      typename... Args, typename V,
+      typename std::enable_if_t<ana::column::template is_definition_v<V> &&
+                                    !ana::column::template is_equation_v<V>,
+                                V> * = nullptr>
   auto vary_definition(lazy<column::evaluator<V>> const &nom, Args &&...args)
       -> lazy<column::evaluator<V>>;
-  template <
-      typename F, typename V,
-      typename std::enable_if_t<ana::is_column_equation_v<V>, V> * = nullptr>
+  template <typename F, typename V,
+            typename std::enable_if_t<ana::column::template is_equation_v<V>, V>
+                * = nullptr>
   auto vary_equation(lazy<column::evaluator<V>> const &nom, F callable)
       -> lazy<column::evaluator<V>>;
 
@@ -302,8 +283,8 @@ auto ana::analysis<T>::constant(const Val &val)
 template <typename T>
 template <typename Def, typename... Args>
 auto ana::analysis<T>::define(Args &&...args)
-    -> lazy<ana::column_evaluator_t<Def>> {
-  return lazy<column::evaluator<Def>>(
+    -> lazy<ana::column::template evaluator_t<Def>> {
+  return lazy<ana::column::template evaluator_t<Def>>(
       *this,
       this->m_processors.get_concurrent_result(
           [&args...](processor<dataset_reader_type> &proc) {
@@ -313,8 +294,9 @@ auto ana::analysis<T>::define(Args &&...args)
 
 template <typename T>
 template <typename F>
-auto ana::analysis<T>::define(F callable) -> lazy<column_evaluator_t<F>> {
-  return lazy<equation_evaluator_t<F>>(
+auto ana::analysis<T>::define(F callable)
+    -> lazy<column::template evaluator_t<F>> {
+  return lazy<ana::column::template evaluator_t<F>>(
       *this, this->m_processors.get_concurrent_result(
                  [callable = callable](processor<dataset_reader_type> &proc) {
                    return proc.template define(callable);
@@ -340,8 +322,8 @@ auto ana::analysis<T>::evaluate_column(lazy<column::evaluator<Def>> const &calc,
 template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::filter(const std::string &name, F callable)
-    -> lazy<custom_selection_applicator_t<F>> {
-  return lazy<custom_selection_applicator_t<F>>(
+    -> lazy<selection::template custom_applicator_t<F>> {
+  return lazy<selection::template custom_applicator_t<F>>(
       *this, this->m_processors.get_concurrent_result(
                  [name = name,
                   callable = callable](processor<dataset_reader_type> &proc) {
@@ -352,8 +334,8 @@ auto ana::analysis<T>::filter(const std::string &name, F callable)
 template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::channel(const std::string &name, F callable)
-    -> lazy<custom_selection_applicator_t<F>> {
-  return lazy<custom_selection_applicator_t<F>>(
+    -> lazy<selection::template custom_applicator_t<F>> {
+  return lazy<selection::template custom_applicator_t<F>>(
       *this, this->m_processors.get_concurrent_result(
                  [name = name,
                   callable = callable](processor<dataset_reader_type> &proc) {
@@ -364,9 +346,9 @@ auto ana::analysis<T>::channel(const std::string &name, F callable)
 template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::filter(const std::string &name)
-    -> lazy<simple_selection_applicator_type> {
+    -> lazy<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
-  auto sel = lazy<simple_selection_applicator_type>(
+  auto sel = lazy<selection::trivial_applicator_type>(
       *this, this->m_processors.get_concurrent_result(
                  [name = name,
                   callable = callable](processor<dataset_reader_type> &proc) {
@@ -378,9 +360,9 @@ auto ana::analysis<T>::filter(const std::string &name)
 template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::channel(const std::string &name)
-    -> lazy<simple_selection_applicator_type> {
+    -> lazy<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
-  auto sel = lazy<simple_selection_applicator_type>(
+  auto sel = lazy<selection::trivial_applicator_type>(
       *this, this->m_processors.get_concurrent_result(
                  [name = name,
                   callable = callable](processor<dataset_reader_type> &proc) {
@@ -393,8 +375,8 @@ template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::filter(lazy<selection> const &prev,
                               const std::string &name, F callable)
-    -> lazy<custom_selection_applicator_t<F>> {
-  return lazy<custom_selection_applicator_t<F>>(
+    -> lazy<selection::template custom_applicator_t<F>> {
+  return lazy<selection::template custom_applicator_t<F>>(
       *this,
       this->m_processors.get_concurrent_result(
           [name = name, callable = callable](
@@ -408,8 +390,8 @@ template <typename T>
 template <typename Sel, typename F>
 auto ana::analysis<T>::channel(lazy<selection> const &prev,
                                const std::string &name, F callable)
-    -> lazy<custom_selection_applicator_t<F>> {
-  return lazy<custom_selection_applicator_t<F>>(
+    -> lazy<selection::template custom_applicator_t<F>> {
+  return lazy<selection::template custom_applicator_t<F>>(
       *this,
       this->m_processors.get_concurrent_result(
           [name = name, callable = callable](
@@ -423,9 +405,9 @@ template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::filter(lazy<selection> const &prev,
                               const std::string &name)
-    -> lazy<simple_selection_applicator_type> {
+    -> lazy<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
-  return lazy<simple_selection_applicator_type>(
+  return lazy<selection::trivial_applicator_type>(
       *this,
       this->m_processors.get_concurrent_result(
           [name = name, callable = callable](
@@ -439,9 +421,9 @@ template <typename T>
 template <typename Sel>
 auto ana::analysis<T>::channel(lazy<selection> const &prev,
                                const std::string &name)
-    -> lazy<simple_selection_applicator_type> {
+    -> lazy<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
-  return lazy<simple_selection_applicator_type>(
+  return lazy<selection::trivial_applicator_type>(
       *this,
       this->m_processors.get_concurrent_result(
           [name = name, callable = callable](
@@ -570,16 +552,17 @@ auto ana::list_all_variation_names(Nodes const &...nodes)
 }
 
 template <typename T>
-template <typename V,
-          typename std::enable_if_t<ana::is_column_reader_v<V>, V> *ptr>
+template <typename V, typename std::enable_if_t<
+                          ana::column::template is_reader_v<V>, V> *ptr>
 auto ana::analysis<T>::vary_column(lazy<V> const &, const std::string &colname)
     -> lazy<V> {
   return this->read<cell_value_t<std::decay_t<V>>>(colname);
 }
 
 template <typename T>
-template <typename Val, typename V,
-          typename std::enable_if_t<ana::is_column_constant_v<V>, V> *ptr>
+template <
+    typename Val, typename V,
+    typename std::enable_if_t<ana::column::template is_constant_v<V>, V> *ptr>
 auto ana::analysis<T>::vary_column(lazy<V> const &nom, Val const &val)
     -> lazy<V> {
   return this->constant<Val>(val);
@@ -587,8 +570,8 @@ auto ana::analysis<T>::vary_column(lazy<V> const &nom, Val const &val)
 
 template <typename T>
 template <typename... Args, typename V,
-          typename std::enable_if_t<ana::is_column_definition_v<V> &&
-                                        !ana::is_column_equation_v<V>,
+          typename std::enable_if_t<ana::column::template is_definition_v<V> &&
+                                        !ana::column::template is_equation_v<V>,
                                     V> *ptr>
 auto ana::analysis<T>::vary_definition(lazy<column::evaluator<V>> const &,
                                        Args &&...args)
@@ -597,8 +580,9 @@ auto ana::analysis<T>::vary_definition(lazy<column::evaluator<V>> const &,
 }
 
 template <typename T>
-template <typename F, typename V,
-          typename std::enable_if_t<ana::is_column_equation_v<V>, V> *ptr>
+template <
+    typename F, typename V,
+    typename std::enable_if_t<ana::column::template is_equation_v<V>, V> *ptr>
 auto ana::analysis<T>::vary_equation(lazy<column::evaluator<V>> const &,
                                      F callable) -> lazy<column::evaluator<V>> {
   return this->define(typename V::function_type(callable));

@@ -7,6 +7,11 @@
 
 namespace ana {
 
+class selection;
+
+template <typename T>
+constexpr bool is_selection_v = std::is_base_of_v<ana::selection, T>;
+
 class selection : public action {
 
 public:
@@ -55,6 +60,19 @@ private:
   const selection *m_preselection;
   std::shared_ptr<column> m_decision;
   ana::variable<double> m_variable;
+
+public:
+  template <typename T> struct is_applicator : std::false_type {};
+  template <typename T>
+  struct is_applicator<selection::applicator<T>> : std::true_type {};
+  template <typename T>
+  static constexpr bool is_applicator_v = is_applicator<T>::value;
+
+  template <typename F>
+  using custom_applicator_t = typename selection::template applicator<
+      ana::column::template equation_t<F>>;
+  using trivial_applicator_type = typename selection::template applicator<
+      ana::column::equation<double(double)>>;
 };
 
 template <typename T> class ana::selection::applicator {
@@ -76,9 +94,6 @@ protected:
   std::shared_ptr<T> m_equation;
   std::function<void(selection &)> m_set_previous;
 };
-
-template <typename T>
-constexpr bool is_selection_v = std::is_base_of_v<ana::selection, T>;
 
 } // namespace ana
 

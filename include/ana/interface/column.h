@@ -9,6 +9,23 @@
 
 namespace ana {
 
+template <typename T> struct is_callable {
+  using yes = bool;
+  using no = int;
+  template <typename C> static yes check_callable(decltype(&C::operator()));
+  template <typename C> static no check_callable(...);
+  enum { value = sizeof(check_callable<T>(0)) == sizeof(yes) };
+};
+
+/**
+ * @brief Determine whether a type is callable, i.e. has a valid `operator()`.
+ */
+template <typename T> constexpr bool is_callable_v = is_callable<T>::value;
+
+class column;
+
+template <typename T> constexpr bool is_column_v = std::is_base_of_v<column, T>;
+
 class column : public action {
 
 public:
@@ -31,52 +48,92 @@ public:
 public:
   column() = default;
   virtual ~column() = default;
+
+public:
+  template <typename T>
+  static constexpr std::true_type
+  check_reader(typename column::reader<T> const &);
+  static constexpr std::false_type check_reader(...);
+
+  template <typename T>
+  static constexpr std::true_type
+  check_constant(typename column::constant<T> const &);
+  static constexpr std::false_type check_constant(...);
+
+  template <typename T>
+  static constexpr std::true_type
+  check_equation(typename column::equation<T> const &);
+  static constexpr std::false_type check_equation(...);
+
+  template <typename T>
+  static constexpr std::true_type
+  check_representation(typename column::representation<T> const &);
+  static constexpr std::false_type check_representation(...);
+
+  template <typename T>
+  static constexpr std::true_type
+  check_definition(typename column::definition<T> const &);
+  static constexpr std::false_type check_definition(...);
+
+  template <typename T> struct is_evaluator : std::false_type {};
+  template <typename T>
+  struct is_evaluator<column::evaluator<T>> : std::true_type {};
+
+  template <typename T, typename = void> struct evaluator_traits;
+  template <typename T>
+  struct evaluator_traits<T, typename std::enable_if_t<ana::is_column_v<T>>> {
+    using evaluator_type = typename ana::column::template evaluator<T>;
+  };
+
+  template <typename F> struct equation_traits {
+    using equation_type = typename equation_traits<decltype(
+        std::function{std::declval<F>()})>::equation_type;
+  };
+
+  template <typename Ret, typename... Args>
+  struct equation_traits<std::function<Ret(Args...)>> {
+    using equation_type =
+        typename column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
+  };
+
+  template <typename F>
+  using equation_t = typename equation_traits<F>::equation_type;
+
+  template <typename F>
+  struct evaluator_traits<F, typename std::enable_if_t<!ana::is_column_v<F> &&
+                                                       ana::is_callable_v<F>>> {
+    using evaluator_type = typename ana::column::template evaluator<
+        ana::column::template equation_t<F>>;
+  };
+
+  template <typename T>
+  static constexpr bool is_reader_v =
+      decltype(check_reader(std::declval<std::decay_t<T> const &>()))::value;
+
+  template <typename T>
+  static constexpr bool is_constant_v =
+      decltype(check_constant(std::declval<std::decay_t<T> const &>()))::value;
+
+  template <typename T>
+  static constexpr bool is_definition_v = decltype(check_definition(
+      std::declval<std::decay_t<T> const &>()))::value;
+
+  template <typename T>
+  static constexpr bool is_equation_v =
+      decltype(check_equation(std::declval<std::decay_t<T> const &>()))::value;
+
+  template <typename T>
+  static constexpr bool is_representation_v = decltype(check_representation(
+      std::declval<std::decay_t<T> const &>()))::value;
+
+  template <typename T>
+  static constexpr bool is_evaluator_v = is_evaluator<T>::value;
+
+  template <typename T>
+  using evaluator_t = typename evaluator_traits<T>::evaluator_type;
+
+  template <typename T> using evaluated_t = typename T::evaluated_type;
 };
-
-constexpr std::true_type check_column(const column &);
-constexpr std::false_type check_column(...);
-template <typename T>
-constexpr bool is_column_v = decltype(check_column(std::declval<T>()))::value;
-
-template <typename T>
-constexpr std::true_type
-check_column_reader(typename column::reader<T> const &);
-constexpr std::false_type check_column_reader(...);
-template <typename T>
-constexpr bool is_column_reader_v =
-    decltype(check_column_reader(std::declval<T const &>()))::value;
-
-template <typename T>
-constexpr std::true_type
-check_column_constant(typename column::constant<T> const &);
-constexpr std::false_type check_column_constant(...);
-template <typename T>
-constexpr bool is_column_constant_v =
-    decltype(check_column_constant(std::declval<T const &>()))::value;
-
-template <typename T>
-constexpr std::true_type
-check_column_equation(typename column::equation<T> const &);
-constexpr std::false_type check_column_equation(...);
-template <typename T>
-constexpr bool is_column_equation_v =
-    decltype(check_column_equation(std::declval<T const &>()))::value;
-
-template <typename T>
-constexpr std::true_type
-check_column_definition(typename column::definition<T> const &);
-constexpr std::false_type check_column_definition(...);
-template <typename T>
-constexpr bool is_column_definition_v =
-    decltype(check_column_definition(std::declval<T const &>()))::value;
-
-template <typename T>
-constexpr std::true_type
-check_column_representation(typename column::representation<T> const &);
-constexpr std::false_type check_column_representation(...);
-template <typename T>
-constexpr bool is_column_representation_v =
-    decltype(check_column_representation(std::declval<T const &>()))::value;
 
 //---------------------------------------------------
 // cell can actually report on the concrete data type
@@ -233,7 +290,7 @@ template <typename T> const T *ana::cell<T>::field() const {
 template <typename To>
 template <typename From>
 ana::cell<To>::conversion_of<From>::conversion_of(const cell<From> &from)
-    : ana::cell<To>(), m_from(&from) {}
+    : m_from(&from) {}
 
 template <typename To>
 template <typename From>
@@ -245,7 +302,7 @@ const To &ana::cell<To>::conversion_of<From>::value() const {
 template <typename Base>
 template <typename Impl>
 ana::cell<Base>::interface_of<Impl>::interface_of(const cell<Impl> &from)
-    : cell<Base>(), m_impl(&from) {}
+    : m_impl(&from) {}
 
 template <typename Base>
 template <typename Impl>

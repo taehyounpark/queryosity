@@ -41,11 +41,11 @@ public:
 
   template <typename Def, typename... Args>
   auto define(Args const &...vars) const
-      -> std::shared_ptr<ana::column_evaluator_t<Def>>;
+      -> std::shared_ptr<ana::column::template evaluator_t<Def>>;
 
   template <typename F>
   auto define(F expression) const
-      -> std::shared_ptr<ana::column_evaluator_t<F>>;
+      -> std::shared_ptr<ana::column::template evaluator_t<F>>;
 
   template <typename Def, typename... Cols>
   auto evaluate_column(column::evaluator<Def> &calc, Cols const &...columns)
@@ -72,10 +72,10 @@ template <typename T>
 template <typename Val>
 auto ana::column::computation<T>::read(const std::string &name)
     -> std::shared_ptr<read_column_t<T, Val>> {
-  using read_t = decltype(m_reader->template read_column<Val>(
+  using read_column_type = decltype(m_reader->template read_column<Val>(
       std::declval<const input::range &>(),
       std::declval<const std::string &>()));
-  static_assert(is_shared_ptr_v<read_t>,
+  static_assert(is_shared_ptr_v<read_column_type>,
                 "dataset must open a std::shared_ptr of its column reader");
   auto rdr = m_reader->template read_column<Val>(m_part, name);
   this->add_column(*rdr);
@@ -92,15 +92,16 @@ auto ana::column::computation<T>::constant(Val const &val)
 template <typename T>
 template <typename Def, typename... Args>
 auto ana::column::computation<T>::define(Args const &...args) const
-    -> std::shared_ptr<ana::column_evaluator_t<Def>> {
+    -> std::shared_ptr<ana::column::template evaluator_t<Def>> {
   return std::make_shared<evaluator<Def>>(args...);
 }
 
 template <typename T>
 template <typename F>
 auto ana::column::computation<T>::define(F expression) const
-    -> std::shared_ptr<ana::column_evaluator_t<F>> {
-  return std::make_shared<evaluator<ana::equation_t<F>>>(expression);
+    -> std::shared_ptr<ana::column::template evaluator_t<F>> {
+  return std::make_shared<evaluator<ana::column::template equation_t<F>>>(
+      expression);
 }
 
 template <typename T>
@@ -110,7 +111,7 @@ auto ana::column::computation<T>::evaluate_column(column::evaluator<Def> &calc,
     -> std::shared_ptr<Def> {
   auto defn = calc.evaluate_column(columns...);
   // only if the evaluated column is a definition
-  if constexpr (is_column_definition_v<Def>) {
+  if constexpr (column::template is_definition_v<Def>) {
     this->add_column(*defn);
   }
   return defn;
