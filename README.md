@@ -37,6 +37,8 @@ The following example uses  to analyze physics collision dataset reconstructing 
 Specify the multithreading configuration and the input dataset of the analysis as the following:
 
 ```cpp
+#include "ana/analysis.h"
+
 // enable (or disable) multithreading
 ana::multithread::enable(/* 10 */);  // provide thread count (default: system maximum)
 
@@ -103,6 +105,8 @@ auto pth = ds.define(
 #### Custom definitions
 Complex computations can be fully specified by implementing a `definition`. 
 ```cpp
+#include "ana/abc.h"
+
 // define an ith TLorenzVector out of (pt,eta,phi,e) vectors
 class NthP4 : public ana::column::definition<P4(VecD, VecD, VecD, VecD)>
 {
