@@ -7,7 +7,7 @@ namespace ana {
 class selection::weight : public selection {
 
 public:
-  weight(const std::string &name, bool channel);
+  weight(const selection *presel, bool ch, const std::string &name);
   virtual ~weight() = default;
 
 public:
@@ -17,8 +17,9 @@ public:
 
 } // namespace ana
 
-inline ana::selection::weight::weight(const std::string &name, bool channel)
-    : selection(name, channel) {}
+inline ana::selection::weight::weight(const selection *presel, bool ch,
+                                      const std::string &name)
+    : selection(presel, ch, name) {}
 
 inline bool ana::selection::weight::passed_cut() const {
   return m_preselection ? m_preselection->passed_cut() : true;

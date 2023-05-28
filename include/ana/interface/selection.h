@@ -27,21 +27,17 @@ public:
                                        std::string delimiter = "/");
 
 public:
-  selection(const std::string &name, bool channel);
+  selection(const selection *presel, bool ch, const std::string &name);
   virtual ~selection() = default;
 
 public:
-  std::string get_name() const;
+  std::string get_name() const noexcept;
   std::string get_path() const;
   std::string get_full_path() const;
 
-  void set_initial();
-  void set_previous(const selection &preselection);
-
-  bool is_initial() const;
-  const selection *get_previous() const;
-
+  bool is_initial() const noexcept;
   bool is_channel() const noexcept;
+  const selection *get_previous() const noexcept;
 
   template <typename Val> void set_decision(std::shared_ptr<term<Val>> dec);
 
@@ -54,10 +50,10 @@ public:
   virtual void finalize() override;
 
 private:
-  const std::string m_name;
+  const selection *const m_preselection;
   const bool m_channel;
+  const std::string m_name;
 
-  const selection *m_preselection;
   std::shared_ptr<column> m_decision;
   ana::variable<double> m_variable;
 
@@ -82,17 +78,15 @@ public:
   ~applicator() = default;
 
   template <typename Sel>
-  void set_selection(const std::string &name, bool channel);
-  void set_previous(selection const &prev);
+  void set_selection(const selection *presel, bool ch, const std::string &name);
 
   template <typename... Vals>
   std::shared_ptr<selection>
   apply_selection(cell<Vals> const &...columns) const;
 
 protected:
-  std::function<std::shared_ptr<selection>()> m_make_shared;
   std::shared_ptr<T> m_equation;
-  std::function<void(selection &)> m_set_previous;
+  std::function<std::shared_ptr<selection>()> m_make_shared;
 };
 
 } // namespace ana
@@ -111,26 +105,21 @@ ana::selection::concatenate_names(std::vector<std::string> const &names,
   return joined;
 }
 
-inline ana::selection::selection(const std::string &name, bool channel)
-    : m_name(name), m_channel(channel), m_preselection(nullptr) {}
+inline ana::selection::selection(const selection *presel, bool ch,
+                                 const std::string &name)
+    : m_preselection(presel), m_channel(ch), m_name(name) {}
 
-inline void ana::selection::set_initial() { m_preselection = nullptr; }
-
-inline void ana::selection::set_previous(const ana::selection &preselection) {
-  m_preselection = &preselection;
-}
-
-inline bool ana::selection::is_initial() const {
+inline bool ana::selection::is_initial() const noexcept {
   return m_preselection ? false : true;
 }
 
-inline const ana::selection *ana::selection::get_previous() const {
+inline const ana::selection *ana::selection::get_previous() const noexcept {
   return m_preselection;
 }
 
 inline bool ana::selection::is_channel() const noexcept { return m_channel; }
 
-inline std::string ana::selection::get_name() const { return m_name; }
+inline std::string ana::selection::get_name() const noexcept { return m_name; }
 
 inline std::string ana::selection::get_path() const {
   std::vector<std::string> channels;
@@ -171,26 +160,20 @@ void ana::selection::set_decision(std::shared_ptr<term<T>> decision) {
 
 template <typename T>
 ana::selection::applicator<T>::applicator(std::shared_ptr<T> eqn)
-    : m_make_shared([]() -> std::shared_ptr<selection> { return nullptr; }),
-      m_equation(eqn), m_set_previous([](selection &) { return; }) {}
+    : m_equation(eqn),
+      m_make_shared([]() -> std::shared_ptr<selection> { return nullptr; }) {}
 
 template <typename T>
 template <typename Sel>
-void ana::selection::applicator<T>::set_selection(const std::string &name,
-                                                  bool channel) {
+void ana::selection::applicator<T>::set_selection(const selection *presel,
+                                                  bool ch,
+                                                  const std::string &name) {
   m_make_shared = std::bind(
-      [](const std::string &name, bool ch) -> std::shared_ptr<selection> {
-        return std::make_shared<Sel>(name, ch);
+      [](const selection *presel, bool ch,
+         const std::string &name) -> std::shared_ptr<selection> {
+        return std::make_shared<Sel>(presel, ch, name);
       },
-      name, channel);
-}
-
-template <typename T>
-void ana::selection::applicator<T>::set_previous(
-    ana::selection const &previous) {
-  m_set_previous = std::bind(
-      [](selection &curr, selection const &prev) { curr.set_previous(prev); },
-      std::placeholders::_1, std::cref(previous));
+      presel, ch, name);
 }
 
 template <typename T>
@@ -200,10 +183,10 @@ std::shared_ptr<ana::selection> ana::selection::applicator<T>::apply_selection(
   // make this selection
   auto sel = m_make_shared();
 
-  // set the previous selection
-  m_set_previous(*sel);
-  // set the decision
+  // set equation arguments
   m_equation->set_arguments(columns...);
+
+  // set selection decision
   sel->set_decision(
       std::static_pointer_cast<term<cell_value_t<T>>>(m_equation));
 

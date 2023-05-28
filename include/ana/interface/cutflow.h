@@ -62,7 +62,7 @@ auto ana::selection::cutflow::filter(const std::string &name,
     -> std::shared_ptr<applicator<column::template equation_t<F>>> {
   auto eqn = ana::make_equation(expression);
   auto calc = std::make_shared<applicator<column::template equation_t<F>>>(eqn);
-  calc->template set_selection<Sel>(name, false);
+  calc->template set_selection<Sel>(nullptr, false, name);
   return calc;
 }
 
@@ -72,7 +72,7 @@ auto ana::selection::cutflow::channel(const std::string &name,
     -> std::shared_ptr<applicator<column::template equation_t<F>>> {
   auto eqn = ana::make_equation(expression);
   auto calc = std::make_shared<applicator<column::template equation_t<F>>>(eqn);
-  calc->template set_selection<Sel>(name, true);
+  calc->template set_selection<Sel>(nullptr, true, name);
   return calc;
 }
 
@@ -81,8 +81,9 @@ auto ana::selection::cutflow::filter(selection const &prev,
                                      const std::string &name,
                                      F expression) const
     -> std::shared_ptr<applicator<column::template equation_t<F>>> {
-  auto calc = this->filter<Sel>(name, expression);
-  calc->set_previous(prev);
+  auto eqn = ana::make_equation(expression);
+  auto calc = std::make_shared<applicator<column::template equation_t<F>>>(eqn);
+  calc->template set_selection<Sel>(&prev, false, name);
   return calc;
 }
 
@@ -91,8 +92,9 @@ auto ana::selection::cutflow::channel(selection const &prev,
                                       const std::string &name,
                                       F expression) const
     -> std::shared_ptr<applicator<column::template equation_t<F>>> {
-  auto calc = this->channel<Sel>(name, expression);
-  calc->set_previous(prev);
+  auto eqn = ana::make_equation(expression);
+  auto calc = std::make_shared<applicator<column::template equation_t<F>>>(eqn);
+  calc->template set_selection<Sel>(&prev, true, name);
   return calc;
 }
 

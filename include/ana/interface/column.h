@@ -86,8 +86,8 @@ public:
   };
 
   template <typename F> struct equation_traits {
-    using equation_type = typename equation_traits<decltype(
-        std::function{std::declval<F>()})>::equation_type;
+    using equation_type = typename equation_traits<decltype(std::function{
+        std::declval<F>()})>::equation_type;
   };
 
   template <typename Ret, typename... Args>
@@ -260,8 +260,6 @@ public:
   template <typename... Args> evaluator(Args const &...args);
   ~evaluator() = default;
 
-  template <typename... Args> void set_constructor(Args const &...args);
-
   template <typename... Vals>
   std::shared_ptr<T> evaluate_column(cell<Vals> const &...cols) const;
 
@@ -335,14 +333,6 @@ ana::column::evaluator<T>::evaluator(Args const &...args)
     : m_make_shared(std::bind(
           [](Args const &...args) { return std::make_shared<T>(args...); },
           args...)) {}
-
-template <typename T>
-template <typename... Args>
-void ana::column::evaluator<T>::set_constructor(Args const &...args) {
-  m_make_shared = std::bind(
-      [](Args const &...args) { return std::make_shared<T>(args...); },
-      args...);
-}
 
 template <typename T>
 template <typename... Vals>
