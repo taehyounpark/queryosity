@@ -23,7 +23,7 @@ A clear _abstraction_ layer to define dataset transformation procedures helps en
 # How to use
 
 1. Clone this repository.
-2. Add `ana/include` to the include path:
+2. Add `ana/include` to the include path.
 3. `#include "ana/abc.h"` to implement components (e.g. [rootana](github.com/taehyounpark/rootana.git)).
 5. `#include "ana/analysis.h"` to do data analysis.
 
