@@ -13,7 +13,6 @@
 #include "computation.h"
 #include "experiment.h"
 
-// https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists
 #define CHECK_FOR_BINARY_OP(op_name, op_symbol)                                \
   struct has_no_##op_name {};                                                  \
   template <typename T, typename Arg>                                          \
