@@ -15,5 +15,4 @@ set_property(
 )
 
 target_include_directories(ana INTERFACE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>")
-
 target_compile_features(ana INTERFACE cxx_std_17)

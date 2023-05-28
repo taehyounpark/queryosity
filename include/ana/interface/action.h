@@ -1,25 +1,22 @@
 #pragma once
 
-#include <iostream>
-#include <vector>
-#include <memory>
 #include <algorithm>
 #include <atomic>
+#include <iostream>
+#include <memory>
+#include <vector>
 
-namespace ana
-{
+namespace ana {
 
-class action
-{
+class action {
 
 public:
-	action() = default;
-	virtual ~action() = default;
+  action() = default;
+  virtual ~action() = default;
 
-	virtual void initialize() = 0;
-	virtual void execute()    = 0;
-	virtual void finalize()   = 0;
-
+  virtual void initialize() = 0;
+  virtual void execute() = 0;
+  virtual void finalize() = 0;
 };
 
-}
+} // namespace ana

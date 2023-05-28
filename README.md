@@ -164,17 +164,17 @@ For cases in which values of multiple columns in a dataset correspond to attribu
 class Lepton : public ana::column::representation<Lepton(P4,int,unsigned int)>
 {
 public:
-  // helper enum to keep track of properties
-  enum class Property { LV, Q, TYPE };
+  // helper to keep track of of properties index
+  enum { p4, charge, type };
   
   Lepton() = default;
   virtual ~Lepton() = default;
   
   // can access/derive quantities from properties
-  bool getP4()      { return this->value<Property::LV>(); }
-  bool getCharge()  { return this->value<Property::Q>(); }
-  bool isElectron() { return this->value<Property::TYPE>() == 11; }
-  bool isMuon()     { return this->value<Property::TYPE>() == 13; }
+  bool getP4()      { return this->value<p4>(); }
+  bool getCharge()  { return this->value<charge>(); }
+  bool isElectron() { return this->value<type>() == 11; }
+  bool isMuon()     { return this->value<type>() == 13; }
 }
 
 // ...
