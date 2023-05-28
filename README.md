@@ -124,43 +124,10 @@ public:
 
 // important: it is up to implementation to ensure thread-safety
 protected:
-  unsigned int m_index;
+  const unsigned int m_index;
   // int* g_modifiable_global_var;  // <- bad idea
 };
 ```
-
-##### Direct instance-access
-
-Deriving from `definition` poses no restriction on any additional functionalities that users may want to add to the class. This can be used to "configure" them prior to the dataset processing and/or "access" other quantities directly, such as:
-```cpp
-class MyDef : public ana::column::definition<double(double)>
-{
-public:
-  MyDef(double baseVal) : m_baseVal = default;
-  virtual ~MyDef() = default;
-  
-  // arbitrary "configuration" method
-  void setComputeMethod(bool thisOrThat) {m_thisOrThat = thisOrThat;}
-  
-  // arbitrary "access" method (must be const)
-  const double baseVal() const { return m_baseVal; }
-  
- protected:
-  const double m_baseVal;
-  bool m_plusOrMinus;
-};
-
-// ...
-
-auto myDef = ds.define<MyDef>(1.0)(met);
-
-// dispatch configuration call to all threads
-myDef.call_all([](MyDef& md){md.setComputeMethod(true);});
-
-// define using derived access
-auto myEqn = ds.define([](MyDef const& md){ return md.baseVal(); })(myDef);
-```
-
 Combining the above methods:
 ```cpp
 // first- & second-leading lepton four-momenta
@@ -181,21 +148,33 @@ auto pth = ds.define(
     return (p2+q2).Mod();
   })(p4ll, met, met_phi);
 ```
-#### (Advanced) Column representations
+##### (Advanced) Direct instance-access of columns
+
+Deriving from `definition` poses no restriction on any additional functionalities that users may want to add to the class. This can be used to "configure" them prior to the dataset processing:
+```cpp
+l1p4.call_all( [](NthP4& p4){ /* call whatever methods you want to "configure" it, if implemented */ } );
+```
+#### Column representations
 
 For cases in which values of multiple columns in a dataset correspond to attributes of a parent entity, they can be accommodated by a `representation`:
 ```cpp
 // example: not used in rest of walkthrough
-enum class LeptonProperty { LV, Q, TYPE };
+
+// want to define an object corresponding to "lepton" out of four-momentum, charge, and type columns
 class Lepton : public ana::column::representation<Lepton(P4,int,unsigned int)>
 {
 public:
+  // helper enum to keep track of properties
+  enum class Property { LV, Q, TYPE };
+  
   Lepton() = default;
   virtual ~Lepton() = default;
-  bool getP4()      { return this->value<LeptonProperty::LV>(); }
-  bool getCharge()  { return this->value<LeptonProperty::Q>(); }
-  bool isElectron() { return this->value<LeptonProperty::TYPE>() == 11; }
-  bool isMuon()     { return this->value<LeptonProperty::TYPE>() == 13; }
+  
+  // can access/derive quantities from properties
+  bool getP4()      { return this->value<Property::LV>(); }
+  bool getCharge()  { return this->value<Property::Q>(); }
+  bool isElectron() { return this->value<Property::TYPE>() == 11; }
+  bool isMuon()     { return this->value<Property::TYPE>() == 13; }
 }
 
 // ...
@@ -205,17 +184,19 @@ auto l1 = ds.define<Lepton>()(l1p4, lep_charge[0], lep_type[0]);
 
 ##### Why would I want this?
 
-For common column manipulations consisting of computation of some derived (i.e. simpler) quantity out of existing ones, the using `definition`s is the intuitive and efficient way to do so. On the other hand, a `representation`'s function is complementary to this, in that it allows to encapsulate individual columns into a bigger conceptual entity. Its advantage is apparent in the following example:
+To be clear, any comptuation logic can be defined without using `representation`, and for most cases in which the computation flow of a column is from a more complicated to a derived/simpler quantity, this machinery can be ignored. On the other hand, a representations provide a complementary function to aid conceptual clarity (but again, not necessity) in the other direction, i.e. encapsulate individual columns into a larger entity, which can also lead to improved computational efficiency. Consider the following example:
 ```cpp
-// consider using "Lep" definition instead of the "Lepton" representation.
-struct Lep { p4; q; type; };
-auto l1 = ds.define([](P4 const& p4, int q, unsigned int type){return Lep{p4,q,type};})(l1p4,lep_charge[0],lep_type[0]);
-```
-Note that the following computing inefficiencies will occur: 
-- All input column values will be evaluated in order to determine the properties of the `Lep` instance. 
-- An instance of `Lep` will be constructed and destructed for each entry that it is needed for.
+// using a simple struct to hold properties
+struct Lepton { p4; q; type; };
 
-Representations are subject to neither of these shortcomings.
+// straightforward to use with definition... but optimal?
+auto l1 = ds.define([](P4 const& p4, int q, unsigned int type){return Lepton{p4,q,type};})(l1p4,lep_charge[0],lep_type[0]);
+```
+Note that the following computing inefficiencies will occur:
+- All input column values will be evaluated in order to determine and assign the properties of the `Lepton` instance, even if only a subset of them may end up being used in the end. 
+- An instance of `Lepton` will be constructed and destructed for each entry that it is needed for.
+
+Representations possess neither of these shortcomings.
 ## 2. Applying selections
 ### 2.1 Cut versus weight
 Filtering entries in a dataset is done through applying a `selection` associated with a decision based on column values:
