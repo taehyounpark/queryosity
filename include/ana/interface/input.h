@@ -95,10 +95,11 @@ public:
 
 template <typename T>
 using read_dataset_t =
-    typename decltype(std::declval<T>().read_dataset())::element_type;
+    typename decltype(std::declval<T const &>().read_dataset())::element_type;
+
 template <typename T, typename Val>
 using read_column_t =
-    typename decltype(std::declval<T>().template read_column<Val>(
+    typename decltype(std::declval<T const &>().template read_column<Val>(
         std::declval<input::range const &>(),
         std::declval<std::string const &>()))::element_type;
 
@@ -232,12 +233,15 @@ template <typename T> inline double ana::input::dataset<T>::normalize() const {
 
 template <typename T>
 decltype(auto) ana::input::dataset<T>::read_dataset() const {
+
   using result_type = decltype(static_cast<const T *>(this)->read());
-  using reader_type = typename result_type::element_type;
   static_assert(is_shared_ptr_v<result_type>,
                 "not a std::shared_ptr of ana::input::reader<T>");
+
+  using reader_type = typename result_type::element_type;
   static_assert(std::is_base_of_v<input::reader<reader_type>, reader_type>,
                 "not an implementation of ana::input::reader<T>");
+
   return static_cast<const T *>(this)->read();
 }
 
@@ -246,28 +250,27 @@ template <typename Val>
 decltype(auto)
 ana::input::reader<T>::read_column(const range &part,
                                    const std::string &name) const {
+
   using result_type =
       decltype(static_cast<const T *>(this)->template read<Val>(part, name));
-  using reader_type = typename result_type::element_type;
   static_assert(is_shared_ptr_v<result_type>,
                 "must be a std::shared_ptr of ana::column::reader<T>");
-  static_assert(is_column_reader_v<reader_type>,
-                "not an implementation of ana::column::reader<T>");
+
   return static_cast<const T *>(this)->template read<Val>(part, name);
 }
 
 template <typename T>
 void ana::input::reader<T>::start_part(const ana::input::range &part) {
-  static_cast<T *>(this)->start(std::cref(part));
+  static_cast<T *>(this)->start(part);
 }
 
 template <typename T>
 void ana::input::reader<T>::read_entry(const ana::input::range &part,
                                        unsigned long long entry) {
-  static_cast<T *>(this)->next(std::cref(part), entry);
+  static_cast<T *>(this)->next(part, entry);
 }
 
 template <typename T>
 void ana::input::reader<T>::finish_part(const ana::input::range &part) {
-  static_cast<T *>(this)->finish(std::cref(part));
+  static_cast<T *>(this)->finish(part);
 }

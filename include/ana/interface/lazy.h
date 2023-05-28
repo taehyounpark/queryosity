@@ -120,7 +120,6 @@ CHECK_FOR_BINARY_OP(logical_or, ||)
 CHECK_FOR_SUBSCRIPT_OP()
 } // namespace op_check
 
-template <typename Eval> using evaluated_t = typename Eval::evaluated_type;
 template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
 
 /**
@@ -189,8 +188,8 @@ public:
    * lazy node, and `variation(var_name)` is the newly-constructed one
    */
   template <typename... Args, typename V = U,
-            std::enable_if_t<ana::is_column_reader_v<V> ||
-                                 ana::is_column_constant_v<V>,
+            std::enable_if_t<ana::column::template is_reader_v<V> ||
+                                 ana::column::template is_constant_v<V>,
                              bool> = false>
   auto vary(const std::string &var_name, Args &&...args) -> varied<V>;
 
@@ -202,11 +201,11 @@ public:
    * @details Creates a `varied<U>` node whose `.get_nominal()` is the original
    * lazy node, and `variation(var_name)` is the newly-constructed one
    */
-  template <
-      typename... Args, typename V = U,
-      std::enable_if_t<ana::is_column_evaluator_v<V> &&
-                           !ana::is_column_equation_v<ana::evaluated_t<V>>,
-                       bool> = false>
+  template <typename... Args, typename V = U,
+            std::enable_if_t<ana::column::template is_evaluator_v<V> &&
+                                 !ana::column::template is_equation_v<
+                                     ana::column::template evaluated_t<V>>,
+                             bool> = false>
   auto vary(const std::string &var_name, Args &&...args) -> varied<V>;
 
   /**
@@ -220,8 +219,9 @@ public:
    * lazy node, and `variation(var_name)` is the newly-constructed one
    */
   template <typename F, typename V = U,
-            std::enable_if_t<ana::is_column_evaluator_v<V> &&
-                                 ana::is_column_equation_v<ana::evaluated_t<V>>,
+            std::enable_if_t<ana::column::template is_evaluator_v<V> &&
+                                 ana::column::template is_equation_v<
+                                     ana::column::template evaluated_t<V>>,
                              bool> = false>
   auto vary(const std::string &var_name, F callable) -> varied<V>;
 
@@ -268,8 +268,9 @@ public:
    * @details The input column(s) can be `lazy` or `varied`. Correspondingly,
    * the evaluated column will be as well.
    */
-  template <typename... Nodes, typename V = U,
-            std::enable_if_t<ana::is_column_evaluator_v<V>, bool> = false>
+  template <
+      typename... Nodes, typename V = U,
+      std::enable_if_t<ana::column::template is_evaluator_v<V>, bool> = false>
   auto evaluate(Nodes &&...columns) const
       -> decltype(std::declval<lazy<V>>().evaluate_column(
           std::forward<Nodes>(columns)...)) {
@@ -278,25 +279,26 @@ public:
 
   template <typename... Nodes, typename V = U,
             std::enable_if_t<
-                ana::is_column_evaluator_v<V> &&
+                ana::column::template is_evaluator_v<V> &&
                     ana::analysis<T>::template has_no_variation_v<Nodes...>,
                 bool> = false>
-  auto evaluate_column(Nodes const &...columns) const -> lazy<evaluated_t<V>> {
+  auto evaluate_column(Nodes const &...columns) const
+      -> lazy<column::template evaluated_t<V>> {
     // nominal
     return this->m_analysis->evaluate_column(*this, columns...);
   }
 
   template <
       typename... Nodes, typename V = U,
-      std::enable_if_t<ana::is_column_evaluator_v<V> &&
+      std::enable_if_t<ana::column::template is_evaluator_v<V> &&
                            ana::analysis<T>::template has_variation_v<Nodes...>,
                        bool> = false>
   auto evaluate_column(Nodes const &...columns) const
-      -> varied<evaluated_t<V>> {
+      -> varied<column::template evaluated_t<V>> {
     // variations
     auto nom =
         this->m_analysis->evaluate_column(*this, columns.get_nominal()...);
-    varied<evaluated_t<V>> syst(nom);
+    varied<column::template evaluated_t<V>> syst(nom);
     for (auto const &var_name : list_all_variation_names(columns...)) {
       auto var = this->m_analysis->evaluate_column(
           *this, columns.get_variation(var_name)...);
@@ -311,7 +313,8 @@ public:
    * @return `lazy/varied<selection>` Applied selection.
    */
   template <typename... Nodes, typename V = U,
-            std::enable_if_t<ana::is_selection_applicator_v<V>, bool> = false>
+            std::enable_if_t<ana::selection::template is_applicator_v<V>,
+                             bool> = false>
   auto apply(Nodes &&...columns) const
       -> decltype(std::declval<lazy<V>>().apply_selection(
           std::forward<Nodes>(columns)...)) {
@@ -320,7 +323,7 @@ public:
 
   template <typename... Nodes, typename V = U,
             std::enable_if_t<
-                is_selection_applicator_v<V> &&
+                selection::template is_applicator_v<V> &&
                     ana::analysis<T>::template has_no_variation_v<Nodes...>,
                 bool> = false>
   auto apply_selection(Nodes const &...columns) const -> lazy<selection> {
@@ -330,7 +333,7 @@ public:
 
   template <
       typename... Nodes, typename V = U,
-      std::enable_if_t<is_selection_applicator_v<V> &&
+      std::enable_if_t<selection::template is_applicator_v<V> &&
                            ana::analysis<T>::template has_variation_v<Nodes...>,
                        bool> = false>
   auto apply_selection(Nodes const &...columns) const -> varied<selection> {
@@ -351,15 +354,16 @@ public:
    * @param columns Input (`lazy` or `varied`) columns.
    * @return lazy<selection> Filled (`lazy` or `varied`) counter.
    */
-  template <typename... Nodes, typename V = U,
-            std::enable_if_t<ana::is_counter_booker_v<V>, bool> = false>
+  template <
+      typename... Nodes, typename V = U,
+      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
   auto fill(Nodes &&...columns) const
       -> decltype(std::declval<lazy<V>>().fill_counter(
           std::declval<Nodes>()...));
 
   template <typename... Nodes, typename V = U,
             std::enable_if_t<
-                ana::is_counter_booker_v<V> &&
+                ana::counter::template is_booker_v<V> &&
                     ana::analysis<T>::template has_no_variation_v<Nodes...>,
                 bool> = false>
   auto fill_counter(Nodes const &...columns) const -> lazy<V> {
@@ -374,7 +378,7 @@ public:
 
   template <
       typename... Nodes, typename V = U,
-      std::enable_if_t<ana::is_counter_booker_v<V> &&
+      std::enable_if_t<ana::counter::template is_booker_v<V> &&
                            ana::analysis<T>::template has_variation_v<Nodes...>,
                        bool> = false>
   auto fill_counter(Nodes const &...columns) const -> varied<V> {
@@ -396,7 +400,7 @@ public:
   template <typename Node> auto at(Node &&selection) const;
 
   template <typename Node, typename V = U,
-            std::enable_if_t<ana::is_counter_booker_v<V> &&
+            std::enable_if_t<ana::counter::template is_booker_v<V> &&
                                  ana::analysis<T>::template is_nominal_v<Node>,
                              bool> = false>
   auto book_selection(Node const &sel) const -> lazy<booked_counter_t<V>> {
@@ -405,7 +409,7 @@ public:
   }
 
   template <typename Node, typename V = U,
-            std::enable_if_t<ana::is_counter_booker_v<V> &&
+            std::enable_if_t<ana::counter::template is_booker_v<V> &&
                                  ana::analysis<T>::template is_varied_v<Node>,
                              bool> = false>
   auto book_selection(Node const &sel) const -> varied<booked_counter_t<V>> {
@@ -426,13 +430,13 @@ public:
    * which keeps track of the booked selection(s).
    */
   template <typename... Nodes> auto at(Nodes &&...nodes) const {
-    static_assert(is_counter_booker_v<U>, "not a counter (booker)");
+    static_assert(counter::template is_booker_v<U>, "not a counter (booker)");
     return this->book_selections(std::forward<Nodes>(nodes)...);
   }
 
   template <typename... Nodes, typename V = U,
             std::enable_if_t<
-                ana::is_counter_booker_v<V> &&
+                ana::counter::template is_booker_v<V> &&
                     ana::analysis<T>::template has_no_variation_v<Nodes...>,
                 bool> = false>
   auto book_selections(Nodes const &...sels) const -> lazy<V> {
@@ -442,7 +446,7 @@ public:
 
   template <
       typename... Nodes, typename V = U,
-      std::enable_if_t<ana::is_counter_booker_v<V> &&
+      std::enable_if_t<ana::counter::template is_booker_v<V> &&
                            ana::analysis<T>::template has_variation_v<Nodes...>,
                        bool> = false>
   auto book_selections(Nodes const &...sels) const -> varied<V> {
@@ -466,8 +470,9 @@ public:
   /**
    * @return `std::vector<std::string>` list of booked selection paths.
    */
-  template <typename V = U,
-            std::enable_if_t<ana::is_counter_booker_v<V>, bool> = false>
+  template <
+      typename V = U,
+      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
   auto list_selection_paths() const -> std::vector<std::string> {
     return this->get_model_value(
         [](U const &bkr) { return bkr.list_selection_paths(); });
@@ -476,8 +481,9 @@ public:
   /**
    * @return `Counter` the counter booked at a specific selection path.
    */
-  template <typename V = U,
-            std::enable_if_t<ana::is_counter_booker_v<V>, bool> = false>
+  template <
+      typename V = U,
+      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
   auto get_counter(const std::string &sel_path) const
       -> lazy<booked_counter_t<V>> {
     return lazy<typename V::counter_type>(
@@ -494,7 +500,8 @@ public:
    * @return `Result` the result of the implemented counter.
    */
   template <typename V = U,
-            std::enable_if_t<ana::is_counter_implemented_v<V>, bool> = false>
+            std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
+                false>
   auto get_result() const -> decltype(std::declval<V>().get_result()) {
     this->m_analysis->analyze();
     this->merge_results();
@@ -508,10 +515,10 @@ public:
    * @return Node the resulting (`lazy` or `varied`) counter/selection from its
    * evaluator/application.
    */
-  template <
-      typename... Args, typename V = U,
-      std::enable_if_t<is_column_evaluator_v<V> || is_selection_applicator_v<V>,
-                       bool> = false>
+  template <typename... Args, typename V = U,
+            std::enable_if_t<column::template is_evaluator_v<V> ||
+                                 selection::template is_applicator_v<V>,
+                             bool> = false>
   auto operator()(Args &&...columns)
       -> decltype(std::declval<lazy<V>>().evaluate_or_apply(
           std::forward<Args>(std::declval<Args &&>())...)) {
@@ -519,15 +526,16 @@ public:
   }
 
   template <typename... Args, typename V = U,
-            std::enable_if_t<is_column_evaluator_v<V>, bool> = false>
+            std::enable_if_t<column::template is_evaluator_v<V>, bool> = false>
   auto evaluate_or_apply(Args &&...columns)
       -> decltype(std::declval<lazy<V>>().evaluate(
           std::forward<Args>(std::declval<Args &&>())...)) {
     return this->evaluate(std::forward<Args>(columns)...);
   }
 
-  template <typename... Args, typename V = U,
-            std::enable_if_t<is_selection_applicator_v<V>, bool> = false>
+  template <
+      typename... Args, typename V = U,
+      std::enable_if_t<selection::template is_applicator_v<V>, bool> = false>
   auto evaluate_or_apply(Args &&...columns)
       -> decltype(std::declval<lazy<V>>().apply(
           std::forward<Args>(std::declval<Args &&>())...)) {
@@ -605,8 +613,9 @@ public:
    * @param sel_path The path of booked selection.
    * @return Counter the `lazy` counter booked at the selection.
    */
-  template <typename V = U,
-            std::enable_if_t<ana::is_counter_booker_v<V>, bool> = false>
+  template <
+      typename V = U,
+      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
   auto operator[](const std::string &sel_path) const
       -> lazy<booked_counter_t<V>>
   // subscript = access a counter at a selection path
@@ -619,7 +628,8 @@ public:
    * @return `Result` the result of the implemented counter.
    */
   template <typename V = U,
-            std::enable_if_t<ana::is_counter_implemented_v<V>, bool> = false>
+            std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
+                false>
   auto operator->() const -> decltype(std::declval<V>().get_result()) {
     return this->get_result();
   }
@@ -642,7 +652,7 @@ public:
 
 protected:
   template <typename V = U,
-            typename std::enable_if<ana::is_counter_implemented_v<V>,
+            typename std::enable_if<ana::counter::template is_implemented_v<V>,
                                     void>::type * = nullptr>
   void merge_results() const {
     auto model = this->get_model();
@@ -708,8 +718,9 @@ bool ana::analysis<T>::lazy<Act>::has_variation(const std::string &) const {
 template <typename T>
 template <typename Act>
 template <typename... Args, typename V,
-          std::enable_if_t<
-              ana::is_column_reader_v<V> || ana::is_column_constant_v<V>, bool>>
+          std::enable_if_t<ana::column::template is_reader_v<V> ||
+                               ana::column::template is_constant_v<V>,
+                           bool>>
 auto ana::analysis<T>::lazy<Act>::vary(const std::string &var_name,
                                        Args &&...args) -> varied<V> {
   // create a lazy varied with the this as nominal
@@ -724,8 +735,9 @@ auto ana::analysis<T>::lazy<Act>::vary(const std::string &var_name,
 template <typename T>
 template <typename Act>
 template <typename... Args, typename V,
-          std::enable_if_t<ana::is_column_evaluator_v<V> &&
-                               !ana::is_column_equation_v<ana::evaluated_t<V>>,
+          std::enable_if_t<ana::column::template is_evaluator_v<V> &&
+                               !ana::column::template is_equation_v<
+                                   ana::column::template evaluated_t<V>>,
                            bool>>
 auto ana::analysis<T>::lazy<Act>::vary(const std::string &var_name,
                                        Args &&...args) -> varied<V> {
@@ -741,8 +753,9 @@ auto ana::analysis<T>::lazy<Act>::vary(const std::string &var_name,
 template <typename T>
 template <typename Act>
 template <typename F, typename V,
-          std::enable_if_t<ana::is_column_evaluator_v<V> &&
-                               ana::is_column_equation_v<ana::evaluated_t<V>>,
+          std::enable_if_t<ana::column::template is_evaluator_v<V> &&
+                               ana::column::template is_equation_v<
+                                   ana::column::template evaluated_t<V>>,
                            bool>>
 auto ana::analysis<T>::lazy<Act>::vary(const std::string &var_name, F callable)
     -> varied<V> {
@@ -788,11 +801,12 @@ auto ana::analysis<T>::lazy<Act>::channel(const std::string &name,
 template <typename T>
 template <typename Act>
 template <typename... Nodes, typename V,
-          std::enable_if_t<ana::is_counter_booker_v<V>, bool>>
+          std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
 auto ana::analysis<T>::lazy<Act>::fill(Nodes &&...columns) const
     -> decltype(std::declval<lazy<V>>().fill_counter(
         std::declval<Nodes>()...)) {
-  static_assert(is_counter_booker_v<V>, "non-counter(booker) cannot be filled");
+  static_assert(counter::template is_booker_v<V>,
+                "non-counter(booker) cannot be filled");
   return this->fill_counter(std::forward<Nodes>(columns)...);
 }
 
@@ -800,6 +814,6 @@ template <typename T>
 template <typename Act>
 template <typename Node>
 auto ana::analysis<T>::lazy<Act>::at(Node &&selection) const {
-  static_assert(is_counter_booker_v<Act>, "not a counter (booker)");
+  static_assert(counter::template is_booker_v<Act>, "not a counter (booker)");
   return this->book_selection(std::forward<Node>(selection));
 }

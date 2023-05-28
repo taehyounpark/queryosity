@@ -9,12 +9,6 @@
 
 namespace ana {
 
-template <typename Cnt> struct is_counter_booker : std::false_type {};
-template <typename Cnt>
-struct is_counter_booker<counter::booker<Cnt>> : std::true_type {};
-template <typename Cnt>
-constexpr bool is_counter_booker_v = is_counter_booker<Cnt>::value;
-
 class counter::experiment : public selection::cutflow {
 
 public:

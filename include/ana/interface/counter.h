@@ -23,23 +23,15 @@ class selection;
 class counter : public action {
 
 public:
-  // simplest implementation of a counter that user can implement
+  class experiment;
+
   template <typename T> class implementation;
 
-  // optional method to "fill" with values of additional columns
   template <typename T> class logic;
 
-  // manager of filled columns
-  template <typename T> class filler;
-
-  // manager of booked selections
   template <typename T> class booker;
 
-  // results organization
   template <typename T> class summary;
-
-  // run all counters
-  class experiment;
 
 public:
   counter();
@@ -60,6 +52,32 @@ protected:
   bool m_raw;
   double m_scale;
   const selection *m_selection;
+
+public:
+  template <typename T>
+  static constexpr std::true_type
+  check_implemented(const counter::implementation<T> &);
+  static constexpr std::false_type check_implemented(...);
+
+  template <typename Out, typename... Vals>
+  static constexpr std::true_type check_fillable(
+      const typename counter::implementation<Out>::template fillable<Vals...>
+          &);
+  static constexpr std::false_type check_fillable(...);
+
+  template <typename T> struct is_booker : std::false_type {};
+  template <typename T>
+  struct is_booker<counter::booker<T>> : std::true_type {};
+
+  template <typename T>
+  static constexpr bool is_implemented_v =
+      decltype(check_implemented(std::declval<T>()))::value;
+
+  template <typename T>
+  static constexpr bool is_fillable_v =
+      decltype(check_fillable(std::declval<T>()))::value;
+
+  template <typename T> static constexpr bool is_booker_v = is_booker<T>::value;
 };
 
 template <typename T> class counter::implementation : public counter {
@@ -192,24 +210,6 @@ public:
     static_cast<T *>(this)->output(destination);
   }
 };
-
-// FUTURE (C++20): use concepts
-
-template <typename Out>
-constexpr std::true_type
-check_counter_implemented(const counter::implementation<Out> &);
-constexpr std::false_type check_counter_implemented(...);
-template <typename T>
-constexpr bool is_counter_implemented_v =
-    decltype(check_counter_implemented(std::declval<T>()))::value;
-
-template <typename Out, typename... Vals>
-constexpr std::true_type check_counter_fillable(
-    const typename counter::implementation<Out>::template fillable<Vals...> &);
-constexpr std::false_type check_counter_fillable(...);
-template <typename T>
-constexpr bool is_counter_fillable_v =
-    decltype(check_counter_fillable(std::declval<T>()))::value;
 
 } // namespace ana
 
