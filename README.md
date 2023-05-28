@@ -16,15 +16,15 @@ A clear _abstraction_ layer to define dataset transformation procedures helps en
 - A node can be `varied`, meaning alternate versions of the action is performed in the analysis.
   - The outcome of both the nominal and varied actions are available side-by-side.
 
-# Prerequisites
-- C++17 compiler (tested with Clang 14 and GCC 11)
-- CMake 3.24 or newer
+# Requirements
+- GCC 9.3.0+ or Clang 14.0.0+
+- CMake 3.24+
 
 # How to setup
 
 1. Clone this repository.
 2. Add `ana/include` to the include path:
-3. `#include "ana/abc.h"` to implement components. Example: [rootana](github.com/taehyounpark/rootana.git) is an implemenation for the [CERN ROOT framework](https://root.cern/).
+3. `#include "ana/abc.h"` to implement components (e.g. [rootana](github.com/taehyounpark/rootana.git)).
 5. `#include "ana/analysis.h"` to do data analysis.
 
 
