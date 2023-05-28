@@ -23,13 +23,13 @@ template <typename T> struct is_column_evaluator : std::false_type {};
 template <typename T> struct is_column_evaluator<column::evaluator<T>> : std::true_type {};
 template <typename T> constexpr bool is_column_evaluator_v = is_column_evaluator<T>::value;
 
-template <typename T> struct is_selection_evaluator: std::false_type {};
-template <typename T> struct is_selection_evaluator<selection::evaluator<T>>: std::true_type {};
-template <typename T> constexpr bool is_selection_evaluator_v = is_selection_evaluator<T>::value;
+template <typename T> struct is_selection_applicator: std::false_type {};
+template <typename T> struct is_selection_applicator<selection::applicator<T>>: std::true_type {};
+template <typename T> constexpr bool is_selection_applicator_v = is_selection_applicator<T>::value;
 
 template <typename F> using equation_evaluator_t = typename column::template evaluator<ana::equation_t<F>>;
-template <typename F> using custom_selection_evaluator_t = typename selection::template evaluator<ana::equation_t<F>>;
-using simple_selection_evaluator_type = typename selection::template evaluator<ana::column::equation<double(double)>>;
+template <typename F> using custom_selection_applicator_t = typename selection::template applicator<ana::equation_t<F>>;
+using simple_selection_applicator_type = typename selection::template applicator<ana::column::equation<double(double)>>;
 
 template <typename T>
 class analysis : public sample<T>
@@ -94,13 +94,13 @@ public:
   auto define(F callable) -> lazy<column_evaluator_t<F>>;
 
 	template <typename Sel, typename F>
-  auto filter(const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>;
+  auto filter(const std::string& name, F callable) -> lazy<custom_selection_applicator_t<F>>;
   template <typename Sel, typename F>
-  auto channel(const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>;
+  auto channel(const std::string& name, F callable) -> lazy<custom_selection_applicator_t<F>>;
 	template <typename Sel>
-  auto filter(const std::string& name) -> lazy<simple_selection_evaluator_type>;
+  auto filter(const std::string& name) -> lazy<simple_selection_applicator_type>;
   template <typename Sel>
-  auto channel(const std::string& name) -> lazy<simple_selection_evaluator_type>;
+  auto channel(const std::string& name) -> lazy<simple_selection_applicator_type>;
 
 	template <typename Cnt, typename... Args>
 	auto book(Args&&... args) -> lazy<counter::booker<Cnt>>;
@@ -108,7 +108,7 @@ public:
   template <typename Def, typename... Cols>
 	auto evaluate_column(lazy<column::evaluator<Def>> const& calc, lazy<Cols> const&... columns) -> lazy<Def>;
 	template <typename Eqn, typename... Cols>
-	auto evaluate_selection(lazy<selection::evaluator<Eqn>> const& calc, lazy<Cols> const&... columns) -> lazy<selection>;
+	auto apply_selection(lazy<selection::applicator<Eqn>> const& calc, lazy<Cols> const&... columns) -> lazy<selection>;
 	template <typename Cnt>
 	auto book_selection(lazy<counter::booker<Cnt>> const& bkr, lazy<selection> const& sel) -> lazy<Cnt>;
 	template <typename Cnt, typename... Sels>
@@ -127,13 +127,13 @@ protected:
   void process_dataset();
 
 	template <typename Sel, typename F>
-  auto filter(lazy<selection> const& prev, const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>;
+  auto filter(lazy<selection> const& prev, const std::string& name, F callable) -> lazy<custom_selection_applicator_t<F>>;
   template <typename Sel, typename F>
-  auto channel(lazy<selection> const& prev, const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>;
+  auto channel(lazy<selection> const& prev, const std::string& name, F callable) -> lazy<custom_selection_applicator_t<F>>;
 	template <typename Sel>
-  auto filter(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>;
+  auto filter(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_applicator_type>;
   template <typename Sel>
-  auto channel(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>;
+  auto channel(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_applicator_type>;
 	template <typename Sel>
   auto join(lazy<selection> const& a, lazy<selection> const& b) -> lazy<selection>;
 
@@ -292,71 +292,71 @@ auto ana::analysis<T>::evaluate_column(lazy<column::evaluator<Def>> const& calc,
 
 template <typename T>
 template <typename Sel, typename F>
-auto ana::analysis<T>::filter(const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>
+auto ana::analysis<T>::filter(const std::string& name, F callable) -> lazy<custom_selection_applicator_t<F>>
 {
-	return lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,callable); } ));
+	return lazy<custom_selection_applicator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,callable); } ));
 }
 
 template <typename T>
 template <typename Sel, typename F>
-auto ana::analysis<T>::channel(const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>
+auto ana::analysis<T>::channel(const std::string& name, F callable) -> lazy<custom_selection_applicator_t<F>>
 {
-	return lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,callable); } ));
+	return lazy<custom_selection_applicator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,callable); } ));
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::filter(const std::string& name) -> lazy<simple_selection_evaluator_type>
+auto ana::analysis<T>::filter(const std::string& name) -> lazy<simple_selection_applicator_type>
 {
 	auto callable = [](double x){return x;};
-	auto sel = lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,callable); } ));
+	auto sel = lazy<simple_selection_applicator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template filter<Sel>(name,callable); } ));
 	return sel;	
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::channel(const std::string& name) -> lazy<simple_selection_evaluator_type>
+auto ana::analysis<T>::channel(const std::string& name) -> lazy<simple_selection_applicator_type>
 {
 	auto callable = [](double x){return x;};
-	auto sel = lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,callable); } ));
+	auto sel = lazy<simple_selection_applicator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc) { return proc.template channel<Sel>(name,callable); } ));
 	return sel;	
 }
 
 template <typename T>
 template <typename Sel, typename F>
-auto ana::analysis<T>::filter(lazy<selection> const& prev, const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>
+auto ana::analysis<T>::filter(lazy<selection> const& prev, const std::string& name, F callable) -> lazy<custom_selection_applicator_t<F>>
 {
-	return lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,callable); }, prev ));
+	return lazy<custom_selection_applicator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,callable); }, prev ));
 }
 
 template <typename T>
 template <typename Sel, typename F>
-auto ana::analysis<T>::channel(lazy<selection> const& prev, const std::string& name, F callable) -> lazy<custom_selection_evaluator_t<F>>
+auto ana::analysis<T>::channel(lazy<selection> const& prev, const std::string& name, F callable) -> lazy<custom_selection_applicator_t<F>>
 {
-	return lazy<custom_selection_evaluator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,callable); }, prev ));
+	return lazy<custom_selection_applicator_t<F>>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,callable); }, prev ));
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::filter(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>
+auto ana::analysis<T>::filter(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_applicator_type>
 {
 	auto callable = [](double x){return x;};
-	return lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,callable); }, prev ));
+	return lazy<simple_selection_applicator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template filter<Sel>(prev,name,callable); }, prev ));
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::channel(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_evaluator_type>
+auto ana::analysis<T>::channel(lazy<selection> const& prev, const std::string& name) -> lazy<simple_selection_applicator_type>
 {
 	auto callable = [](double x){return x;};
-	return lazy<simple_selection_evaluator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,callable); }, prev ));
+	return lazy<simple_selection_applicator_type>(*this, this->m_processors.get_concurrent_result( [name=name,callable=callable](processor<dataset_reader_type>& proc, selection const& prev) { return proc.template channel<Sel>(prev,name,callable); }, prev ));
 }
 
 template <typename T>
 template <typename Eqn, typename... Cols>
-auto ana::analysis<T>::evaluate_selection(lazy<selection::evaluator<Eqn>> const& calc, lazy<Cols> const&... columns) -> lazy<selection>
+auto ana::analysis<T>::apply_selection(lazy<selection::applicator<Eqn>> const& calc, lazy<Cols> const&... columns) -> lazy<selection>
 {
-	auto sel = lazy<selection>(*this, this->m_processors.get_concurrent_result( [](processor<dataset_reader_type>& proc, selection::evaluator<Eqn>& calc, Cols&... cols) { return proc.template evaluate_selection(calc, cols...); }, calc, columns... ));
+	auto sel = lazy<selection>(*this, this->m_processors.get_concurrent_result( [](processor<dataset_reader_type>& proc, selection::applicator<Eqn>& calc, Cols&... cols) { return proc.template apply_selection(calc, cols...); }, calc, columns... ));
 	this->add_action(sel);
   return sel;
 }

@@ -223,7 +223,7 @@ The selection can be applied by providing the column that corresponds to the dec
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
 
-auto n_lep_sel = ds.define([](ROOT::Vec<float> const& lep){return lep.size();})(lep_pt_sel);
+auto n_lep_sel = ds.define([](VecF const& lep){return lep.size();})(lep_pt_sel);
 auto n_lep_req = ds.constant(2);
 
 auto cut_2l = ds.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\

@@ -93,10 +93,10 @@ public:
 	using action_type = typename node<U>::action_type;
 
 	template <typename Sel, typename... Args>
-	using lazy_selection_evaluator_t = decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...));
+	using lazy_selection_applicator_t = decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...));
 
 	template <typename Sel, typename... Args>
-	using selection_evaluator_t = typename decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...))::action_type;
+	using selection_applicator_t = typename decltype(std::declval<analysis<T>>().template filter<Sel>(std::declval<std::string>(),std::declval<Args>()...))::action_type;
 
 public:
 	// friends with the main analysis graph & any other lazy nodes
@@ -177,7 +177,7 @@ public:
 	 * ```
 	 */
   template <typename Sel, typename... Args>
-  auto filter(const std::string& name, Args&&... args) -> lazy_selection_evaluator_t<Sel,Args...>;
+  auto filter(const std::string& name, Args&&... args) -> lazy_selection_applicator_t<Sel,Args...>;
 
 	/** 
 	 * @brief Channel from an existing selection. 
@@ -192,7 +192,7 @@ public:
 	 * ```
 	 */
   template <typename Sel, typename... Args>
-  auto channel(const std::string& name, Args&&... args) -> lazy_selection_evaluator_t<Sel,Args...>;
+  auto channel(const std::string& name, Args&&... args) -> lazy_selection_applicator_t<Sel,Args...>;
 
 	/** 
 	 * @brief Evaluate the column out of existing ones.
@@ -200,15 +200,10 @@ public:
 	 * @return Evaluated column.
 	 * @details The input column(s) can be `lazy` or `varied`. Correspondingly, the evaluated column will be as well.
 	 */
-	template <typename... Nodes>
-	auto evaluate(Nodes&&... columns) const
+	template <typename... Nodes, typename V = U, std::enable_if_t<ana::is_column_evaluator_v<V>,bool> = false>
+	auto evaluate(Nodes&&... columns) const -> decltype(std::declval<lazy<V>>().evaluate_column(std::forward<Nodes>(columns)...))
 	{
-		static_assert( is_column_evaluator_v<U> || is_selection_evaluator_v<U>, "not a column/selection (evaluator)" );
-		if constexpr( is_column_evaluator_v<U> ) {
-			return this->evaluate_column(std::forward<Nodes>(columns)...);
-		} else {
-			return this->evaluate_selection(std::forward<Nodes>(columns)...);
-		}
+		return this->evaluate_column(std::forward<Nodes>(columns)...);
 	}
 
   template <typename... Nodes, typename V = U, std::enable_if_t<ana::is_column_evaluator_v<V> && ana::analysis<T>::template has_no_variation_v<Nodes...>,bool> = false>
@@ -232,25 +227,31 @@ public:
 	}
 
 	/** 
-	 * @brief Evaluate a selection with input columns.
-	 * @param args Input columns.
-	 * @return Selection evaluated with the input columns.
+	 * @brief Apply the selection's expression based on input columns.
+	 * @param columns Input columns.
+	 * @return `lazy/varied<selection>` Applied selection.
 	 */
-	template <typename... Nodes, typename V = U, std::enable_if_t<is_selection_evaluator_v<V> && ana::analysis<T>::template has_no_variation_v<Nodes...>,bool> = false>
-	auto evaluate_selection(Nodes const&... columns) const -> lazy<selection>
+	template <typename... Nodes, typename V = U, std::enable_if_t<ana::is_selection_applicator_v<V>,bool> = false>
+	auto apply(Nodes&&... columns) const -> decltype(std::declval<lazy<V>>().apply_selection(std::forward<Nodes>(columns)...))
 	{
-		// nominal
-		return this->m_analysis->evaluate_selection(*this, columns...);
+		return this->apply_selection(std::forward<Nodes>(columns)...);
 	}
 
-	template <typename... Nodes , typename V = U, std::enable_if_t<is_selection_evaluator_v<V> && ana::analysis<T>::template has_variation_v<Nodes...>,bool> = false>
-	auto evaluate_selection(Nodes const&... columns) const -> varied<selection>
+	template <typename... Nodes, typename V = U, std::enable_if_t<is_selection_applicator_v<V> && ana::analysis<T>::template has_no_variation_v<Nodes...>,bool> = false>
+	auto apply_selection(Nodes const&... columns) const -> lazy<selection>
+	{
+		// nominal
+		return this->m_analysis->apply_selection(*this, columns...);
+	}
+
+	template <typename... Nodes , typename V = U, std::enable_if_t<is_selection_applicator_v<V> && ana::analysis<T>::template has_variation_v<Nodes...>,bool> = false>
+	auto apply_selection(Nodes const&... columns) const -> varied<selection>
 	{
 		// variations
-		varied<selection> syst(this->get_nominal().evaluate_selection(columns.get_nominal()...));
+		varied<selection> syst(this->get_nominal().apply_selection(columns.get_nominal()...));
 		auto var_names = list_all_variation_names(columns...);
 		for (auto const& var_name : var_names) {
-			syst.set_variation(var_name, this->get_variation(var_name).evaluate_selection(columns.get_variation(var_name)...));
+			syst.set_variation(var_name, this->get_variation(var_name).apply_selection(columns.get_variation(var_name)...));
 		}
 		return syst;
 	}
@@ -379,10 +380,22 @@ public:
 	 * @details A chained function call is equivalent to `evaluate` and `apply` for column and selection evaluators, respectively.
 	 * @return Node the resulting (`lazy` or `varied`) counter/selection from its evaluator/application.
 	 */
-	template <typename... Args, typename V = U, std::enable_if_t<is_column_evaluator_v<V> || is_selection_evaluator_v<V>,bool> = false>
-	auto operator()(Args&&... args) -> decltype(std::declval<lazy<V>>().evaluate(std::declval<Args>()...))
+	template <typename... Args, typename V = U, std::enable_if_t<is_column_evaluator_v<V> || is_selection_applicator_v<V>,bool> = false>
+	auto operator()(Args&&... columns) -> decltype(std::declval<lazy<V>>().evaluate_or_apply(std::forward<Args>(std::declval<Args&&>())...))
 	{
-		return this->evaluate(std::forward<Args>(args)...);
+		return this->evaluate_or_apply(std::forward<Args>(columns)...);
+	}
+
+	template <typename... Args, typename V = U, std::enable_if_t<is_column_evaluator_v<V>,bool> = false>
+	auto evaluate_or_apply(Args&&... columns) -> decltype(std::declval<lazy<V>>().evaluate(std::forward<Args>(std::declval<Args&&>())...))
+	{
+		return this->evaluate(std::forward<Args>(columns)...);
+	}
+
+	template <typename... Args, typename V = U, std::enable_if_t<is_selection_applicator_v<V>,bool> = false>
+	auto evaluate_or_apply(Args&&... columns) -> decltype(std::declval<lazy<V>>().apply(std::forward<Args>(std::declval<Args&&>())...))
+	{
+		return this->apply(std::forward<Args>(columns)...);
 	}
 
 	/**
@@ -589,7 +602,7 @@ auto ana::analysis<T>::lazy<Act>::vary(const std::string& var_name, F callable) 
 template <typename T>
 template <typename Act>
 template <typename Sel, typename... Args>
-auto ana::analysis<T>::lazy<Act>::filter(const std::string& name, Args&&... args) -> lazy_selection_evaluator_t<Sel,Args...>
+auto ana::analysis<T>::lazy<Act>::filter(const std::string& name, Args&&... args) -> lazy_selection_applicator_t<Sel,Args...>
 {
 	if constexpr(std::is_base_of_v<selection,Act>) {
 		return this->m_analysis->template filter<Sel>(*this, name, std::forward<Args>(args)...);
@@ -601,7 +614,7 @@ auto ana::analysis<T>::lazy<Act>::filter(const std::string& name, Args&&... args
 template <typename T>
 template <typename Act>
 template <typename Sel, typename... Args>
-auto ana::analysis<T>::lazy<Act>::channel(const std::string& name, Args&&... args) -> lazy_selection_evaluator_t<Sel,Args...>
+auto ana::analysis<T>::lazy<Act>::channel(const std::string& name, Args&&... args) -> lazy_selection_applicator_t<Sel,Args...>
 {
 	if constexpr(std::is_base_of_v<selection,Act>) {
 		return this->m_analysis->template channel<Sel>(*this, name, std::forward<Args>(args)...);

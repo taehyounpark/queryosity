@@ -20,19 +20,19 @@ public:
 
 public:
 	template <typename Sel, typename F>
-	auto filter(const std::string& name, F expression) const -> std::shared_ptr<evaluator<ana::equation_t<F>>>;
+	auto filter(const std::string& name, F expression) const -> std::shared_ptr<applicator<equation_t<F>>>;
 
 	template <typename Sel, typename F>
-	auto channel(const std::string& name, F expression) const -> std::shared_ptr<evaluator<ana::equation_t<F>>>;
+	auto channel(const std::string& name, F expression) const -> std::shared_ptr<applicator<equation_t<F>>>;
 
 	template <typename Sel, typename F>
-	auto filter(selection const& prev, const std::string& name, F expression) const -> std::shared_ptr<evaluator<ana::equation_t<F>>>;
+	auto filter(selection const& prev, const std::string& name, F expression) const -> std::shared_ptr<applicator<equation_t<F>>>;
 
 	template <typename Sel, typename F>
-	auto channel(selection const& prev, const std::string& name, F expression) const -> std::shared_ptr<evaluator<ana::equation_t<F>>>;
+	auto channel(selection const& prev, const std::string& name, F expression) const -> std::shared_ptr<applicator<equation_t<F>>>;
 
 	template <typename Sel, typename... Cols>
-	auto evaluate_selection(evaluator<Sel> const& calc, Cols const&... columns) -> std::shared_ptr<selection>;
+	auto apply_selection(applicator<Sel> const& calc, Cols const&... columns) -> std::shared_ptr<selection>;
 
 	template <typename Sel>
 	auto join(selection const& a, selection const& b) const -> std::shared_ptr<selection>;
@@ -52,25 +52,25 @@ protected:
 #include "equation.h"
 
 template <typename Sel, typename F>
-auto ana::selection::cutflow::filter(const std::string& name, F expression) const -> std::shared_ptr<evaluator<ana::equation_t<F>>>
+auto ana::selection::cutflow::filter(const std::string& name, F expression) const -> std::shared_ptr<applicator<equation_t<F>>>
 {
 	auto eqn = ana::make_equation(expression);
-	auto calc = std::make_shared<evaluator<ana::equation_t<F>>>(eqn);
+	auto calc = std::make_shared<applicator<equation_t<F>>>(eqn);
 	calc->template set_selection<Sel>(name,false);
 	return calc;
 }
 
 template <typename Sel, typename F>
-auto ana::selection::cutflow::channel(const std::string& name, F expression) const -> std::shared_ptr<evaluator<ana::equation_t<F>>>
+auto ana::selection::cutflow::channel(const std::string& name, F expression) const -> std::shared_ptr<applicator<equation_t<F>>>
 {
 	auto eqn = ana::make_equation(expression);
-	auto calc = std::make_shared<evaluator<ana::equation_t<F>>>(eqn);
+	auto calc = std::make_shared<applicator<equation_t<F>>>(eqn);
 	calc->template set_selection<Sel>(name,true);
 	return calc;
 }
 
 template <typename Sel, typename F>
-auto ana::selection::cutflow::filter(selection const& prev, const std::string& name, F expression) const -> std::shared_ptr<evaluator<ana::equation_t<F>>>
+auto ana::selection::cutflow::filter(selection const& prev, const std::string& name, F expression) const -> std::shared_ptr<applicator<equation_t<F>>>
 {
 	auto calc = this->filter<Sel>(name,expression);
 	calc->set_previous(prev);
@@ -78,7 +78,7 @@ auto ana::selection::cutflow::filter(selection const& prev, const std::string& n
 }
 
 template <typename Sel, typename F>
-auto ana::selection::cutflow::channel(selection const& prev,const std::string& name, F expression) const -> std::shared_ptr<evaluator<ana::equation_t<F>>>
+auto ana::selection::cutflow::channel(selection const& prev,const std::string& name, F expression) const -> std::shared_ptr<applicator<equation_t<F>>>
 {
 	auto calc = this->channel<Sel>(name,expression);
 	calc->set_previous(prev);
@@ -86,9 +86,9 @@ auto ana::selection::cutflow::channel(selection const& prev,const std::string& n
 }
 
 template <typename Sel, typename... Cols>
-auto ana::selection::cutflow::evaluate_selection(evaluator<Sel> const& calc, Cols const&... columns) -> std::shared_ptr<selection>
+auto ana::selection::cutflow::apply_selection(applicator<Sel> const& calc, Cols const&... columns) -> std::shared_ptr<selection>
 {
-	auto sel = calc.evaluate_selection(columns...);
+	auto sel = calc.apply_selection(columns...);
 	this->add_selection(*sel);
 	return sel;
 }
