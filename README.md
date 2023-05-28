@@ -20,7 +20,7 @@ A clear _abstraction_ layer to define dataset transformation procedures helps en
 - GCC 9.3.0+ or Clang 14.0.0+
 - CMake 3.24+
 
-# How to setup
+# How to use
 
 1. Clone this repository.
 2. Add `ana/include` to the include path:
