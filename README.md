@@ -275,8 +275,8 @@ auto l1n2_pt_hists_wwcrs = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_wwcr);
 ```
 When a counter is booked at multiple selections such as the above, result at each selection can be accessed by its path.
 ```cpp
-l1n2_pt_hist_2ldf_sr = l1n2_pt_hists_2ldf["2ldf/sr"];
-l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_2ldf["2ldf/wwcr"];
+l1n2_pt_hist_2ldf_sr = l1n2_pt_hists_srs["2ldf/sr"];
+l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_wwcrs["2ldf/wwcr"];
 ```
 ### 3.2 (Optional) "Dumping" results
 
