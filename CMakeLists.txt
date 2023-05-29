@@ -1,18 +1,9 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required (VERSION 3.8)
 
-project(ana 
-  VERSION 0.1
-  DESCRIPTION "Coherent data analysis interface in C++"
-  HOMEPAGE_URL "https://github.com/taehyounpark/ana.git"
-  LANGUAGES CXX
-  )
+project ("ana")
 
-add_library(ana INTERFACE)
+# Add the cmake folder so the FindSphinx module is found
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
-set_property(
-  TARGET ana PROPERTY
-  EXPORT_NAME ana
-)
-
-target_include_directories(ana INTERFACE "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/>")
-target_compile_features(ana INTERFACE cxx_std_17)
+add_subdirectory ("include")
+add_subdirectory ("docs")
