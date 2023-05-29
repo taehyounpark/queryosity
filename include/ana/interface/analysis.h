@@ -1,10 +1,7 @@
 #pragma once
 
-#include <functional>
-#include <memory>
 #include <set>
 #include <string>
-#include <thread>
 #include <type_traits>
 #include <vector>
 
@@ -168,12 +165,7 @@ protected:
 
 protected:
   bool m_analyzed;
-
   std::vector<concurrent<action>> m_actions;
-
-  // std::vector<concurrent<column>>    m_column_list;
-  // std::vector<concurrent<selection>> m_selection_list;
-  // std::vector<concurrent<counter>>   m_counter_list;
 };
 
 template <typename T> template <typename U> class analysis<T>::node {

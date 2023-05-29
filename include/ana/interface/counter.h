@@ -1,7 +1,7 @@
 #pragma once
 
 #include <functional>
-#include <map>
+#include <set>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -173,7 +173,7 @@ public:
   template <typename... Sels>
   auto book_selections(Sels const &...sels) const -> std::shared_ptr<booker<T>>;
 
-  std::vector<std::string> list_selection_paths() const;
+  std::set<std::string> list_selection_paths() const;
   std::shared_ptr<T> get_counter(const std::string &path) const;
 
 protected:
@@ -183,7 +183,7 @@ protected:
 protected:
   std::function<std::shared_ptr<T>()> m_make_counter_call;
   std::vector<std::function<void(T &)>> m_fill_counter_calls;
-  std::vector<std::string> m_booked_selection_paths;
+  std::set<std::string> m_booked_selection_paths;
   std::unordered_map<std::string, std::shared_ptr<T>> m_booked_counter_map;
 };
 
@@ -359,7 +359,7 @@ void ana::counter::booker<T>::make_counter(const selection &sel) {
   auto cnt = m_make_counter_call();
 
   // map selection path & counter
-  m_booked_selection_paths.push_back(sel.get_path());
+  m_booked_selection_paths.insert(sel.get_path());
   m_booked_counter_map.insert(std::make_pair(sel.get_path(), cnt));
 
   // fill columns (if set)
@@ -372,7 +372,7 @@ void ana::counter::booker<T>::make_counter(const selection &sel) {
 }
 
 template <typename T>
-std::vector<std::string> ana::counter::booker<T>::list_selection_paths() const {
+std::set<std::string> ana::counter::booker<T>::list_selection_paths() const {
   return m_booked_selection_paths;
 }
 

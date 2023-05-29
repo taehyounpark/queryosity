@@ -1,8 +1,6 @@
 #pragma once
 
 #include <functional>
-#include <memory>
-#include <tuple>
 
 #include "definition.h"
 

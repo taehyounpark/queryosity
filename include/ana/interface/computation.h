@@ -1,7 +1,5 @@
 #pragma once
 
-#include <exception>
-#include <functional>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -57,7 +55,6 @@ protected:
 protected:
   const input::range m_part;
   input::reader<T> *m_reader;
-
   std::vector<column *> m_columns;
 };
 

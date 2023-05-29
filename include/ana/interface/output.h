@@ -1,13 +1,6 @@
 #pragma once
 
-#include <functional>
-#include <memory>
-#include <string>
-#include <type_traits>
-#include <vector>
-
-#include "analysis.h"
-#include "counter.h"
+#include <utility>
 
 namespace ana {
 
@@ -52,10 +45,3 @@ void ana::output::dump(Node const &node, Dest &&dest, Args &&...args) {
   // dump all results to destination
   summary.output(std::forward<Dest>(dest));
 }
-
-// template <typename Sum, typename Node, typename Dest, typename... Args>
-// void ana::output::dump(ana::varied<Node> syst, Dest& dest, const Args&...
-// args)
-// {
-
-// }

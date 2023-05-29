@@ -7,6 +7,7 @@
 #pragma once
 
 #include <iostream>
+#include <set>
 #include <type_traits>
 
 #include "analysis.h"
@@ -468,12 +469,12 @@ public:
   }
 
   /**
-   * @return `std::vector<std::string>` list of booked selection paths.
+   * @return `std::set<std::string>` list of booked selection paths.
    */
   template <
       typename V = U,
       std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
-  auto list_selection_paths() const -> std::vector<std::string> {
+  auto list_selection_paths() const -> std::set<std::string> {
     return this->get_model_value(
         [](U const &bkr) { return bkr.list_selection_paths(); });
   }

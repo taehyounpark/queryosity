@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include "concurrent.h"
 #include "input.h"
 #include "processor.h"

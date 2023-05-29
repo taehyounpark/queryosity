@@ -1,9 +1,5 @@
 #pragma once
 
-#include <memory>
-#include <string>
-#include <vector>
-
 #include "action.h"
 #include "computation.h"
 #include "experiment.h"
@@ -35,8 +31,8 @@ public:
 template <typename T>
 ana::processor<T>::processor(const input::range &part, input::reader<T> &reader,
                              double scale)
-    : action(), column::computation<T>(part, reader), counter::experiment(
-                                                          scale) {}
+    : action(), column::computation<T>(part, reader),
+      counter::experiment(scale) {}
 
 template <typename T> void ana::processor<T>::initialize() {
   for (auto const &col : this->m_columns) {

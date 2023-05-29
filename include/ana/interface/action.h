@@ -1,11 +1,5 @@
 #pragma once
 
-#include <algorithm>
-#include <atomic>
-#include <iostream>
-#include <memory>
-#include <vector>
-
 namespace ana {
 
 class action {
