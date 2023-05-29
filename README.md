@@ -48,9 +48,7 @@ auto hww = ana::analysis<Tree>({"ds.root"}, "mini");
 
 ## 1. Computing quantities of interest
 
-A computation graph of `column`s, as created below, is guaranteed to be:
-- Recursion-free, as the grammar forbids this by construction.
-- No-copy of column values passed from one another, unless a conversion is required.
+A `column` is a quantity to be read, or defined out of existng ones for each entry.
 
 ### 1.1 Reading columns in the dataset
 Existing columns in the dataset can be accessed by supplying their types and names.
@@ -102,6 +100,10 @@ auto pth = ds.define(
     return (p2+q2).Mod();
   })(p4ll, met, met_phi);
 ```
+The computation graph is guaranteed to be
+- Recursion-free, as the grammar forbids this by construction.
+- No-copy of column values passed from one another, unless a conversion is required.
+
 #### Custom definitions
 Complex computations can be fully specified by implementing a `definition`. 
 ```cpp
@@ -148,15 +150,10 @@ auto pth = ds.define(
     return (p2+q2).Mod();
   })(p4ll, met, met_phi);
 ```
-##### (Advanced) Direct instance-access of columns
 
-Deriving from `definition` poses no restriction on any additional functionalities that users may want to add to the class. This can be used to "configure" them prior to the dataset processing:
-```cpp
-l1p4.call_all( [](NthP4& p4){ /* call whatever methods you want to "configure" it, if implemented */ } );
-```
 #### Column representations
 
-For cases in which values of multiple columns in a dataset correspond to attributes of a parent entity, they can be accommodated by a `representation`:
+For cases in which values of multiple columns in a dataset correspond to attributes of a parent entity, they can be accommodated by a `representation`.
 ```cpp
 // example: not used in rest of walkthrough
 
@@ -181,24 +178,28 @@ public:
 
 auto l1 = ds.define<Lepton>()(l1p4, lep_charge[0], lep_type[0]);
 ```
-
-##### Why would I want this?
-
-To be clear, any comptuation logic can be defined without using `representation`, and for most cases in which the computation flow of a column is from a more complicated to a derived/simpler quantity, this machinery can be ignored. On the other hand, a representations provide a complementary function to aid conceptual clarity (but again, not necessity) in the other direction, i.e. encapsulate individual columns into a larger entity, which can also lead to improved computational efficiency. Consider the following example:
+Representations provide a complementary role to definitions that can improve conceptual clarity (but not necessity) of the computation graph and (in some cases) its efficiency, demonstrated by the following counter-example.
 ```cpp
 // using a simple struct to hold properties
-struct Lepton { p4; q; type; };
+struct Lepton { const P4 p4; const double q; const double type; };
 
 // straightforward to use with definition... but optimal?
 auto l1 = ds.define([](P4 const& p4, int q, unsigned int type){return Lepton{p4,q,type};})(l1p4,lep_charge[0],lep_type[0]);
 ```
-Note that the following computing inefficiencies will occur:
-- All input column values will be evaluated in order to determine and assign the properties of the `Lepton` instance, even if only a subset of them may end up being used in the end. 
-- An instance of `Lepton` will be constructed and destructed for each entry that it is needed for.
+Note that the following computing inefficiencies occur:
+- All input column values must be evaluated in order to determine and assign the properties of the `Lepton` instance, even if only a subset of them may end up being used in the end. 
+- The `Lepton` must be constructed and destructed for each entry that it is needed for.
+
+##### (Advanced) Direct instance-access of actions
+
+No restrictions are placed on user-implementations of `column` on methods that users may want to add to the class, which can be used to "configure" them prior to the dataset processing. In such cases, access to each instance (one for each thread) can be done synchronously:
+```cpp
+custom_column.call_all( [](CustomColumn& col){ /* call whatever methods you want to "configure" it, if implemented */ } );
+```
 
 Representations possess neither of these shortcomings.
 ## 2. Applying selections
-### 2.1 Cut versus weight
+### 2.1 Cut and weight
 Filtering entries in a dataset is done through applying a `selection` associated with a decision based on column values:
 - If the decision is a boolean, it is a `cut` that determines whether to ignore the entry all-together.
 - If the decision is a float-point value, it is a `weight` that assigns a statistical significance to the entry.
@@ -219,10 +220,8 @@ auto cut_2l = ds.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
 ```
 Any combination of `cut` or `weight` can be applied in sequence, which compounds them respectively.
 
-### 2.2 Branching out & channels
-Each selection is associated with an identifier _name_, which need not be unique. Also, multiple selections can be applied from a single selection to form "branches", but their cuts need not be mutually exclusive from one another.
-
-Should the analyzer wish to resolve ambiguities in the names of selections in different branches that may arise, replacing a `filter` call with `channel` for any selection (or more) after the branching point, such that the _path_ of a selection includes the upstream selection to form a unique string, may be helpful.
+### 2.2 (Optional) Branching out & channels
+Each selection is associated with an identifier _name_, which need not be unique. Multiple selections can be applied from a single selection to form "branches", but their cuts need not be mutually exclusive.
 ```cpp
 // opposite-sign leptons
 auto cut_2los = cut_2l.filter<cut>("2los", [](const VecI& lep_charge){return lep_charge.at(0)+lep_charge.at(1)==0;})(lep_Q);
@@ -238,13 +237,14 @@ auto cut_2lsf_sr = cut_2lsf.filter<cut>("sr")(mll < mll_cut);  // path = "2lsf/s
 auto cut_2ldf_wwcr = cut_2ldf.filter<cut>("wwcr")(mll > mll_cut);  // path = "2ldf/cr"
 auto cut_2lsf_wwcr = cut_2lsf.filter<cut>("wwcr")(mll > mll_cut);  // path = "2lsf/cr"
 ```
+To preserve uniqueness (should it be desired) of identifiers associated with branched selections, replacing `filter` with `channel` for selection(s) after the fork, such that the _path_ of a selection includes the upstream selection to form a unique string, may be helpful (as done above).
 
 ## 3. Counting entries
 ### 3.1 Booking counters and accessing their results
-A `counter` defines an action that is:
-- Performed `at()` at a selection, i.e. only perform the action if the cut has passed.
-    -  Handling (or ignoring) the selection weight is also up to the counter.
-- Can be `fill()`ed with columns such that their values are also known for each entry.
+A `counter` defines an action that is
+- Performed `at()` at a selection, i.e. only if the cut has passed.
+    -  Handling (or ignoring) the selection weight.
+- Can be `fill()`ed with columns such that their values are also handled.
 
 A full user-implementation must specify what (arbitrary) action is to be performed and its output result.
 ```cpp
@@ -257,30 +257,30 @@ auto pth_hist = ds.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
 ```
 Accessing a result of any counter triggers the dataset processing:
 ```cpp
-pth_hist.get_result();  // -> std::shared_ptr<TH1>
+pth_hist.get_result();  // -> std::shared_ptr<TH1> (specified by Hist<1,float>)
 pth_hist->GetEntries();  // shortcut access
 ```
 Each `fill()` and `at()` call returns a new node with those operations applied, such that any counter can be:
-- Filled with columns any number of times.
-- Booked at any (set of) selection(s).
+- Filled with columns any number of times, as long as their dimensionality matches that of the implementation.
+- Booked at any (set of) selection(s), as long as the selections booked in each set has unique paths.
 ```cpp
 // fill the histogram with pT of both leptons
 auto l1n2_pt_hist = ds.book<Hist<1,float>>("l1n2_pt",20,0,100).fill(l1pt).fill(l2pt);
 
-// book it at two selections
-auto l1n2_pt_hists_2ldf = l1n2_pt_hist.at(cut_2ldf_sr, cut_2ldf_wwcr);
+// book it at "2ldf/sr", "2lsf/sr"
+auto l1n2_pt_hists_srs = l1n2_pt_hist.at(cut_2ldf_sr, cut_2ldf_wwcr);
 
-// another two
-auto l1n2_pt_hists_2lsf = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_wwcr);
+// also at "2ldf/wwcr", "2lsf/wwcr"
+auto l1n2_pt_hists_wwcrs = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_wwcr);
 ```
-When a counter is booked at multiple selections such as the above, result at each selection can be accessed by its path:
+When a counter is booked at multiple selections such as the above, result at each selection can be accessed by its path.
 ```cpp
 l1n2_pt_hist_2ldf_sr = l1n2_pt_hists_2ldf["2ldf/sr"];
 l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_2ldf["2ldf/wwcr"];
 ```
 ### 3.2 (Optional) "Dumping" results
 
-If a counter is booked at numerous selections, it might be convenient to have a consistent way to write out the results across all selections at once. This can be done completely on the user-side or through yet another helper interface class as below:
+If a counter is booked at numerous selections, it might be convenient to have a consistent way to write out the results across all selections at once. This can be done completely on the user-side or through yet another helper interface class.
 ```cpp
 // booked at multiple selections
 auto pth_hists = ds.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, cut_2ldf, cut_2lsf);
@@ -335,11 +335,11 @@ This results in a `varied` action, which now contains multiple variations of the
 
 ### 4.2 Propagation of variations through selections and counters
 
-The rest of the analysis interface remain the same, whether an action is `lazy` or `varied`:
+The analysis interface works the same way, whether an action is `lazy` or `varied`, meaning:
 - Any column evaluated from varied input columns containing will be varied correspondingly.
 - Any selections and counters performed with varied columns will be varied correspondingly.
 
-The propagation of variations that may or may not exist in different actions occur "in lockstep" and "transparently", meaning:
+The propagation of variations across multiple actions occur "in lockstep" and "transparently", meaning:
 - If two actions each have a variation of the same name, they are in effect together.
 - If one action has a variation while another doesn't, then the nominal is in effect for the latter.
 
