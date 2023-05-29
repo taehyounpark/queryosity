@@ -15,5 +15,5 @@ Welcome to ana's documentation!
 Docs
 ====
 
-.. doxygenstruct::ana_1_1analysis_1_1lazy
+.. doxygenstruct:: ana::action
    :members:
