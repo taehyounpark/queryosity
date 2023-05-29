@@ -14,5 +14,5 @@ set_property(
   EXPORT_NAME ana
 )
 
-target_include_directories(ana INTERFACE "$<BUILD_INTERFACE:./>")
+target_include_directories(ana INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>")
 target_compile_features(ana INTERFACE cxx_std_17)

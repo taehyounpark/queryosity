@@ -15,5 +15,5 @@ Welcome to ana's documentation!
 Docs
 ====
 
-.. doxygenstruct:: cat
+.. doxygenstruct::ana_1_1analysis
    :members:
