@@ -17,8 +17,8 @@ A clear _abstraction_ layer to define dataset transformation procedures helps to
   - The outcome of both the nominal and varied actions are available side-by-side.
 
 # Requirements
-- GCC 9.3.0+ or Clang 14.0.0+
-- CMake 3.24+
+- C++17-supported compiler (tested with GCC 9.3.0 and Clang 14.0.0)
+- CMake 3.24 or newer
 
 # How to use
 
