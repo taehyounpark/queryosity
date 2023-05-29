@@ -30,7 +30,7 @@ A clear _abstraction_ layer to define dataset transformation procedures helps to
 
 # Walkthrough (using rootana)
 
-The following example analyzes a simulated physics collision data reconstructing the Higgs boson transverse momentum in $gg\to H\rightarrow WW^{\ast}$ events (publicly-available dataset [here](https://opendata.cern.ch/record/700)).
+The following example analyzes simulated physics collision data reconstructing the Higgs boson transverse momentum in $gg\to H\rightarrow WW^{\ast}$ events (publicly-available dataset [here](https://opendata.cern.ch/record/700)).
 
 ## 0. Opening the dataset
 
