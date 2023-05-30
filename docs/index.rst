@@ -7,17 +7,7 @@ Welcome to ana's documentation!
 =======================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :maxdepth: 1
 
-:ref:`genindex`
-
-Contents
---------
-
-.. toctree::
-   :maxdepth: 2
-
-   multithreading
-   abcs
-   api
+   helper_classes
+   analysis_api
