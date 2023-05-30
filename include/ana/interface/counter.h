@@ -87,8 +87,6 @@ public:
 template <typename T> class counter::implementation : public counter {
 
 public:
-  template <typename... Obs> class fillable;
-
   using result_type = T;
 
 public:
