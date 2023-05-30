@@ -80,6 +80,11 @@ public:
   template <typename T> static constexpr bool is_booker_v = is_booker<T>::value;
 };
 
+/**
+ * @brief ABC of a minimal counter with an output result.
+ * @details This ABC should be used for counting operations that do not require
+ * any input columns, e.g. a cutflow of selections.
+ */
 template <typename T> class counter::implementation : public counter {
 
 public:
@@ -105,11 +110,33 @@ public:
   virtual T merge(std::vector<T> results) const = 0;
 
   /**
+   * @brief Count an entry for which the booked selection has passed with its
+   * weight.
+   * @param weight The value of the weight at booked selection for the passed
+   * entry.
+   */
+  using counter::count;
+
+  /**
    * @details Set the result of the counter.
    */
   virtual void finalize() override;
 
+  /**
+   * @brief Get the result of the counter
+   * @return The result of the counter.
+   * @detail The result is returned by `const &` to avoid unncessary copies, but
+   * also prevent post-processing modifications. Should the analyzer wish for
+   * the latter, the result should be copied by value.
+   */
   T const &get_result() const;
+
+  /**
+   * @brief Get the result of the counter
+   * @return The result of the counter.
+   * @detail Shorthand indirection operator to access the result's `const`
+   * methods.
+   */
   T const &operator->() const { return this->get_result(); }
 
   bool is_merged() const;
@@ -143,6 +170,11 @@ protected:
   std::vector<obstup_type> m_fills;
 };
 
+/**
+ * @brief ABC of a counter to be filled with columns.
+ * @details Analyzers should inherit from this ABC to implement the most general
+ * arbitrary logic of a counting operation.
+ */
 template <typename T, typename... Obs>
 class counter::logic<T(Obs...)>
     : public counter::implementation<T>::template fillable<Obs...> {
@@ -150,6 +182,17 @@ class counter::logic<T(Obs...)>
 public:
   logic();
   virtual ~logic() = default;
+
+  /**
+   * @brief Perform the counting operation for an entry.
+   * @param observables The `observable` of each input column.
+   * @param weight The weight value of the booked selection for the passed
+   * entry.
+   * @details This operation is performed N times for a passed entry, where N is
+   * the number of `fill` calls made to its `lazy` action, each with its the set
+   * of input columns as provided then.
+   */
+  using counter::implementation<T>::template fillable<Obs...>::fill;
 };
 
 template <typename T> class counter::booker {

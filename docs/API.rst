@@ -4,15 +4,11 @@ API Reference
 .. toctree::
    :maxdepth: 4
 
+   input
    reader
-   constant
    definition
-   equation
-   representation
-   selection
-   cut
-   weight
-   counter
+   counter_implementation
+   counter_logic
    analysis
-   lazy
-   varied
+   analysis_lazy
+   analysis_varied
