@@ -60,9 +60,8 @@ public:
   static constexpr std::false_type check_implemented(...);
 
   template <typename Out, typename... Vals>
-  static constexpr std::true_type check_fillable(
-      const typename counter::implementation<Out>::template fillable<Vals...>
-          &);
+  static constexpr std::true_type
+  check_fillable(const typename counter::logic<Out(Vals...)> &);
   static constexpr std::false_type check_fillable(...);
 
   template <typename T> struct is_booker : std::false_type {};
@@ -81,7 +80,7 @@ public:
 };
 
 /**
- * @brief ABC of a minimal counter with an output result.
+ * @brief Minimal counter with an output result.
  * @details This ABC should be used for counting operations that do not require
  * any input columns, e.g. a cutflow of selections.
  */
@@ -155,7 +154,7 @@ template <typename... Obs>
 class counter::implementation<T>::fillable : public counter::implementation<T> {
 
 public:
-  using obstup_type = std::tuple<ana::variable<Obs>...>;
+  using vartup_type = std::tuple<ana::variable<Obs>...>;
 
 public:
   fillable();
@@ -167,20 +166,24 @@ public:
   virtual void fill(ana::observable<Obs>... observables, double w) = 0;
 
 protected:
-  std::vector<obstup_type> m_fills;
+  std::vector<vartup_type> m_fills;
 };
 
 /**
- * @brief ABC of a counter to be filled with columns.
- * @details Analyzers should inherit from this ABC to implement the most general
- * arbitrary logic of a counting operation.
+ * @brief Counter implementation that is additionally filled with columns.
+ * @tparam T Output result type.
+ * @tparam Obs... Input column data types.
+ * @details This ABC can implement the most general logic needed to be performed
+ * as a counting operation.
  */
 template <typename T, typename... Obs>
-class counter::logic<T(Obs...)>
-    : public counter::implementation<T>::template fillable<Obs...> {
+class counter::logic<T(Obs...)> : public counter::implementation<T> {
 
 public:
-  logic();
+  using vartup_type = std::tuple<ana::variable<Obs>...>;
+
+public:
+  logic() = default;
   virtual ~logic() = default;
 
   /**
@@ -192,7 +195,13 @@ public:
    * the number of `fill` calls made to its `lazy` action, each with its the set
    * of input columns as provided then.
    */
-  using counter::implementation<T>::template fillable<Obs...>::fill;
+  virtual void fill(ana::observable<Obs>... observables, double w) = 0;
+  virtual void count(double w) final override;
+
+  template <typename... Vals> void enter_columns(term<Vals> const &...cols);
+
+protected:
+  std::vector<vartup_type> m_fills;
 };
 
 template <typename T> class counter::booker {
@@ -315,34 +324,22 @@ void ana::counter::implementation<T>::merge_results(std::vector<T> results) {
   this->set_merged(true);
 }
 
-template <typename T>
-template <typename... Obs>
-ana::counter::implementation<T>::fillable<Obs...>::fillable()
-    : counter::implementation<T>() {}
-
-template <typename T>
-template <typename... Obs>
+template <typename T, typename... Obs>
 template <typename... Vals>
-void ana::counter::implementation<T>::fillable<Obs...>::enter_columns(
-    term<Vals> const &...cols) {
+void ana::counter::logic<T(Obs...)>::enter_columns(term<Vals> const &...cols) {
   static_assert(sizeof...(Obs) == sizeof...(Vals),
                 "dimension mis-match between filled variables & columns.");
   m_fills.emplace_back(cols...);
 }
 
-template <typename T>
-template <typename... Obs>
-void ana::counter::implementation<T>::fillable<Obs...>::count(double w) {
+template <typename T, typename... Obs>
+void ana::counter::logic<T(Obs...)>::count(double w) {
   for (unsigned int ifill = 0; ifill < m_fills.size(); ++ifill) {
     std::apply(
         [this, w](const variable<Obs> &...obs) { this->fill(obs..., w); },
         m_fills[ifill]);
   }
 }
-
-template <typename T, typename... Obs>
-ana::counter::logic<T(Obs...)>::logic()
-    : counter::implementation<T>::template fillable<Obs...>() {}
 
 template <typename T>
 template <typename... Args>
