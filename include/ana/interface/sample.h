@@ -3,7 +3,7 @@
 #include <memory>
 
 #include "concurrent.h"
-#include "input.h"
+#include "dataset.h"
 #include "processor.h"
 
 namespace ana {
@@ -39,7 +39,7 @@ protected:
   long long m_max_entries;
   double m_scale;
 
-  input::partition m_partition;
+  dataset::partition m_partition;
   concurrent<dataset_reader_type> m_readers;
   concurrent<processor<dataset_reader_type>> m_processors;
 };

@@ -12,7 +12,8 @@ class processor : public action,
                   public counter::experiment {
 
 public:
-  processor(const input::range &part, input::reader<T> &reader, double scale);
+  processor(const dataset::range &part, dataset::reader<T> &reader,
+            double scale);
   virtual ~processor() = default;
 
 public:
@@ -29,8 +30,8 @@ public:
 #include "selection.h"
 
 template <typename T>
-ana::processor<T>::processor(const input::range &part, input::reader<T> &reader,
-                             double scale)
+ana::processor<T>::processor(const dataset::range &part,
+                             dataset::reader<T> &reader, double scale)
     : action(), column::computation<T>(part, reader),
       counter::experiment(scale) {}
 

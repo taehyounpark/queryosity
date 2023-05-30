@@ -8,7 +8,7 @@
 #include "column.h"
 #include "concurrent.h"
 #include "counter.h"
-#include "input.h"
+#include "dataset.h"
 #include "processor.h"
 #include "sample.h"
 #include "selection.h"

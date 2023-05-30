@@ -22,8 +22,8 @@ A clear _abstraction_ layer to define dataset transformation procedures helps to
 
 1. Clone this repository.
 2. Add `ana/include` to the include path.
-3. `#include "ana/abc.h"` to implement components (e.g. [rootana](github.com/taehyounpark/rootana.git)).
-5. `#include "ana/analysis.h"` to do data analysis.
+3. `#include "ana/analysis.h"`.
+3. Implement & perform your data analysis.
 
 
 # Walkthrough (using rootana)
@@ -105,7 +105,7 @@ The computation graph is guaranteed to be
 #### Custom definitions
 Complex computations can be fully specified by implementing a `definition`. 
 ```cpp
-#include "ana/abc.h"
+#include "ana/analysis.h"
 
 // define an ith TLorenzVector out of (pt,eta,phi,e) vectors
 class NthP4 : public ana::column::definition<P4(VecD, VecD, VecD, VecD)>

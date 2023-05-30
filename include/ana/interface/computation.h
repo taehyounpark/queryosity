@@ -7,9 +7,9 @@
 
 #include "column.h"
 #include "constant.h"
+#include "dataset.h"
 #include "definition.h"
 #include "equation.h"
-#include "input.h"
 #include "representation.h"
 
 namespace ana {
@@ -27,7 +27,7 @@ class column::computation
 {
 
 public:
-  computation(const input::range &part, input::reader<T> &reader);
+  computation(const dataset::range &part, dataset::reader<T> &reader);
   virtual ~computation() = default;
 
 public:
@@ -53,16 +53,16 @@ protected:
   void add_column(column &column);
 
 protected:
-  const input::range m_part;
-  input::reader<T> *m_reader;
+  const dataset::range m_part;
+  dataset::reader<T> *m_reader;
   std::vector<column *> m_columns;
 };
 
 } // namespace ana
 
 template <typename T>
-ana::column::computation<T>::computation(const input::range &part,
-                                         input::reader<T> &reader)
+ana::column::computation<T>::computation(const dataset::range &part,
+                                         dataset::reader<T> &reader)
     : m_reader(&reader), m_part(part) {}
 
 template <typename T>
@@ -70,7 +70,7 @@ template <typename Val>
 auto ana::column::computation<T>::read(const std::string &name)
     -> std::shared_ptr<read_column_t<T, Val>> {
   using read_column_type = decltype(m_reader->template read_column<Val>(
-      std::declval<const input::range &>(),
+      std::declval<const dataset::range &>(),
       std::declval<const std::string &>()));
   static_assert(is_shared_ptr_v<read_column_type>,
                 "dataset must open a std::shared_ptr of its column reader");
