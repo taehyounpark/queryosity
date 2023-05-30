@@ -1,5 +1,3 @@
-Coherent data analysis interface in C++.
-
 # Features
 - Manipulation of any data types as column values.
 - Arbitrary action execution and results retrieval.
