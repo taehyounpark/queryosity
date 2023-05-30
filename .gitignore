@@ -1,5 +1,4 @@
 .vscode/
-html/
-latex/
+build/
 
 *.DS_Store
