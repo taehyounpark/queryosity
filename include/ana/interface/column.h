@@ -38,11 +38,9 @@ public:
 
   template <typename T> class equation;
 
-  template <typename T> class evaluator;
-
   template <typename T> class representation;
 
-  template <typename T> class representor;
+  template <typename T> class evaluator;
 
 public:
   column() = default;

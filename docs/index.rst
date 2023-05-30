@@ -18,5 +18,6 @@ Contents
 .. toctree::
    :maxdepth: 2
 
+   multithreading
    abcs
    api

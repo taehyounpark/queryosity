@@ -13,6 +13,9 @@ template <typename T> class sample;
 
 namespace input {
 
+/**
+ * @brief Range of a dataset to process by one thread slot.
+*/
 struct range {
   range(size_t slot, long long begin, long long end);
   ~range() = default;
@@ -22,11 +25,25 @@ struct range {
 
   long long entries() const;
 
+  /**
+   * @brief Thread index that the processed range belongs to.
+  */
   size_t slot;
+  /**
+   * @brief The first entry in the range
+  */
   unsigned long long begin;
+  /**
+   * @brief The last entry+1 in the range
+  */
   unsigned long long end;
 };
 
+/**
+ * @brief Partition of a dataset.
+ * @details A partition contains one or more ranges of the datset in sequential order of their entries.
+ * They can dynamically truncated and merged according to the maximum limit of entries of the dataset and multithreading configuration as specified by the analyzer.
+*/
 struct partition {
   static std::vector<std::vector<ana::input::range>>
   group_parts(const std::vector<range> &parts, size_t n);
@@ -35,6 +52,11 @@ struct partition {
   partition() = default;
   ~partition() = default;
 
+  /**
+   * @brief Add a range to the partition.
+   * @details The added range must satisfy that the `end` of the previous range (if it exists) is equal to the incoming `begin`.
+   * Otherwise, the partition is considered to be in an invalid state, and `truncate()` and `merge()` operations respectively will fail assertions in place.
+  */
   void add_part(size_t islot, long long begin, long long end);
 
   range get_part(size_t irange) const;
@@ -43,32 +65,62 @@ struct partition {
   size_t size() const;
 
   void truncate(long long max_entries = -1);
+
   void merge(size_t max_parts);
 
   bool fixed;
   std::vector<range> parts;
 };
 
+/**
+ * @brief 
+ * @tparam T Input dataset format (CRTP: see above)
+ * @details This class uses the [Curiously Recurring Template Parameter (CRPT)](https://en.cppreference.com/w/cpp/language/crtp) idiom.
+ * A proper implementation should be written as follows:
+ * ```cpp
+ * #include "ana/abc.h"
+ * class DataFormat : public ana::input::dataset<DataFormat> {};
+ * ```
+ */
 template <typename T> class dataset {
 
 public:
   dataset() = default;
   virtual ~dataset() = default;
 
-  // normalize scale for all entries by some logic
-  double normalize_scale() const;
-
-  // allocation partitioning for multithreading
   partition allocate_partition();
-
-  // read data for range
+  double normalize_scale();
   decltype(auto) read_dataset() const;
+
+  /**
+   * @brief Allocate partition for multithreading.
+   * @details This step **must** be implemented by the analyzer.
+   * It is performed to scan the dataset and determine any partitioning of the dataset as specfieid by the analyzer.
+   * If partitioning is perform to split the dataset, each range will be processed concurrently as allowed by `ana::multithread::enable();`.
+   * Else, a partition over the entire dataset range will force the analysis to be performed sequentially.
+   * The input reader (see `input::reader`) must support accessing each dataset range in the partition simultanesouly.
+   * The method is non-\a const to allow the scan itself to alter the logical state of the dataset, e.g. check input file paths and remember only valid ones for use later.
+  */
+  partition allocate();
+
+  /**
+   * @brief Normalize the dataset.
+   * @details This step is performed to scan the dataset and determine any normalization to be applied to the analysis.
+   * By default, no normalization is applied (i.e. equal to 1.0).
+   * The method is non-\a const to allow the scan itself to alter the logical state of the dataset, e.g. check input file paths and remember only valid ones for use later.
+  */
+  double normalize();
+
+  /**
+   * @details Open the dataset reader used to iterate over entries of the dataset.
+   * @return The input reader.
+   * @details **Important**: the return type is required to be a `std::shared_ptr` of a valid `input::reader` implementation as required for use in a `ana::concurrent` container.
+   * This method is \a const as it is to be performed N times for each thread, and each subsequent call should not alter the logical state of this class.
+  */
+  decltype(auto) read() const;
 
   void start_dataset();
   void finish_dataset();
-
-  // 1.0 by default
-  double normalize() const;
 
   void start();
   void finish();
@@ -203,11 +255,20 @@ inline void ana::input::partition::truncate(long long max_entries) {
 
 template <typename T>
 ana::input::partition ana::input::dataset<T>::allocate_partition() {
-  return static_cast<T *>(this)->allocate();
+  return this->allocate();
 }
 
-template <typename T> double ana::input::dataset<T>::normalize_scale() const {
-  return static_cast<const T *>(this)->normalize();
+template <typename T>
+ana::input::partition ana::input::dataset<T>::allocate() {
+  return static_cast<T*>(this)->allocate();
+}
+
+template <typename T> double ana::input::dataset<T>::normalize_scale() {
+  return static_cast<T *>(this)->normalize();
+}
+
+template <typename T> inline double ana::input::dataset<T>::normalize() {
+  return 1.0;
 }
 
 template <typename T> void ana::input::dataset<T>::start_dataset() {
@@ -226,10 +287,6 @@ template <typename T> void ana::input::dataset<T>::finish() {
   // nothing to do (yet)
 }
 
-template <typename T> inline double ana::input::dataset<T>::normalize() const {
-  return 1.0;
-}
-
 template <typename T>
 decltype(auto) ana::input::dataset<T>::read_dataset() const {
 
@@ -241,6 +298,11 @@ decltype(auto) ana::input::dataset<T>::read_dataset() const {
   static_assert(std::is_base_of_v<input::reader<reader_type>, reader_type>,
                 "not an implementation of ana::input::reader<T>");
 
+  return this->read();
+}
+
+template <typename T>
+decltype(auto) ana::input::dataset<T>::read() const {
   return static_cast<const T *>(this)->read();
 }
 
