@@ -25,7 +25,7 @@ class counter : public action {
 public:
   class experiment;
 
-  template <typename T> class implementation;
+  template <typename T> class output;
 
   template <typename T> class logic;
 
@@ -55,8 +55,7 @@ protected:
 
 public:
   template <typename T>
-  static constexpr std::true_type
-  check_implemented(const counter::implementation<T> &);
+  static constexpr std::true_type check_implemented(const counter::output<T> &);
   static constexpr std::false_type check_implemented(...);
 
   template <typename Out, typename... Vals>
@@ -84,18 +83,20 @@ public:
  * @details This ABC should be used for counting operations that do not require
  * any input columns, e.g. a cutflow of selections.
  */
-template <typename T> class counter::implementation : public counter {
+template <typename T> class counter::output : public counter {
 
 public:
   using result_type = T;
 
 public:
-  implementation();
-  virtual ~implementation() = default;
+  output();
+  virtual ~output() = default;
 
   /**
-   * @brief Create the result of the counter.
+   * @brief Create and return the result of the counter.
    * @return The result.
+   * @detail The output from each concurrent slot, which is returned by value,
+   * are collected into a list to be merged into one.
    */
   virtual T result() const = 0;
 
@@ -114,26 +115,10 @@ public:
    */
   using counter::count;
 
-  /**
-   * @details Set the result of the counter.
-   */
   virtual void finalize() override;
 
-  /**
-   * @brief Get the result of the counter
-   * @return The result of the counter.
-   * @detail The result is returned by `const &` to avoid unncessary copies, but
-   * also prevent post-processing modifications. Should the analyzer wish for
-   * the latter, the result should be copied by value.
-   */
   T const &get_result() const;
 
-  /**
-   * @brief Get the result of the counter
-   * @return The result of the counter.
-   * @detail Shorthand indirection operator to access the result's `const`
-   * methods.
-   */
   T const &operator->() const { return this->get_result(); }
 
   bool is_merged() const;
@@ -147,35 +132,13 @@ protected:
   bool m_merged;
 };
 
-template <typename T>
-template <typename... Obs>
-class counter::implementation<T>::fillable : public counter::implementation<T> {
-
-public:
-  using vartup_type = std::tuple<ana::variable<Obs>...>;
-
-public:
-  fillable();
-  virtual ~fillable() = default;
-
-  template <typename... Vals> void enter_columns(term<Vals> const &...cols);
-
-  virtual void count(double w) override;
-  virtual void fill(ana::observable<Obs>... observables, double w) = 0;
-
-protected:
-  std::vector<vartup_type> m_fills;
-};
-
 /**
- * @brief Counter implementation that is additionally filled with columns.
+ * @brief Counter output to be filled with columns using arbitrary logic.
  * @tparam T Output result type.
  * @tparam Obs... Input column data types.
- * @details This ABC can implement the most general logic needed to be performed
- * as a counting operation.
  */
 template <typename T, typename... Obs>
-class counter::logic<T(Obs...)> : public counter::implementation<T> {
+class counter::logic<T(Obs...)> : public counter::output<T> {
 
 public:
   using vartup_type = std::tuple<ana::variable<Obs>...>;
@@ -291,30 +254,26 @@ inline void ana::counter::execute() {
     this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
 }
 
-template <typename T>
-ana::counter::implementation<T>::implementation()
-    : counter(), m_merged(false) {}
+template <typename T> ana::counter::output<T>::output() : m_merged(false) {}
 
-template <typename T> bool ana::counter::implementation<T>::is_merged() const {
+template <typename T> bool ana::counter::output<T>::is_merged() const {
   return m_merged;
 }
 
-template <typename T>
-void ana::counter::implementation<T>::set_merged(bool merged) {
+template <typename T> void ana::counter::output<T>::set_merged(bool merged) {
   m_merged = merged;
 }
 
-template <typename T> void ana::counter::implementation<T>::finalize() {
+template <typename T> void ana::counter::output<T>::finalize() {
   m_result = this->result();
 }
 
-template <typename T>
-T const &ana::counter::implementation<T>::get_result() const {
+template <typename T> T const &ana::counter::output<T>::get_result() const {
   return m_result;
 }
 
 template <typename T>
-void ana::counter::implementation<T>::merge_results(std::vector<T> results) {
+void ana::counter::output<T>::merge_results(std::vector<T> results) {
   if (!results.size()) {
     throw std::logic_error("merging requires at least one result");
   }
