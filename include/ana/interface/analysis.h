@@ -15,6 +15,9 @@
 
 namespace ana {
 
+/**
+ * @brief Analysis of an input dataset
+ */
 template <typename T> class analysis : public sample<T> {
 
 public:
@@ -53,11 +56,15 @@ public:
 public:
   virtual ~analysis() = default;
 
-  // catch-all
+  /**
+   * @brief Constructor using arguments for input dataset.
+   * @param arguments Constructor arguments for the input dataset.
+   */
   template <typename... Args> analysis(Args &&...args);
   // shortcuts for file paths provided with initializer braces
   template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<
                                 U, std::string, std::vector<std::string>>>>
+
   analysis(const std::string &key, const std::vector<std::string> &file_paths);
   // shortcuts for file paths provided with initializer braces
   template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<
@@ -70,31 +77,120 @@ public:
   analysis(analysis &&) = default;
   analysis &operator=(analysis &&) = default;
 
+  /**
+   * @brief Read a column from the dataset.
+   * @tparam Val Column data type.
+   * @param name Column name.
+   * @return The `lazy` read column.
+   */
   template <typename Val>
   auto read(const std::string &name)
       -> lazy<read_column_t<read_dataset_t<T>, Val>>;
+
+  /**
+   * @brief Define a constant.
+   * @tparam Val Constant data type.
+   * @param value Constant data value.
+   * @return The `lazy` defined constant.
+   */
   template <typename Val>
   auto constant(const Val &value) -> lazy<column::constant<Val>>;
+
+  /**
+   * @brief Define a custom definition or representation.
+   * @tparam Def The full definition/representation user-implementation.
+   * @param args Constructor arguments for the definition/representation.
+   * @return The `lazy` definition "evaluator" to be evaluated with input
+   * columns.
+   */
   template <typename Def, typename... Args>
   auto define(Args &&...args) -> lazy<column::template evaluator_t<Def>>;
+
+  /**
+   * @brief Define an equation.
+   * @tparam F Any function/functor/callable type.
+   * @param callable The function/functor/callable object used as the
+   * expression.
+   * @return The `lazy` equation "evaluator" to be evaluated with input columns.
+   */
   template <typename F>
   auto define(F callable) -> lazy<column::template evaluator_t<F>>;
 
+  /**
+   * @brief Apply a filter.
+   * @tparam Sel Type of selection, i.e. `selection::cut` or
+   * `selection::weight`.
+   * @tparam F Any function/functor/callable type.
+   * @param name The name of the selection.
+   * @param callable The function/functor/callable object used as the
+   * expression.
+   * @return The `lazy` selection "applicator" to be applied with input columns.
+   * @details Perform a filter operation from the analysis to define one without
+   * a preselection.
+   */
   template <typename Sel, typename F>
   auto filter(const std::string &name, F callable)
       -> lazy<selection::template custom_applicator_t<F>>;
+
+  /**
+   * @brief Apply a filter as a channel.
+   * @tparam Sel Type of selection, i.e. `selection::cut` or
+   * `selection::weight`.
+   * @tparam F Any function/functor/callable type.
+   * @param name The name of the selection.
+   * @param callable The function/functor/callable object used as the
+   * expression.
+   * @return The `lazy` selection "applicator" to be applied with input columns.
+   * @details Perform a filter operation from the analysis to define one without
+   * a preselection.
+   */
   template <typename Sel, typename F>
   auto channel(const std::string &name, F callable)
       -> lazy<selection::template custom_applicator_t<F>>;
   template <typename Sel>
+
+  /**
+   * @brief Apply a selection.
+   * @tparam Sel Type of selection, i.e. `selection::cut` or
+   * `selection::weight`.
+   * @param name The name of the selection.
+   * @return The `lazy` selection "applicator" to be applied with the input
+   * column.
+   * @details When a filter operation is called without a custom expression, the
+   * value of the input column itself is used as its decision.
+   */
   auto filter(const std::string &name)
       -> lazy<selection::trivial_applicator_type>;
   template <typename Sel>
+
+  /**
+   * @brief Apply a selection.
+   * @tparam Sel Type of selection, i.e. `selection::cut` or
+   * `selection::weight`.
+   * @param name The name of the selection.
+   * @return The `lazy` selection "applicator" to be applied with the input
+   * column.
+   * @details When a filter operation is called without a custom expression, the
+   * value of the input column itself is used as its decision.
+   */
   auto channel(const std::string &name)
       -> lazy<selection::trivial_applicator_type>;
 
+  /**
+   * @brief Book a counter
+   * @tparam Cnt Any full user-implementation of `counter`.
+   * @param args Constructor arguments for the **Cnt**.
+   * @return The `lazy` counter "booker" to be filled with input column(s) and
+   * booked at selection(s).
+   */
   template <typename Cnt, typename... Args>
   auto book(Args &&...args) -> lazy<counter::booker<Cnt>>;
+
+protected:
+  /**
+   * @brief Default constructor for initial flags and values.
+   */
+  analysis();
 
   template <typename Def, typename... Cols>
   auto evaluate_column(lazy<column::evaluator<Def>> const &calc,
@@ -109,18 +205,8 @@ public:
   auto book_selections(lazy<counter::booker<Cnt>> const &bkr,
                        lazy<Sels> const &...sels) -> lazy<counter::booker<Cnt>>;
 
-protected:
   void analyze();
   void reset();
-
-  /**
-   * @brief Default constructor for initial flags and values.
-   * @details The dataset pointer remains as an `nullptr`, need to call
-   * `prepare`.
-   */
-  analysis();
-
-  void process_dataset();
 
   template <typename Sel, typename F>
   auto filter(lazy<selection> const &prev, const std::string &name, F callable)
@@ -160,7 +246,6 @@ protected:
   auto vary_equation(lazy<column::evaluator<V>> const &nom, F callable)
       -> lazy<column::evaluator<V>>;
 
-protected:
   void add_action(lazy<action> const &act);
 
 protected:

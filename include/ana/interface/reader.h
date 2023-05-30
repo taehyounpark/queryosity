@@ -5,7 +5,6 @@
 namespace ana {
 
 /**
- * @class ana::column::reader
  * @brief Abstract base class to read values of existing columns in an input
  * dataset.
  * @tparam T column data type.
@@ -45,19 +44,8 @@ protected:
   mutable bool m_updated;
 };
 
-/**
- * @class ana::column::reader
- * @brief Abstract base class to read values of existing columns in an input
- * dataset.
- * @tparam T column data type.
- */
 template <typename T> class column::reader : public term<T>::reader {
-
 public:
-  /**
-   * @brief Constructor.
-   * @param name input column name.
-   */
   reader(const std::string &name);
   virtual ~reader() = default;
 };

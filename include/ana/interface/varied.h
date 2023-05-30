@@ -59,6 +59,14 @@
 
 namespace ana {
 
+/**
+ * @brief Variations of a lazy action to be performed in an analysis.
+ * @tparam T Input dataset type
+ * @tparam U Actions to be performed lazily.
+ * @details A `varied` node can be treated identical to a `lazy` one, except
+ * that it contains multiple variations of the action as dictated by the
+ * analyzer that propagate through the rest of the analysis.
+ */
 template <typename T>
 template <typename Act>
 class analysis<T>::varied : public node<Act> {
@@ -78,6 +86,10 @@ public:
   template <typename> friend class lazy;
 
 public:
+  /**
+   * Constructor taking the nominal action.
+   * @param nominal The `lazy` action to be set as the nominal.
+   */
   varied(lazy<Act> const &nom) : node<Act>(*nom.m_analysis), m_nominal(nom) {}
 
   virtual ~varied() = default;

@@ -124,7 +124,6 @@ CHECK_FOR_SUBSCRIPT_OP()
 template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
 
 /**
- * @class ana::analysis::lazy
  * @brief Node representing a lazy action to be performed in an analysis.
  * @details Depending on the concrete type of the lazy action, further
  * operations may be performed on it.
