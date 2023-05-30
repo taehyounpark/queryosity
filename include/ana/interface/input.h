@@ -84,10 +84,12 @@ struct partition {
  */
 template <typename T> class dataset {
 
-public:
+private:
   dataset() = default;
-  virtual ~dataset() = default;
+  ~dataset() = default;
+  friend T;
 
+public:
   partition allocate_partition();
   double normalize_scale();
   decltype(auto) read_dataset() const;
@@ -128,11 +130,12 @@ public:
 
 template <typename T> class reader {
 
-public:
-public:
+private:
   reader() = default;
   ~reader() = default;
+  friend T;
 
+public:
   // read a column of a data type with given name
   template <typename Val>
   decltype(auto) read_column(const range &part, const std::string &name) const;
