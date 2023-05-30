@@ -4,17 +4,35 @@
 
 namespace ana {
 
+/**
+ * @class ana::column::reader
+ * @brief Abstract base class to read values of existing columns in an input
+ * dataset.
+ * @tparam T column data type.
+ */
 template <typename T> class term<T>::reader : public term<T> {
-
 public:
   reader(const std::string &name);
   virtual ~reader() = default;
 
   virtual void execute() override;
 
+  /**
+   * @brief Read the value of the column at current entry.
+   * @return Column value
+   */
   virtual T const &read() const = 0;
+
+  /**
+   * @brief Get the value of the column at current entry.
+   * @return Column value
+   */
   virtual T const &value() const override;
 
+  /**
+   * @brief Get the column name.
+   * @return Column name
+   */
   std::string get_name() const;
 
 protected:
@@ -27,9 +45,19 @@ protected:
   mutable bool m_updated;
 };
 
+/**
+ * @class ana::column::reader
+ * @brief Abstract base class to read values of existing columns in an input
+ * dataset.
+ * @tparam T column data type.
+ */
 template <typename T> class column::reader : public term<T>::reader {
 
 public:
+  /**
+   * @brief Constructor.
+   * @param name input column name.
+   */
   reader(const std::string &name);
   virtual ~reader() = default;
 };

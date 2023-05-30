@@ -124,6 +124,7 @@ CHECK_FOR_SUBSCRIPT_OP()
 template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
 
 /**
+ * @class ana::analysis::lazy
  * @brief Node representing a lazy action to be performed in an analysis.
  * @details Depending on the concrete type of the lazy action, further
  * operations may be performed on it.
@@ -180,13 +181,12 @@ public:
   virtual std::set<std::string> list_variation_names() const override;
 
   /**
-   * @brief Apply a systematic variation to a column (for `reader` or
-   * `constant`).
+   * @brief Apply a systematic variation to a `reader` or `constant` column.
    * @param var_name Name of the systematic variation.
    * @param args... Alternate column name (`reader`) or value (`constant`).
    * @return Varied column.
-   * @details Creates a `varied<U>` node whose `.get_nominal()` is the original
-   * lazy node, and `variation(var_name)` is the newly-constructed one
+   * @details Creates a `varied` action whose `.get_nominal()` is the original
+   * lazy one, and `get_variation(var_name)` is the newly-constructed one.
    */
   template <typename... Args, typename V = U,
             std::enable_if_t<ana::column::template is_reader_v<V> ||
@@ -195,12 +195,12 @@ public:
   auto vary(const std::string &var_name, Args &&...args) -> varied<V>;
 
   /**
-   * @brief Apply a systematic variation to a column (for `definition`)
+   * @brief Apply a systematic variation to an `equation` column.
    * @param var_name Name of the systematic variation.
    * @param args... Constructor arguments for `definition`.
    * @return Varied definition.
-   * @details Creates a `varied<U>` node whose `.get_nominal()` is the original
-   * lazy node, and `variation(var_name)` is the newly-constructed one
+   * @details Creates a `varied` action whose `.get_nominal()` is the original
+   * lazy one, and `get_variation(var_name)` is the newly-constructed one.
    */
   template <typename... Args, typename V = U,
             std::enable_if_t<ana::column::template is_evaluator_v<V> &&
@@ -210,14 +210,14 @@ public:
   auto vary(const std::string &var_name, Args &&...args) -> varied<V>;
 
   /**
-   * @brief Apply a systematic variation to a column (for `equation`).
+   * @brief Apply a systematic variation to `equation` column.
    * @param var_name Name of the systematic variation.
    * @param callable C++ function, lambda expression, or any other callable.
    * **Note**: the function return type and signature must be convertible to the
    * original's.
    * @return Varied equation.
-   * @details Creates a `varied<U>` node whose `.get_nominal()` is the original
-   * lazy node, and `variation(var_name)` is the newly-constructed one
+   * @details Creates a `varied` action whose `.get_nominal()` is the original
+   * lazy one, and `get_variation(var_name)` is the newly-constructed one.
    */
   template <typename F, typename V = U,
             std::enable_if_t<ana::column::template is_evaluator_v<V> &&
@@ -230,13 +230,14 @@ public:
    * @brief Filter from an existing selection.
    * @tparam Sel Type of selection to be applied, i.e. `ana::selection::cut` or
    * `ana::selection::weight`.
+   * @tparam Args (Optional) Type of function/functor/callable expression.
    * @param name Name of the selection.
-   * @param args (Optional) lambda expression to be evaluated.
-   * @return Chained selection (to be evaluated with input columns)
+   * @param args (Optional) function/functor/callable expression to be applied.
+   * @return Chained selection "applicator" to be applied with input columns.
    * @details Chained selections have their cut and weight decisions compounded:
    * ```cpp
-   * auto sel = ds.channel<cut>("cut")(tf).filter<weight>("weight")(w);
-   * // cut = (tf) && (true);
+   * auto sel = ds.channel<cut>("a")(a).filter<weight>("w")(w);
+   * // cut = (a) && (true);
    * // weight = (1.0) * (w);
    * ```
    */
@@ -353,7 +354,7 @@ public:
   /**
    * @brief Fill the counter with input columns.
    * @param columns Input (`lazy` or `varied`) columns.
-   * @return lazy<selection> Filled (`lazy` or `varied`) counter.
+   * @return The counter (`lazy` or `varied`) filled with the input columns.
    */
   template <
       typename... Nodes, typename V = U,
@@ -395,8 +396,7 @@ public:
   /**
    * @brief Book the counter at a selection.
    * @param selection Selection to be counted.
-   * @return `Counter` the (`lazy` or `varied`) counter with the selection
-   * booked.
+   * @return The (`lazy` or `varied`) counter booked at the selection.
    */
   template <typename Node> auto at(Node &&selection) const;
 
@@ -426,9 +426,9 @@ public:
 
   /**
    * @brief Book the counter at multiple selections.
-   * @param selection Selections to be counted.
-   * @return `counter::booker<Counter>` a (`lazy` or `varied`) counter "booker"
-   * which keeps track of the booked selection(s).
+   * @param selections Selections to book the counter at.
+   * @return The (`lazy` or `varied`) counter "booker" that keeps track the
+   * counters at each selection.
    */
   template <typename... Nodes> auto at(Nodes &&...nodes) const {
     static_assert(counter::template is_booker_v<U>, "not a counter (booker)");
@@ -469,7 +469,7 @@ public:
   }
 
   /**
-   * @return `std::set<std::string>` list of booked selection paths.
+   * @return The list of booked selection paths.
    */
   template <
       typename V = U,
@@ -480,7 +480,9 @@ public:
   }
 
   /**
-   * @return `Counter` the counter booked at a specific selection path.
+   * @brief Get the counter booked at a selection path.
+   * @param selection_path Path of the selection
+   * @return counter The counter booked at the selection path.
    */
   template <
       typename V = U,
@@ -495,10 +497,10 @@ public:
   }
 
   /**
-   * @brief Retrieve the result of the counter.
-   * @details Triggers the processing of the dataset if that the result of the
-   * counter is not already available.
-   * @return `Result` the result of the implemented counter.
+   * @brief Retrieve the result of a counter.
+   * @details Triggers processing of the dataset if that the result is not
+   * already available.
+   * @return The result of the implemented counter.
    */
   template <typename V = U,
             std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
@@ -510,10 +512,10 @@ public:
   }
 
   /**
-   * @brief Context-dependent shorthands for `lazy` nodes.
+   * @brief Evaluate/apply a column/selection, respectively.
    * @details A chained function call is equivalent to `evaluate` and `apply`
-   * for column and selection evaluators, respectively.
-   * @return Node the resulting (`lazy` or `varied`) counter/selection from its
+   * for column and selection respectively.
+   * @return The resulting (`lazy` or `varied`) counter/selection from its
    * evaluator/application.
    */
   template <typename... Args, typename V = U,
@@ -544,12 +546,12 @@ public:
   }
 
   /**
-   * @brief Join two filters (OR)
-   * @return selection Its decision is given by `passed_cut() = a.passed_cut()
+   * @brief Take the OR of two cuts
+   * @return selection Its cut decision is given by `passed_cut() =
+   * a.passed_cut()
    * || b.passed_cut()`.
-   * @details A joined filter should be treated as strictly a cut without any
-   * preselection (i.e. weight = 1.0), and one that cannot be designated as a
-   * `channel`.
+   * @details A joined filter is defined as a cut without any
+   * preselection (i.e. weight = 1.0), and one that is not a `channel`.
    */
   template <typename V = U,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
@@ -558,12 +560,11 @@ public:
   }
 
   /**
-   * @brief Join two filters (AND)
+   * @brief Take the AND of two cuts
    * @return `lazy<selection>` Its decision is given by `passed_cut() =
    * a.passed_cut() && b.passed_cut()`.
-   * @details A joined filter should be treated as strictly a cut without any
-   * preselection (i.e. weight = 1.0), and one that cannot be designated as a
-   * `channel`.
+   * @details A joined filter is defined as a cut without any
+   * preselection (i.e. weight = 1.0), and one that is not a `channel`.
    */
   template <typename V = U,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>

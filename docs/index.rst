@@ -12,8 +12,10 @@ Welcome to ana's documentation!
 
 :ref:`genindex`
 
-Docs
-====
+Contents
+--------
 
-.. doxygenclass:: ana::action
-   :members:
+.. toctree::
+   :maxdepth: 2
+
+   API
