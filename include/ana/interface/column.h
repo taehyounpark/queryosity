@@ -74,11 +74,6 @@ public:
   check_representation(typename column::representation<T> const &);
   static constexpr std::false_type check_representation(...);
 
-  template <typename T, unsigned long long N>
-  static constexpr std::true_type
-  check_vectorization(typename column::vectorization<T, N> const &);
-  static constexpr std::false_type check_vectorization(...);
-
   template <typename T> struct is_evaluator : std::false_type {};
   template <typename T>
   struct is_evaluator<column::evaluator<T>> : std::true_type {};
@@ -128,10 +123,6 @@ public:
 
   template <typename T>
   static constexpr bool is_representation_v = decltype(check_representation(
-      std::declval<std::decay_t<T> const &>()))::value;
-
-  template <typename T>
-  static constexpr bool is_vectorization_v = decltype(check_vectorization(
       std::declval<std::decay_t<T> const &>()))::value;
 
   template <typename T>

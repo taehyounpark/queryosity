@@ -11,7 +11,6 @@
 #include "definition.h"
 #include "equation.h"
 #include "representation.h"
-#include "vectorization.h"
 
 namespace ana {
 
