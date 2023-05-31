@@ -1,7 +1,7 @@
 #pragma once
 
-#include <memory>
 #include <functional>
+#include <memory>
 #include <type_traits>
 
 #include "action.h"
@@ -34,6 +34,8 @@ public:
 
   template <typename T> class constant;
 
+  template <typename T> class calculation;
+
   template <typename T> class definition;
 
   template <typename T> class equation;
@@ -59,6 +61,11 @@ public:
 
   template <typename T>
   static constexpr std::true_type
+  check_definition(typename column::definition<T> const &);
+  static constexpr std::false_type check_definition(...);
+
+  template <typename T>
+  static constexpr std::true_type
   check_equation(typename column::equation<T> const &);
   static constexpr std::false_type check_equation(...);
 
@@ -67,10 +74,10 @@ public:
   check_representation(typename column::representation<T> const &);
   static constexpr std::false_type check_representation(...);
 
-  template <typename T>
+  template <typename T, unsigned long long N>
   static constexpr std::true_type
-  check_definition(typename column::definition<T> const &);
-  static constexpr std::false_type check_definition(...);
+  check_vectorization(typename column::vectorization<T, N> const &);
+  static constexpr std::false_type check_vectorization(...);
 
   template <typename T> struct is_evaluator : std::false_type {};
   template <typename T>
@@ -121,6 +128,10 @@ public:
 
   template <typename T>
   static constexpr bool is_representation_v = decltype(check_representation(
+      std::declval<std::decay_t<T> const &>()))::value;
+
+  template <typename T>
+  static constexpr bool is_vectorization_v = decltype(check_vectorization(
       std::declval<std::decay_t<T> const &>()))::value;
 
   template <typename T>
@@ -190,30 +201,19 @@ private:
   const cell<From> *m_impl;
 };
 
-// term: get value of type T while ensured that it stays "updated"
 template <typename T> class term : public column, public cell<T> {
 
 public:
   using value_type = typename cell<T>::value_type;
 
 public:
-  class constant;
-
-  class reader;
-
-  class calculation;
-
-  template <typename... Args> class calculation_of;
-
-  template <typename... Args> class representation_of;
-
-public:
   term() = default;
   virtual ~term() = default;
 
-  virtual void initialize() override;
-  virtual void execute() override;
-  virtual void finalize() override;
+  virtual void initialize(const dataset::range &part) override;
+  virtual void execute(const dataset::range &part,
+                       unsigned long long entry) override;
+  virtual void finalize(const dataset::range &part) override;
 };
 
 // costly to move around
@@ -272,11 +272,14 @@ using cell_value_t = std::decay_t<decltype(std::declval<T>().value())>;
 
 } // namespace ana
 
-template <typename T> void ana::term<T>::initialize() {}
+template <typename T>
+void ana::term<T>::initialize(const ana::dataset::range &) {}
 
-template <typename T> void ana::term<T>::execute() {}
+template <typename T>
+void ana::term<T>::execute(const ana::dataset::range &, unsigned long long) {}
 
-template <typename T> void ana::term<T>::finalize() {}
+template <typename T>
+void ana::term<T>::finalize(const ana::dataset::range &) {}
 
 template <typename T> const T *ana::cell<T>::field() const {
   return &this->value();

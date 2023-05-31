@@ -9,12 +9,10 @@ namespace ana {
  * dataset.
  * @tparam T column data type.
  */
-template <typename T> class term<T>::reader : public term<T> {
+template <typename T> class column::reader : public term<T> {
 public:
   reader(const std::string &name);
   virtual ~reader() = default;
-
-  virtual void execute() override;
 
   /**
    * @brief Read the value of the column at current entry.
@@ -34,9 +32,11 @@ public:
    */
   std::string get_name() const;
 
+  virtual void execute(const dataset::range &part,
+                       unsigned long long entry) final override;
+
 protected:
   void update() const;
-  void reset();
 
 protected:
   const std::string m_name;
@@ -44,37 +44,29 @@ protected:
   mutable bool m_updated;
 };
 
-template <typename T> class column::reader : public term<T>::reader {
-public:
-  reader(const std::string &name);
-  virtual ~reader() = default;
-};
-
 } // namespace ana
 
 template <typename T>
-ana::term<T>::reader::reader(const std::string &name)
+ana::column::reader<T>::reader(const std::string &name)
     : m_name(name), m_addr(nullptr) {}
 
 template <typename T>
-ana::column::reader<T>::reader(const std::string &name)
-    : term<T>::reader(name) {}
+void ana::column::reader<T>::execute(const ana::dataset::range &,
+                                     unsigned long long) {
+  m_updated = false;
+}
 
-template <typename T> void ana::term<T>::reader::execute() { this->reset(); }
-
-template <typename T> T const &ana::term<T>::reader::value() const {
+template <typename T> T const &ana::column::reader<T>::value() const {
   if (!this->m_updated)
     this->update();
   return *m_addr;
 }
 
-template <typename T> void ana::term<T>::reader::update() const {
+template <typename T> void ana::column::reader<T>::update() const {
   m_addr = &(this->read());
   m_updated = true;
 }
 
-template <typename T> void ana::term<T>::reader::reset() { m_updated = false; }
-
-template <typename T> std::string ana::term<T>::reader::get_name() const {
+template <typename T> std::string ana::column::reader<T>::get_name() const {
   return m_name;
 }

@@ -17,13 +17,13 @@ namespace dataset {
  * @brief Range of a dataset to process by one thread slot.
  */
 struct range {
-  range(size_t slot, long long begin, long long end);
+  range(size_t slot, unsigned long long begin, unsigned long long end);
   ~range() = default;
 
   range operator+(const range &next);
   range &operator+=(const range &next);
 
-  long long entries() const;
+  unsigned long long entries() const;
 
   /**
    * @brief Thread index that the processed range belongs to.
@@ -47,7 +47,7 @@ struct range {
  * configuration as specified by the analyzer.
  */
 struct partition {
-  static std::vector<std::vector<ana::dataset::range>>
+  static std::vector<std::vector<dataset::range>>
   group_parts(const std::vector<range> &parts, size_t n);
   static range sum_parts(const std::vector<range> &parts);
 
@@ -61,7 +61,7 @@ struct partition {
    * is considered to be in an invalid state, and `truncate()` and `merge()`
    * operations respectively will fail assertions in place.
    */
-  void add_part(size_t islot, long long begin, long long end);
+  void add_part(size_t islot, unsigned long long begin, unsigned long long end);
 
   range get_part(size_t irange) const;
   range total() const;
@@ -182,10 +182,11 @@ static constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
 
 #include "column.h"
 
-inline ana::dataset::range::range(size_t slot, long long begin, long long end)
+inline ana::dataset::range::range(size_t slot, unsigned long long begin,
+                                  unsigned long long end)
     : slot(slot), begin(begin), end(end) {}
 
-inline long long ana::dataset::range::entries() const {
+inline unsigned long long ana::dataset::range::entries() const {
   assert(this->end > this->begin);
   return end - begin;
 }
@@ -223,8 +224,9 @@ ana::dataset::partition::sum_parts(const std::vector<range> &parts) {
   return std::accumulate(std::next(parts.begin()), parts.end(), parts.front());
 }
 
-inline void ana::dataset::partition::add_part(size_t islot, long long begin,
-                                              long long end) {
+inline void ana::dataset::partition::add_part(size_t islot,
+                                              unsigned long long begin,
+                                              unsigned long long end) {
   this->parts.push_back(range(islot, begin, end));
 }
 

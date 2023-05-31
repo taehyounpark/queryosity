@@ -1,5 +1,7 @@
 #pragma once
 
+#include "dataset.h"
+
 namespace ana {
 
 /**
@@ -8,13 +10,16 @@ namespace ana {
  */
 class action {
 
+  class bulk;
+
 public:
   action() = default;
   virtual ~action() = default;
 
-  virtual void initialize() = 0;
-  virtual void execute() = 0;
-  virtual void finalize() = 0;
+  virtual void initialize(const dataset::range &part) = 0;
+  virtual void execute(const dataset::range &part,
+                       unsigned long long entry) = 0;
+  virtual void finalize(const dataset::range &part) = 0;
 };
 
 } // namespace ana

@@ -43,8 +43,9 @@ public:
   void set_selection(const selection &selection);
   const selection *get_selection() const;
 
-  virtual void initialize() override;
-  virtual void execute() override;
+  virtual void initialize(const dataset::range &part) override;
+  virtual void execute(const dataset::range &part,
+                       unsigned long long entry) override;
 
   virtual void count(double w) = 0;
 
@@ -115,7 +116,7 @@ public:
    */
   using counter::count;
 
-  virtual void finalize() override;
+  virtual void finalize(const dataset::range &) final override;
 
   T const &get_result() const;
 
@@ -244,12 +245,13 @@ inline void ana::counter::apply_scale(double scale) { m_scale *= scale; }
 
 inline void ana::counter::use_weight(bool use) { m_raw = !use; }
 
-inline void ana::counter::initialize() {
+inline void ana::counter::initialize(const ana::dataset::range &part) {
   if (!m_selection)
     throw std::runtime_error("no booked selection");
 }
 
-inline void ana::counter::execute() {
+inline void ana::counter::execute(const ana::dataset::range &,
+                                  unsigned long long) {
   if (m_selection->passed_cut())
     this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
 }
@@ -264,7 +266,8 @@ template <typename T> void ana::counter::output<T>::set_merged(bool merged) {
   m_merged = merged;
 }
 
-template <typename T> void ana::counter::output<T>::finalize() {
+template <typename T>
+void ana::counter::output<T>::finalize(const ana::dataset::range &) {
   m_result = this->result();
 }
 

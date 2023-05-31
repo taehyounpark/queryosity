@@ -47,9 +47,10 @@ public:
   virtual double get_weight() const = 0;
 
 public:
-  virtual void initialize() override;
-  virtual void execute() override;
-  virtual void finalize() override;
+  virtual void initialize(const dataset::range &part) override;
+  virtual void execute(const dataset::range &part,
+                       unsigned long long entry) override;
+  virtual void finalize(const dataset::range &part) override;
 
 private:
   const selection *const m_preselection;
@@ -146,11 +147,18 @@ inline std::string ana::selection::get_full_path() const {
   return concatenate_names(presels, "/") + this->get_name();
 }
 
-inline void ana::selection::initialize() { m_decision->initialize(); }
+inline void ana::selection::initialize(const ana::dataset::range &part) {
+  m_decision->initialize(part);
+}
 
-inline void ana::selection::execute() { m_decision->execute(); }
+inline void ana::selection::execute(const ana::dataset::range &part,
+                                    unsigned long long entry) {
+  m_decision->execute(part, entry);
+}
 
-inline void ana::selection::finalize() { m_decision->finalize(); }
+inline void ana::selection::finalize(const ana::dataset::range &part) {
+  m_decision->finalize(part);
+}
 
 template <typename T>
 void ana::selection::set_decision(std::shared_ptr<term<T>> decision) {

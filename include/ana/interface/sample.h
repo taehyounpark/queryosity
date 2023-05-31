@@ -25,7 +25,7 @@ public:
 
   void limit_entries(long long max_entries = -1);
   void scale_weights(double scale);
-  long long get_processed_entries() const;
+  unsigned long long get_processed_entries() const;
   double get_normalized_scale() const;
 
 protected:
@@ -116,7 +116,8 @@ template <typename T> void ana::sample<T>::initialize() {
   m_initialized = true;
 }
 
-template <typename T> long long ana::sample<T>::get_processed_entries() const {
+template <typename T>
+unsigned long long ana::sample<T>::get_processed_entries() const {
   this->initialize();
   return m_partition.total().entries();
 }

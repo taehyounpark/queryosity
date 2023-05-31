@@ -11,6 +11,7 @@
 #include "definition.h"
 #include "equation.h"
 #include "representation.h"
+#include "vectorization.h"
 
 namespace ana {
 
@@ -61,7 +62,7 @@ protected:
 } // namespace ana
 
 template <typename T>
-ana::column::computation<T>::computation(const dataset::range &part,
+ana::column::computation<T>::computation(const ana::dataset::range &part,
                                          dataset::reader<T> &reader)
     : m_reader(&reader), m_part(part) {}
 

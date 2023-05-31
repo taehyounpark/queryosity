@@ -17,9 +17,10 @@ public:
   virtual ~processor() = default;
 
 public:
-  virtual void initialize() override;
-  virtual void execute() override;
-  virtual void finalize() override;
+  virtual void initialize(const dataset::range &part) override;
+  virtual void execute(const dataset::range &part,
+                       unsigned long long entry) override;
+  virtual void finalize(const dataset::range &part) override;
 
   void process();
 };
@@ -30,60 +31,65 @@ public:
 #include "selection.h"
 
 template <typename T>
-ana::processor<T>::processor(const dataset::range &part,
+ana::processor<T>::processor(const ana::dataset::range &part,
                              dataset::reader<T> &reader, double scale)
     : action(), column::computation<T>(part, reader),
       counter::experiment(scale) {}
 
-template <typename T> void ana::processor<T>::initialize() {
+template <typename T>
+void ana::processor<T>::initialize(const ana::dataset::range &part) {
+  this->m_reader->start_part(this->m_part);
+
   for (auto const &col : this->m_columns) {
-    col->initialize();
+    col->initialize(part);
   }
   for (auto const &sel : this->m_selections) {
-    sel->initialize();
+    sel->initialize(part);
   }
   for (auto const &cnt : this->m_counters) {
-    cnt->initialize();
+    cnt->initialize(part);
   }
 }
 
-template <typename T> void ana::processor<T>::execute() {
+template <typename T>
+void ana::processor<T>::execute(const ana::dataset::range &part,
+                                unsigned long long entry) {
+  this->m_reader->read_entry(part, entry);
   for (auto const &col : this->m_columns) {
-    col->execute();
+    col->execute(part, entry);
   }
   for (auto const &sel : this->m_selections) {
-    sel->execute();
+    sel->execute(part, entry);
   }
   for (auto const &cnt : this->m_counters) {
-    cnt->execute();
+    cnt->execute(part, entry);
   }
 }
 
-template <typename T> void ana::processor<T>::finalize() {
+template <typename T>
+void ana::processor<T>::finalize(const ana::dataset::range &part) {
   for (auto const &col : this->m_columns) {
-    col->finalize();
+    col->finalize(part);
   }
   for (auto const &sel : this->m_selections) {
-    sel->finalize();
+    sel->finalize(part);
   }
   for (auto const &cnt : this->m_counters) {
-    cnt->finalize();
+    cnt->finalize(part);
   }
+  this->m_reader->finish_part(this->m_part);
 }
 
 template <typename T> void ana::processor<T>::process() {
-  // start
-  this->m_reader->start_part(this->m_part);
-  this->initialize();
+  // start processing
+  this->initialize(this->m_part);
 
-  // per-entry
+  // processing
   for (unsigned long long entry = this->m_part.begin; entry < this->m_part.end;
        ++entry) {
-    this->m_reader->read_entry(this->m_part, entry);
-    this->execute();
+    this->execute(this->m_part, entry);
   }
 
-  // finish
-  this->finalize();
-  this->m_reader->finish_part(this->m_part);
+  // finish processing
+  this->finalize(this->m_part);
 }
