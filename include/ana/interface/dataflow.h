@@ -194,16 +194,16 @@ protected:
 
   template <typename Def, typename... Cols>
   auto evaluate_column(lazy<column::evaluator<Def>> const &calc,
-                       lazy<Cols> const &...columns) -> lazy<Def>;
+                       lazy<Cols>... columns) -> lazy<Def>;
   template <typename Eqn, typename... Cols>
   auto apply_selection(lazy<selection::applicator<Eqn>> const &calc,
-                       lazy<Cols> const &...columns) -> lazy<selection>;
+                       lazy<Cols>... columns) -> lazy<selection>;
   template <typename Cnt>
   auto book_selection(lazy<counter::booker<Cnt>> const &bkr,
                       lazy<selection> const &sel) -> lazy<Cnt>;
   template <typename Cnt, typename... Sels>
   auto book_selections(lazy<counter::booker<Cnt>> const &bkr,
-                       lazy<Sels> const &...sels) -> lazy<counter::booker<Cnt>>;
+                       lazy<Sels>... sels) -> lazy<counter::booker<Cnt>>;
 
   void analyze();
   void reset();
@@ -246,7 +246,7 @@ protected:
   auto vary_equation(lazy<column::evaluator<V>> const &nom, F callable)
       -> lazy<column::evaluator<V>>;
 
-  void add_action(lazy<action> const &act);
+  void add_action(concurrent<action> const &act);
 
 protected:
   bool m_analyzed;
@@ -335,25 +335,24 @@ template <typename Val>
 auto ana::dataflow<T>::read(const std::string &name)
     -> lazy<read_column_t<read_dataset_t<T>, Val>> {
   this->initialize();
-  auto nd = lazy<read_column_t<read_dataset_t<T>, Val>>(
-      *this, this->m_processors.get_concurrent_result(
-                 [name = name](processor<dataset_reader_type> &proc) {
-                   return proc.template read<Val>(name);
-                 }));
-  this->add_action(nd);
-  return nd;
+  auto act = this->m_processors.get_concurrent_result(
+      [name = name](processor<dataset_reader_type> &proc) {
+        return proc.template read<Val>(name);
+      });
+  this->add_action(act);
+  return lazy<read_column_t<read_dataset_t<T>, Val>>(*this, act);
 }
 
 template <typename T>
 template <typename Val>
 auto ana::dataflow<T>::constant(const Val &val)
     -> lazy<ana::column::constant<Val>> {
-  auto nd = lazy<column::constant<Val>>(
-      *this, this->m_processors.get_concurrent_result(
-                 [val = val](processor<dataset_reader_type> &proc) {
-                   return proc.template constant<Val>(val);
-                 }));
-  this->add_action(nd);
+  auto act = this->m_processors.get_concurrent_result(
+      [val = val](processor<dataset_reader_type> &proc) {
+        return proc.template constant<Val>(val);
+      });
+  this->add_action(act);
+  auto nd = lazy<column::constant<Val>>(*this, act);
   return nd;
 }
 
@@ -383,8 +382,7 @@ auto ana::dataflow<T>::define(F callable)
 template <typename T>
 template <typename Def, typename... Cols>
 auto ana::dataflow<T>::evaluate_column(lazy<column::evaluator<Def>> const &calc,
-                                       lazy<Cols> const &...columns)
-    -> lazy<Def> {
+                                       lazy<Cols>... columns) -> lazy<Def> {
   auto col = lazy<Def>(
       *this, this->m_processors.get_concurrent_result(
                  [](processor<dataset_reader_type> &proc,
@@ -513,31 +511,27 @@ auto ana::dataflow<T>::channel(lazy<selection> const &prev,
 template <typename T>
 template <typename Eqn, typename... Cols>
 auto ana::dataflow<T>::apply_selection(
-    lazy<selection::applicator<Eqn>> const &calc, lazy<Cols> const &...columns)
+    lazy<selection::applicator<Eqn>> const &calc, lazy<Cols>... columns)
     -> lazy<selection> {
-  auto sel = lazy<selection>(
-      *this, this->m_processors.get_concurrent_result(
-                 [](processor<dataset_reader_type> &proc,
-                    selection::applicator<Eqn> &calc, Cols &...cols) {
-                   return proc.template apply_selection(calc, cols...);
-                 },
-                 calc, columns...));
-  this->add_action(sel);
-  return sel;
+  auto act = this->m_processors.get_concurrent_result(
+      [](processor<dataset_reader_type> &proc, selection::applicator<Eqn> &calc,
+         Cols &...cols) {
+        return proc.template apply_selection(calc, cols...);
+      },
+      calc, columns...);
+  return lazy<selection>(*this, act);
 }
 
 template <typename T>
 template <typename Sel>
 auto ana::dataflow<T>::join(lazy<selection> const &a, lazy<selection> const &b)
     -> lazy<selection> {
-  auto sel = lazy<selection>(
-      *this,
-      this->m_processors.get_concurrent_result(
-          [](processor<dataset_reader_type> &proc, selection const &a,
-             selection const &b) { return proc.template join<Sel>(a, b); },
-          a, b));
-  this->add_action(sel);
-  return sel;
+  auto act = this->m_processors.get_concurrent_result(
+      [](processor<dataset_reader_type> &proc, selection const &a,
+         selection const &b) { return proc.template join<Sel>(a, b); },
+      a, b);
+  this->add_action(act);
+  return lazy<selection>(*this, act);
 }
 
 template <typename T>
@@ -557,20 +551,18 @@ auto ana::dataflow<T>::book_selection(lazy<counter::booker<Cnt>> const &bkr,
   // any time a new counter is booked, means the dataflow must run: so reset its
   // status
   this->reset();
-  auto cnt = lazy<Cnt>(
-      *this,
-      this->m_processors.get_concurrent_result(
-          [](processor<dataset_reader_type> &proc, counter::booker<Cnt> &bkr,
-             const selection &sel) { return proc.book_selection(bkr, sel); },
-          bkr, sel));
-  this->add_action(cnt);
-  return cnt;
+  auto act = this->m_processors.get_concurrent_result(
+      [](processor<dataset_reader_type> &proc, counter::booker<Cnt> &bkr,
+         const selection &sel) { return proc.book_selection(bkr, sel); },
+      bkr, sel);
+  this->add_action(act);
+  return lazy<Cnt>(*this, act);
 }
 
 template <typename T>
 template <typename Cnt, typename... Sels>
 auto ana::dataflow<T>::book_selections(lazy<counter::booker<Cnt>> const &bkr,
-                                       lazy<Sels> const &...sels)
+                                       lazy<Sels>... sels)
     -> lazy<counter::booker<Cnt>> {
   // any time a new counter is booked, means the dataflow must run: so reset its
   // status
@@ -584,7 +576,7 @@ auto ana::dataflow<T>::book_selections(lazy<counter::booker<Cnt>> const &bkr,
                  bkr, sels...));
   // add all counters that were booked
   for (auto const &sel_path : bkr2.list_selection_paths()) {
-    this->add_action(bkr2.get_counter(sel_path));
+    // this->add_action(bkr2.get_counter(sel_path));
   }
   return bkr2;
 }
@@ -615,8 +607,7 @@ template <typename T> void ana::dataflow<T>::analyze() {
 template <typename T> void ana::dataflow<T>::reset() { m_analyzed = false; }
 
 template <typename T>
-void ana::dataflow<T>::add_action(
-    typename ana::dataflow<T>::template lazy<action> const &action) {
+void ana::dataflow<T>::add_action(concurrent<action> const &action) {
   m_actions.emplace_back(action);
 }
 

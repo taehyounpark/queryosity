@@ -132,7 +132,7 @@ template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
  */
 template <typename T>
 template <typename U>
-class dataflow<T>::lazy : public node<U>, public concurrent<U> {
+class dataflow<T>::lazy : public node<U>, public lockstep<U> {
 
 public:
   using dataflow_type = typename node<U>::dataflow_type;
@@ -156,16 +156,16 @@ public:
 
 public:
   lazy(dataflow<T> &dataflow, const concurrent<U> &action)
-      : node<U>::node(dataflow), concurrent<U>::concurrent(action) {}
+      : node<U>::node(dataflow), lockstep<U>::lockstep(action) {}
 
   virtual ~lazy() = default;
 
   template <typename V>
   lazy(lazy<V> const &other)
-      : node<U>::node(*other.m_dataflow), concurrent<U>::concurrent(other) {}
+      : node<U>::node(*other.m_dataflow), lockstep<U>::lockstep(other) {}
 
   template <typename V> lazy &operator=(lazy<V> const &other) {
-    concurrent<U>::operator=(other);
+    lockstep<U>::operator=(other);
     this->m_dataflow = other.m_dataflow;
     return *this;
   }

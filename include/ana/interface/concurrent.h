@@ -1,13 +1,15 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <functional>
 #include <memory>
 #include <thread>
 #include <vector>
-#include <cassert>
 
 namespace ana {
+
+template <typename T> class lockstep;
 
 struct multithread {
   static int s_suggestion;
@@ -23,6 +25,7 @@ public:
   using model_type = T;
 
   template <typename> friend class concurrent;
+  template <typename> friend class lockstep;
 
 public:
   concurrent() = default;
@@ -36,17 +39,18 @@ public:
 
 public:
   void set_model(std::shared_ptr<T> model);
-  std::shared_ptr<T> get_model() const;
-
   void add_slot(std::shared_ptr<T> slot);
-  std::shared_ptr<T> get_slot(size_t i) const;
   void clear_slots();
 
-  // downsize slots
-  void downsize(size_t n);
+  std::shared_ptr<T> get_model() const;
+  std::shared_ptr<T> get_slot(size_t i) const;
 
-  // number of slots
   size_t concurrency() const;
+
+  /**
+   * @brief Implicit conversion to lockstep (relinquish ownership).
+   */
+  operator lockstep<T>() const;
 
   /**
    * @brief Get the result of calling method(s) on the model.
@@ -71,7 +75,7 @@ public:
    * @details Call method(s) on all held underlying objects.
    */
   template <typename Fn, typename... Args>
-  void call_all(Fn const &fn, concurrent<Args> const &...args) const;
+  void call_all(Fn const &fn, lockstep<Args> const &...args) const;
 
   /**
    * @brief Get the result of calling method(s) on each underlying model and
@@ -85,8 +89,7 @@ public:
    * underlying objects.
    */
   template <typename Fn, typename... Args>
-  auto get_concurrent_result(Fn const &fn,
-                             concurrent<Args> const &...args) const
+  auto get_concurrent_result(Fn const &fn, lockstep<Args> const &...args) const
       -> concurrent<
           typename std::invoke_result_t<Fn, T &, Args &...>::element_type>;
 
@@ -100,7 +103,7 @@ public:
    * (as it is meant to represent the "merged" instance of all slots).
    */
   template <typename Fn, typename... Args>
-  void run_slots(Fn const &fn, concurrent<Args> const &...args) const;
+  void run_slots(Fn const &fn, lockstep<Args> const &...args) const;
 
 protected:
   std::shared_ptr<T> m_model;
@@ -108,6 +111,8 @@ protected:
 };
 
 } // namespace ana
+
+#include "lockstep.h"
 
 inline int ana::multithread::s_suggestion = 0;
 
@@ -133,7 +138,7 @@ ana::concurrent<T>::concurrent(const concurrent<U> &derived) {
   this->m_model = derived.m_model;
   this->m_slots.clear();
   for (size_t i = 0; i < derived.concurrency(); ++i) {
-    this->m_slots.push_back(derived.get_slot(i));
+    this->m_slots.push_back(derived.m_slots[i]);
   }
 }
 
@@ -144,41 +149,40 @@ ana::concurrent<T>::operator=(const concurrent<U> &derived) {
   this->m_model = derived.m_model;
   this->m_slots.clear();
   for (size_t i = 0; i < derived.concurrency(); ++i) {
-    this->m_slots.push_back(derived.get_slot(i));
+    this->m_slots.push_back(derived.m_slots[i]);
   }
   return *this;
 }
 
 template <typename T>
 void ana::concurrent<T>::add_slot(std::shared_ptr<T> slot) {
-  m_slots.push_back(slot);
+  this->m_slots.push_back(slot);
 }
 
 template <typename T> void ana::concurrent<T>::clear_slots() {
-  m_slots.clear();
-}
-
-template <typename T> void ana::concurrent<T>::downsize(size_t n) {
-  assert(n <= this->concurrency());
-  m_slots.resize(n);
+  this->m_slots.clear();
 }
 
 template <typename T>
 void ana::concurrent<T>::set_model(std::shared_ptr<T> model) {
-  m_model = model;
+  this->m_model = model;
 }
 
 template <typename T> std::shared_ptr<T> ana::concurrent<T>::get_model() const {
-  return m_model;
+  return this->m_model;
 }
 
 template <typename T>
 std::shared_ptr<T> ana::concurrent<T>::get_slot(size_t i) const {
-  return m_slots.at(i);
+  return this->m_slots.at(i);
 }
 
 template <typename T> size_t ana::concurrent<T>::concurrency() const {
-  return m_slots.size();
+  return this->m_slots.size();
+}
+
+template <typename T> ana::concurrent<T>::operator lockstep<T>() const {
+  return lockstep<T>(static_cast<concurrent<T> const &>(*this));
 }
 
 template <typename T>
@@ -197,7 +201,7 @@ auto ana::concurrent<T>::get_model_value(Fn const &fn,
 template <typename T>
 template <typename Fn, typename... Args>
 auto ana::concurrent<T>::get_concurrent_result(
-    Fn const &fn, concurrent<Args> const &...args) const
+    Fn const &fn, lockstep<Args> const &...args) const
     -> concurrent<
         typename std::invoke_result_t<Fn, T &, Args &...>::element_type> {
   assert(((concurrency() == args.concurrency()) && ...));
@@ -213,7 +217,7 @@ auto ana::concurrent<T>::get_concurrent_result(
 template <typename T>
 template <typename Fn, typename... Args>
 void ana::concurrent<T>::call_all(Fn const &fn,
-                                  concurrent<Args> const &...args) const {
+                                  lockstep<Args> const &...args) const {
   assert(((concurrency() == args.concurrency()) && ...));
   fn(*this->get_model(), *args.get_model()...);
   for (size_t i = 0; i < concurrency(); ++i) {
@@ -224,7 +228,7 @@ void ana::concurrent<T>::call_all(Fn const &fn,
 template <typename T>
 template <typename Fn, typename... Args>
 void ana::concurrent<T>::run_slots(Fn const &fn,
-                                   concurrent<Args> const &...args) const {
+                                   lockstep<Args> const &...args) const {
   assert(((concurrency() == args.concurrency()) && ...));
 
   // multi-threaded

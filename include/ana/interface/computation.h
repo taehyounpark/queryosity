@@ -21,10 +21,7 @@ namespace ana {
  * It keeps a raw pointer of each, only if their action needs to be called
  * for each dataset entry (e.g. constant values are not stored).
  */
-template <typename T>
-class column::computation
-
-{
+template <typename T> class column::computation {
 
 public:
   computation(const dataset::range &part, dataset::reader<T> &reader);
