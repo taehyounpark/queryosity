@@ -10,8 +10,6 @@ namespace ana {
  */
 class action {
 
-  class bulk;
-
 public:
   action() = default;
   virtual ~action() = default;

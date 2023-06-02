@@ -10,8 +10,8 @@
 #include <set>
 #include <type_traits>
 
-#include "analysis.h"
 #include "computation.h"
+#include "dataflow.h"
 #include "experiment.h"
 
 #define CHECK_FOR_BINARY_OP(op_name, op_symbol)                                \
@@ -38,7 +38,7 @@
                   cell_value_t<V>, cell_value_t<typename Arg::action_type>>,   \
           bool> = false>                                                       \
   auto operator op_symbol(Arg const &arg) const {                              \
-    return this->m_analysis                                                    \
+    return this->m_dataflow                                                    \
         ->define([](cell_value_t<V> const &me,                                 \
                     cell_value_t<typename Arg::action_type> const &you) {      \
           return me op_symbol you;                                             \
@@ -64,7 +64,7 @@
                                  op_check::has_##op_name##_v<cell_value_t<V>>, \
                              bool> = false>                                    \
   auto operator op_symbol() const {                                            \
-    return this->m_analysis                                                    \
+    return this->m_dataflow                                                    \
         ->define([](cell_value_t<V> const &me) { return (op_symbol me); })     \
         .evaluate(*this);                                                      \
   }
@@ -93,7 +93,7 @@
                                      cell_value_t<typename Arg::action_type>>, \
                              bool> = false>                                    \
   auto operator[](Arg const &arg) const {                                      \
-    return this->m_analysis->define(                                           \
+    return this->m_dataflow->define(                                           \
         [](cell_value_t<V> me,                                                 \
            cell_value_t<typename Arg::action_type> index) {                    \
           return me[index];                                                    \
@@ -132,41 +132,41 @@ template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
  */
 template <typename T>
 template <typename U>
-class analysis<T>::lazy : public node<U>, public concurrent<U> {
+class dataflow<T>::lazy : public node<U>, public concurrent<U> {
 
 public:
-  using analysis_type = typename node<U>::analysis_type;
+  using dataflow_type = typename node<U>::dataflow_type;
   using dataset_type = typename node<U>::dataset_type;
   using action_type = typename node<U>::action_type;
 
   template <typename Sel, typename... Args>
   using lazy_selection_applicator_t =
-      decltype(std::declval<analysis<T>>().template filter<Sel>(
+      decltype(std::declval<dataflow<T>>().template filter<Sel>(
           std::declval<std::string>(), std::declval<Args>()...));
 
   template <typename Sel, typename... Args>
   using selection_applicator_t =
-      typename decltype(std::declval<analysis<T>>().template filter<Sel>(
+      typename decltype(std::declval<dataflow<T>>().template filter<Sel>(
           std::declval<std::string>(), std::declval<Args>()...))::action_type;
 
 public:
-  // friends with the main analysis graph & any other lazy nodes
-  friend class analysis<T>;
+  // friends with the main dataflow graph & any other lazy nodes
+  friend class dataflow<T>;
   template <typename> friend class lazy;
 
 public:
-  lazy(analysis<T> &analysis, const concurrent<U> &action)
-      : node<U>::node(analysis), concurrent<U>::concurrent(action) {}
+  lazy(dataflow<T> &dataflow, const concurrent<U> &action)
+      : node<U>::node(dataflow), concurrent<U>::concurrent(action) {}
 
   virtual ~lazy() = default;
 
   template <typename V>
   lazy(lazy<V> const &other)
-      : node<U>::node(*other.m_analysis), concurrent<U>::concurrent(other) {}
+      : node<U>::node(*other.m_dataflow), concurrent<U>::concurrent(other) {}
 
   template <typename V> lazy &operator=(lazy<V> const &other) {
     concurrent<U>::operator=(other);
-    this->m_analysis = other.m_analysis;
+    this->m_dataflow = other.m_dataflow;
     return *this;
   }
 
@@ -281,27 +281,27 @@ public:
   template <typename... Nodes, typename V = U,
             std::enable_if_t<
                 ana::column::template is_evaluator_v<V> &&
-                    ana::analysis<T>::template has_no_variation_v<Nodes...>,
+                    ana::dataflow<T>::template has_no_variation_v<Nodes...>,
                 bool> = false>
   auto evaluate_column(Nodes const &...columns) const
       -> lazy<column::template evaluated_t<V>> {
     // nominal
-    return this->m_analysis->evaluate_column(*this, columns...);
+    return this->m_dataflow->evaluate_column(*this, columns...);
   }
 
   template <
       typename... Nodes, typename V = U,
       std::enable_if_t<ana::column::template is_evaluator_v<V> &&
-                           ana::analysis<T>::template has_variation_v<Nodes...>,
+                           ana::dataflow<T>::template has_variation_v<Nodes...>,
                        bool> = false>
   auto evaluate_column(Nodes const &...columns) const
       -> varied<column::template evaluated_t<V>> {
     // variations
     auto nom =
-        this->m_analysis->evaluate_column(*this, columns.get_nominal()...);
+        this->m_dataflow->evaluate_column(*this, columns.get_nominal()...);
     varied<column::template evaluated_t<V>> syst(nom);
     for (auto const &var_name : list_all_variation_names(columns...)) {
-      auto var = this->m_analysis->evaluate_column(
+      auto var = this->m_dataflow->evaluate_column(
           *this, columns.get_variation(var_name)...);
       syst.set_variation(var_name, var);
     }
@@ -325,17 +325,17 @@ public:
   template <typename... Nodes, typename V = U,
             std::enable_if_t<
                 selection::template is_applicator_v<V> &&
-                    ana::analysis<T>::template has_no_variation_v<Nodes...>,
+                    ana::dataflow<T>::template has_no_variation_v<Nodes...>,
                 bool> = false>
   auto apply_selection(Nodes const &...columns) const -> lazy<selection> {
     // nominal
-    return this->m_analysis->apply_selection(*this, columns...);
+    return this->m_dataflow->apply_selection(*this, columns...);
   }
 
   template <
       typename... Nodes, typename V = U,
       std::enable_if_t<selection::template is_applicator_v<V> &&
-                           ana::analysis<T>::template has_variation_v<Nodes...>,
+                           ana::dataflow<T>::template has_variation_v<Nodes...>,
                        bool> = false>
   auto apply_selection(Nodes const &...columns) const -> varied<selection> {
     // variations
@@ -365,11 +365,11 @@ public:
   template <typename... Nodes, typename V = U,
             std::enable_if_t<
                 ana::counter::template is_booker_v<V> &&
-                    ana::analysis<T>::template has_no_variation_v<Nodes...>,
+                    ana::dataflow<T>::template has_no_variation_v<Nodes...>,
                 bool> = false>
   auto fill_counter(Nodes const &...columns) const -> lazy<V> {
     // nominal
-    return lazy<V>(*this->m_analysis,
+    return lazy<V>(*this->m_dataflow,
                    this->get_concurrent_result(
                        [](V &fillable, typename Nodes::action_type &...cols) {
                          return fillable.book_fill(cols...);
@@ -380,7 +380,7 @@ public:
   template <
       typename... Nodes, typename V = U,
       std::enable_if_t<ana::counter::template is_booker_v<V> &&
-                           ana::analysis<T>::template has_variation_v<Nodes...>,
+                           ana::dataflow<T>::template has_variation_v<Nodes...>,
                        bool> = false>
   auto fill_counter(Nodes const &...columns) const -> varied<V> {
     // variations
@@ -401,23 +401,23 @@ public:
 
   template <typename Node, typename V = U,
             std::enable_if_t<ana::counter::template is_booker_v<V> &&
-                                 ana::analysis<T>::template is_nominal_v<Node>,
+                                 ana::dataflow<T>::template is_nominal_v<Node>,
                              bool> = false>
   auto book_selection(Node const &sel) const -> lazy<booked_counter_t<V>> {
     // nominal
-    return this->m_analysis->book_selection(*this, sel);
+    return this->m_dataflow->book_selection(*this, sel);
   }
 
   template <typename Node, typename V = U,
             std::enable_if_t<ana::counter::template is_booker_v<V> &&
-                                 ana::analysis<T>::template is_varied_v<Node>,
+                                 ana::dataflow<T>::template is_varied_v<Node>,
                              bool> = false>
   auto book_selection(Node const &sel) const -> varied<booked_counter_t<V>> {
     // variations
     auto syst = varied<booked_counter_t<V>>(
-        this->m_analysis->book_selection(*this, sel.get_nominal()));
+        this->m_dataflow->book_selection(*this, sel.get_nominal()));
     for (auto const &var_name : list_all_variation_names(sel)) {
-      syst.set_variation(var_name, this->m_analysis->book_selection(
+      syst.set_variation(var_name, this->m_dataflow->book_selection(
                                        *this, sel.get_variation(var_name)));
     }
     return syst;
@@ -437,24 +437,24 @@ public:
   template <typename... Nodes, typename V = U,
             std::enable_if_t<
                 ana::counter::template is_booker_v<V> &&
-                    ana::analysis<T>::template has_no_variation_v<Nodes...>,
+                    ana::dataflow<T>::template has_no_variation_v<Nodes...>,
                 bool> = false>
   auto book_selections(Nodes const &...sels) const -> lazy<V> {
     // nominal
-    return this->m_analysis->book_selections(*this, sels...);
+    return this->m_dataflow->book_selections(*this, sels...);
   }
 
   template <
       typename... Nodes, typename V = U,
       std::enable_if_t<ana::counter::template is_booker_v<V> &&
-                           ana::analysis<T>::template has_variation_v<Nodes...>,
+                           ana::dataflow<T>::template has_variation_v<Nodes...>,
                        bool> = false>
   auto book_selections(Nodes const &...sels) const -> varied<V> {
     // variations
     auto syst = varied<V>(
-        this->m_analysis->book_selections(*this, sels.get_nominal()...));
+        this->m_dataflow->book_selections(*this, sels.get_nominal()...));
     for (auto const &var_name : list_all_variation_names(sels...)) {
-      syst.set_variation(var_name, this->m_analysis->book_selections(
+      syst.set_variation(var_name, this->m_dataflow->book_selections(
                                        *this, sels.get_variation(var_name)...));
     }
     return syst;
@@ -489,7 +489,7 @@ public:
   auto get_counter(const std::string &sel_path) const
       -> lazy<booked_counter_t<V>> {
     return lazy<typename V::counter_type>(
-        *this->m_analysis,
+        *this->m_dataflow,
         this->get_concurrent_result([sel_path = sel_path](U &bkr) {
           return bkr.get_counter(sel_path);
         }));
@@ -505,7 +505,7 @@ public:
             std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
                 false>
   auto get_result() const -> decltype(std::declval<V>().get_result()) {
-    this->m_analysis->analyze();
+    this->m_dataflow->analyze();
     this->merge_results();
     return this->get_model()->get_result();
   }
@@ -555,7 +555,7 @@ public:
   template <typename V = U,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto operator||(const lazy<selection> &b) const -> lazy<selection> {
-    return this->m_analysis->template join<selection::cut::a_or_b>(*this, b);
+    return this->m_dataflow->template join<selection::cut::a_or_b>(*this, b);
   }
 
   /**
@@ -568,7 +568,7 @@ public:
   template <typename V = U,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto operator&&(const lazy<selection> &b) const -> lazy<selection> {
-    return this->m_analysis->template join<selection::cut::a_and_b>(*this, b);
+    return this->m_dataflow->template join<selection::cut::a_and_b>(*this, b);
   }
 
   /**
@@ -668,7 +668,7 @@ protected:
   }
 };
 
-template <typename T> using analysis_t = typename T::analysis_type;
+template <typename T> using dataflow_t = typename T::dataflow_type;
 template <typename T> using action_t = typename T::action_type;
 
 } // namespace ana
@@ -680,7 +680,7 @@ template <typename T> using action_t = typename T::action_type;
 
 template <typename T>
 template <typename Act>
-void ana::analysis<T>::lazy<Act>::set_variation(const std::string &,
+void ana::dataflow<T>::lazy<Act>::set_variation(const std::string &,
                                                 lazy const &) {
   // should never be called
   throw std::logic_error("cannot set variation to a lazy action");
@@ -688,14 +688,14 @@ void ana::analysis<T>::lazy<Act>::set_variation(const std::string &,
 
 template <typename T>
 template <typename Act>
-auto ana::analysis<T>::lazy<Act>::get_nominal() const -> lazy<Act> {
+auto ana::dataflow<T>::lazy<Act>::get_nominal() const -> lazy<Act> {
   // this is nominal
   return *this;
 }
 
 template <typename T>
 template <typename Act>
-auto ana::analysis<T>::lazy<Act>::get_variation(const std::string &) const
+auto ana::dataflow<T>::lazy<Act>::get_variation(const std::string &) const
     -> lazy<Act> {
   // propagation of variations must occur "transparently"
   return *this;
@@ -704,14 +704,14 @@ auto ana::analysis<T>::lazy<Act>::get_variation(const std::string &) const
 template <typename T>
 template <typename Act>
 std::set<std::string>
-ana::analysis<T>::lazy<Act>::list_variation_names() const {
+ana::dataflow<T>::lazy<Act>::list_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
 
 template <typename T>
 template <typename Act>
-bool ana::analysis<T>::lazy<Act>::has_variation(const std::string &) const {
+bool ana::dataflow<T>::lazy<Act>::has_variation(const std::string &) const {
   // always false
   return false;
 }
@@ -722,12 +722,12 @@ template <typename... Args, typename V,
           std::enable_if_t<ana::column::template is_reader_v<V> ||
                                ana::column::template is_constant_v<V>,
                            bool>>
-auto ana::analysis<T>::lazy<Act>::vary(const std::string &var_name,
+auto ana::dataflow<T>::lazy<Act>::vary(const std::string &var_name,
                                        Args &&...args) -> varied<V> {
   // create a lazy varied with the this as nominal
   auto syst = varied<V>(*this);
   // set variation of the column according to new constructor arguments
-  syst.set_variation(var_name, this->m_analysis->vary_column(
+  syst.set_variation(var_name, this->m_dataflow->vary_column(
                                    *this, std::forward<Args>(args)...));
   // done
   return syst;
@@ -740,12 +740,12 @@ template <typename... Args, typename V,
                                !ana::column::template is_equation_v<
                                    ana::column::template evaluated_t<V>>,
                            bool>>
-auto ana::analysis<T>::lazy<Act>::vary(const std::string &var_name,
+auto ana::dataflow<T>::lazy<Act>::vary(const std::string &var_name,
                                        Args &&...args) -> varied<V> {
   // create a lazy varied with the this as nominal
   auto syst = varied<V>(*this);
   // set variation of the column according to new constructor arguments
-  syst.set_variation(var_name, this->m_analysis->vary_definition(
+  syst.set_variation(var_name, this->m_dataflow->vary_definition(
                                    *this, std::forward<Args>(args)...));
   // done
   return syst;
@@ -758,13 +758,13 @@ template <typename F, typename V,
                                ana::column::template is_equation_v<
                                    ana::column::template evaluated_t<V>>,
                            bool>>
-auto ana::analysis<T>::lazy<Act>::vary(const std::string &var_name, F callable)
+auto ana::dataflow<T>::lazy<Act>::vary(const std::string &var_name, F callable)
     -> varied<V> {
   // create a lazy varied with the this as nominal
   auto syst = varied<V>(*this);
   // set variation of the column according to new constructor arguments
   syst.set_variation(var_name,
-                     this->m_analysis->vary_equation(*this, callable));
+                     this->m_dataflow->vary_equation(*this, callable));
   // done
   return syst;
 }
@@ -772,11 +772,11 @@ auto ana::analysis<T>::lazy<Act>::vary(const std::string &var_name, F callable)
 template <typename T>
 template <typename Act>
 template <typename Sel, typename... Args>
-auto ana::analysis<T>::lazy<Act>::filter(const std::string &name,
+auto ana::dataflow<T>::lazy<Act>::filter(const std::string &name,
                                          Args &&...args)
     -> lazy_selection_applicator_t<Sel, Args...> {
   if constexpr (std::is_base_of_v<selection, Act>) {
-    return this->m_analysis->template filter<Sel>(*this, name,
+    return this->m_dataflow->template filter<Sel>(*this, name,
                                                   std::forward<Args>(args)...);
   } else {
     static_assert(std::is_base_of_v<selection, Act>,
@@ -787,11 +787,11 @@ auto ana::analysis<T>::lazy<Act>::filter(const std::string &name,
 template <typename T>
 template <typename Act>
 template <typename Sel, typename... Args>
-auto ana::analysis<T>::lazy<Act>::channel(const std::string &name,
+auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
                                           Args &&...args)
     -> lazy_selection_applicator_t<Sel, Args...> {
   if constexpr (std::is_base_of_v<selection, Act>) {
-    return this->m_analysis->template channel<Sel>(*this, name,
+    return this->m_dataflow->template channel<Sel>(*this, name,
                                                    std::forward<Args>(args)...);
   } else {
     static_assert(std::is_base_of_v<selection, Act>,
@@ -803,7 +803,7 @@ template <typename T>
 template <typename Act>
 template <typename... Nodes, typename V,
           std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
-auto ana::analysis<T>::lazy<Act>::fill(Nodes &&...columns) const
+auto ana::dataflow<T>::lazy<Act>::fill(Nodes &&...columns) const
     -> decltype(std::declval<lazy<V>>().fill_counter(
         std::declval<Nodes>()...)) {
   static_assert(counter::template is_booker_v<V>,
@@ -814,7 +814,7 @@ auto ana::analysis<T>::lazy<Act>::fill(Nodes &&...columns) const
 template <typename T>
 template <typename Act>
 template <typename Node>
-auto ana::analysis<T>::lazy<Act>::at(Node &&selection) const {
+auto ana::dataflow<T>::lazy<Act>::at(Node &&selection) const {
   static_assert(counter::template is_booker_v<Act>, "not a counter (booker)");
   return this->book_selection(std::forward<Node>(selection));
 }

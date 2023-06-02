@@ -1,15 +1,17 @@
 #pragma once
 
+#include "lazy.h"
+
 #include <utility>
 
 namespace ana {
 
-class output {
+namespace output {
 
-public:
-  template <typename Sum, typename Node, typename Dest, typename... Args>
-  static void dump(Node const &node, Dest &&dest, Args &&...args);
-};
+template <typename Sum, typename Node, typename Dest, typename... Args>
+void dump(Node const &node, Dest &&dest, Args &&...args);
+
+}
 
 } // namespace ana
 
@@ -25,7 +27,7 @@ void ana::output::dump(Node const &node, Dest &&dest, Args &&...args) {
       });
 
   // record all results
-  if constexpr (analysis_t<Node>::template is_nominal_v<Node>) {
+  if constexpr (dataflow_t<Node>::template is_nominal_v<Node>) {
     // if node is nominal-only
     for (auto const &sel_path : selection_paths) {
       summary.record(sel_path, node[sel_path].get_result());

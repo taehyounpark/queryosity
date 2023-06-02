@@ -18,7 +18,7 @@ namespace ana {
 /**
  * @brief Analysis of an input dataset
  */
-template <typename T> class analysis : public sample<T> {
+template <typename T> class dataflow : public sample<T> {
 
 public:
   using dataset_reader_type = typename sample<T>::dataset_reader_type;
@@ -34,7 +34,7 @@ public:
 
   template <typename U>
   static constexpr std::true_type
-  check_nominal(typename analysis<T>::template lazy<U> const &);
+  check_nominal(typename dataflow<T>::template lazy<U> const &);
   static constexpr std::false_type check_nominal(...);
   template <typename V>
   static constexpr bool is_nominal_v =
@@ -42,7 +42,7 @@ public:
 
   template <typename U>
   static constexpr std::true_type
-  check_varied(typename analysis<T>::template varied<U> const &);
+  check_varied(typename dataflow<T>::template varied<U> const &);
   static constexpr std::false_type check_varied(...);
   template <typename V>
   static constexpr bool is_varied_v =
@@ -54,28 +54,28 @@ public:
   static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 public:
-  virtual ~analysis() = default;
+  virtual ~dataflow() = default;
 
   /**
    * @brief Constructor using arguments for input dataset.
    * @param arguments Constructor arguments for the input dataset.
    */
-  template <typename... Args> analysis(Args &&...args);
+  template <typename... Args> dataflow(Args &&...args);
   // shortcuts for file paths provided with initializer braces
   template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<
                                 U, std::string, std::vector<std::string>>>>
 
-  analysis(const std::string &key, const std::vector<std::string> &file_paths);
+  dataflow(const std::string &key, const std::vector<std::string> &file_paths);
   // shortcuts for file paths provided with initializer braces
   template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<
                                 U, std::vector<std::string>, std::string>>>
-  analysis(const std::vector<std::string> &file_paths, const std::string &key);
+  dataflow(const std::vector<std::string> &file_paths, const std::string &key);
 
-  analysis(analysis const &) = delete;
-  analysis &operator=(analysis const &) = delete;
+  dataflow(dataflow const &) = delete;
+  dataflow &operator=(dataflow const &) = delete;
 
-  analysis(analysis &&) = default;
-  analysis &operator=(analysis &&) = default;
+  dataflow(dataflow &&) = default;
+  dataflow &operator=(dataflow &&) = default;
 
   /**
    * @brief Read a column from the dataset.
@@ -125,7 +125,7 @@ public:
    * @param callable The function/functor/callable object used as the
    * expression.
    * @return The `lazy` selection "applicator" to be applied with input columns.
-   * @details Perform a filter operation from the analysis to define one without
+   * @details Perform a filter operation from the dataflow to define one without
    * a preselection.
    */
   template <typename Sel, typename F>
@@ -141,7 +141,7 @@ public:
    * @param callable The function/functor/callable object used as the
    * expression.
    * @return The `lazy` selection "applicator" to be applied with input columns.
-   * @details Perform a filter operation from the analysis to define one without
+   * @details Perform a filter operation from the dataflow to define one without
    * a preselection.
    */
   template <typename Sel, typename F>
@@ -190,7 +190,7 @@ protected:
   /**
    * @brief Default constructor for initial flags and values.
    */
-  analysis();
+  dataflow();
 
   template <typename Def, typename... Cols>
   auto evaluate_column(lazy<column::evaluator<Def>> const &calc,
@@ -253,19 +253,19 @@ protected:
   std::vector<concurrent<action>> m_actions;
 };
 
-template <typename T> template <typename U> class analysis<T>::node {
+template <typename T> template <typename U> class dataflow<T>::node {
 
 public:
-  using analysis_type = analysis<T>;
+  using dataflow_type = dataflow<T>;
   using dataset_type = T;
   using action_type = U;
 
 public:
-  friend class analysis<T>;
+  friend class dataflow<T>;
   template <typename> friend class node;
 
 public:
-  node(analysis<T> &analysis);
+  node(dataflow<T> &dataflow);
 
   virtual ~node() = default;
 
@@ -280,7 +280,7 @@ public:
   virtual std::set<std::string> list_variation_names() const = 0;
 
 protected:
-  analysis<T> *m_analysis;
+  dataflow<T> *m_dataflow;
 };
 
 template <typename... Nodes>
@@ -297,42 +297,42 @@ auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 template <typename T>
 template <typename U>
-ana::analysis<T>::node<U>::node(analysis<T> &analysis)
-    : m_analysis(&analysis) {}
+ana::dataflow<T>::node<U>::node(dataflow<T> &dataflow)
+    : m_dataflow(&dataflow) {}
 
 // ----------------------------------------------------------------------------
-// analysis
+// dataflow
 // ----------------------------------------------------------------------------
 
-template <typename T> ana::analysis<T>::analysis() : m_analyzed(false) {}
+template <typename T> ana::dataflow<T>::dataflow() : m_analyzed(false) {}
 
 template <typename T>
 template <typename... Args>
-ana::analysis<T>::analysis(Args &&...args) : analysis<T>::analysis() {
+ana::dataflow<T>::dataflow(Args &&...args) : dataflow<T>::dataflow() {
   this->prepare(std::forward<Args>(args)...);
 }
 
 template <typename T>
 template <typename U, typename>
-ana::analysis<T>::analysis(const std::string &key,
+ana::dataflow<T>::dataflow(const std::string &key,
                            const std::vector<std::string> &file_paths)
-    : analysis<T>::analysis() {
+    : dataflow<T>::dataflow() {
   this->prepare(key, file_paths);
 }
 
 template <typename T>
 template <typename U, typename>
-ana::analysis<T>::analysis(const std::vector<std::string> &file_paths,
+ana::dataflow<T>::dataflow(const std::vector<std::string> &file_paths,
                            const std::string &key)
-    : analysis<T>::analysis() {
+    : dataflow<T>::dataflow() {
   this->prepare(file_paths, key);
 }
 
 template <typename T>
 template <typename Val>
-// typename ana::analysis<T>::template lazy<ana::term<Val>>
-// ana::analysis<T>::read(const std::string& name)
-auto ana::analysis<T>::read(const std::string &name)
+// typename ana::dataflow<T>::template lazy<ana::term<Val>>
+// ana::dataflow<T>::read(const std::string& name)
+auto ana::dataflow<T>::read(const std::string &name)
     -> lazy<read_column_t<read_dataset_t<T>, Val>> {
   this->initialize();
   auto nd = lazy<read_column_t<read_dataset_t<T>, Val>>(
@@ -346,7 +346,7 @@ auto ana::analysis<T>::read(const std::string &name)
 
 template <typename T>
 template <typename Val>
-auto ana::analysis<T>::constant(const Val &val)
+auto ana::dataflow<T>::constant(const Val &val)
     -> lazy<ana::column::constant<Val>> {
   auto nd = lazy<column::constant<Val>>(
       *this, this->m_processors.get_concurrent_result(
@@ -359,7 +359,7 @@ auto ana::analysis<T>::constant(const Val &val)
 
 template <typename T>
 template <typename Def, typename... Args>
-auto ana::analysis<T>::define(Args &&...args)
+auto ana::dataflow<T>::define(Args &&...args)
     -> lazy<ana::column::template evaluator_t<Def>> {
   return lazy<ana::column::template evaluator_t<Def>>(
       *this,
@@ -371,7 +371,7 @@ auto ana::analysis<T>::define(Args &&...args)
 
 template <typename T>
 template <typename F>
-auto ana::analysis<T>::define(F callable)
+auto ana::dataflow<T>::define(F callable)
     -> lazy<column::template evaluator_t<F>> {
   return lazy<ana::column::template evaluator_t<F>>(
       *this, this->m_processors.get_concurrent_result(
@@ -382,7 +382,7 @@ auto ana::analysis<T>::define(F callable)
 
 template <typename T>
 template <typename Def, typename... Cols>
-auto ana::analysis<T>::evaluate_column(lazy<column::evaluator<Def>> const &calc,
+auto ana::dataflow<T>::evaluate_column(lazy<column::evaluator<Def>> const &calc,
                                        lazy<Cols> const &...columns)
     -> lazy<Def> {
   auto col = lazy<Def>(
@@ -398,7 +398,7 @@ auto ana::analysis<T>::evaluate_column(lazy<column::evaluator<Def>> const &calc,
 
 template <typename T>
 template <typename Sel, typename F>
-auto ana::analysis<T>::filter(const std::string &name, F callable)
+auto ana::dataflow<T>::filter(const std::string &name, F callable)
     -> lazy<selection::template custom_applicator_t<F>> {
   return lazy<selection::template custom_applicator_t<F>>(
       *this, this->m_processors.get_concurrent_result(
@@ -410,7 +410,7 @@ auto ana::analysis<T>::filter(const std::string &name, F callable)
 
 template <typename T>
 template <typename Sel, typename F>
-auto ana::analysis<T>::channel(const std::string &name, F callable)
+auto ana::dataflow<T>::channel(const std::string &name, F callable)
     -> lazy<selection::template custom_applicator_t<F>> {
   return lazy<selection::template custom_applicator_t<F>>(
       *this, this->m_processors.get_concurrent_result(
@@ -422,7 +422,7 @@ auto ana::analysis<T>::channel(const std::string &name, F callable)
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::filter(const std::string &name)
+auto ana::dataflow<T>::filter(const std::string &name)
     -> lazy<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
   auto sel = lazy<selection::trivial_applicator_type>(
@@ -436,7 +436,7 @@ auto ana::analysis<T>::filter(const std::string &name)
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::channel(const std::string &name)
+auto ana::dataflow<T>::channel(const std::string &name)
     -> lazy<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
   auto sel = lazy<selection::trivial_applicator_type>(
@@ -450,7 +450,7 @@ auto ana::analysis<T>::channel(const std::string &name)
 
 template <typename T>
 template <typename Sel, typename F>
-auto ana::analysis<T>::filter(lazy<selection> const &prev,
+auto ana::dataflow<T>::filter(lazy<selection> const &prev,
                               const std::string &name, F callable)
     -> lazy<selection::template custom_applicator_t<F>> {
   return lazy<selection::template custom_applicator_t<F>>(
@@ -465,7 +465,7 @@ auto ana::analysis<T>::filter(lazy<selection> const &prev,
 
 template <typename T>
 template <typename Sel, typename F>
-auto ana::analysis<T>::channel(lazy<selection> const &prev,
+auto ana::dataflow<T>::channel(lazy<selection> const &prev,
                                const std::string &name, F callable)
     -> lazy<selection::template custom_applicator_t<F>> {
   return lazy<selection::template custom_applicator_t<F>>(
@@ -480,7 +480,7 @@ auto ana::analysis<T>::channel(lazy<selection> const &prev,
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::filter(lazy<selection> const &prev,
+auto ana::dataflow<T>::filter(lazy<selection> const &prev,
                               const std::string &name)
     -> lazy<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
@@ -496,7 +496,7 @@ auto ana::analysis<T>::filter(lazy<selection> const &prev,
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::channel(lazy<selection> const &prev,
+auto ana::dataflow<T>::channel(lazy<selection> const &prev,
                                const std::string &name)
     -> lazy<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
@@ -512,7 +512,7 @@ auto ana::analysis<T>::channel(lazy<selection> const &prev,
 
 template <typename T>
 template <typename Eqn, typename... Cols>
-auto ana::analysis<T>::apply_selection(
+auto ana::dataflow<T>::apply_selection(
     lazy<selection::applicator<Eqn>> const &calc, lazy<Cols> const &...columns)
     -> lazy<selection> {
   auto sel = lazy<selection>(
@@ -528,7 +528,7 @@ auto ana::analysis<T>::apply_selection(
 
 template <typename T>
 template <typename Sel>
-auto ana::analysis<T>::join(lazy<selection> const &a, lazy<selection> const &b)
+auto ana::dataflow<T>::join(lazy<selection> const &a, lazy<selection> const &b)
     -> lazy<selection> {
   auto sel = lazy<selection>(
       *this,
@@ -542,7 +542,7 @@ auto ana::analysis<T>::join(lazy<selection> const &a, lazy<selection> const &b)
 
 template <typename T>
 template <typename Cnt, typename... Args>
-auto ana::analysis<T>::book(Args &&...args) -> lazy<counter::booker<Cnt>> {
+auto ana::dataflow<T>::book(Args &&...args) -> lazy<counter::booker<Cnt>> {
   return lazy<counter::booker<Cnt>>(
       *this, this->m_processors.get_concurrent_result(
                  [&args...](processor<dataset_reader_type> &proc) {
@@ -552,9 +552,9 @@ auto ana::analysis<T>::book(Args &&...args) -> lazy<counter::booker<Cnt>> {
 
 template <typename T>
 template <typename Cnt>
-auto ana::analysis<T>::book_selection(lazy<counter::booker<Cnt>> const &bkr,
+auto ana::dataflow<T>::book_selection(lazy<counter::booker<Cnt>> const &bkr,
                                       lazy<selection> const &sel) -> lazy<Cnt> {
-  // any time a new counter is booked, means the analysis must run: so reset its
+  // any time a new counter is booked, means the dataflow must run: so reset its
   // status
   this->reset();
   auto cnt = lazy<Cnt>(
@@ -569,10 +569,10 @@ auto ana::analysis<T>::book_selection(lazy<counter::booker<Cnt>> const &bkr,
 
 template <typename T>
 template <typename Cnt, typename... Sels>
-auto ana::analysis<T>::book_selections(lazy<counter::booker<Cnt>> const &bkr,
+auto ana::dataflow<T>::book_selections(lazy<counter::booker<Cnt>> const &bkr,
                                        lazy<Sels> const &...sels)
     -> lazy<counter::booker<Cnt>> {
-  // any time a new counter is booked, means the analysis must run: so reset its
+  // any time a new counter is booked, means the dataflow must run: so reset its
   // status
   this->reset();
   auto bkr2 = lazy<counter::booker<Cnt>>(
@@ -589,7 +589,7 @@ auto ana::analysis<T>::book_selections(lazy<counter::booker<Cnt>> const &bkr,
   return bkr2;
 }
 
-template <typename T> void ana::analysis<T>::analyze() {
+template <typename T> void ana::dataflow<T>::analyze() {
   // do not analyze if already done
   if (m_analyzed)
     return;
@@ -612,11 +612,11 @@ template <typename T> void ana::analysis<T>::analyze() {
   m_analyzed = true;
 }
 
-template <typename T> void ana::analysis<T>::reset() { m_analyzed = false; }
+template <typename T> void ana::dataflow<T>::reset() { m_analyzed = false; }
 
 template <typename T>
-void ana::analysis<T>::add_action(
-    typename ana::analysis<T>::template lazy<action> const &action) {
+void ana::dataflow<T>::add_action(
+    typename ana::dataflow<T>::template lazy<action> const &action) {
   m_actions.emplace_back(action);
 }
 
@@ -631,7 +631,7 @@ auto ana::list_all_variation_names(Nodes const &...nodes)
 template <typename T>
 template <typename V, typename std::enable_if_t<
                           ana::column::template is_reader_v<V>, V> *ptr>
-auto ana::analysis<T>::vary_column(lazy<V> const &, const std::string &colname)
+auto ana::dataflow<T>::vary_column(lazy<V> const &, const std::string &colname)
     -> lazy<V> {
   return this->read<cell_value_t<std::decay_t<V>>>(colname);
 }
@@ -640,7 +640,7 @@ template <typename T>
 template <
     typename Val, typename V,
     typename std::enable_if_t<ana::column::template is_constant_v<V>, V> *ptr>
-auto ana::analysis<T>::vary_column(lazy<V> const &nom, Val const &val)
+auto ana::dataflow<T>::vary_column(lazy<V> const &nom, Val const &val)
     -> lazy<V> {
   return this->constant<Val>(val);
 }
@@ -650,7 +650,7 @@ template <typename... Args, typename V,
           typename std::enable_if_t<ana::column::template is_definition_v<V> &&
                                         !ana::column::template is_equation_v<V>,
                                     V> *ptr>
-auto ana::analysis<T>::vary_definition(lazy<column::evaluator<V>> const &,
+auto ana::dataflow<T>::vary_definition(lazy<column::evaluator<V>> const &,
                                        Args &&...args)
     -> lazy<column::evaluator<V>> {
   return this->define<V>(std::forward<Args>(args)...);
@@ -660,7 +660,7 @@ template <typename T>
 template <
     typename F, typename V,
     typename std::enable_if_t<ana::column::template is_equation_v<V>, V> *ptr>
-auto ana::analysis<T>::vary_equation(lazy<column::evaluator<V>> const &,
+auto ana::dataflow<T>::vary_equation(lazy<column::evaluator<V>> const &,
                                      F callable) -> lazy<column::evaluator<V>> {
   return this->define(typename V::function_type(callable));
 }

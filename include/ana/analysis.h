@@ -1,6 +1,5 @@
 #pragma once
-#include "interface/analysis.h"
-#include "interface/counter.h"
+#include "interface/dataflow.h"
 #include "interface/dataset.h"
 #include "interface/definition.h"
 #include "interface/lazy.h"
