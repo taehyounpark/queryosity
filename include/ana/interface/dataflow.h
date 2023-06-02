@@ -26,6 +26,9 @@ public:
 public:
   template <typename U> class node;
 
+  template <typename U> class delayed;
+  template <typename U> friend class delayed;
+
   template <typename U> class lazy;
   template <typename U> friend class lazy;
 
@@ -34,11 +37,15 @@ public:
 
   template <typename U>
   static constexpr std::true_type
-  check_nominal(typename dataflow<T>::template lazy<U> const &);
-  static constexpr std::false_type check_nominal(...);
+  check_lazy(typename dataflow<T>::template lazy<U> const &);
+  static constexpr std::false_type check_lazy(...);
+  template <typename U>
+  static constexpr std::true_type
+  check_delayed(typename dataflow<T>::template delayed<U> const &);
+  static constexpr std::false_type check_delayed(...);
   template <typename V>
   static constexpr bool is_nominal_v =
-      decltype(check_nominal(std::declval<V>()))::value;
+      decltype(check_lazy(std::declval<V>()))::value;
 
   template <typename U>
   static constexpr std::true_type
@@ -104,7 +111,7 @@ public:
    * columns.
    */
   template <typename Def, typename... Args>
-  auto define(Args &&...args) -> lazy<column::template evaluator_t<Def>>;
+  auto define(Args &&...args) -> delayed<column::template evaluator_t<Def>>;
 
   /**
    * @brief Define an equation.
@@ -114,7 +121,7 @@ public:
    * @return The `lazy` equation "evaluator" to be evaluated with input columns.
    */
   template <typename F>
-  auto define(F callable) -> lazy<column::template evaluator_t<F>>;
+  auto define(F callable) -> delayed<column::template evaluator_t<F>>;
 
   /**
    * @brief Apply a filter.
@@ -130,7 +137,7 @@ public:
    */
   template <typename Sel, typename F>
   auto filter(const std::string &name, F callable)
-      -> lazy<selection::template custom_applicator_t<F>>;
+      -> delayed<selection::template custom_applicator_t<F>>;
 
   /**
    * @brief Apply a filter as a channel.
@@ -146,7 +153,7 @@ public:
    */
   template <typename Sel, typename F>
   auto channel(const std::string &name, F callable)
-      -> lazy<selection::template custom_applicator_t<F>>;
+      -> delayed<selection::template custom_applicator_t<F>>;
   template <typename Sel>
 
   /**
@@ -160,7 +167,7 @@ public:
    * value of the input column itself is used as its decision.
    */
   auto filter(const std::string &name)
-      -> lazy<selection::trivial_applicator_type>;
+      -> delayed<selection::trivial_applicator_type>;
   template <typename Sel>
 
   /**
@@ -174,7 +181,7 @@ public:
    * value of the input column itself is used as its decision.
    */
   auto channel(const std::string &name)
-      -> lazy<selection::trivial_applicator_type>;
+      -> delayed<selection::trivial_applicator_type>;
 
   /**
    * @brief Book a counter
@@ -184,42 +191,42 @@ public:
    * booked at selection(s).
    */
   template <typename Cnt, typename... Args>
-  auto book(Args &&...args) -> lazy<counter::booker<Cnt>>;
+  auto book(Args &&...args) -> delayed<counter::booker<Cnt>>;
 
 protected:
   /**
    * @brief Default constructor for initial flags and values.
    */
   dataflow();
-
-  template <typename Def, typename... Cols>
-  auto evaluate_column(lazy<column::evaluator<Def>> const &calc,
-                       lazy<Cols>... columns) -> lazy<Def>;
-  template <typename Eqn, typename... Cols>
-  auto apply_selection(lazy<selection::applicator<Eqn>> const &calc,
-                       lazy<Cols>... columns) -> lazy<selection>;
-  template <typename Cnt>
-  auto book_selection(lazy<counter::booker<Cnt>> const &bkr,
-                      lazy<selection> const &sel) -> lazy<Cnt>;
-  template <typename Cnt, typename... Sels>
-  auto book_selections(lazy<counter::booker<Cnt>> const &bkr,
-                       lazy<Sels>... sels) -> lazy<counter::booker<Cnt>>;
-
   void analyze();
   void reset();
 
+  template <typename Def, typename... Cols>
+  auto evaluate_column(delayed<column::evaluator<Def>> const &calc,
+                       lazy<Cols> const &...columns) -> lazy<Def>;
+  template <typename Eqn, typename... Cols>
+  auto apply_selection(delayed<selection::applicator<Eqn>> const &calc,
+                       lazy<Cols> const &...columns) -> lazy<selection>;
+  template <typename Cnt>
+  auto book_selection(delayed<counter::booker<Cnt>> const &bkr,
+                      lazy<selection> const &sel) -> lazy<Cnt>;
+  template <typename Cnt, typename... Sels>
+  auto book_selections(delayed<counter::booker<Cnt>> const &bkr,
+                       lazy<Sels> const &...sels)
+      -> delayed<counter::booker<Cnt>>;
+
   template <typename Sel, typename F>
   auto filter(lazy<selection> const &prev, const std::string &name, F callable)
-      -> lazy<selection::template custom_applicator_t<F>>;
+      -> delayed<selection::template custom_applicator_t<F>>;
   template <typename Sel, typename F>
   auto channel(lazy<selection> const &prev, const std::string &name, F callable)
-      -> lazy<selection::template custom_applicator_t<F>>;
+      -> delayed<selection::template custom_applicator_t<F>>;
   template <typename Sel>
   auto filter(lazy<selection> const &prev, const std::string &name)
-      -> lazy<selection::trivial_applicator_type>;
+      -> delayed<selection::trivial_applicator_type>;
   template <typename Sel>
   auto channel(lazy<selection> const &prev, const std::string &name)
-      -> lazy<selection::trivial_applicator_type>;
+      -> delayed<selection::trivial_applicator_type>;
   template <typename Sel>
   auto join(lazy<selection> const &a, lazy<selection> const &b)
       -> lazy<selection>;
@@ -238,13 +245,14 @@ protected:
       typename std::enable_if_t<ana::column::template is_definition_v<V> &&
                                     !ana::column::template is_equation_v<V>,
                                 V> * = nullptr>
-  auto vary_definition(lazy<column::evaluator<V>> const &nom, Args &&...args)
-      -> lazy<column::evaluator<V>>;
+
+  auto vary_definition(delayed<column::evaluator<V>> const &nom, Args &&...args)
+      -> delayed<column::evaluator<V>>;
   template <typename F, typename V,
             typename std::enable_if_t<ana::column::template is_equation_v<V>, V>
                 * = nullptr>
-  auto vary_equation(lazy<column::evaluator<V>> const &nom, F callable)
-      -> lazy<column::evaluator<V>>;
+  auto vary_equation(delayed<column::evaluator<V>> const &nom, F callable)
+      -> delayed<column::evaluator<V>>;
 
   void add_action(concurrent<action> const &act);
 
@@ -258,7 +266,7 @@ template <typename T> template <typename U> class dataflow<T>::node {
 public:
   using dataflow_type = dataflow<T>;
   using dataset_type = T;
-  using action_type = U;
+  using nominal_type = U;
 
 public:
   friend class dataflow<T>;
@@ -270,24 +278,27 @@ public:
   virtual ~node() = default;
 
 public:
-  virtual void set_variation(const std::string &var_name,
-                             lazy<U> const &nom) = 0;
+  virtual void set_variation(const std::string &var_name, U const &nom) = 0;
 
-  virtual lazy<U> get_nominal() const = 0;
-  virtual lazy<U> get_variation(const std::string &var_name) const = 0;
+  virtual U get_nominal() const = 0;
+  virtual U get_variation(const std::string &var_name) const = 0;
 
   virtual bool has_variation(const std::string &var_name) const = 0;
   virtual std::set<std::string> list_variation_names() const = 0;
 
 protected:
-  dataflow<T> *m_dataflow;
+  dataflow<T> *m_df;
 };
+
+template <typename T> using dataflow_t = typename T::dataflow_type;
+template <typename T> using action_t = typename T::action_type;
 
 template <typename... Nodes>
 auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 } // namespace ana
 
+#include "delayed.h"
 #include "lazy.h"
 #include "varied.h"
 
@@ -297,8 +308,7 @@ auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 template <typename T>
 template <typename U>
-ana::dataflow<T>::node<U>::node(dataflow<T> &dataflow)
-    : m_dataflow(&dataflow) {}
+ana::dataflow<T>::node<U>::node(dataflow<T> &df) : m_df(&df) {}
 
 // ----------------------------------------------------------------------------
 // dataflow
@@ -359,8 +369,8 @@ auto ana::dataflow<T>::constant(const Val &val)
 template <typename T>
 template <typename Def, typename... Args>
 auto ana::dataflow<T>::define(Args &&...args)
-    -> lazy<ana::column::template evaluator_t<Def>> {
-  return lazy<ana::column::template evaluator_t<Def>>(
+    -> delayed<ana::column::template evaluator_t<Def>> {
+  return delayed<ana::column::template evaluator_t<Def>>(
       *this,
       this->m_processors.get_concurrent_result(
           [&args...](processor<dataset_reader_type> &proc) {
@@ -371,8 +381,8 @@ auto ana::dataflow<T>::define(Args &&...args)
 template <typename T>
 template <typename F>
 auto ana::dataflow<T>::define(F callable)
-    -> lazy<column::template evaluator_t<F>> {
-  return lazy<ana::column::template evaluator_t<F>>(
+    -> delayed<column::template evaluator_t<F>> {
+  return delayed<ana::column::template evaluator_t<F>>(
       *this, this->m_processors.get_concurrent_result(
                  [callable = callable](processor<dataset_reader_type> &proc) {
                    return proc.template define(callable);
@@ -381,24 +391,24 @@ auto ana::dataflow<T>::define(F callable)
 
 template <typename T>
 template <typename Def, typename... Cols>
-auto ana::dataflow<T>::evaluate_column(lazy<column::evaluator<Def>> const &calc,
-                                       lazy<Cols>... columns) -> lazy<Def> {
-  auto col = lazy<Def>(
-      *this, this->m_processors.get_concurrent_result(
-                 [](processor<dataset_reader_type> &proc,
-                    column::evaluator<Def> &calc, Cols const &...cols) {
-                   return proc.template evaluate_column(calc, cols...);
-                 },
-                 calc, columns...));
-  this->add_action(col);
-  return col;
+auto ana::dataflow<T>::evaluate_column(
+    delayed<column::evaluator<Def>> const &calc, lazy<Cols> const &...columns)
+    -> lazy<Def> {
+  auto act = this->m_processors.get_concurrent_result(
+      [](processor<dataset_reader_type> &proc, column::evaluator<Def> &calc,
+         Cols const &...cols) {
+        return proc.template evaluate_column(calc, cols...);
+      },
+      lockstep<column::evaluator<Def>>(calc), columns...);
+  this->add_action(act);
+  return lazy<Def>(*this, act);
 }
 
 template <typename T>
 template <typename Sel, typename F>
 auto ana::dataflow<T>::filter(const std::string &name, F callable)
-    -> lazy<selection::template custom_applicator_t<F>> {
-  return lazy<selection::template custom_applicator_t<F>>(
+    -> delayed<selection::template custom_applicator_t<F>> {
+  return delayed<selection::template custom_applicator_t<F>>(
       *this, this->m_processors.get_concurrent_result(
                  [name = name,
                   callable = callable](processor<dataset_reader_type> &proc) {
@@ -409,8 +419,8 @@ auto ana::dataflow<T>::filter(const std::string &name, F callable)
 template <typename T>
 template <typename Sel, typename F>
 auto ana::dataflow<T>::channel(const std::string &name, F callable)
-    -> lazy<selection::template custom_applicator_t<F>> {
-  return lazy<selection::template custom_applicator_t<F>>(
+    -> delayed<selection::template custom_applicator_t<F>> {
+  return delayed<selection::template custom_applicator_t<F>>(
       *this, this->m_processors.get_concurrent_result(
                  [name = name,
                   callable = callable](processor<dataset_reader_type> &proc) {
@@ -421,9 +431,9 @@ auto ana::dataflow<T>::channel(const std::string &name, F callable)
 template <typename T>
 template <typename Sel>
 auto ana::dataflow<T>::filter(const std::string &name)
-    -> lazy<selection::trivial_applicator_type> {
+    -> delayed<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
-  auto sel = lazy<selection::trivial_applicator_type>(
+  auto sel = delayed<selection::trivial_applicator_type>(
       *this, this->m_processors.get_concurrent_result(
                  [name = name,
                   callable = callable](processor<dataset_reader_type> &proc) {
@@ -435,9 +445,9 @@ auto ana::dataflow<T>::filter(const std::string &name)
 template <typename T>
 template <typename Sel>
 auto ana::dataflow<T>::channel(const std::string &name)
-    -> lazy<selection::trivial_applicator_type> {
+    -> delayed<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
-  auto sel = lazy<selection::trivial_applicator_type>(
+  auto sel = delayed<selection::trivial_applicator_type>(
       *this, this->m_processors.get_concurrent_result(
                  [name = name,
                   callable = callable](processor<dataset_reader_type> &proc) {
@@ -450,8 +460,8 @@ template <typename T>
 template <typename Sel, typename F>
 auto ana::dataflow<T>::filter(lazy<selection> const &prev,
                               const std::string &name, F callable)
-    -> lazy<selection::template custom_applicator_t<F>> {
-  return lazy<selection::template custom_applicator_t<F>>(
+    -> delayed<selection::template custom_applicator_t<F>> {
+  return delayed<selection::template custom_applicator_t<F>>(
       *this,
       this->m_processors.get_concurrent_result(
           [name = name, callable = callable](
@@ -465,8 +475,8 @@ template <typename T>
 template <typename Sel, typename F>
 auto ana::dataflow<T>::channel(lazy<selection> const &prev,
                                const std::string &name, F callable)
-    -> lazy<selection::template custom_applicator_t<F>> {
-  return lazy<selection::template custom_applicator_t<F>>(
+    -> delayed<selection::template custom_applicator_t<F>> {
+  return delayed<selection::template custom_applicator_t<F>>(
       *this,
       this->m_processors.get_concurrent_result(
           [name = name, callable = callable](
@@ -480,9 +490,9 @@ template <typename T>
 template <typename Sel>
 auto ana::dataflow<T>::filter(lazy<selection> const &prev,
                               const std::string &name)
-    -> lazy<selection::trivial_applicator_type> {
+    -> delayed<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
-  return lazy<selection::trivial_applicator_type>(
+  return delayed<selection::trivial_applicator_type>(
       *this,
       this->m_processors.get_concurrent_result(
           [name = name, callable = callable](
@@ -496,9 +506,9 @@ template <typename T>
 template <typename Sel>
 auto ana::dataflow<T>::channel(lazy<selection> const &prev,
                                const std::string &name)
-    -> lazy<selection::trivial_applicator_type> {
+    -> delayed<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
-  return lazy<selection::trivial_applicator_type>(
+  return delayed<selection::trivial_applicator_type>(
       *this,
       this->m_processors.get_concurrent_result(
           [name = name, callable = callable](
@@ -511,14 +521,15 @@ auto ana::dataflow<T>::channel(lazy<selection> const &prev,
 template <typename T>
 template <typename Eqn, typename... Cols>
 auto ana::dataflow<T>::apply_selection(
-    lazy<selection::applicator<Eqn>> const &calc, lazy<Cols>... columns)
-    -> lazy<selection> {
+    delayed<selection::applicator<Eqn>> const &calc,
+    lazy<Cols> const &...columns) -> lazy<selection> {
   auto act = this->m_processors.get_concurrent_result(
       [](processor<dataset_reader_type> &proc, selection::applicator<Eqn> &calc,
          Cols &...cols) {
         return proc.template apply_selection(calc, cols...);
       },
-      calc, columns...);
+      lockstep<selection::applicator<Eqn>>(calc), columns...);
+  this->add_action(act);
   return lazy<selection>(*this, act);
 }
 
@@ -536,8 +547,8 @@ auto ana::dataflow<T>::join(lazy<selection> const &a, lazy<selection> const &b)
 
 template <typename T>
 template <typename Cnt, typename... Args>
-auto ana::dataflow<T>::book(Args &&...args) -> lazy<counter::booker<Cnt>> {
-  return lazy<counter::booker<Cnt>>(
+auto ana::dataflow<T>::book(Args &&...args) -> delayed<counter::booker<Cnt>> {
+  return delayed<counter::booker<Cnt>>(
       *this, this->m_processors.get_concurrent_result(
                  [&args...](processor<dataset_reader_type> &proc) {
                    return proc.template book<Cnt>(std::forward<Args>(args)...);
@@ -546,7 +557,7 @@ auto ana::dataflow<T>::book(Args &&...args) -> lazy<counter::booker<Cnt>> {
 
 template <typename T>
 template <typename Cnt>
-auto ana::dataflow<T>::book_selection(lazy<counter::booker<Cnt>> const &bkr,
+auto ana::dataflow<T>::book_selection(delayed<counter::booker<Cnt>> const &bkr,
                                       lazy<selection> const &sel) -> lazy<Cnt> {
   // any time a new counter is booked, means the dataflow must run: so reset its
   // status
@@ -554,16 +565,16 @@ auto ana::dataflow<T>::book_selection(lazy<counter::booker<Cnt>> const &bkr,
   auto act = this->m_processors.get_concurrent_result(
       [](processor<dataset_reader_type> &proc, counter::booker<Cnt> &bkr,
          const selection &sel) { return proc.book_selection(bkr, sel); },
-      bkr, sel);
+      lockstep<counter::booker<Cnt>>(bkr), sel);
   this->add_action(act);
   return lazy<Cnt>(*this, act);
 }
 
 template <typename T>
 template <typename Cnt, typename... Sels>
-auto ana::dataflow<T>::book_selections(lazy<counter::booker<Cnt>> const &bkr,
-                                       lazy<Sels>... sels)
-    -> lazy<counter::booker<Cnt>> {
+auto ana::dataflow<T>::book_selections(delayed<counter::booker<Cnt>> const &bkr,
+                                       lazy<Sels> const &...sels)
+    -> delayed<counter::booker<Cnt>> {
   // any time a new counter is booked, means the dataflow must run: so reset its
   // status
   this->reset();
@@ -576,7 +587,7 @@ auto ana::dataflow<T>::book_selections(lazy<counter::booker<Cnt>> const &bkr,
                  bkr, sels...));
   // add all counters that were booked
   for (auto const &sel_path : bkr2.list_selection_paths()) {
-    // this->add_action(bkr2.get_counter(sel_path));
+    this->add_action(bkr2.get_counter(sel_path));
   }
   return bkr2;
 }
@@ -641,9 +652,9 @@ template <typename... Args, typename V,
           typename std::enable_if_t<ana::column::template is_definition_v<V> &&
                                         !ana::column::template is_equation_v<V>,
                                     V> *ptr>
-auto ana::dataflow<T>::vary_definition(lazy<column::evaluator<V>> const &,
+auto ana::dataflow<T>::vary_definition(delayed<column::evaluator<V>> const &,
                                        Args &&...args)
-    -> lazy<column::evaluator<V>> {
+    -> delayed<column::evaluator<V>> {
   return this->define<V>(std::forward<Args>(args)...);
 }
 
@@ -651,7 +662,8 @@ template <typename T>
 template <
     typename F, typename V,
     typename std::enable_if_t<ana::column::template is_equation_v<V>, V> *ptr>
-auto ana::dataflow<T>::vary_equation(lazy<column::evaluator<V>> const &,
-                                     F callable) -> lazy<column::evaluator<V>> {
+auto ana::dataflow<T>::vary_equation(delayed<column::evaluator<V>> const &,
+                                     F callable)
+    -> delayed<column::evaluator<V>> {
   return this->define(typename V::function_type(callable));
 }

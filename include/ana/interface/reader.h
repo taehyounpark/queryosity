@@ -31,9 +31,6 @@ public:
                        unsigned long long entry) final override;
 
 protected:
-  void update() const;
-
-protected:
   mutable T const *m_addr;
   mutable bool m_updated;
 
@@ -53,11 +50,10 @@ template <typename T> T const &ana::column::reader<T>::value() const {
   return *m_addr;
 }
 
-template <typename T> void ana::column::reader<T>::update() const {}
-
 template <typename T>
 void ana::column::reader<T>::execute(const ana::dataset::range &part,
                                      unsigned long long entry) {
   m_part = &part;
   m_current = entry;
+  m_updated = false;
 }
