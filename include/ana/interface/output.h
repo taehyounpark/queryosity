@@ -22,7 +22,7 @@ void ana::output::dump(Node const &node, Dest &&dest, Args &&...args) {
 
   // get selection paths
   auto selection_paths = node.get_nominal().get_model_value(
-      [](typename Node::action_type const &node) {
+      [](typename Node::nominal_type const &node) {
         return node.list_selection_paths();
       });
 

@@ -32,9 +32,6 @@ public:
   template <typename U> class lazy;
   template <typename U> friend class lazy;
 
-  template <typename U> class varied;
-  template <typename U> friend class varied;
-
   template <typename U>
   static constexpr std::true_type
   check_lazy(typename dataflow<T>::template lazy<U> const &);
@@ -49,7 +46,10 @@ public:
 
   template <typename U>
   static constexpr std::true_type
-  check_varied(typename dataflow<T>::template varied<U> const &);
+  check_varied(typename lazy<U>::varied const &);
+  template <typename U>
+  static constexpr std::true_type
+  check_varied(typename delayed<U>::varied const &);
   static constexpr std::false_type check_varied(...);
   template <typename V>
   static constexpr bool is_varied_v =
@@ -291,7 +291,7 @@ protected:
 };
 
 template <typename T> using dataflow_t = typename T::dataflow_type;
-template <typename T> using action_t = typename T::action_type;
+template <typename T> using action_t = typename T::nominal_type;
 
 template <typename... Nodes>
 auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
