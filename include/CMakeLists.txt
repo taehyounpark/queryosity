@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.12)
 
 project(ana 
   VERSION 0.1
-  DESCRIPTION "Coherent data analysis interface in C++"
+  DESCRIPTION "Coherent data dataflow interface in C++"
   HOMEPAGE_URL "https://github.com/taehyounpark/ana.git"
   LANGUAGES CXX
   )

@@ -1922,10 +1922,10 @@ RTF_OUTPUT             = rtf
 COMPACT_RTF            = NO
 
 # If the RTF_HYPERLINKS tag is set to YES, the RTF that is generated will
-# contain hyperlink fields. The RTF file will contain links (just like the HTML
+# contain hyperlink fieldf. The RTF file will contain links (just like the HTML
 # output) instead of page references. This makes the output suitable for online
 # browsing using Word or some other Word compatible readers that support those
-# fields.
+# fieldf.
 #
 # Note: WordPad (write) and others do not support links.
 # The default value is: NO.
@@ -2213,7 +2213,7 @@ SKIP_FUNCTION_MACROS   = YES
 TAGFILES               =
 
 # When a file name is specified after GENERATE_TAGFILE, doxygen will create a
-# tag file that is based on the input files it reads. See section "Linking to
+# tag file that is based on the input files it readf. See section "Linking to
 # external documentation" for more information about the usage of tag files.
 
 GENERATE_TAGFILE       =

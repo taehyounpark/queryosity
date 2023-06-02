@@ -1,18 +1,16 @@
+# Introduction
+
+The purpose of `ana` is to provide a clear _abstraction_ layer for dataset transformation procedures.
+
+- A `dataflow` graph defines the set of operations on the dataset.
+- An operation is a `lazy` action to be performed in a row-wise manner.
+- An action can be `varied`, meaning alternate versions are performed at once.
+
 # Features
 - Manipulation of any data types as column values.
 - Arbitrary action execution and results retrieval.
 - Propagation of systematic variations.
 - Multithreaded processing of the dataset.
-
-# Introduction
-
-A clear _abstraction_ layer to define dataset transformation procedures helps to ensure the robustness, extensibility, and reproducibility of a data anslysis project.
-
-- The `analysis` entity represents the dataset to be analyzed.
-- Any operation returns a `lazy` node representing the action to be performed.
-  - Further operations can be performed in the context of existing ones.
-- A node can be `varied`, meaning alternate versions of the action is performed in the analysis.
-  - The outcome of both the nominal and varied actions are available side-by-side.
 
 # Requirements
 - C++17-supported compiler (tested with GCC 9.3.0 and Clang 14.0.0)
@@ -23,7 +21,6 @@ A clear _abstraction_ layer to define dataset transformation procedures helps to
 1. Clone this repository.
 2. Add `ana/include` to the include path.
 3. `#include "ana/analysis.h"`.
-3. Implement & perform your data analysis.
 
 
 # Walkthrough (using rootana)
@@ -32,16 +29,14 @@ The following example analyzes simulated physics collision data reconstructing t
 
 ## 0. Opening the dataset
 
-Specify the multithreading configuration and the input dataset of the analysis as the following:
+Specify the multithreading configuration and the input dataset as the following:
 
 ```cpp
-#include "ana/analysis.h"
-
 // enable (or disable) multithreading
 ana::multithread::enable(/* 10 */);  // provide thread count (default: system maximum)
 
 // Tree is user-implemented
-auto hww = ana::analysis<Tree>({"ds.root"}, "mini");
+auto df = ana::dataflow<Tree>({"hww.root"}, "mini");
 ```
 
 ## 1. Computing quantities of interest
@@ -58,15 +53,15 @@ using VecD = ROOT::RVec<float>;
 // Tree::Branch<T> is user-implemented
 auto mc_weight = data.read<float>("mcWeight");
 auto el_sf = data.read<float>("scaleFactor_ELE");
-auto mu_sf = ds.read<float>("scaleFactor_MUON");
-auto lep_pt_MeV = ds.read<VecF>("lep_pt");
-auto lep_eta = ds.read<VecF>("lep_eta");
-auto lep_phi = ds.read<VecF>("lep_phi");
-auto lep_E_MeV = ds.read<VecF>("lep_E");
-auto lep_Q = ds.read<VecF>("lep_charge");
-auto lep_type = ds.read<VecUI>("lep_type");
-auto met_MeV = ds.read<float>("met_et");
-auto met_phi = ds.read<float>("met_phi");
+auto mu_sf = df.read<float>("scaleFactor_MUON");
+auto lep_pt_MeV = df.read<VecF>("lep_pt");
+auto lep_eta = df.read<VecF>("lep_eta");
+auto lep_phi = df.read<VecF>("lep_phi");
+auto lep_E_MeV = df.read<VecF>("lep_E");
+auto lep_Q = df.read<VecF>("lep_charge");
+auto lep_type = df.read<VecUI>("lep_type");
+auto met_MeV = df.read<float>("met_et");
+auto met_phi = df.read<float>("met_phi");
 ```
 
 ### 1.2 Defining new quantities
@@ -77,7 +72,7 @@ auto GeV = ana.constant(1000.0);
 auto lep_pt = lep_pt_MeV / GeV;
 // (lep_E, met, ...)
 
-auto lep_eta_max = ds.constant(2.4);
+auto lep_eta_max = df.constant(2.4);
 auto lep_pt_sel = lep_pt[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 // (lep_eta_sel, lep_phi_sel, lep_E_sel, ...)
 ```
@@ -88,10 +83,10 @@ To access non-trivial methods of the underlying data, any function can be used.
 using P4 = TLorentzVector;
 
 //  dilepton four-momentum
-auto p4ll = ds.define([](P4 const& p4, P4 const& q4){return (p4+q4);})(l1p4,l2p4);
+auto p4ll = df.define([](P4 const& p4, P4 const& q4){return (p4+q4);})(l1p4,l2p4);
 
 // (dilepton+MET) transverse momentum
-auto pth = ds.define(
+auto pth = df.define(
   [](const P4& p3, float q, float q_phi){
     TVector2 p2; p2.SetMagPhi(p3.Pt(), p3.Phi());
     TVector2 q2; q2.SetMagPhi(q, q_phi);
@@ -105,8 +100,6 @@ The computation graph is guaranteed to be
 #### Custom definitions
 Complex computations can be fully specified by implementing a `definition`. 
 ```cpp
-#include "ana/analysis.h"
-
 // define an ith TLorenzVector out of (pt,eta,phi,e) vectors
 class NthP4 : public ana::column::definition<P4(VecD, VecD, VecD, VecD)>
 {
@@ -131,17 +124,17 @@ protected:
 Combining the above methods:
 ```cpp
 // first- & second-leading lepton four-momenta
-auto l1p4 = ds.define<NthP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
-auto l2p4 = ds.define<NthP4>(1)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
+auto l1p4 = df.define<NthP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
+auto l2p4 = df.define<NthP4>(1)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
 
 // dilepton four-momentum
 auto p4ll = l1p4+l2p4;
 
 // dilepton invariant mass
-auto mll = ds.define([](const P4& p4){return p4.M();})(p4ll);
+auto mll = df.define([](const P4& p4){return p4.M();})(p4ll);
 
 // dilepton+MET(=higgs) transverse momentum
-auto pth = ds.define(
+auto pth = df.define(
   [](const P4& p4, float q, float q_phi) {
     TVector2 p2; p2.SetMagPhi(p4.Pt(), p4.Phi());
     TVector2 q2; q2.SetMagPhi(q, q_phi);
@@ -174,7 +167,7 @@ public:
 
 // ...
 
-auto l1 = ds.define<Lepton>()(l1p4, lep_charge[0], lep_type[0]);
+auto l1 = df.define<Lepton>()(l1p4, lep_charge[0], lep_type[0]);
 ```
 Representations provide a complementary role to definitions that can improve conceptual clarity (but not necessity) of the computation graph and (in some cases) its efficiency, demonstrated by the following counter-example.
 ```cpp
@@ -182,7 +175,7 @@ Representations provide a complementary role to definitions that can improve con
 struct Lepton { const P4 p4; const double q; const double type; };
 
 // straightforward to use with definition... but optimal?
-auto l1 = ds.define([](P4 const& p4, int q, unsigned int type){return Lepton{p4,q,type};})(l1p4,lep_charge[0],lep_type[0]);
+auto l1 = df.define([](P4 const& p4, int q, unsigned int type){return Lepton{p4,q,type};})(l1p4,lep_charge[0],lep_type[0]);
 ```
 Note that the following computing inefficiencies occur:
 - All input column values must be evaluated in order to determine and assign the properties of the `Lepton` instance, even if only a subset of them may end up being used in the end. 
@@ -207,10 +200,10 @@ The selection can be applied by providing the column that corresponds to the dec
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
 
-auto n_lep_sel = ds.define([](VecF const& lep){return lep.size();})(lep_pt_sel);
-auto n_lep_req = ds.constant(2);
+auto n_lep_sel = df.define([](VecF const& lep){return lep.size();})(lep_pt_sel);
+auto n_lep_req = df.constant(2);
 
-auto cut_2l = ds.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
+auto cut_2l = df.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
                 .filter<cut>("2l")(n_lep_sel == n_lep_req);
 // selection decision after the two filter operations:
 // cut = (true) && (n_lep_sel == 2)
@@ -229,7 +222,7 @@ auto cut_2ldf = cut_2los.channel<cut>("2ldf", [](const VecUI& lep_type){return l
 auto cut_2lsf = cut_2los.channel<cut>("2lsf", [](const VecUI& lep_type){return (lep_type.at(0)+lep_type.at(1)==22)||(lep_type.at(0)+lep_type.at(1)==26);})(lep_type);
 
 // same cuts at different branches
-auto mll_cut = ds.constant(60.0);
+auto mll_cut = df.constant(60.0);
 auto cut_2ldf_sr = cut_2ldf.filter<cut>("sr")(mll < mll_cut);  // path = "2ldf/sr"
 auto cut_2lsf_sr = cut_2lsf.filter<cut>("sr")(mll < mll_cut);  // path = "2lsf/sr"
 auto cut_2ldf_wwcr = cut_2ldf.filter<cut>("wwcr")(mll > mll_cut);  // path = "2ldf/cr"
@@ -244,10 +237,10 @@ A `counter` defines an action that is
     -  Handling (or ignoring) the selection weight.
 - Can be `fill()`ed with columns such that their values are also handled.
 
-A full user-implementation must specify what (arbitrary) action is to be performed and its output result.
+A full user-implementation must specify what (arbitrary) action is  performed and its output result.
 ```cpp
 // Hist<1,float> is user-implemented.
-auto pth_hist = ds.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
+auto pth_hist = df.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
 // what is doen for each entry, conceptually:
 //   if (cut_2los.passed_cut()) { 
 //     pth_hist->Fill(pth, cut_2los.get_weight());
@@ -263,7 +256,7 @@ Each `fill()` and `at()` call returns a new node with those operations applied, 
 - Booked at any (set of) selection(s), as long as the selections booked in each set has unique paths.
 ```cpp
 // fill the histogram with pT of both leptons
-auto l1n2_pt_hist = ds.book<Hist<1,float>>("l1n2_pt",20,0,100).fill(l1pt).fill(l2pt);
+auto l1n2_pt_hist = df.book<Hist<1,float>>("l1n2_pt",20,0,100).fill(l1pt).fill(l2pt);
 
 // book it at "2ldf/sr", "2lsf/sr"
 auto l1n2_pt_hists_srs = l1n2_pt_hist.at(cut_2ldf_sr, cut_2ldf_wwcr);
@@ -281,7 +274,7 @@ l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_wwcrs["2ldf/wwcr"];
 If a counter is booked at numerous selections, it might be convenient to have a consistent way to write out the results across all selections at once. This can be done completely on the user-side or through yet another helper interface class.
 ```cpp
 // booked at multiple selections
-auto pth_hists = ds.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, cut_2ldf, cut_2lsf);
+auto pth_hists = df.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, cut_2ldf, cut_2lsf);
 
 // want to write histogram at each selection, using its path as sub-folders
 auto out_file = TFile::Open("hww_hists.root","recreate");
@@ -322,10 +315,10 @@ Any column can be varied with an alternate definition of the same type, which tr
  
 ```cpp
 // use a different scale factor (electron vs. pileup...? purely for illustration)
-auto el_sf = ds.read<float>("scaleFactor_ELE").vary("sf_var","scaleFactor_PILEUP");
+auto el_sf = df.read<float>("scaleFactor_ELE").vary("sf_var","scaleFactor_PILEUP");
 
 // change the energy scale by +/-2%
-auto Escale = ds.define([](VecD E){return E;}).vary("lp4_up",[](VecD E){return E*1.02;}).vary("lp4_dn",[](VecD E){return E*0.98;});
+auto Escale = df.define([](VecD E){return E;}).vary("lp4_up",[](VecD E){return E*1.02;}).vary("lp4_dn",[](VecD E){return E*0.98;});
 auto lep_pt_sel = Escale(lep_pt)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 auto lep_E_sel = Escale(lep_E)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 ```
@@ -342,21 +335,21 @@ The propagation of variations across multiple actions occur "in lockstep" and "t
 - If one action has a variation while another doesn't, then the nominal is in effect for the latter.
 
 ```cpp
-auto l1p4 = ds.define<NthP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
-auto l2p4 = ds.define<NthP4>(1)(lep_pt, lep_eta, lep_phi, lep_E);
+auto l1p4 = df.define<NthP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
+auto l2p4 = df.define<NthP4>(1)(lep_pt, lep_eta, lep_phi, lep_E);
 l1p4.has_variation("lp4_up");  // true
 l1p4.has_variation("sf_var");  // false
 
 // ...
 
-auto cut_2l = ds.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
+auto cut_2l = df.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
                  .filter<cut>("2l")(n_lep_sel == n_lep_req);
 cut_2l.has_variation("lp4_up");  // true
 cut_2l.has_variation("sf_var");  // true
 
 // ...
 
-auto mll_vars = ds.book<Hist<1,float>>("mll",50,0,100).fill(mll).at(cut_2los);
+auto mll_vars = df.book<Hist<1,float>>("mll",50,0,100).fill(mll).at(cut_2los);
 mll_vars.has_variation("lp4_up"); // true : mll & cut_2los varied
 mll_vars.has_variation("sf_var"); // true : mll nominal & cut_2los varied
 ```
@@ -371,7 +364,7 @@ Keeping track of multiple systematic variations *and* selections is also possibl
 ```cpp
 // mll contains variations = {lp4_up, sf_var}
 // booked at selections = {cut_2ldf, cut_2lsf}
-auto mll_channels_vars = ds.book<Hist<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
+auto mll_channels_vars = df.book<Hist<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
 
 // specify variation name, followed by selection path
 mll_channels_vars.get_nominal()["2ldf"]->GetEntries();
