@@ -121,8 +121,6 @@ CHECK_FOR_BINARY_OP(logical_or, ||)
 CHECK_FOR_SUBSCRIPT_OP()
 } // namespace op_check
 
-template <typename Bkr> using booked_counter_t = typename Bkr::counter_type;
-
 /**
  * @brief Node representing a lazy action to be performed in an analysis.
  * @details Depending on the concrete type of the lazy action, further
@@ -143,7 +141,7 @@ public:
   using action_type = U;
 
   template <typename Sel, typename... Args>
-  using lazy_selection_applicator_t =
+  using lzy_sel_app_t =
       decltype(std::declval<dataflow<T>>().template filter<Sel>(
           std::declval<std::string>(), std::declval<Args>()...));
 
@@ -213,7 +211,7 @@ public:
    */
   template <typename Sel, typename... Args>
   auto filter(const std::string &name, Args &&...args)
-      -> lazy_selection_applicator_t<Sel, Args...>;
+      -> lzy_sel_app_t<Sel, Args...>;
 
   /**
    * @brief Channel from an existing selection.
@@ -231,7 +229,7 @@ public:
    */
   template <typename Sel, typename... Args>
   auto channel(const std::string &name, Args &&...args)
-      -> lazy_selection_applicator_t<Sel, Args...>;
+      -> lzy_sel_app_t<Sel, Args...>;
 
   template <typename V = U,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
@@ -257,9 +255,9 @@ public:
    * already available.
    * @return The result of the implemented counter.
    */
-  template <typename V = U,
-            std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
-                false>
+  template <
+      typename V = U,
+      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
   auto get_result() const -> decltype(std::declval<V>().get_result()) {
     this->m_df->analyze();
     this->merge_results();
@@ -335,11 +333,21 @@ public:
    * @brief Shorthand for `result` of counter.
    * @return `Result` the result of the implemented counter.
    */
-  template <typename V = U,
-            std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
-                false>
+  template <
+      typename V = U,
+      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
   auto operator->() const -> decltype(std::declval<V>().get_result()) {
     return this->get_result();
+  }
+
+  template <typename V = U,
+            std::enable_if<ana::counter::template is_booker_v<V>, bool> = false>
+  auto operator[](const std::string &sel_path)
+      -> decltype(std::declval<V>().get_counter(std::declval<std::string>())) {
+    return lazy<counter::counter_t<V>>(
+        *this->m_df, this->get_concurrent_result([=](V &booker) {
+          return booker.get_counter(sel_path);
+        }));
   }
 
   DEFINE_LAZY_SUBSCRIPT_OP()
@@ -360,7 +368,7 @@ public:
 
 protected:
   template <typename V = U,
-            typename std::enable_if<ana::counter::template is_implemented_v<V>,
+            typename std::enable_if<ana::counter::template has_output_v<V>,
                                     void>::type * = nullptr>
   void merge_results() const {
     auto model = this->get_model();
@@ -442,7 +450,7 @@ template <typename Act>
 template <typename Sel, typename... Args>
 auto ana::dataflow<T>::lazy<Act>::filter(const std::string &name,
                                          Args &&...args)
-    -> lazy_selection_applicator_t<Sel, Args...> {
+    -> lzy_sel_app_t<Sel, Args...> {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template filter<Sel>(*this, name,
                                             std::forward<Args>(args)...);
@@ -457,7 +465,7 @@ template <typename Act>
 template <typename Sel, typename... Args>
 auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
                                           Args &&...args)
-    -> lazy_selection_applicator_t<Sel, Args...> {
+    -> lzy_sel_app_t<Sel, Args...> {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template channel<Sel>(*this, name,
                                              std::forward<Args>(args)...);
@@ -466,3 +474,16 @@ auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
                   "channel must be called from a selection");
   }
 }
+
+// template <typename T>
+// template <typename Act>
+// template <typename V, std::enable_if<ana::counter::template is_booker_v<V>,
+// bool>> auto ana::dataflow<T>::lazy<Act>::operator[](
+//     const std::string &sel_path) const ->
+//     decltype(std::declval<V>().get_counter(std::declval<std::string>())) {
+//   return this->get_concurrent_result(
+//     [=](V& booker) {
+//       return booker.get_counter(sel_path);
+//     }
+//   );
+// }

@@ -42,23 +42,28 @@ public:
   static constexpr std::false_type check_delayed(...);
   template <typename V>
   static constexpr bool is_nominal_v =
-      decltype(check_lazy(std::declval<V>()))::value;
+      (decltype(check_lazy(std::declval<V>()))::value ||
+       decltype(check_delayed(std::declval<V>()))::value);
 
   template <typename U>
   static constexpr std::true_type
-  check_varied(typename lazy<U>::varied const &);
+  check_lazy_varied(typename lazy<U>::varied const &);
+  static constexpr std::false_type check_lazy_varied(...);
   template <typename U>
   static constexpr std::true_type
-  check_varied(typename delayed<U>::varied const &);
-  static constexpr std::false_type check_varied(...);
+  check_delayed_varied(typename delayed<U>::varied const &);
+  static constexpr std::false_type check_delayed_varied(...);
   template <typename V>
   static constexpr bool is_varied_v =
-      decltype(check_varied(std::declval<V>()))::value;
+      (decltype(check_lazy_varied(std::declval<V>()))::value ||
+       decltype(check_delayed_varied(std::declval<V>()))::value);
 
   template <typename... Args>
   static constexpr bool has_no_variation_v = (is_nominal_v<Args> && ...);
+  // template <typename... Args>
+  // static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
   template <typename... Args>
-  static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
+  static constexpr bool has_variation_v = !(is_nominal_v<Args> && ...);
 
 public:
   virtual ~dataflow() = default;
@@ -578,16 +583,17 @@ auto ana::dataflow<T>::book_selections(delayed<counter::booker<Cnt>> const &bkr,
   // any time a new counter is booked, means the dataflow must run: so reset its
   // status
   this->reset();
-  auto bkr2 = lazy<counter::booker<Cnt>>(
-      *this, this->m_processors.get_concurrent_result(
-                 [](processor<dataset_reader_type> &proc,
-                    counter::booker<Cnt> &bkr, Sels const &...sels) {
-                   return proc.book_selections(bkr, sels...);
-                 },
-                 bkr, sels...));
+  using dly_type = delayed<counter::booker<Cnt>>;
+  auto bkr2 =
+      dly_type(*this, this->m_processors.get_concurrent_result(
+                          [](processor<dataset_reader_type> &proc,
+                             counter::booker<Cnt> &bkr, Sels const &...sels) {
+                            return proc.book_selections(bkr, sels...);
+                          },
+                          lockstep<counter::booker<Cnt>>(bkr), sels...));
   // add all counters that were booked
   for (auto const &sel_path : bkr2.list_selection_paths()) {
-    this->add_action(bkr2.get_counter(sel_path));
+    this->add_action(bkr2.get_action(sel_path));
   }
   return bkr2;
 }

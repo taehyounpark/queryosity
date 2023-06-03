@@ -69,7 +69,7 @@ public:
   struct is_booker<counter::booker<T>> : std::true_type {};
 
   template <typename T>
-  static constexpr bool is_implemented_v =
+  static constexpr bool has_output_v =
       decltype(check_implemented(std::declval<T>()))::value;
 
   template <typename T>
@@ -77,6 +77,8 @@ public:
       decltype(check_fillable(std::declval<T>()))::value;
 
   template <typename T> static constexpr bool is_booker_v = is_booker<T>::value;
+
+  template <typename Bkr> using counter_t = typename Bkr::counter_type;
 };
 
 /**
