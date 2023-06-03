@@ -97,9 +97,9 @@ template <typename T> void ana::sample<T>::initialize() {
   auto part = m_partition.total();
   auto rdr = m_dataset->read_dataset();
   auto proc =
-      std::make_shared<processor<dataset_reader_type>>(part, *rdr, m_scale);
-  m_readers.set_model(rdr);
-  m_processors.set_model(proc);
+      std::make_unique<processor<dataset_reader_type>>(part, *rdr, m_scale);
+  m_readers.set_model(std::move(rdr));
+  m_processors.set_model(std::move(proc));
   // slot for each partition range
   m_readers.clear_slots();
   m_processors.clear_slots();
@@ -107,9 +107,9 @@ template <typename T> void ana::sample<T>::initialize() {
     auto part = m_partition.get_part(islot);
     auto rdr = m_dataset->read_dataset();
     auto proc =
-        std::make_shared<processor<dataset_reader_type>>(part, *rdr, m_scale);
-    m_readers.add_slot(rdr);
-    m_processors.add_slot(proc);
+        std::make_unique<processor<dataset_reader_type>>(part, *rdr, m_scale);
+    m_readers.add_slot(std::move(rdr));
+    m_processors.add_slot(std::move(proc));
   }
 
   // sample is initialized

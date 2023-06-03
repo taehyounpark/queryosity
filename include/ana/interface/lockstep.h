@@ -59,9 +59,9 @@ public:
    * @brief Get the result of calling method(s) on each underlying model and
    * slots.
    * @param fn Function to be called. The first argument must accept the slot
-   * type by `&`, and return a `std::shared_ptr<Result>`.
+   * type by `&`, and return a `std::unique_ptr<Result>`.
    * @param args (Optional) arguments that are applied per-slot to fn.
-   * @return result `lockstep<Result>` where `std::shared_ptr<Result>` is
+   * @return result `lockstep<Result>` where `std::unique_ptr<Result>` is
    * returned by fn.
    * @details Preserve the concurrency of result of operations performed on the
    * underlying objects.

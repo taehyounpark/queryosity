@@ -41,12 +41,12 @@ public:
   template <typename U> concurrent &operator=(concurrent<U> &&derived);
 
 public:
-  void set_model(std::shared_ptr<T> model);
-  void add_slot(std::shared_ptr<T> slot);
+  void set_model(std::unique_ptr<T> model);
+  void add_slot(std::unique_ptr<T> slot);
   void clear_slots();
 
-  std::shared_ptr<T> get_model() const;
-  std::shared_ptr<T> get_slot(size_t i) const;
+  T *get_model() const;
+  T *get_slot(size_t i) const;
 
   size_t concurrency() const;
 
@@ -84,9 +84,9 @@ public:
    * @brief Get the result of calling method(s) on each underlying model and
    * slots.
    * @param fn Function to be called. The first argument must accept the slot
-   * type by `&`, and return a `std::shared_ptr<Result>`.
+   * type by `&`, and return a `std::unique_ptr<Result>`.
    * @param args (Optional) arguments that are applied per-slot to fn.
-   * @return result `concurrent<Result>` where `std::shared_ptr<Result>` is
+   * @return result `concurrent<Result>` where `std::unique_ptr<Result>` is
    * returned by fn.
    * @details Preserve the concurrency of result of operations performed on the
    * underlying objects.
@@ -114,8 +114,8 @@ public:
   void run_slots(Fn const &fn, lockstep<Args> const &...args) const;
 
 protected:
-  std::shared_ptr<T> m_model;
-  std::vector<std::shared_ptr<T>> m_slots;
+  std::unique_ptr<T> m_model;
+  std::vector<std::unique_ptr<T>> m_slots;
 };
 
 } // namespace ana
@@ -162,8 +162,8 @@ ana::concurrent<T> &ana::concurrent<T>::operator=(concurrent<U> &&derived) {
 }
 
 template <typename T>
-void ana::concurrent<T>::add_slot(std::shared_ptr<T> slot) {
-  this->m_slots.push_back(slot);
+void ana::concurrent<T>::add_slot(std::unique_ptr<T> slot) {
+  this->m_slots.emplace_back(std::move(slot));
 }
 
 template <typename T> void ana::concurrent<T>::clear_slots() {
@@ -171,17 +171,16 @@ template <typename T> void ana::concurrent<T>::clear_slots() {
 }
 
 template <typename T>
-void ana::concurrent<T>::set_model(std::shared_ptr<T> model) {
-  this->m_model = model;
+void ana::concurrent<T>::set_model(std::unique_ptr<T> model) {
+  this->m_model = std::move(model);
 }
 
-template <typename T> std::shared_ptr<T> ana::concurrent<T>::get_model() const {
-  return this->m_model;
+template <typename T> T *ana::concurrent<T>::get_model() const {
+  return this->m_model.get();
 }
 
-template <typename T>
-std::shared_ptr<T> ana::concurrent<T>::get_slot(size_t i) const {
-  return this->m_slots.at(i);
+template <typename T> T *ana::concurrent<T>::get_slot(size_t i) const {
+  return this->m_slots.at(i).get();
 }
 
 template <typename T> size_t ana::concurrent<T>::concurrency() const {
@@ -214,9 +213,9 @@ auto ana::concurrent<T>::get_concurrent_result(
   assert(((concurrency() == args.concurrency()) && ...));
   concurrent<typename std::invoke_result_t<Fn, T &, Args &...>::element_type>
       invoked;
-  invoked.set_model(fn(*this->get_model(), *args.get_model()...));
+  invoked.m_model = std::move(fn(*this->get_model(), *args.get_model()...));
   for (size_t i = 0; i < concurrency(); ++i) {
-    invoked.add_slot(fn(*this->get_slot(i), *args.get_slot(i)...));
+    invoked.m_slots.emplace_back(fn(*this->get_slot(i), *args.get_slot(i)...));
   }
   return invoked;
 }

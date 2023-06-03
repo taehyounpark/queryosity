@@ -29,7 +29,7 @@ protected:
 
 template <typename F>
 auto make_equation(F expression)
-    -> std::shared_ptr<column::template equation_t<F>>;
+    -> std::unique_ptr<column::template equation_t<F>>;
 
 } // namespace ana
 
@@ -52,6 +52,6 @@ Ret ana::column::equation<Ret(Vals...)>::evaluate(
 
 template <typename F>
 auto ana::make_equation(F expression)
-    -> std::shared_ptr<ana::column::template equation_t<F>> {
-  return std::make_shared<ana::column::template equation_t<F>>(expression);
+    -> std::unique_ptr<ana::column::template equation_t<F>> {
+  return std::make_unique<ana::column::template equation_t<F>>(expression);
 }

@@ -249,10 +249,10 @@ public:
   ~evaluator() = default;
 
   template <typename... Vals>
-  std::shared_ptr<T> evaluate_column(cell<Vals> const &...cols) const;
+  std::unique_ptr<T> evaluate_column(cell<Vals> const &...cols) const;
 
 protected:
-  std::function<std::shared_ptr<T>()> m_make_shared;
+  std::function<std::unique_ptr<T>()> m_make_unique;
 };
 
 template <typename To, typename From>
@@ -321,15 +321,15 @@ std::shared_ptr<ana::cell<To>> ana::cell_as(const cell<From> &from) {
 template <typename T>
 template <typename... Args>
 ana::column::evaluator<T>::evaluator(Args const &...args)
-    : m_make_shared(std::bind(
-          [](Args const &...args) { return std::make_shared<T>(args...); },
+    : m_make_unique(std::bind(
+          [](Args const &...args) { return std::make_unique<T>(args...); },
           args...)) {}
 
 template <typename T>
 template <typename... Vals>
-std::shared_ptr<T>
+std::unique_ptr<T>
 ana::column::evaluator<T>::evaluate_column(cell<Vals> const &...columns) const {
-  auto defn = m_make_shared();
+  auto defn = m_make_unique();
 
   defn->set_arguments(columns...);
 

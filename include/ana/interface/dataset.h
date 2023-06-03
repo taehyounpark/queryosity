@@ -129,7 +129,7 @@ public:
    * dataset.
    * @return The input reader.
    * @details **Important**: the return type is required to be a
-   * `std::shared_ptr` of a valid `dataset::reader` implementation as required
+   * `std::unique_ptr` of a valid `dataset::reader` implementation as required
    * for use in a `ana::concurrent` container. This method is \a const as it is
    * to be performed N times for each thread, and each subsequent call should
    * not alter the logical state of this class.
@@ -172,11 +172,11 @@ using read_column_t =
         std::declval<dataset::range const &>(),
         std::declval<std::string const &>()))::element_type;
 
-template <typename T> struct is_shared_ptr : std::false_type {};
+template <typename T> struct is_unique_ptr : std::false_type {};
 template <typename T>
-struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
+struct is_unique_ptr<std::unique_ptr<T>> : std::true_type {};
 template <typename T>
-static constexpr bool is_shared_ptr_v = is_shared_ptr<T>::value;
+static constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 
 } // namespace ana
 
@@ -315,8 +315,8 @@ template <typename T>
 decltype(auto) ana::dataset::input<T>::read_dataset() const {
 
   using result_type = decltype(static_cast<const T *>(this)->read());
-  static_assert(is_shared_ptr_v<result_type>,
-                "not a std::shared_ptr of ana::dataset::reader<T>");
+  static_assert(is_unique_ptr_v<result_type>,
+                "not a std::unique_ptr of ana::dataset::reader<T>");
 
   using reader_type = typename result_type::element_type;
   static_assert(std::is_base_of_v<dataset::reader<reader_type>, reader_type>,
@@ -337,8 +337,8 @@ ana::dataset::reader<T>::read_column(const range &part,
 
   using result_type =
       decltype(static_cast<const T *>(this)->template read<Val>(part, name));
-  static_assert(is_shared_ptr_v<result_type>,
-                "must be a std::shared_ptr of ana::column::reader<T>");
+  static_assert(is_unique_ptr_v<result_type>,
+                "must be a std::unique_ptr of ana::column::reader<T>");
 
   return static_cast<const T *>(this)->template read<Val>(part, name);
 }

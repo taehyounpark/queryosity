@@ -149,7 +149,7 @@ template <typename T>
 template <typename Act>
 void ana::dataflow<T>::lazy<Act>::varied::set_variation(
     const std::string &var_name, lazy &&var) {
-  m_var_lookup.insert(std::make_pair(var_name, var));
+  m_var_lookup.insert(std::make_pair(var_name, std::move(var)));
   m_var_names.insert(var_name);
 }
 

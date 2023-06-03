@@ -16,15 +16,15 @@ public:
 
 public:
   template <typename Cnt, typename... Args>
-  std::shared_ptr<booker<Cnt>> book(Args &&...args);
+  std::unique_ptr<booker<Cnt>> book(Args &&...args);
 
   template <typename Cnt>
   auto select_counter(booker<Cnt> const &bkr, const selection &sel)
-      -> std::shared_ptr<Cnt>;
+      -> std::unique_ptr<Cnt>;
 
   template <typename Cnt, typename... Sels>
   auto select_counters(booker<Cnt> const &bkr, Sels const &...sels)
-      -> std::shared_ptr<booker<Cnt>>;
+      -> std::unique_ptr<booker<Cnt>>;
 
   void clear_counters();
 
@@ -47,25 +47,25 @@ inline void ana::counter::experiment::add_counter(ana::counter &cnt) {
 inline void ana::counter::experiment::clear_counters() { m_counters.clear(); }
 
 template <typename Cnt, typename... Args>
-std::shared_ptr<ana::counter::booker<Cnt>>
+std::unique_ptr<ana::counter::booker<Cnt>>
 ana::counter::experiment::book(Args &&...args) {
-  auto bkr = std::make_shared<booker<Cnt>>(std::forward<Args>(args)...);
-  return bkr;
+  auto bkr = std::make_unique<booker<Cnt>>(std::forward<Args>(args)...);
+  return std::move(bkr);
 }
 
 template <typename Cnt>
 auto ana::counter::experiment::select_counter(booker<Cnt> const &bkr,
                                               const selection &sel)
-    -> std::shared_ptr<Cnt> {
+    -> std::unique_ptr<Cnt> {
   auto cnt = bkr.select_counter(sel);
   cnt->apply_scale(m_norm);
   this->add_counter(*cnt);
-  return cnt;
+  return std::move(cnt);
 }
 template <typename Cnt, typename... Sels>
 auto ana::counter::experiment::select_counters(booker<Cnt> const &bkr,
                                                Sels const &...sels)
-    -> std::shared_ptr<booker<Cnt>> {
+    -> std::unique_ptr<booker<Cnt>> {
   // get a booker that has all the selections added
   auto bkr2 = bkr.select_counters(sels...);
   // add all the counters (each with one selection) into the experiment
@@ -74,5 +74,5 @@ auto ana::counter::experiment::select_counters(booker<Cnt> const &bkr,
     cnt->apply_scale(m_norm);
     this->add_counter(*cnt);
   }
-  return bkr2;
+  return std::move(bkr2);
 }
