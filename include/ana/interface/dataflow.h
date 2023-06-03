@@ -608,6 +608,9 @@ template <typename T> void ana::dataflow<T>::analyze() {
   if (m_analyzed)
     return;
 
+  // ignore future analyze() requests until reset() is called
+  m_analyzed = true;
+
   this->m_dataset->start_dataset();
 
   // multithreaded (if enabled)
@@ -617,13 +620,9 @@ template <typename T> void ana::dataflow<T>::analyze() {
   this->m_dataset->finish_dataset();
 
   // clear counters in counter::experiment
-  // if they are present, they will be repeated in future runs
+  // if they are not, they will be repeated in future runs
   this->m_processors.call_all(
       [](processor<dataset_reader_type> &proc) { proc.clear_counters(); });
-
-  // ignore future analyze() requests,
-  // until reset() is called
-  m_analyzed = true;
 }
 
 template <typename T> void ana::dataflow<T>::reset() { m_analyzed = false; }
