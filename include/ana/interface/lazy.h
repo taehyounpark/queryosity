@@ -1,9 +1,3 @@
-/**
- * @file
- * @author Tae Hyoun Park <taehyounpark@icloud.com>
- * @version 0.1 *
- */
-
 #pragma once
 
 #include <iostream>
@@ -156,26 +150,30 @@ public:
   template <typename> friend class lazy;
 
 public:
+  lazy(dataflow<T> &dataflow, const lockstep<U> &action)
+      : node<lazy<U>>::node(dataflow), lockstep<U>::lockstep(action) {}
   lazy(dataflow<T> &dataflow, const concurrent<U> &action)
       : node<lazy<U>>::node(dataflow), lockstep<U>::lockstep(action) {}
 
+  lazy(const lazy &) = default;
+  lazy &operator=(const lazy &) = default;
+
   virtual ~lazy() = default;
 
-  template <typename V>
-  lazy(lazy<V> const &other)
-      : node<lazy<U>>::node(*other.m_df), lockstep<U>::lockstep(other) {}
+  // template <typename V>
+  // lazy(lazy<V> const &other)
+  //     : node<lazy<U>>::node(*other.m_df), lockstep<U>::lockstep(other) {}
 
-  template <typename V> lazy &operator=(lazy<V> const &other) {
-    lockstep<U>::operator=(other);
-    this->m_df = other.m_df;
-    return *this;
-  }
+  // template <typename V> lazy &operator=(lazy<V> const &other) {
+  //   this->m_df = other.m_df;
+  //   lockstep<U>::operator=(other);
+  //   return *this;
+  // }
 
-  virtual void set_variation(const std::string &var_name,
-                             const lazy &var) override;
+  virtual void set_variation(const std::string &var_name, lazy &&var) override;
 
-  virtual lazy get_nominal() const override;
-  virtual lazy get_variation(const std::string &var_name) const override;
+  virtual lazy const &get_nominal() const override;
+  virtual lazy const &get_variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
@@ -210,7 +208,7 @@ public:
    * ```
    */
   template <typename Sel, typename... Args>
-  auto filter(const std::string &name, Args &&...args)
+  auto filter(const std::string &name, Args &&...args) const
       -> lzy_sel_app_t<Sel, Args...>;
 
   /**
@@ -228,7 +226,7 @@ public:
    * ```
    */
   template <typename Sel, typename... Args>
-  auto channel(const std::string &name, Args &&...args)
+  auto channel(const std::string &name, Args &&...args) const
       -> lzy_sel_app_t<Sel, Args...>;
 
   template <typename V = U,
@@ -340,16 +338,6 @@ public:
     return this->get_result();
   }
 
-  template <typename V = U,
-            std::enable_if<ana::counter::template is_booker_v<V>, bool> = false>
-  auto operator[](const std::string &sel_path)
-      -> decltype(std::declval<V>().get_counter(std::declval<std::string>())) {
-    return lazy<counter::counter_t<V>>(
-        *this->m_df, this->get_concurrent_result([=](V &booker) {
-          return booker.get_counter(sel_path);
-        }));
-  }
-
   DEFINE_LAZY_SUBSCRIPT_OP()
   DEFINE_LAZY_UNARY_OP(logical_not, !)
   DEFINE_LAZY_UNARY_OP(minus, -)
@@ -392,15 +380,14 @@ protected:
 
 template <typename T>
 template <typename Act>
-void ana::dataflow<T>::lazy<Act>::set_variation(const std::string &,
-                                                lazy const &) {
+void ana::dataflow<T>::lazy<Act>::set_variation(const std::string &, lazy &&) {
   // should never be called
   throw std::logic_error("cannot set variation to a lazy action");
 }
 
 template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::get_nominal() const -> lazy {
+auto ana::dataflow<T>::lazy<Act>::get_nominal() const -> lazy const & {
   // this is nominal
   return *this;
 }
@@ -408,7 +395,7 @@ auto ana::dataflow<T>::lazy<Act>::get_nominal() const -> lazy {
 template <typename T>
 template <typename Act>
 auto ana::dataflow<T>::lazy<Act>::get_variation(const std::string &) const
-    -> lazy {
+    -> lazy const & {
   // propagation of variations must occur "transparently"
   return *this;
 }
@@ -430,26 +417,9 @@ bool ana::dataflow<T>::lazy<Act>::has_variation(const std::string &) const {
 
 template <typename T>
 template <typename Act>
-template <typename... Args, typename V,
-          std::enable_if_t<ana::column::template is_reader_v<V> ||
-                               ana::column::template is_constant_v<V>,
-                           bool>>
-auto ana::dataflow<T>::lazy<Act>::vary(const std::string &var_name,
-                                       Args &&...args) -> varied {
-  // create a lazy varied with the this as nominal
-  auto syst = varied(*this);
-  // set variation of the column according to new constructor arguments
-  syst.set_variation(
-      var_name, this->m_df->vary_column(*this, std::forward<Args>(args)...));
-  // done
-  return syst;
-}
-
-template <typename T>
-template <typename Act>
 template <typename Sel, typename... Args>
 auto ana::dataflow<T>::lazy<Act>::filter(const std::string &name,
-                                         Args &&...args)
+                                         Args &&...args) const
     -> lzy_sel_app_t<Sel, Args...> {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template filter<Sel>(*this, name,
@@ -464,7 +434,7 @@ template <typename T>
 template <typename Act>
 template <typename Sel, typename... Args>
 auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
-                                          Args &&...args)
+                                          Args &&...args) const
     -> lzy_sel_app_t<Sel, Args...> {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template channel<Sel>(*this, name,
@@ -475,15 +445,20 @@ auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
   }
 }
 
-// template <typename T>
-// template <typename Act>
-// template <typename V, std::enable_if<ana::counter::template is_booker_v<V>,
-// bool>> auto ana::dataflow<T>::lazy<Act>::operator[](
-//     const std::string &sel_path) const ->
-//     decltype(std::declval<V>().get_counter(std::declval<std::string>())) {
-//   return this->get_concurrent_result(
-//     [=](V& booker) {
-//       return booker.get_counter(sel_path);
-//     }
-//   );
-// }
+template <typename T>
+template <typename Act>
+template <typename... Args, typename V,
+          std::enable_if_t<ana::column::template is_reader_v<V> ||
+                               ana::column::template is_constant_v<V>,
+                           bool>>
+auto ana::dataflow<T>::lazy<Act>::vary(const std::string &var_name,
+                                       Args &&...args) -> varied {
+  // create a lazy varied with the this as nominal
+  auto syst = varied(std::move(*this));
+  // set variation of the column according to new constructor arguments
+  syst.set_variation(
+      var_name,
+      this->m_df->vary_column(syst.get_nominal(), std::forward<Args>(args)...));
+  // done
+  return syst;
+}

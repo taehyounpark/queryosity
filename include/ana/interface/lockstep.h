@@ -10,6 +10,7 @@ public:
   using model_type = T;
 
   template <typename> friend class lockstep;
+  template <typename> friend class concurrent;
 
 public:
   lockstep() = default;
@@ -75,6 +76,10 @@ protected:
   std::vector<T *> m_slots;
 };
 
+template <typename Fn, typename... Steps>
+auto get_lockstep_results(Fn fn, Steps... steps) -> lockstep<
+    std::decay_t<std::invoke_result_t<Fn, typename Steps::model_type &...>>> {}
+
 } // namespace ana
 
 #include "concurrent.h"
@@ -130,21 +135,21 @@ auto ana::lockstep<T>::get_model_value(Fn const &fn, Args const &...args) const
   return result;
 }
 
-template <typename T>
-template <typename Fn, typename... Args>
-auto ana::lockstep<T>::get_concurrent_result(
-    Fn const &fn, lockstep<Args> const &...args) const
-    -> concurrent<
-        typename std::invoke_result_t<Fn, T &, Args &...>::element_type> {
-  assert(((concurrency() == args.concurrency()) && ...));
-  concurrent<typename std::invoke_result_t<Fn, T &, Args &...>::element_type>
-      invoked;
-  invoked.set_model(fn(*this->get_model(), *args.get_model()...));
-  for (size_t i = 0; i < concurrency(); ++i) {
-    invoked.add_slot(fn(*this->get_slot(i), *args.get_slot(i)...));
-  }
-  return invoked;
-}
+// template <typename T>
+// template <typename Fn, typename... Args>
+// auto ana::lockstep<T>::get_concurrent_result(
+//     Fn const &fn, lockstep<Args> const &...args) const
+//     -> concurrent<
+//         typename std::invoke_result_t<Fn, T &, Args &...>::element_type> {
+//   assert(((concurrency() == args.concurrency()) && ...));
+//   concurrent<typename std::invoke_result_t<Fn, T &, Args &...>::element_type>
+//       invoked;
+//   invoked.set_model(fn(*this->get_model(), *args.get_model()...));
+//   for (size_t i = 0; i < concurrency(); ++i) {
+//     invoked.add_slot(fn(*this->get_slot(i), *args.get_slot(i)...));
+//   }
+//   return invoked;
+// }
 
 template <typename T>
 template <typename Fn, typename... Args>

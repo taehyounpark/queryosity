@@ -185,16 +185,17 @@ public:
   template <typename... Vals>
   auto book_fill(term<Vals> const &...cols) const -> std::shared_ptr<booker<T>>;
 
-  auto book_selection(const selection &sel) const -> std::shared_ptr<T>;
+  auto select_counter(const selection &sel) const -> std::shared_ptr<T>;
   template <typename... Sels>
-  auto book_selections(Sels const &...sels) const -> std::shared_ptr<booker<T>>;
+  auto select_counters(Sels const &...sels) const -> std::shared_ptr<booker<T>>;
 
   std::set<std::string> list_selection_paths() const;
-  std::shared_ptr<T> get_counter(const std::string &path) const;
+  T *get_counter(const std::string &path) const;
 
 protected:
+  std::shared_ptr<T> make_counter();
   template <typename... Vals> void fill_counter(term<Vals> const &...cols);
-  void make_counter(const selection &sel);
+  void book_selection(std::shared_ptr<T> cnt, const selection &sel);
 
 protected:
   std::function<std::shared_ptr<T>()> m_make_counter_call;
@@ -330,47 +331,40 @@ void ana::counter::booker<T>::fill_counter(term<Vals> const &...columns) {
 }
 
 template <typename T>
+auto ana::counter::booker<T>::select_counter(const selection &sel) const
+    -> std::shared_ptr<T> {
+  // call constructor
+  auto cnt = m_make_counter_call();
+  // fill columns (if set)
+  for (const auto &fill_counter_call : m_fill_counter_calls) {
+    fill_counter_call(*cnt);
+  }
+  // book cnt at the selection
+  cnt->set_selection(sel);
+  // return
+  return std::move(cnt);
+}
+
+template <typename T>
 template <typename... Sels>
-auto ana::counter::booker<T>::book_selections(const Sels &...sels) const
+auto ana::counter::booker<T>::select_counters(const Sels &...sels) const
     -> std::shared_ptr<booker<T>> {
   // use a snapshot of its current calls
   auto counted = std::make_shared<booker<T>>(*this);
-  (counted->make_counter(sels), ...);
+  (counted->book_selection(counted->select_counter(sels), sels), ...);
   // return a new booker with the selections added
   return counted;
 }
 
 template <typename T>
-auto ana::counter::booker<T>::book_selection(const selection &sel) const
-    -> std::shared_ptr<T> {
-  // use a snapshot of its current calls
-  auto counted = std::make_shared<booker<T>>(*this);
-  counted->make_counter(sel);
-  // return a new booker with the selection added
-  return counted->get_counter(sel.get_path());
-}
-
-template <typename T>
-void ana::counter::booker<T>::make_counter(const selection &sel) {
+void ana::counter::booker<T>::book_selection(std::shared_ptr<T> cnt,
+                                             const selection &sel) {
   // check if booking makes sense
   if (m_booked_counter_map.find(sel.get_path()) != m_booked_counter_map.end()) {
     throw std::logic_error("counter already booked at selection");
   }
-
-  // call constructor
-  auto cnt = m_make_counter_call();
-
-  // map selection path & counter
   m_booked_selection_paths.insert(sel.get_path());
-  m_booked_counter_map.insert(std::make_pair(sel.get_path(), cnt));
-
-  // fill columns (if set)
-  for (const auto &fill_counter_call : m_fill_counter_calls) {
-    fill_counter_call(*cnt);
-  }
-
-  // book cnt at the selection
-  cnt->set_selection(sel);
+  m_booked_counter_map.insert(std::make_pair(sel.get_path(), std::move(cnt)));
 }
 
 template <typename T>
@@ -379,10 +373,9 @@ std::set<std::string> ana::counter::booker<T>::list_selection_paths() const {
 }
 
 template <typename T>
-std::shared_ptr<T>
-ana::counter::booker<T>::get_counter(const std::string &sel_path) const {
+T *ana::counter::booker<T>::get_counter(const std::string &sel_path) const {
   if (m_booked_counter_map.find(sel_path) == m_booked_counter_map.end()) {
     throw std::out_of_range("counter not booked at selection path");
   }
-  return m_booked_counter_map.at(sel_path);
+  return m_booked_counter_map.at(sel_path).get();
 }

@@ -9,23 +9,30 @@ template <typename Bld>
 class dataflow<T>::delayed<Bld>::varied : public node<delayed<Bld>> {
 
 public:
-  varied(delayed<Bld> const &nom);
+  varied(delayed<Bld> &&nom);
   ~varied() = default;
 
-  virtual void set_variation(const std::string &var_name,
-                             const delayed &var) override;
+  varied(varied &&) = default;
+  varied &operator=(varied &&) = default;
 
-  virtual delayed get_nominal() const override;
-  virtual delayed get_variation(const std::string &var_name) const override;
+  virtual void set_variation(const std::string &var_name,
+                             delayed &&var) override;
+
+  virtual delayed const &get_nominal() const override;
+  virtual delayed const &
+  get_variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
 
 public:
   template <typename... Args, typename V = Bld,
-            std::enable_if_t<ana::is_column_v<V> ||
-                                 ana::column::template is_evaluator_v<V>,
-                             bool> = false>
+            std::enable_if_t<ana::is_column_v<V>, bool> = false>
+  auto vary(const std::string &var_name, Args &&...args) -> varied;
+
+  template <
+      typename... Args, typename V = Bld,
+      std::enable_if_t<ana::column::template is_evaluator_v<V>, bool> = false>
   auto vary(const std::string &var_name, Args &&...args) -> varied;
 
   template <
@@ -63,7 +70,7 @@ public:
   template <
       typename V = Bld,
       std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
-  auto operator[](const std::string &var_name) const -> delayed<V>;
+  auto operator[](const std::string &var_name) const -> delayed<V> const &;
 
 protected:
   delayed<Bld> m_nom;
@@ -79,27 +86,28 @@ protected:
 
 template <typename T>
 template <typename Bld>
-ana::dataflow<T>::delayed<Bld>::varied::varied(delayed<Bld> const &nom)
-    : node<delayed<Bld>>::node(nom), m_nom(nom) {}
+ana::dataflow<T>::delayed<Bld>::varied::varied(delayed<Bld> &&nom)
+    : node<delayed<Bld>>::node(*nom.m_df), m_nom(std::move(nom)) {}
 
 template <typename T>
 template <typename Bld>
 void ana::dataflow<T>::delayed<Bld>::varied::set_variation(
-    const std::string &var_name, delayed const &var) {
-  m_var_lookup.insert(std::make_pair(var_name, var));
+    const std::string &var_name, delayed &&var) {
+  m_var_lookup.insert(std::move(std::make_pair(var_name, std::move(var))));
   m_var_names.insert(var_name);
 }
 
 template <typename T>
 template <typename Bld>
-auto ana::dataflow<T>::delayed<Bld>::varied::get_nominal() const -> delayed {
+auto ana::dataflow<T>::delayed<Bld>::varied::get_nominal() const
+    -> delayed const & {
   return m_nom;
 }
 
 template <typename T>
 template <typename Bld>
 auto ana::dataflow<T>::delayed<Bld>::varied::get_variation(
-    const std::string &var_name) const -> delayed {
+    const std::string &var_name) const -> delayed const & {
   return (this->has_variation(var_name) ? m_var_lookup.at(var_name) : m_nom);
 }
 
@@ -122,7 +130,7 @@ template <typename Bld>
 template <typename V,
           std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
 auto ana::dataflow<T>::delayed<Bld>::varied::operator[](
-    const std::string &var_name) const -> delayed<V> {
+    const std::string &var_name) const -> delayed<V> const & {
   if (!this->has_variation(var_name)) {
     throw std::out_of_range("variation does not exist");
   }
@@ -173,10 +181,11 @@ template <typename... Nodes, typename V,
           std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
 auto ana::dataflow<T>::delayed<Bld>::varied::fill(Nodes const &...columns)
     -> varied {
-  auto syst = varied(this->get_nominal().fill(columns.get_nominal()...));
+  auto syst =
+      varied(std::move(this->get_nominal().fill(columns.get_nominal()...)));
   for (auto const &var_name : list_all_variation_names(*this, columns...)) {
-    syst.set_variation(var_name, get_variation(var_name).fill(
-                                     columns.get_variation(var_name)...));
+    syst.set_variation(var_name, std::move(get_variation(var_name).fill(
+                                     columns.get_variation(var_name)...)));
   }
   return syst;
 }
@@ -217,21 +226,15 @@ auto ana::dataflow<T>::delayed<Bld>::varied::at(Nodes const &...selections) ->
 
 template <typename T>
 template <typename Bld>
-template <
-    typename... Args, typename V,
-    std::enable_if_t<
-        ana::is_column_v<V> || ana::column::template is_evaluator_v<V>, bool>>
+template <typename... Args, typename V,
+          std::enable_if_t<ana::column::template is_evaluator_v<V>, bool>>
 auto ana::dataflow<T>::delayed<Bld>::varied::vary(const std::string &var_name,
                                                   Args &&...args) -> varied {
-  auto syst = varied(this->get_nominal());
-  for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name, this->get_variation(var_name));
-  }
-  // set new variation
-  syst.set_variation(var_name, this->get_nominal()
-                                   .vary(var_name, std::forward<Args>(args)...)
-                                   .get_variation(var_name));
-  return syst;
+  auto syst = varied(std::move(*this));
+  syst.set_variation(var_name,
+                     std::move(syst.m_df->vary_equation(
+                         syst.get_nominal(), std::forward<Args>(args)...)));
+  return std::move(syst);
 }
 
 template <typename T>
@@ -240,9 +243,11 @@ template <typename... Args>
 auto ana::dataflow<T>::delayed<Bld>::varied::operator()(Args &&...args) ->
     typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
         std::forward<Args>(args).get_nominal()...))::action_type>::varied {
+
   using syst_type =
       typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
           std::forward<Args>(args).get_nominal()...))::action_type>::varied;
+
   auto syst = syst_type(this->get_nominal().operator()(
       std::forward<Args>(args).get_nominal()...));
   for (auto const &var_name :
@@ -251,5 +256,5 @@ auto ana::dataflow<T>::delayed<Bld>::varied::operator()(Args &&...args) ->
         var_name, get_variation(var_name).operator()(
                       std::forward<Args>(args).get_variation(var_name)...));
   }
-  return syst;
+  return std::move(syst);
 }

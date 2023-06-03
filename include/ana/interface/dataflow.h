@@ -213,10 +213,10 @@ protected:
   auto apply_selection(delayed<selection::applicator<Eqn>> const &calc,
                        lazy<Cols> const &...columns) -> lazy<selection>;
   template <typename Cnt>
-  auto book_selection(delayed<counter::booker<Cnt>> const &bkr,
+  auto select_counter(delayed<counter::booker<Cnt>> const &bkr,
                       lazy<selection> const &sel) -> lazy<Cnt>;
   template <typename Cnt, typename... Sels>
-  auto book_selections(delayed<counter::booker<Cnt>> const &bkr,
+  auto select_counters(delayed<counter::booker<Cnt>> const &bkr,
                        lazy<Sels> const &...sels)
       -> delayed<counter::booker<Cnt>>;
 
@@ -259,11 +259,11 @@ protected:
   auto vary_equation(delayed<column::evaluator<V>> const &nom, F callable)
       -> delayed<column::evaluator<V>>;
 
-  void add_action(concurrent<action> const &act);
+  void add_action(concurrent<action> &&act);
 
 protected:
   bool m_analyzed;
-  std::vector<concurrent<action>> m_actions;
+  std::vector<concurrent<action>> m_actions; //!
 };
 
 template <typename T> template <typename U> class dataflow<T>::node {
@@ -283,10 +283,10 @@ public:
   virtual ~node() = default;
 
 public:
-  virtual void set_variation(const std::string &var_name, U const &nom) = 0;
+  virtual void set_variation(const std::string &var_name, U &&nom) = 0;
 
-  virtual U get_nominal() const = 0;
-  virtual U get_variation(const std::string &var_name) const = 0;
+  virtual U const &get_nominal() const = 0;
+  virtual U const &get_variation(const std::string &var_name) const = 0;
 
   virtual bool has_variation(const std::string &var_name) const = 0;
   virtual std::set<std::string> list_variation_names() const = 0;
@@ -354,8 +354,9 @@ auto ana::dataflow<T>::read(const std::string &name)
       [name = name](processor<dataset_reader_type> &proc) {
         return proc.template read<Val>(name);
       });
-  this->add_action(act);
-  return lazy<read_column_t<read_dataset_t<T>, Val>>(*this, act);
+  auto lzy = lazy<read_column_t<read_dataset_t<T>, Val>>(*this, act);
+  this->add_action(std::move(act));
+  return lzy;
 }
 
 template <typename T>
@@ -366,9 +367,9 @@ auto ana::dataflow<T>::constant(const Val &val)
       [val = val](processor<dataset_reader_type> &proc) {
         return proc.template constant<Val>(val);
       });
-  this->add_action(act);
-  auto nd = lazy<column::constant<Val>>(*this, act);
-  return nd;
+  auto lzy = lazy<column::constant<Val>>(*this, act);
+  this->add_action(std::move(act));
+  return lzy;
 }
 
 template <typename T>
@@ -405,8 +406,9 @@ auto ana::dataflow<T>::evaluate_column(
         return proc.template evaluate_column(calc, cols...);
       },
       lockstep<column::evaluator<Def>>(calc), columns...);
-  this->add_action(act);
-  return lazy<Def>(*this, act);
+  auto lzy = lazy<Def>(*this, act);
+  this->add_action(std::move(act));
+  return lzy;
 }
 
 template <typename T>
@@ -534,8 +536,9 @@ auto ana::dataflow<T>::apply_selection(
         return proc.template apply_selection(calc, cols...);
       },
       lockstep<selection::applicator<Eqn>>(calc), columns...);
-  this->add_action(act);
-  return lazy<selection>(*this, act);
+  auto lzy = lazy<selection>(*this, act);
+  this->add_action(std::move(act));
+  return lzy;
 }
 
 template <typename T>
@@ -547,7 +550,8 @@ auto ana::dataflow<T>::join(lazy<selection> const &a, lazy<selection> const &b)
          selection const &b) { return proc.template join<Sel>(a, b); },
       a, b);
   this->add_action(act);
-  return lazy<selection>(*this, act);
+  auto lzy = lazy<selection>(*this, act);
+  return lzy;
 }
 
 template <typename T>
@@ -562,22 +566,23 @@ auto ana::dataflow<T>::book(Args &&...args) -> delayed<counter::booker<Cnt>> {
 
 template <typename T>
 template <typename Cnt>
-auto ana::dataflow<T>::book_selection(delayed<counter::booker<Cnt>> const &bkr,
+auto ana::dataflow<T>::select_counter(delayed<counter::booker<Cnt>> const &bkr,
                                       lazy<selection> const &sel) -> lazy<Cnt> {
   // any time a new counter is booked, means the dataflow must run: so reset its
   // status
   this->reset();
   auto act = this->m_processors.get_concurrent_result(
       [](processor<dataset_reader_type> &proc, counter::booker<Cnt> &bkr,
-         const selection &sel) { return proc.book_selection(bkr, sel); },
+         const selection &sel) { return proc.select_counter(bkr, sel); },
       lockstep<counter::booker<Cnt>>(bkr), sel);
-  this->add_action(act);
-  return lazy<Cnt>(*this, act);
+  auto lzy = lazy<Cnt>(*this, act);
+  this->add_action(std::move(act));
+  return lzy;
 }
 
 template <typename T>
 template <typename Cnt, typename... Sels>
-auto ana::dataflow<T>::book_selections(delayed<counter::booker<Cnt>> const &bkr,
+auto ana::dataflow<T>::select_counters(delayed<counter::booker<Cnt>> const &bkr,
                                        lazy<Sels> const &...sels)
     -> delayed<counter::booker<Cnt>> {
   // any time a new counter is booked, means the dataflow must run: so reset its
@@ -588,13 +593,13 @@ auto ana::dataflow<T>::book_selections(delayed<counter::booker<Cnt>> const &bkr,
       dly_type(*this, this->m_processors.get_concurrent_result(
                           [](processor<dataset_reader_type> &proc,
                              counter::booker<Cnt> &bkr, Sels const &...sels) {
-                            return proc.book_selections(bkr, sels...);
+                            return proc.select_counters(bkr, sels...);
                           },
                           lockstep<counter::booker<Cnt>>(bkr), sels...));
   // add all counters that were booked
-  for (auto const &sel_path : bkr2.list_selection_paths()) {
-    this->add_action(bkr2.get_action(sel_path));
-  }
+  // for (auto const &sel_path : bkr2.list_selection_paths()) {
+  // this->add_action(bkr2.get_action(sel_path));
+  // }
   return bkr2;
 }
 
@@ -624,8 +629,8 @@ template <typename T> void ana::dataflow<T>::analyze() {
 template <typename T> void ana::dataflow<T>::reset() { m_analyzed = false; }
 
 template <typename T>
-void ana::dataflow<T>::add_action(concurrent<action> const &action) {
-  m_actions.emplace_back(action);
+void ana::dataflow<T>::add_action(concurrent<action> &&action) {
+  m_actions.emplace_back(std::move(action));
 }
 
 template <typename... Nodes>

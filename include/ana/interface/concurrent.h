@@ -31,11 +31,14 @@ public:
   concurrent() = default;
   ~concurrent() = default;
 
-  concurrent(const concurrent &other) = default;
-  concurrent &operator=(const concurrent &other) = default;
+  concurrent(const concurrent &) = delete;
+  concurrent &operator=(const concurrent &) = delete;
 
-  template <typename U> concurrent(const concurrent<U> &derived);
-  template <typename U> concurrent &operator=(const concurrent<U> &derived);
+  concurrent(concurrent &&) = default;
+  concurrent &operator=(concurrent &&) = default;
+
+  template <typename U> concurrent(concurrent<U> &&derived);
+  template <typename U> concurrent &operator=(concurrent<U> &&derived);
 
 public:
   void set_model(std::shared_ptr<T> model);
@@ -93,6 +96,11 @@ public:
       -> concurrent<
           typename std::invoke_result_t<Fn, T &, Args &...>::element_type>;
 
+  template <typename Fn, typename... Args>
+  auto get_lockstep_view(Fn const &fn, lockstep<Args> const &...args) const
+      -> lockstep<std::remove_pointer_t<
+          typename std::invoke_result_t<Fn, T &, Args &...>>>;
+
   /**
    * @brief Run the function on the underlying slots, multi-threading if
    * enabled.
@@ -133,23 +141,22 @@ inline unsigned int ana::multithread::concurrency() {
 
 template <typename T>
 template <typename U>
-ana::concurrent<T>::concurrent(const concurrent<U> &derived) {
+ana::concurrent<T>::concurrent(concurrent<U> &&derived) {
   static_assert(std::is_base_of_v<T, U>, "incompatible concurrent types");
-  this->m_model = derived.m_model;
+  this->m_model = std::move(derived.m_model);
   this->m_slots.clear();
   for (size_t i = 0; i < derived.concurrency(); ++i) {
-    this->m_slots.push_back(derived.m_slots[i]);
+    this->m_slots.emplace_back(std::move(derived.m_slots[i]));
   }
 }
 
 template <typename T>
 template <typename U>
-ana::concurrent<T> &
-ana::concurrent<T>::operator=(const concurrent<U> &derived) {
+ana::concurrent<T> &ana::concurrent<T>::operator=(concurrent<U> &&derived) {
   this->m_model = derived.m_model;
   this->m_slots.clear();
   for (size_t i = 0; i < derived.concurrency(); ++i) {
-    this->m_slots.push_back(derived.m_slots[i]);
+    this->m_slots.emplace_back(std::move(derived.m_slots[i]));
   }
   return *this;
 }
@@ -210,6 +217,23 @@ auto ana::concurrent<T>::get_concurrent_result(
   invoked.set_model(fn(*this->get_model(), *args.get_model()...));
   for (size_t i = 0; i < concurrency(); ++i) {
     invoked.add_slot(fn(*this->get_slot(i), *args.get_slot(i)...));
+  }
+  return invoked;
+}
+
+template <typename T>
+template <typename Fn, typename... Args>
+auto ana::concurrent<T>::get_lockstep_view(Fn const &fn,
+                                           lockstep<Args> const &...args) const
+    -> lockstep<std::remove_pointer_t<
+        typename std::invoke_result_t<Fn, T &, Args &...>>> {
+  assert(((concurrency() == args.concurrency()) && ...));
+  lockstep<
+      std::remove_pointer_t<typename std::invoke_result_t<Fn, T &, Args &...>>>
+      invoked;
+  invoked.m_model = fn(*this->get_model(), *args.get_model()...);
+  for (size_t i = 0; i < concurrency(); ++i) {
+    invoked.m_slots.push_back(fn(*this->get_slot(i), *args.get_slot(i)...));
   }
   return invoked;
 }

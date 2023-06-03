@@ -72,20 +72,19 @@ template <typename T>
 template <typename Act>
 class dataflow<T>::lazy<Act>::varied : public node<lazy<Act>> {
 
-  // public:
-  //   using dataflow_type = typename lazy<Act>::dataflow_type;
-  //   using dataset_type = typename lazy<Act>::dataset_type;
-  //   using action_type = typename lazy<Act>::action_type;
+public:
+  using dataflow_type = typename lazy<Act>::dataflow_type;
+  using dataset_type = typename lazy<Act>::dataset_type;
+  using action_type = typename lazy<Act>::action_type;
 
 public:
   varied(lazy<Act> const &nom);
   ~varied() = default;
 
-  virtual void set_variation(const std::string &var_name,
-                             const lazy &var) override;
+  virtual void set_variation(const std::string &var_name, lazy &&var) override;
 
-  virtual lazy get_nominal() const override;
-  virtual lazy get_variation(const std::string &var_name) const override;
+  virtual lazy const &get_nominal() const override;
+  virtual lazy const &get_variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
@@ -149,21 +148,21 @@ ana::dataflow<T>::lazy<Act>::varied::varied(lazy<Act> const &nom)
 template <typename T>
 template <typename Act>
 void ana::dataflow<T>::lazy<Act>::varied::set_variation(
-    const std::string &var_name, lazy const &var) {
+    const std::string &var_name, lazy &&var) {
   m_var_lookup.insert(std::make_pair(var_name, var));
   m_var_names.insert(var_name);
 }
 
 template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::varied::get_nominal() const -> lazy {
+auto ana::dataflow<T>::lazy<Act>::varied::get_nominal() const -> lazy const & {
   return m_nom;
 }
 
 template <typename T>
 template <typename Act>
 auto ana::dataflow<T>::lazy<Act>::varied::get_variation(
-    const std::string &var_name) const -> lazy {
+    const std::string &var_name) const -> lazy const & {
   return (this->has_variation(var_name) ? m_var_lookup.at(var_name) : m_nom);
 }
 
@@ -220,10 +219,13 @@ template <typename Sel, typename Lmbd, typename V,
 auto ana::dataflow<T>::lazy<Act>::varied::filter(const std::string &name,
                                                  Lmbd &&lmbd) ->
     typename delayed<selection::template custom_applicator_t<Lmbd>>::varied {
+
   using syst_type =
       typename delayed<selection::template custom_applicator_t<Lmbd>>::varied;
+
   auto syst = syst_type(
       this->get_nominal().template filter<Sel>(name, std::forward<Lmbd>(lmbd)));
+
   for (auto const &var_name : this->list_variation_names()) {
     syst.set_variation(var_name, get_variation(var_name).template filter<Sel>(
                                      name, std::forward<Lmbd>(lmbd)));
