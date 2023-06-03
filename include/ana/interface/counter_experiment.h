@@ -3,8 +3,11 @@
 #include <memory>
 #include <vector>
 
-#include "counter.h"
 #include "selection_cutflow.h"
+
+#include "counter.h"
+#include "counter_booker.h"
+#include "counter_bookkeeper.h"
 
 namespace ana {
 
@@ -24,7 +27,8 @@ public:
 
   template <typename Cnt, typename... Sels>
   auto select_counters(booker<Cnt> const &bkr, Sels const &...sels)
-      -> std::unique_ptr<booker<Cnt>>;
+      -> std::pair<std::unique_ptr<bookkeeper<Cnt>>,
+                   std::vector<std::unique_ptr<Cnt>>>;
 
   void clear_counters();
 
@@ -62,17 +66,18 @@ auto ana::counter::experiment::select_counter(booker<Cnt> const &bkr,
   this->add_counter(*cnt);
   return std::move(cnt);
 }
+
 template <typename Cnt, typename... Sels>
 auto ana::counter::experiment::select_counters(booker<Cnt> const &bkr,
                                                Sels const &...sels)
-    -> std::unique_ptr<booker<Cnt>> {
+    -> std::pair<std::unique_ptr<bookkeeper<Cnt>>,
+                 std::vector<std::unique_ptr<Cnt>>> {
   // get a booker that has all the selections added
-  auto bkr2 = bkr.select_counters(sels...);
-  // add all the counters (each with one selection) into the experiment
-  for (auto const &sel_path : bkr2->list_selection_paths()) {
-    auto cnt = bkr2->get_counter(sel_path);
-    cnt->apply_scale(m_norm);
-    this->add_counter(*cnt);
+  auto bkpr_and_cntrs = bkr.select_counters(sels...);
+
+  for (auto const &cntr : bkpr_and_cntrs.second) {
+    this->add_counter(*cntr);
   }
-  return std::move(bkr2);
+
+  return std::move(bkpr_and_cntrs);
 }

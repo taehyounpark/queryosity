@@ -132,7 +132,7 @@ public:
 
 protected:
   lazy<Act> m_nom;
-  std::unordered_map<std::string, lazy<Act>> m_var_lookup;
+  std::unordered_map<std::string, lazy<Act>> m_var_map;
   std::set<std::string> m_var_names;
 };
 
@@ -149,7 +149,7 @@ template <typename T>
 template <typename Act>
 void ana::dataflow<T>::lazy<Act>::varied::set_variation(
     const std::string &var_name, lazy &&var) {
-  m_var_lookup.insert(std::make_pair(var_name, std::move(var)));
+  m_var_map.insert(std::make_pair(var_name, std::move(var)));
   m_var_names.insert(var_name);
 }
 
@@ -163,14 +163,14 @@ template <typename T>
 template <typename Act>
 auto ana::dataflow<T>::lazy<Act>::varied::get_variation(
     const std::string &var_name) const -> lazy const & {
-  return (this->has_variation(var_name) ? m_var_lookup.at(var_name) : m_nom);
+  return (this->has_variation(var_name) ? m_var_map.at(var_name) : m_nom);
 }
 
 template <typename T>
 template <typename Act>
 bool ana::dataflow<T>::lazy<Act>::varied::has_variation(
     const std::string &var_name) const {
-  return m_var_lookup.find(var_name) != m_var_lookup.end();
+  return m_var_map.find(var_name) != m_var_map.end();
 }
 
 template <typename T>

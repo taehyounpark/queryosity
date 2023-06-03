@@ -1,11 +1,12 @@
 #pragma once
 
+#include <memory>
 #include <set>
 #include <string>
 #include <type_traits>
 #include <vector>
 
-#include "concurrent.h"
+#include "multithread.h"
 #include "sample.h"
 
 #include "column.h"
@@ -218,7 +219,7 @@ protected:
   template <typename Cnt, typename... Sels>
   auto select_counters(delayed<counter::booker<Cnt>> const &bkr,
                        lazy<Sels> const &...sels)
-      -> delayed<counter::booker<Cnt>>;
+      -> delayed<counter::bookkeeper<Cnt>>;
 
   template <typename Sel, typename F>
   auto filter(lazy<selection> const &prev, const std::string &name, F callable)
@@ -259,11 +260,12 @@ protected:
   auto vary_equation(delayed<column::evaluator<V>> const &nom, F callable)
       -> delayed<column::evaluator<V>>;
 
-  void add_action(concurrent<action> &&act);
+  void add_action(concurrent<action> act);
+  void add_action(std::unique_ptr<action> act);
 
 protected:
   bool m_analyzed;
-  std::vector<concurrent<action>> m_actions; //!
+  std::vector<std::unique_ptr<action>> m_actions; //!
 };
 
 template <typename T> template <typename U> class dataflow<T>::systematic {
@@ -581,19 +583,30 @@ template <typename T>
 template <typename Cnt, typename... Sels>
 auto ana::dataflow<T>::select_counters(delayed<counter::booker<Cnt>> const &bkr,
                                        lazy<Sels> const &...sels)
-    -> delayed<counter::booker<Cnt>> {
+    -> delayed<counter::bookkeeper<Cnt>> {
   // any time a new counter is booked, means the dataflow must run: so reset its
   // status
   this->reset();
-  using dly_type = delayed<counter::booker<Cnt>>;
-  auto bkr2 =
-      dly_type(*this, this->m_processors.get_concurrent_result(
-                          [](dataset_processor_type &proc,
-                             counter::booker<Cnt> &bkr, Sels const &...sels) {
-                            return proc.select_counters(bkr, sels...);
-                          },
-                          lockstep<counter::booker<Cnt>>(bkr), sels...));
-  return bkr2;
+
+  using delayed_bookkeeper_type = delayed<counter::bookkeeper<Cnt>>;
+  auto bkpr = delayed_bookkeeper_type(
+      *this, this->m_processors.get_concurrent_result(
+                 [this](dataset_processor_type &proc, counter::booker<Cnt> &bkr,
+                        Sels const &...sels) {
+                   // get bookkeeper and counters
+                   auto bkpr_and_cntrs = proc.select_counters(bkr, sels...);
+
+                   // add each counter to this dataflow
+                   for (auto &&cntr : bkpr_and_cntrs.second) {
+                     this->add_action(std::move(cntr));
+                   }
+
+                   // take the bookkeeper
+                   return std::move(bkpr_and_cntrs.first);
+                 },
+                 lockstep<counter::booker<Cnt>>(bkr), sels...));
+
+  return std::move(bkpr);
 }
 
 template <typename T> void ana::dataflow<T>::analyze() {
@@ -621,7 +634,15 @@ template <typename T> void ana::dataflow<T>::analyze() {
 template <typename T> void ana::dataflow<T>::reset() { m_analyzed = false; }
 
 template <typename T>
-void ana::dataflow<T>::add_action(concurrent<action> &&action) {
+void ana::dataflow<T>::add_action(concurrent<action> action) {
+  m_actions.emplace_back(std::move(action.m_model));
+  for (unsigned int i = 0; i < action.concurrency(); ++i) {
+    m_actions.emplace_back(std::move(action.m_slots[i]));
+  }
+}
+
+template <typename T>
+void ana::dataflow<T>::add_action(std::unique_ptr<action> action) {
   m_actions.emplace_back(std::move(action));
 }
 

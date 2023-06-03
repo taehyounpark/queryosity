@@ -54,6 +54,7 @@ protected:
 
 #include "column_constant.h"
 #include "column_equation.h"
+#include "column_evaluator.h"
 
 template <typename T>
 ana::column::computation<T>::computation(const ana::dataset::range &part,

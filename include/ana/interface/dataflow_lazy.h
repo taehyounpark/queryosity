@@ -297,17 +297,19 @@ public:
    * @details A joined filter is a cut without any preselection (i.e. weight
    * = 1.0), and one that cannot be designated as a `channel`.
    */
-  // template <typename V = U,
-  //           std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  // auto operator||(const varied<selection> &b) const -> lazy<selection> {
-  //   varied<selection> syst(this->get_nominal().operator||(b.get_nominal()));
-  //   auto var_names = list_all_variation_names(b);
-  //   for (auto const &var_name : var_names) {
-  //     syst.set_variation(var_name, this->get_variation(var_name).operator||(
-  //                                      b.get_variation(var_name)));
-  //   }
-  //   return syst;
-  // }
+  template <typename V = U,
+            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  auto operator||(typename lazy<selection>::varied const &b) const ->
+      typename lazy<selection>::varied {
+    using syst_type = typename lazy<selection>::varied;
+    auto syst = syst_type(this->get_nominal().operator||(b.get_nominal()));
+    auto var_names = list_all_variation_names(b);
+    for (auto const &var_name : var_names) {
+      syst.set_variation(var_name, this->get_variation(var_name).operator||(
+                                       b.get_variation(var_name)));
+    }
+    return syst;
+  }
 
   /**
    * @brief Join two filters (AND)
@@ -316,17 +318,19 @@ public:
    * @details A joined filter is a cut without any preselection (i.e. weight
    * = 1.0), and one that cannot be designated as a `channel`.
    */
-  // template <typename V = U,
-  //           std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  // auto operator&&(const varied<selection> &b) const -> lazy<selection> {
-  //   varied<selection> syst(this->get_nominal().operator&&(b.get_nominal()));
-  //   auto var_names = list_all_variation_names(b);
-  //   for (auto const &var_name : var_names) {
-  //     syst.set_variation(var_name, this->get_variation(var_name).operator&&(
-  //                                      b.get_variation(var_name)));
-  //   }
-  //   return syst;
-  // }
+  template <typename V = U,
+            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  auto operator&&(typename lazy<selection>::varied const &b) const ->
+      typename lazy<selection>::varied {
+    using syst_type = typename lazy<selection>::varied;
+    auto syst = syst_type(this->get_nominal().operator||(b.get_nominal()));
+    auto var_names = list_all_variation_names(b);
+    for (auto const &var_name : var_names) {
+      syst.set_variation(var_name, this->get_variation(var_name).operator&&(
+                                       b.get_variation(var_name)));
+    }
+    return syst;
+  }
 
   /**
    * @brief Shorthand for `result` of counter.

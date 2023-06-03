@@ -3,9 +3,9 @@
 #include <iostream>
 #include <memory>
 
-#include "concurrent.h"
 #include "dataset_processor.h"
 #include "dataset_reader.h"
+#include "multithread.h"
 
 namespace ana {
 

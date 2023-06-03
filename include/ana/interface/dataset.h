@@ -10,8 +10,6 @@
 
 namespace ana {
 
-template <typename T> class sample;
-
 namespace dataset {
 
 template <typename T> class input;

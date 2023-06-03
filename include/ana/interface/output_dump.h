@@ -1,7 +1,5 @@
 #pragma once
 
-#include "dataflow_lazy.h"
-
 #include <utility>
 
 namespace ana {
@@ -14,6 +12,8 @@ void dump(Node const &node, Dest &&dest, Args &&...args);
 }
 
 } // namespace ana
+
+#include "dataflow.h"
 
 template <typename Sum, typename Node, typename Dest, typename... Args>
 void ana::output::dump(Node const &node, Dest &&dest, Args &&...args) {

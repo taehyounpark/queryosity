@@ -1,8 +1,8 @@
 #pragma once
 
-#include "concurrent.h"
 #include "dataflow.h"
 #include "dataflow_lazy.h"
+#include "multithread.h"
 
 namespace ana {
 
@@ -225,7 +225,7 @@ public:
             std::enable_if_t<ana::counter::template is_booker_v<V> &&
                                  ana::dataflow<DS>::template is_nominal_v<Node>,
                              bool> = false>
-  auto select_counter(Node const &sel) const -> lazy<counter::counter_t<V>> {
+  auto select_counter(Node const &sel) const -> lazy<counter::booked_t<V>> {
     // nominal
     return this->m_df->select_counter(*this, sel);
   }
@@ -235,8 +235,8 @@ public:
                                  ana::dataflow<DS>::template is_varied_v<Node>,
                              bool> = false>
   auto select_counter(Node const &sel) const ->
-      typename lazy<counter::counter_t<V>>::varied {
-    using syst_type = typename lazy<counter::counter_t<V>>::varied;
+      typename lazy<counter::booked_t<V>>::varied {
+    using syst_type = typename lazy<counter::booked_t<V>>::varied;
     auto syst = syst_type(this->m_df->select_counter(*this, sel.get_nominal()));
     for (auto const &var_name : list_all_variation_names(sel)) {
       syst.set_variation(var_name, this->m_df->select_counter(
@@ -261,7 +261,8 @@ public:
                 ana::counter::template is_booker_v<V> &&
                     ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
                 bool> = false>
-  auto select_counters(Nodes const &...sels) const -> delayed<V> {
+  auto select_counters(Nodes const &...sels) const
+      -> delayed<counter::bookkeeper<counter::booked_t<V>>> {
     // nominal
     return this->m_df->select_counters(*this, sels...);
   }
@@ -271,9 +272,10 @@ public:
                                  has_variation_v<Nodes...>,
                              bool> = false>
   auto select_counters(Nodes const &...sels) const ->
-      typename lazy<counter::counter_t<V>>::varied {
+      typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied {
     // variations
-    using syst_type = typename lazy<counter::counter_t<V>>::varied;
+    using syst_type =
+        typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied;
     auto syst =
         syst_type(this->m_df->select_counters(*this, sels.get_nominal()...));
     for (auto const &var_name : list_all_variation_names(sels...)) {
@@ -288,10 +290,10 @@ public:
    */
   template <
       typename V = Bld,
-      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
+      std::enable_if_t<ana::counter::template is_bookkeeper_v<V>, bool> = false>
   auto list_selection_paths() const -> std::set<std::string> {
     return this->get_model_value(
-        [](Bld const &bkr) { return bkr.list_selection_paths(); });
+        [](Bld const &bkpr) { return bkpr.list_selection_paths(); });
   }
 
   /**
@@ -301,12 +303,12 @@ public:
    */
   template <
       typename V = Bld,
-      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
+      std::enable_if_t<ana::counter::template is_bookkeeper_v<V>, bool> = false>
   auto get_counter(const std::string &sel_path) const
-      -> lazy<counter::counter_t<V>> {
-    return lazy<counter::counter_t<V>>(
-        *this->m_df, this->get_lockstep_view([sel_path = sel_path](V &bkr) {
-          return bkr.get_counter(sel_path);
+      -> lazy<counter::booked_t<V>> {
+    return lazy<counter::booked_t<V>>(
+        *this->m_df, this->get_lockstep_view([sel_path = sel_path](V &bkpr) {
+          return bkpr.get_counter(sel_path);
         }));
   }
 
@@ -359,10 +361,11 @@ public:
     return this->apply(std::forward<Args>(columns)...);
   }
 
-  template <typename... Args, typename V = Bld,
-            std::enable_if_t<counter::template is_booker_v<V>, bool> = false>
+  template <
+      typename... Args, typename V = Bld,
+      std::enable_if_t<counter::template is_bookkeeper_v<V>, bool> = false>
   auto operator[](const std::string &sel_path) const
-      -> lazy<counter::counter_t<V>> {
+      -> lazy<counter::booked_t<V>> {
     return this->get_counter(sel_path);
   }
 };
