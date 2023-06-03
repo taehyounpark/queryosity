@@ -4,9 +4,7 @@
 #include <set>
 #include <type_traits>
 
-#include "computation.h"
 #include "dataflow.h"
-#include "experiment.h"
 
 #define CHECK_FOR_BINARY_OP(op_name, op_symbol)                                \
   struct has_no_##op_name {};                                                  \
@@ -124,14 +122,14 @@ CHECK_FOR_SUBSCRIPT_OP()
  */
 template <typename T>
 template <typename U>
-class dataflow<T>::lazy : public node<lazy<U>>, public lockstep<U> {
+class dataflow<T>::lazy : public systematic<lazy<U>>, public lockstep<U> {
 
 public:
   class varied;
 
 public:
-  using dataflow_type = typename node<lazy<U>>::dataflow_type;
-  using dataset_type = typename node<lazy<U>>::dataset_type;
+  using dataflow_type = typename systematic<lazy<U>>::dataflow_type;
+  using dataset_type = typename systematic<lazy<U>>::dataset_type;
   using action_type = U;
 
   template <typename Sel, typename... Args>
@@ -151,9 +149,11 @@ public:
 
 public:
   lazy(dataflow<T> &dataflow, const lockstep<U> &action)
-      : node<lazy<U>>::node(dataflow), lockstep<U>::lockstep(action) {}
+      : systematic<lazy<U>>::systematic(dataflow),
+        lockstep<U>::lockstep(action) {}
   lazy(dataflow<T> &dataflow, const concurrent<U> &action)
-      : node<lazy<U>>::node(dataflow), lockstep<U>::lockstep(action) {}
+      : systematic<lazy<U>>::systematic(dataflow),
+        lockstep<U>::lockstep(action) {}
 
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;
@@ -162,7 +162,8 @@ public:
 
   // template <typename V>
   // lazy(lazy<V> const &other)
-  //     : node<lazy<U>>::node(*other.m_df), lockstep<U>::lockstep(other) {}
+  //     : systematic<lazy<U>>::systematic(*other.m_df),
+  //     lockstep<U>::lockstep(other) {}
 
   // template <typename V> lazy &operator=(lazy<V> const &other) {
   //   this->m_df = other.m_df;
@@ -373,10 +374,8 @@ protected:
 
 } // namespace ana
 
-#include "definition.h"
-#include "equation.h"
-#include "reader.h"
-#include "varied.h"
+#include "column.h"
+#include "dataflow_lazy_varied.h"
 
 template <typename T>
 template <typename Act>

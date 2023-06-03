@@ -94,8 +94,8 @@ protected:
 
 } // namespace ana
 
+#include "column_equation.h"
 #include "counter.h"
-#include "equation.h"
 
 inline std::string
 ana::selection::concatenate_names(std::vector<std::string> const &names,

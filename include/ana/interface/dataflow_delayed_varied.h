@@ -1,12 +1,12 @@
 #pragma once
 
-#include "delayed.h"
+#include "dataflow_delayed.h"
 
 namespace ana {
 
 template <typename T>
 template <typename Bld>
-class dataflow<T>::delayed<Bld>::varied : public node<delayed<Bld>> {
+class dataflow<T>::delayed<Bld>::varied : public systematic<delayed<Bld>> {
 
 public:
   varied(delayed<Bld> &&nom);
@@ -81,13 +81,13 @@ protected:
 } // namespace ana
 
 #include "dataflow.h"
-#include "lazy.h"
+#include "dataflow_lazy.h"
 #include "selection.h"
 
 template <typename T>
 template <typename Bld>
 ana::dataflow<T>::delayed<Bld>::varied::varied(delayed<Bld> &&nom)
-    : node<delayed<Bld>>::node(*nom.m_df), m_nom(std::move(nom)) {}
+    : systematic<delayed<Bld>>::systematic(*nom.m_df), m_nom(std::move(nom)) {}
 
 template <typename T>
 template <typename Bld>

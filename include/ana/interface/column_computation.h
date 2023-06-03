@@ -6,11 +6,6 @@
 #include <vector>
 
 #include "column.h"
-#include "constant.h"
-#include "dataset.h"
-#include "definition.h"
-#include "equation.h"
-#include "representation.h"
 
 namespace ana {
 
@@ -56,6 +51,9 @@ protected:
 };
 
 } // namespace ana
+
+#include "column_constant.h"
+#include "column_equation.h"
 
 template <typename T>
 ana::column::computation<T>::computation(const ana::dataset::range &part,

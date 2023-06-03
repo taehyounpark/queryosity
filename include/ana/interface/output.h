@@ -1,6 +1,6 @@
 #pragma once
 
-#include "lazy.h"
+#include "dataflow_lazy.h"
 
 #include <utility>
 

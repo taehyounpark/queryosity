@@ -2,28 +2,29 @@
 
 #include "concurrent.h"
 #include "dataflow.h"
-#include "lazy.h"
+#include "dataflow_lazy.h"
 
 namespace ana {
 
 template <typename DS>
 template <typename Bld>
-class dataflow<DS>::delayed : public dataflow<DS>::template node<delayed<Bld>>,
-                              public concurrent<Bld> {
+class dataflow<DS>::delayed
+    : public dataflow<DS>::template systematic<delayed<Bld>>,
+      public concurrent<Bld> {
 
 public:
   class varied;
 
 public:
   delayed(dataflow<DS> &dataflow, concurrent<Bld> &&action)
-      : node<delayed<Bld>>::node(dataflow),
+      : systematic<delayed<Bld>>::systematic(dataflow),
         concurrent<Bld>::concurrent(std::move(action)) {}
 
   virtual ~delayed() = default;
 
   template <typename V>
   delayed(delayed<V> &&other)
-      : node<delayed<Bld>>::node(*other.m_df),
+      : systematic<delayed<Bld>>::systematic(*other.m_df),
         concurrent<Bld>::concurrent(std::move(other)) {}
 
   template <typename V> delayed &operator=(delayed<V> &&other) {

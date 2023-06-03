@@ -5,12 +5,11 @@
 #include <type_traits>
 #include <vector>
 
-#include "column.h"
 #include "concurrent.h"
-#include "counter.h"
-#include "dataset.h"
-#include "processor.h"
 #include "sample.h"
+
+#include "column.h"
+#include "counter.h"
 #include "selection.h"
 
 namespace ana {
@@ -22,9 +21,10 @@ template <typename T> class dataflow : public sample<T> {
 
 public:
   using dataset_reader_type = typename sample<T>::dataset_reader_type;
+  using dataset_processor_type = typename sample<T>::dataset_processor_type;
 
 public:
-  template <typename U> class node;
+  template <typename U> class systematic;
 
   template <typename U> class delayed;
   template <typename U> friend class delayed;
@@ -266,7 +266,7 @@ protected:
   std::vector<concurrent<action>> m_actions; //!
 };
 
-template <typename T> template <typename U> class dataflow<T>::node {
+template <typename T> template <typename U> class dataflow<T>::systematic {
 
 public:
   using dataflow_type = dataflow<T>;
@@ -275,12 +275,12 @@ public:
 
 public:
   friend class dataflow<T>;
-  template <typename> friend class node;
+  template <typename> friend class systematic;
 
 public:
-  node(dataflow<T> &dataflow);
+  systematic(dataflow<T> &dataflow);
 
-  virtual ~node() = default;
+  virtual ~systematic() = default;
 
 public:
   virtual void set_variation(const std::string &var_name, U &&nom) = 0;
@@ -303,9 +303,9 @@ auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 } // namespace ana
 
-#include "delayed.h"
-#include "lazy.h"
-#include "varied.h"
+#include "dataflow_delayed.h"
+#include "dataflow_lazy.h"
+#include "dataflow_lazy_varied.h"
 
 // ----------------------------------------------------------------------------
 // node
@@ -313,7 +313,7 @@ auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 template <typename T>
 template <typename U>
-ana::dataflow<T>::node<U>::node(dataflow<T> &df) : m_df(&df) {}
+ana::dataflow<T>::systematic<U>::systematic(dataflow<T> &df) : m_df(&df) {}
 
 // ----------------------------------------------------------------------------
 // dataflow
@@ -351,7 +351,7 @@ auto ana::dataflow<T>::read(const std::string &name)
     -> lazy<read_column_t<read_dataset_t<T>, Val>> {
   this->initialize();
   auto act = this->m_processors.get_concurrent_result(
-      [name = name](processor<dataset_reader_type> &proc) {
+      [name = name](dataset_processor_type &proc) {
         return proc.template read<Val>(name);
       });
   auto lzy = lazy<read_column_t<read_dataset_t<T>, Val>>(*this, act);
@@ -364,7 +364,7 @@ template <typename Val>
 auto ana::dataflow<T>::constant(const Val &val)
     -> lazy<ana::column::constant<Val>> {
   auto act = this->m_processors.get_concurrent_result(
-      [val = val](processor<dataset_reader_type> &proc) {
+      [val = val](dataset_processor_type &proc) {
         return proc.template constant<Val>(val);
       });
   auto lzy = lazy<column::constant<Val>>(*this, act);
@@ -379,7 +379,7 @@ auto ana::dataflow<T>::define(Args &&...args)
   return delayed<ana::column::template evaluator_t<Def>>(
       *this,
       this->m_processors.get_concurrent_result(
-          [&args...](processor<dataset_reader_type> &proc) {
+          [&args...](dataset_processor_type &proc) {
             return proc.template define<Def>(std::forward<Args>(args)...);
           }));
 }
@@ -390,7 +390,7 @@ auto ana::dataflow<T>::define(F callable)
     -> delayed<column::template evaluator_t<F>> {
   return delayed<ana::column::template evaluator_t<F>>(
       *this, this->m_processors.get_concurrent_result(
-                 [callable = callable](processor<dataset_reader_type> &proc) {
+                 [callable = callable](dataset_processor_type &proc) {
                    return proc.template define(callable);
                  }));
 }
@@ -401,7 +401,7 @@ auto ana::dataflow<T>::evaluate_column(
     delayed<column::evaluator<Def>> const &calc, lazy<Cols> const &...columns)
     -> lazy<Def> {
   auto act = this->m_processors.get_concurrent_result(
-      [](processor<dataset_reader_type> &proc, column::evaluator<Def> &calc,
+      [](dataset_processor_type &proc, column::evaluator<Def> &calc,
          Cols const &...cols) {
         return proc.template evaluate_column(calc, cols...);
       },
@@ -416,11 +416,11 @@ template <typename Sel, typename F>
 auto ana::dataflow<T>::filter(const std::string &name, F callable)
     -> delayed<selection::template custom_applicator_t<F>> {
   return delayed<selection::template custom_applicator_t<F>>(
-      *this, this->m_processors.get_concurrent_result(
-                 [name = name,
-                  callable = callable](processor<dataset_reader_type> &proc) {
-                   return proc.template filter<Sel>(name, callable);
-                 }));
+      *this,
+      this->m_processors.get_concurrent_result(
+          [name = name, callable = callable](dataset_processor_type &proc) {
+            return proc.template filter<Sel>(name, callable);
+          }));
 }
 
 template <typename T>
@@ -428,11 +428,11 @@ template <typename Sel, typename F>
 auto ana::dataflow<T>::channel(const std::string &name, F callable)
     -> delayed<selection::template custom_applicator_t<F>> {
   return delayed<selection::template custom_applicator_t<F>>(
-      *this, this->m_processors.get_concurrent_result(
-                 [name = name,
-                  callable = callable](processor<dataset_reader_type> &proc) {
-                   return proc.template channel<Sel>(name, callable);
-                 }));
+      *this,
+      this->m_processors.get_concurrent_result(
+          [name = name, callable = callable](dataset_processor_type &proc) {
+            return proc.template channel<Sel>(name, callable);
+          }));
 }
 
 template <typename T>
@@ -441,11 +441,11 @@ auto ana::dataflow<T>::filter(const std::string &name)
     -> delayed<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
   auto sel = delayed<selection::trivial_applicator_type>(
-      *this, this->m_processors.get_concurrent_result(
-                 [name = name,
-                  callable = callable](processor<dataset_reader_type> &proc) {
-                   return proc.template filter<Sel>(name, callable);
-                 }));
+      *this,
+      this->m_processors.get_concurrent_result(
+          [name = name, callable = callable](dataset_processor_type &proc) {
+            return proc.template filter<Sel>(name, callable);
+          }));
   return sel;
 }
 
@@ -455,11 +455,11 @@ auto ana::dataflow<T>::channel(const std::string &name)
     -> delayed<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
   auto sel = delayed<selection::trivial_applicator_type>(
-      *this, this->m_processors.get_concurrent_result(
-                 [name = name,
-                  callable = callable](processor<dataset_reader_type> &proc) {
-                   return proc.template channel<Sel>(name, callable);
-                 }));
+      *this,
+      this->m_processors.get_concurrent_result(
+          [name = name, callable = callable](dataset_processor_type &proc) {
+            return proc.template channel<Sel>(name, callable);
+          }));
   return sel;
 }
 
@@ -469,13 +469,12 @@ auto ana::dataflow<T>::filter(lazy<selection> const &prev,
                               const std::string &name, F callable)
     -> delayed<selection::template custom_applicator_t<F>> {
   return delayed<selection::template custom_applicator_t<F>>(
-      *this,
-      this->m_processors.get_concurrent_result(
-          [name = name, callable = callable](
-              processor<dataset_reader_type> &proc, selection const &prev) {
-            return proc.template filter<Sel>(prev, name, callable);
-          },
-          prev));
+      *this, this->m_processors.get_concurrent_result(
+                 [name = name, callable = callable](
+                     dataset_processor_type &proc, selection const &prev) {
+                   return proc.template filter<Sel>(prev, name, callable);
+                 },
+                 prev));
 }
 
 template <typename T>
@@ -484,13 +483,12 @@ auto ana::dataflow<T>::channel(lazy<selection> const &prev,
                                const std::string &name, F callable)
     -> delayed<selection::template custom_applicator_t<F>> {
   return delayed<selection::template custom_applicator_t<F>>(
-      *this,
-      this->m_processors.get_concurrent_result(
-          [name = name, callable = callable](
-              processor<dataset_reader_type> &proc, selection const &prev) {
-            return proc.template channel<Sel>(prev, name, callable);
-          },
-          prev));
+      *this, this->m_processors.get_concurrent_result(
+                 [name = name, callable = callable](
+                     dataset_processor_type &proc, selection const &prev) {
+                   return proc.template channel<Sel>(prev, name, callable);
+                 },
+                 prev));
 }
 
 template <typename T>
@@ -500,13 +498,12 @@ auto ana::dataflow<T>::filter(lazy<selection> const &prev,
     -> delayed<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
   return delayed<selection::trivial_applicator_type>(
-      *this,
-      this->m_processors.get_concurrent_result(
-          [name = name, callable = callable](
-              processor<dataset_reader_type> &proc, selection const &prev) {
-            return proc.template filter<Sel>(prev, name, callable);
-          },
-          prev));
+      *this, this->m_processors.get_concurrent_result(
+                 [name = name, callable = callable](
+                     dataset_processor_type &proc, selection const &prev) {
+                   return proc.template filter<Sel>(prev, name, callable);
+                 },
+                 prev));
 }
 
 template <typename T>
@@ -516,13 +513,12 @@ auto ana::dataflow<T>::channel(lazy<selection> const &prev,
     -> delayed<selection::trivial_applicator_type> {
   auto callable = [](double x) { return x; };
   return delayed<selection::trivial_applicator_type>(
-      *this,
-      this->m_processors.get_concurrent_result(
-          [name = name, callable = callable](
-              processor<dataset_reader_type> &proc, selection const &prev) {
-            return proc.template channel<Sel>(prev, name, callable);
-          },
-          prev));
+      *this, this->m_processors.get_concurrent_result(
+                 [name = name, callable = callable](
+                     dataset_processor_type &proc, selection const &prev) {
+                   return proc.template channel<Sel>(prev, name, callable);
+                 },
+                 prev));
 }
 
 template <typename T>
@@ -531,7 +527,7 @@ auto ana::dataflow<T>::apply_selection(
     delayed<selection::applicator<Eqn>> const &calc,
     lazy<Cols> const &...columns) -> lazy<selection> {
   auto act = this->m_processors.get_concurrent_result(
-      [](processor<dataset_reader_type> &proc, selection::applicator<Eqn> &calc,
+      [](dataset_processor_type &proc, selection::applicator<Eqn> &calc,
          Cols &...cols) {
         return proc.template apply_selection(calc, cols...);
       },
@@ -546,8 +542,9 @@ template <typename Sel>
 auto ana::dataflow<T>::join(lazy<selection> const &a, lazy<selection> const &b)
     -> lazy<selection> {
   auto act = this->m_processors.get_concurrent_result(
-      [](processor<dataset_reader_type> &proc, selection const &a,
-         selection const &b) { return proc.template join<Sel>(a, b); },
+      [](dataset_processor_type &proc, selection const &a, selection const &b) {
+        return proc.template join<Sel>(a, b);
+      },
       a, b);
   this->add_action(act);
   auto lzy = lazy<selection>(*this, act);
@@ -559,7 +556,7 @@ template <typename Cnt, typename... Args>
 auto ana::dataflow<T>::book(Args &&...args) -> delayed<counter::booker<Cnt>> {
   return delayed<counter::booker<Cnt>>(
       *this, this->m_processors.get_concurrent_result(
-                 [&args...](processor<dataset_reader_type> &proc) {
+                 [&args...](dataset_processor_type &proc) {
                    return proc.template book<Cnt>(std::forward<Args>(args)...);
                  }));
 }
@@ -572,7 +569,7 @@ auto ana::dataflow<T>::select_counter(delayed<counter::booker<Cnt>> const &bkr,
   // status
   this->reset();
   auto act = this->m_processors.get_concurrent_result(
-      [](processor<dataset_reader_type> &proc, counter::booker<Cnt> &bkr,
+      [](dataset_processor_type &proc, counter::booker<Cnt> &bkr,
          const selection &sel) { return proc.select_counter(bkr, sel); },
       lockstep<counter::booker<Cnt>>(bkr), sel);
   auto lzy = lazy<Cnt>(*this, act);
@@ -591,15 +588,11 @@ auto ana::dataflow<T>::select_counters(delayed<counter::booker<Cnt>> const &bkr,
   using dly_type = delayed<counter::booker<Cnt>>;
   auto bkr2 =
       dly_type(*this, this->m_processors.get_concurrent_result(
-                          [](processor<dataset_reader_type> &proc,
+                          [](dataset_processor_type &proc,
                              counter::booker<Cnt> &bkr, Sels const &...sels) {
                             return proc.select_counters(bkr, sels...);
                           },
                           lockstep<counter::booker<Cnt>>(bkr), sels...));
-  // add all counters that were booked
-  // for (auto const &sel_path : bkr2.list_selection_paths()) {
-  // this->add_action(bkr2.get_action(sel_path));
-  // }
   return bkr2;
 }
 
@@ -615,14 +608,14 @@ template <typename T> void ana::dataflow<T>::analyze() {
 
   // multithreaded (if enabled)
   this->m_processors.run_slots(
-      [](processor<dataset_reader_type> &proc) { proc.process(); });
+      [](dataset_processor_type &proc) { proc.process(); });
 
   this->m_dataset->finish_dataset();
 
   // clear counters in counter::experiment
   // if they are not, they will be repeated in future runs
   this->m_processors.call_all(
-      [](processor<dataset_reader_type> &proc) { proc.clear_counters(); });
+      [](dataset_processor_type &proc) { proc.clear_counters(); });
 }
 
 template <typename T> void ana::dataflow<T>::reset() { m_analyzed = false; }

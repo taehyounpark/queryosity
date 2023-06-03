@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <utility>
 
-#include "lazy.h"
+#include "dataflow_lazy.h"
 
 #define DECLARE_VARIED_BINARY_OP(op_symbol)                                    \
   template <typename Arg>                                                      \
@@ -70,7 +70,7 @@ namespace ana {
  */
 template <typename T>
 template <typename Act>
-class dataflow<T>::lazy<Act>::varied : public node<lazy<Act>> {
+class dataflow<T>::lazy<Act>::varied : public systematic<lazy<Act>> {
 
 public:
   using dataflow_type = typename lazy<Act>::dataflow_type;
@@ -143,7 +143,7 @@ protected:
 template <typename T>
 template <typename Act>
 ana::dataflow<T>::lazy<Act>::varied::varied(lazy<Act> const &nom)
-    : node<lazy<Act>>::node(nom), m_nom(nom) {}
+    : systematic<lazy<Act>>::systematic(*nom.m_df), m_nom(nom) {}
 
 template <typename T>
 template <typename Act>

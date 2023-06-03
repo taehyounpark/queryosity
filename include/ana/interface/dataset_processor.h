@@ -1,10 +1,12 @@
 #pragma once
 
 #include "action.h"
-#include "computation.h"
-#include "experiment.h"
+#include "column_computation.h"
+#include "counter_experiment.h"
 
 namespace ana {
+
+namespace dataset {
 
 template <typename T>
 class processor : public action,
@@ -25,19 +27,21 @@ public:
   void process();
 };
 
+} // namespace dataset
+
 } // namespace ana
 
 #include "counter.h"
 #include "selection.h"
 
 template <typename T>
-ana::processor<T>::processor(const ana::dataset::range &part,
-                             dataset::reader<T> &reader, double scale)
+ana::dataset::processor<T>::processor(const ana::dataset::range &part,
+                                      dataset::reader<T> &reader, double scale)
     : action(), column::computation<T>(part, reader),
       counter::experiment(scale) {}
 
 template <typename T>
-void ana::processor<T>::initialize(const ana::dataset::range &part) {
+void ana::dataset::processor<T>::initialize(const ana::dataset::range &part) {
   this->m_reader->start_part(this->m_part);
 
   for (auto const &col : this->m_columns) {
@@ -52,8 +56,8 @@ void ana::processor<T>::initialize(const ana::dataset::range &part) {
 }
 
 template <typename T>
-void ana::processor<T>::execute(const ana::dataset::range &part,
-                                unsigned long long entry) {
+void ana::dataset::processor<T>::execute(const ana::dataset::range &part,
+                                         unsigned long long entry) {
   this->m_reader->read_entry(part, entry);
   for (auto const &col : this->m_columns) {
     col->execute(part, entry);
@@ -67,7 +71,7 @@ void ana::processor<T>::execute(const ana::dataset::range &part,
 }
 
 template <typename T>
-void ana::processor<T>::finalize(const ana::dataset::range &part) {
+void ana::dataset::processor<T>::finalize(const ana::dataset::range &part) {
   for (auto const &col : this->m_columns) {
     col->finalize(part);
   }
@@ -80,7 +84,7 @@ void ana::processor<T>::finalize(const ana::dataset::range &part) {
   this->m_reader->finish_part(this->m_part);
 }
 
-template <typename T> void ana::processor<T>::process() {
+template <typename T> void ana::dataset::processor<T>::process() {
   // start processing
   this->initialize(this->m_part);
 

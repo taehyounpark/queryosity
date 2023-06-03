@@ -4,9 +4,7 @@
 #include <string>
 #include <vector>
 
-#include "cut.h"
 #include "selection.h"
-#include "weight.h"
 
 namespace ana {
 
@@ -52,9 +50,9 @@ protected:
 
 } // namespace ana
 
-#include "column.h"
-#include "counter.h"
-#include "equation.h"
+#include "column_computation.h"
+#include "selection_cut.h"
+#include "selection_weight.h"
 
 template <typename Sel, typename F>
 auto ana::selection::cutflow::filter(const std::string &name,
