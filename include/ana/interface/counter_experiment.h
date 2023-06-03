@@ -3,8 +3,11 @@
 #include <memory>
 #include <vector>
 
+#include "selection_cutflow.h"
+
 #include "counter.h"
-#include "cutflow.h"
+#include "counter_booker.h"
+#include "counter_bookkeeper.h"
 
 namespace ana {
 
@@ -16,15 +19,16 @@ public:
 
 public:
   template <typename Cnt, typename... Args>
-  std::shared_ptr<booker<Cnt>> book(Args &&...args);
+  std::unique_ptr<booker<Cnt>> book(Args &&...args);
 
   template <typename Cnt>
-  auto book_selection(booker<Cnt> const &bkr, const selection &sel)
-      -> std::shared_ptr<Cnt>;
+  auto select_counter(booker<Cnt> const &bkr, const selection &sel)
+      -> std::unique_ptr<Cnt>;
 
   template <typename Cnt, typename... Sels>
-  auto book_selections(booker<Cnt> const &bkr, Sels const &...sels)
-      -> std::shared_ptr<booker<Cnt>>;
+  auto select_counters(booker<Cnt> const &bkr, Sels const &...sels)
+      -> std::pair<std::unique_ptr<bookkeeper<Cnt>>,
+                   std::vector<std::unique_ptr<Cnt>>>;
 
   void clear_counters();
 
@@ -47,32 +51,33 @@ inline void ana::counter::experiment::add_counter(ana::counter &cnt) {
 inline void ana::counter::experiment::clear_counters() { m_counters.clear(); }
 
 template <typename Cnt, typename... Args>
-std::shared_ptr<ana::counter::booker<Cnt>>
+std::unique_ptr<ana::counter::booker<Cnt>>
 ana::counter::experiment::book(Args &&...args) {
-  auto bkr = std::make_shared<booker<Cnt>>(std::forward<Args>(args)...);
-  return bkr;
+  auto bkr = std::make_unique<booker<Cnt>>(std::forward<Args>(args)...);
+  return std::move(bkr);
 }
 
 template <typename Cnt>
-auto ana::counter::experiment::book_selection(booker<Cnt> const &bkr,
+auto ana::counter::experiment::select_counter(booker<Cnt> const &bkr,
                                               const selection &sel)
-    -> std::shared_ptr<Cnt> {
-  auto cnt = bkr.book_selection(sel);
+    -> std::unique_ptr<Cnt> {
+  auto cnt = bkr.select_counter(sel);
   cnt->apply_scale(m_norm);
   this->add_counter(*cnt);
-  return cnt;
+  return std::move(cnt);
 }
+
 template <typename Cnt, typename... Sels>
-auto ana::counter::experiment::book_selections(booker<Cnt> const &bkr,
+auto ana::counter::experiment::select_counters(booker<Cnt> const &bkr,
                                                Sels const &...sels)
-    -> std::shared_ptr<booker<Cnt>> {
+    -> std::pair<std::unique_ptr<bookkeeper<Cnt>>,
+                 std::vector<std::unique_ptr<Cnt>>> {
   // get a booker that has all the selections added
-  auto bkr2 = bkr.book_selections(sels...);
-  // add all the counters (each with one selection) into the experiment
-  for (auto const &sel_path : bkr2->list_selection_paths()) {
-    auto cnt = bkr2->get_counter(sel_path);
-    cnt->apply_scale(m_norm);
-    this->add_counter(*cnt);
+  auto bkpr_and_cntrs = bkr.select_counters(sels...);
+
+  for (auto const &cntr : bkpr_and_cntrs.second) {
+    this->add_counter(*cntr);
   }
-  return bkr2;
+
+  return std::move(bkpr_and_cntrs);
 }

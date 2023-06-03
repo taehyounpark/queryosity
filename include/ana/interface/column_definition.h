@@ -3,8 +3,7 @@
 #include <memory>
 #include <tuple>
 
-#include "calculation.h"
-#include "column.h"
+#include "column_calculation.h"
 
 namespace ana {
 

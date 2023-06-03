@@ -248,7 +248,7 @@ auto pth_hist = df.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
 ```
 Accessing a result of any counter triggers the dataset processing:
 ```cpp
-pth_hist.get_result();  // -> std::shared_ptr<TH1> (specified by Hist<1,float>)
+pth_hist.get_result();  // -> std::unique_ptr<TH1> (specified by Hist<1,float>)
 pth_hist->GetEntries();  // shortcut access
 ```
 Each `fill()` and `at()` call returns a new node with those operations applied, such that any counter can be:

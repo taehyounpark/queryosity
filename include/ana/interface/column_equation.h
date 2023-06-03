@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "definition.h"
+#include "column_definition.h"
 
 namespace ana {
 
@@ -29,7 +29,7 @@ protected:
 
 template <typename F>
 auto make_equation(F expression)
-    -> std::shared_ptr<column::template equation_t<F>>;
+    -> std::unique_ptr<column::template equation_t<F>>;
 
 } // namespace ana
 
@@ -41,7 +41,7 @@ ana::column::equation<Ret(Vals...)>::equation(F callable)
 template <typename Ret, typename... Vals>
 template <typename F, typename... Args>
 ana::column::equation<Ret(Vals...)>::equation(F callable, Args &&...args)
-    : equation(callable),
+    : m_evaluate(callable),
       definition<Ret(Vals...)>(std::forward<Args>(args)...) {}
 
 template <typename Ret, typename... Vals>
@@ -52,6 +52,6 @@ Ret ana::column::equation<Ret(Vals...)>::evaluate(
 
 template <typename F>
 auto ana::make_equation(F expression)
-    -> std::shared_ptr<ana::column::template equation_t<F>> {
-  return std::make_shared<ana::column::template equation_t<F>>(expression);
+    -> std::unique_ptr<ana::column::template equation_t<F>> {
+  return std::make_unique<ana::column::template equation_t<F>>(expression);
 }

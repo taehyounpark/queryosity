@@ -41,7 +41,7 @@ public:
   bool is_channel() const noexcept;
   const selection *get_previous() const noexcept;
 
-  template <typename Val> void set_decision(std::shared_ptr<term<Val>> dec);
+  template <typename T> void set_decision(std::unique_ptr<T> dec);
 
   virtual bool passed_cut() const = 0;
   virtual double get_weight() const = 0;
@@ -57,7 +57,7 @@ private:
   const bool m_channel;
   const std::string m_name;
 
-  std::shared_ptr<column> m_decision;
+  std::unique_ptr<column> m_decision;
   ana::variable<double> m_variable;
 
 public:
@@ -74,28 +74,10 @@ public:
       ana::column::equation<double(double)>>;
 };
 
-template <typename T> class ana::selection::applicator {
-
-public:
-  applicator(std::shared_ptr<T> eqn);
-  ~applicator() = default;
-
-  template <typename Sel>
-  void set_selection(const selection *presel, bool ch, const std::string &name);
-
-  template <typename... Vals>
-  std::shared_ptr<selection>
-  apply_selection(cell<Vals> const &...columns) const;
-
-protected:
-  std::shared_ptr<T> m_equation;
-  std::function<std::shared_ptr<selection>()> m_make_shared;
-};
-
 } // namespace ana
 
+#include "column_equation.h"
 #include "counter.h"
-#include "equation.h"
 
 inline std::string
 ana::selection::concatenate_names(std::vector<std::string> const &names,
@@ -161,44 +143,9 @@ inline void ana::selection::finalize(const ana::dataset::range &part) {
 }
 
 template <typename T>
-void ana::selection::set_decision(std::shared_ptr<term<T>> decision) {
-  // keep decision as term
-  m_decision = decision;
+void ana::selection::set_decision(std::unique_ptr<T> decision) {
   // link value to variable<double>
-  m_variable = variable<double>(*decision);
-}
-
-template <typename T>
-ana::selection::applicator<T>::applicator(std::shared_ptr<T> eqn)
-    : m_equation(eqn),
-      m_make_shared([]() -> std::shared_ptr<selection> { return nullptr; }) {}
-
-template <typename T>
-template <typename Sel>
-void ana::selection::applicator<T>::set_selection(const selection *presel,
-                                                  bool ch,
-                                                  const std::string &name) {
-  m_make_shared = std::bind(
-      [](const selection *presel, bool ch,
-         const std::string &name) -> std::shared_ptr<selection> {
-        return std::make_shared<Sel>(presel, ch, name);
-      },
-      presel, ch, name);
-}
-
-template <typename T>
-template <typename... Vals>
-std::shared_ptr<ana::selection> ana::selection::applicator<T>::apply_selection(
-    cell<Vals> const &...columns) const {
-  // make this selection
-  auto sel = m_make_shared();
-
-  // set equation arguments
-  m_equation->set_arguments(columns...);
-
-  // set selection decision
-  sel->set_decision(
-      std::static_pointer_cast<term<cell_value_t<T>>>(m_equation));
-
-  return sel;
+  m_variable = variable<double>((term<cell_value_t<T>> &)(*decision));
+  // keep decision as term
+  m_decision = std::move(decision);
 }

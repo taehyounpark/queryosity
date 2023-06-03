@@ -239,22 +239,6 @@ protected:
   const variable<T> *m_var;
 };
 
-template <typename T> class column::evaluator {
-
-public:
-  using evaluated_type = T;
-
-public:
-  template <typename... Args> evaluator(Args const &...args);
-  ~evaluator() = default;
-
-  template <typename... Vals>
-  std::shared_ptr<T> evaluate_column(cell<Vals> const &...cols) const;
-
-protected:
-  std::function<std::shared_ptr<T>()> m_make_shared;
-};
-
 template <typename To, typename From>
 std::shared_ptr<cell<To>> cell_as(const cell<From> &from);
 
@@ -312,28 +296,6 @@ std::shared_ptr<ana::cell<To>> ana::cell_as(const cell<From> &from) {
                       std::is_convertible_v<From, To>,
                   "incompatible value types");
   }
-}
-
-// ---------
-// evaluator
-// ---------
-
-template <typename T>
-template <typename... Args>
-ana::column::evaluator<T>::evaluator(Args const &...args)
-    : m_make_shared(std::bind(
-          [](Args const &...args) { return std::make_shared<T>(args...); },
-          args...)) {}
-
-template <typename T>
-template <typename... Vals>
-std::shared_ptr<T>
-ana::column::evaluator<T>::evaluate_column(cell<Vals> const &...columns) const {
-  auto defn = m_make_shared();
-
-  defn->set_arguments(columns...);
-
-  return defn;
 }
 
 // --------

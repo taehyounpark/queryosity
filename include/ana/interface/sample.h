@@ -1,10 +1,11 @@
 #pragma once
 
+#include <iostream>
 #include <memory>
 
-#include "concurrent.h"
-#include "dataset.h"
-#include "processor.h"
+#include "dataset_processor.h"
+#include "dataset_reader.h"
+#include "multithread.h"
 
 namespace ana {
 
@@ -12,6 +13,8 @@ template <typename T> class sample {
 
 public:
   using dataset_reader_type = read_dataset_t<T>;
+  using dataset_processor_type =
+      typename dataset::processor<dataset_reader_type>;
 
 public:
   sample();
@@ -33,15 +36,15 @@ protected:
   void initialize();
 
 protected:
-  std::unique_ptr<T> m_dataset;
+  std::unique_ptr<T> m_dataset; //!
   bool m_initialized;
 
   long long m_max_entries;
   double m_scale;
 
   dataset::partition m_partition;
-  concurrent<dataset_reader_type> m_readers;
-  concurrent<processor<dataset_reader_type>> m_processors;
+  concurrent<dataset_reader_type> m_readers;       //!
+  concurrent<dataset_processor_type> m_processors; //!
 };
 
 } // namespace ana
@@ -96,20 +99,18 @@ template <typename T> void ana::sample<T>::initialize() {
   // model reprents whole dataset
   auto part = m_partition.total();
   auto rdr = m_dataset->read_dataset();
-  auto proc =
-      std::make_shared<processor<dataset_reader_type>>(part, *rdr, m_scale);
-  m_readers.set_model(rdr);
-  m_processors.set_model(proc);
+  auto proc = std::make_unique<dataset_processor_type>(part, *rdr, m_scale);
+  m_readers.set_model(std::move(rdr));
+  m_processors.set_model(std::move(proc));
   // slot for each partition range
   m_readers.clear_slots();
   m_processors.clear_slots();
   for (unsigned int islot = 0; islot < m_partition.size(); ++islot) {
     auto part = m_partition.get_part(islot);
     auto rdr = m_dataset->read_dataset();
-    auto proc =
-        std::make_shared<processor<dataset_reader_type>>(part, *rdr, m_scale);
-    m_readers.add_slot(rdr);
-    m_processors.add_slot(proc);
+    auto proc = std::make_unique<dataset_processor_type>(part, *rdr, m_scale);
+    m_readers.add_slot(std::move(rdr));
+    m_processors.add_slot(std::move(proc));
   }
 
   // sample is initialized
