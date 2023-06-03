@@ -50,7 +50,8 @@ protected:
 
 } // namespace ana
 
-#include "column_computation.h"
+#include "column.h"
+#include "selection_applicator.h"
 #include "selection_cut.h"
 #include "selection_weight.h"
 
