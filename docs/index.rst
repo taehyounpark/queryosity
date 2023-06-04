@@ -32,9 +32,8 @@ Features
    :caption: HOW TO USE
    :maxdepth: 1
 
-   usage/datasets
-   usage/actions
-   usage/analysis
+   usage/quickstart
+   usage/systematic_variations
 
 .. toctree::
    :caption: API REFERENCE

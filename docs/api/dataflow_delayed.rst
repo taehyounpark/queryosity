@@ -2,4 +2,4 @@ dataflow::delayed
 ------------------
 
 .. doxygenclass:: ana::dataflow::delayed
-   :members: 
+   :members: vary, evaluate, apply, operator(), fill, at, operator[]

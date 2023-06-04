@@ -37,9 +37,8 @@ public:
   virtual void set_variation(const std::string &var_name,
                              delayed &&var) override;
 
-  virtual delayed const &get_nominal() const override;
-  virtual delayed const &
-  get_variation(const std::string &var_name) const override;
+  virtual delayed const &nominal() const override;
+  virtual delayed const &variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
@@ -49,8 +48,8 @@ public:
    * @param var_name Name of the systematic variation.
    * @param args... Constructor arguments for `definition`.
    * @return Varied definition.
-   * @details Creates a `varied` action whose `.get_nominal()` is the original
-   * lazy one, and `get_variation(var_name)` is the newly-constructed one.
+   * @details Creates a `varied` action whose `.nominal()` is the original
+   * lazy one, and `variation(var_name)` is the newly-constructed one.
    */
   template <typename... Args, typename V = Bld,
             std::enable_if_t<ana::column::template is_evaluator_v<V> &&
@@ -67,8 +66,8 @@ public:
    * **Note**: the function return type and signature must be convertible to the
    * original's.
    * @return Varied equation.
-   * @details Creates a `varied` action whose `.get_nominal()` is the original
-   * lazy one, and `get_variation(var_name)` is the newly-constructed one.
+   * @details Creates a `varied` action whose `.nominal()` is the original
+   * lazy one, and `variation(var_name)` is the newly-constructed one.
    */
   template <typename F, typename V = Bld,
             std::enable_if_t<ana::column::template is_evaluator_v<V> &&
@@ -113,12 +112,12 @@ public:
 
     using syst_type = typename lazy<column::template evaluated_t<V>>::varied;
 
-    auto nom = this->m_df->evaluate_column(*this, columns.get_nominal()...);
+    auto nom = this->m_df->evaluate_column(*this, columns.nominal()...);
     auto syst = syst_type(std::move(nom));
 
     for (auto const &var_name : list_all_variation_names(columns...)) {
-      auto var = this->m_df->evaluate_column(
-          *this, columns.get_variation(var_name)...);
+      auto var =
+          this->m_df->evaluate_column(*this, columns.variation(var_name)...);
       syst.set_variation(var_name, std::move(var));
     }
 
@@ -139,36 +138,6 @@ public:
     return this->apply_selection(std::forward<Nodes>(columns)...);
   }
 
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                selection::template is_applicator_v<V> &&
-                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
-                bool> = false>
-  auto apply_selection(Nodes const &...columns) const -> lazy<selection> {
-    // nominal
-    return this->m_df->apply_selection(*this, columns...);
-  }
-
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                selection::template is_applicator_v<V> &&
-                    ana::dataflow<DS>::template has_variation_v<Nodes...>,
-                bool> = false>
-  auto apply_selection(Nodes const &...columns) const ->
-      typename lazy<selection>::varied {
-    // variations
-    using syst_type = typename lazy<selection>::varied;
-    auto syst = syst_type(
-        this->get_nominal().apply_selection(columns.get_nominal()...));
-    auto var_names = list_all_variation_names(columns...);
-    for (auto const &var_name : var_names) {
-      syst.set_variation(var_name,
-                         this->get_variation(var_name).apply_selection(
-                             columns.get_variation(var_name)...));
-    }
-    return syst;
-  }
-
   /**
    * @brief Fill the counter with input columns.
    * @param columns Input columns
@@ -181,34 +150,6 @@ public:
       -> decltype(std::declval<delayed<V>>().fill_counter(
           std::declval<Nodes>()...)) {
     return this->fill_counter(std::forward<Nodes>(columns)...);
-  }
-
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                ana::counter::template is_booker_v<V> &&
-                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
-                bool> = false>
-  auto fill_counter(Nodes const &...columns) const -> delayed<V> {
-    // nominal
-    return delayed<V>(
-        *this->m_df, this->get_concurrent_result(
-                         [](V &fillable, typename Nodes::action_type &...cols) {
-                           return fillable.book_fill(cols...);
-                         },
-                         columns...));
-  }
-
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<ana::counter::template is_booker_v<V> &&
-                                 has_variation_v<Nodes...>,
-                             bool> = false>
-  auto fill_counter(Nodes const &...columns) const -> varied {
-    auto syst = varied(std::move(this->fill_counter(columns.get_nominal())...));
-    for (auto const &var_name : list_all_variation_names(columns...)) {
-      syst.set_variation(var_name, this->fill_counter(std::move(
-                                       columns.get_variation(var_name))...));
-    }
-    return syst;
   }
 
   /**
@@ -236,10 +177,10 @@ public:
   auto select_counter(Node const &sel) const ->
       typename lazy<counter::booked_t<V>>::varied {
     using syst_type = typename lazy<counter::booked_t<V>>::varied;
-    auto syst = syst_type(this->m_df->select_counter(*this, sel.get_nominal()));
+    auto syst = syst_type(this->m_df->select_counter(*this, sel.nominal()));
     for (auto const &var_name : list_all_variation_names(sel)) {
-      syst.set_variation(var_name, this->m_df->select_counter(
-                                       *this, sel.get_variation(var_name)));
+      syst.set_variation(
+          var_name, this->m_df->select_counter(*this, sel.variation(var_name)));
     }
     return syst;
   }
@@ -275,10 +216,10 @@ public:
     using syst_type =
         typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied;
     auto syst =
-        syst_type(this->m_df->select_counters(*this, sels.get_nominal()...));
+        syst_type(this->m_df->select_counters(*this, sels.nominal()...));
     for (auto const &var_name : list_all_variation_names(sels...)) {
       syst.set_variation(var_name, this->m_df->select_counters(
-                                       *this, sels.get_variation(var_name)...));
+                                       *this, sels.variation(var_name)...));
     }
     return syst;
   }
@@ -292,37 +233,6 @@ public:
   auto list_selection_paths() const -> std::set<std::string> {
     return this->get_model_value(
         [](Bld const &bkpr) { return bkpr.list_selection_paths(); });
-  }
-
-  /**
-   * @brief Get the counter booked at a selection path.
-   * @param selection_path Path of the selection
-   * @return counter The counter booked at the selection path.
-   */
-  template <
-      typename V = Bld,
-      std::enable_if_t<ana::counter::template is_bookkeeper_v<V>, bool> = false>
-  auto get_counter(const std::string &sel_path) const
-      -> lazy<counter::booked_t<V>> {
-    return lazy<counter::booked_t<V>>(
-        *this->m_df, this->get_lockstep_view([sel_path = sel_path](V &bkpr) {
-          return bkpr.get_counter(sel_path);
-        }));
-  }
-
-  /**
-   * @brief Retrieve the result of a counter.
-   * @details Triggers processing of the dataset if that the result is not
-   * already available.
-   * @return The result of the implemented counter.
-   */
-  template <
-      typename V = Bld,
-      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
-  auto get_result() const -> decltype(std::declval<V>().get_result()) {
-    this->m_df->analyze();
-    this->merge_results();
-    return this->get_model()->get_result();
   }
 
   /**
@@ -342,6 +252,26 @@ public:
     return this->evaluate_or_apply(std::forward<Args>(columns)...);
   }
 
+  template <
+      typename... Args, typename V = Bld,
+      std::enable_if_t<counter::template is_bookkeeper_v<V>, bool> = false>
+  auto operator[](const std::string &sel_path) const
+      -> lazy<counter::booked_t<V>> {
+    return this->get_counter(sel_path);
+  }
+
+protected:
+  template <
+      typename V = Bld,
+      std::enable_if_t<ana::counter::template is_bookkeeper_v<V>, bool> = false>
+  auto get_counter(const std::string &sel_path) const
+      -> lazy<counter::booked_t<V>> {
+    return lazy<counter::booked_t<V>>(
+        *this->m_df, this->get_lockstep_view([sel_path = sel_path](V &bkpr) {
+          return bkpr.get_counter(sel_path);
+        }));
+  }
+
   template <typename... Args, typename V = Bld,
             std::enable_if_t<column::template is_evaluator_v<V>, bool> = false>
   auto evaluate_or_apply(Args &&...columns) const
@@ -359,12 +289,61 @@ public:
     return this->apply(std::forward<Args>(columns)...);
   }
 
-  template <
-      typename... Args, typename V = Bld,
-      std::enable_if_t<counter::template is_bookkeeper_v<V>, bool> = false>
-  auto operator[](const std::string &sel_path) const
-      -> lazy<counter::booked_t<V>> {
-    return this->get_counter(sel_path);
+  template <typename... Nodes, typename V = Bld,
+            std::enable_if_t<
+                ana::counter::template is_booker_v<V> &&
+                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
+                bool> = false>
+  auto fill_counter(Nodes const &...columns) const -> delayed<V> {
+    // nominal
+    return delayed<V>(
+        *this->m_df, this->get_concurrent_result(
+                         [](V &fillable, typename Nodes::action_type &...cols) {
+                           return fillable.book_fill(cols...);
+                         },
+                         columns...));
+  }
+
+  template <typename... Nodes, typename V = Bld,
+            std::enable_if_t<ana::counter::template is_booker_v<V> &&
+                                 has_variation_v<Nodes...>,
+                             bool> = false>
+  auto fill_counter(Nodes const &...columns) const -> varied {
+    auto syst = varied(std::move(this->fill_counter(columns.nominal())...));
+    for (auto const &var_name : list_all_variation_names(columns...)) {
+      syst.set_variation(var_name, this->fill_counter(std::move(
+                                       columns.variation(var_name))...));
+    }
+    return syst;
+  }
+
+  template <typename... Nodes, typename V = Bld,
+            std::enable_if_t<
+                selection::template is_applicator_v<V> &&
+                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
+                bool> = false>
+  auto apply_selection(Nodes const &...columns) const -> lazy<selection> {
+    // nominal
+    return this->m_df->apply_selection(*this, columns...);
+  }
+
+  template <typename... Nodes, typename V = Bld,
+            std::enable_if_t<
+                selection::template is_applicator_v<V> &&
+                    ana::dataflow<DS>::template has_variation_v<Nodes...>,
+                bool> = false>
+  auto apply_selection(Nodes const &...columns) const ->
+      typename lazy<selection>::varied {
+    // variations
+    using syst_type = typename lazy<selection>::varied;
+    auto syst =
+        syst_type(this->nominal().apply_selection(columns.nominal()...));
+    auto var_names = list_all_variation_names(columns...);
+    for (auto const &var_name : var_names) {
+      syst.set_variation(var_name, this->variation(var_name).apply_selection(
+                                       columns.variation(var_name)...));
+    }
+    return syst;
   }
 };
 
@@ -380,14 +359,14 @@ void ana::dataflow<DS>::delayed<Bld>::set_variation(const std::string &,
 
 template <typename DS>
 template <typename Bld>
-auto ana::dataflow<DS>::delayed<Bld>::get_nominal() const -> delayed const & {
+auto ana::dataflow<DS>::delayed<Bld>::nominal() const -> delayed const & {
   // this is nominal
   return *this;
 }
 
 template <typename DS>
 template <typename Bld>
-auto ana::dataflow<DS>::delayed<Bld>::get_variation(const std::string &) const
+auto ana::dataflow<DS>::delayed<Bld>::variation(const std::string &) const
     -> delayed const & {
   // propagation of variations must occur "transparently"
   return *this;
@@ -420,8 +399,8 @@ auto ana::dataflow<DS>::delayed<Bld>::vary(const std::string &var_name,
     typename delayed<V>::varied {
 
   auto syst = varied(std::move(*this));
-  syst.set_variation(var_name, std::move(syst.m_df->vary_equation(
-                                   syst.get_nominal(), callable)));
+  syst.set_variation(
+      var_name, std::move(syst.m_df->vary_equation(syst.nominal(), callable)));
 
   return std::move(syst);
 }
@@ -439,5 +418,5 @@ auto ana::dataflow<DS>::delayed<Bld>::vary(const std::string &var_name,
   auto syst = varied(std::move(*this));
   syst.set_variation(var_name,
                      std::move(syst.m_df->vary_definition(
-                         syst.get_nominal(), std::forward<Args>(args)...)));
+                         syst.nominal(), std::forward<Args>(args)...)));
 }

@@ -12,7 +12,7 @@
   template <typename Arg>                                                      \
   auto operator op_symbol(Arg &&b) const->typename lazy<                       \
       typename decltype(std::declval<lazy<Act>>().operator op_symbol(          \
-          std::forward<Arg>(b).get_nominal()))::action_type>::varied;
+          std::forward<Arg>(b).nominal()))::action_type>::varied;
 #define DEFINE_VARIED_BINARY_OP(op_symbol)                                     \
   template <typename T>                                                        \
   template <typename Act>                                                      \
@@ -20,17 +20,17 @@
   auto ana::dataflow<T>::lazy<Act>::varied::operator op_symbol(Arg &&b)        \
       const->typename lazy<                                                    \
           typename decltype(std::declval<lazy<Act>>().operator op_symbol(      \
-              std::forward<Arg>(b).get_nominal()))::action_type>::varied {     \
+              std::forward<Arg>(b).nominal()))::action_type>::varied {         \
     auto syst = typename lazy<                                                 \
         typename decltype(std::declval<lazy<Act>>().operator op_symbol(        \
-            std::forward<Arg>(b).get_nominal()))::action_type>::               \
-        varied(this->get_nominal().operator op_symbol(                         \
-            std::forward<Arg>(b).get_nominal()));                              \
+            std::forward<Arg>(b).nominal()))::action_type>::                   \
+        varied(this->nominal().operator op_symbol(                             \
+            std::forward<Arg>(b).nominal()));                                  \
     for (auto const &var_name :                                                \
          list_all_variation_names(*this, std::forward<Arg>(b))) {              \
       syst.set_variation(var_name,                                             \
-                         get_variation(var_name).operator op_symbol(           \
-                             std::forward<Arg>(b).get_variation(var_name)));   \
+                         variation(var_name).operator op_symbol(               \
+                             std::forward<Arg>(b).variation(var_name)));       \
     }                                                                          \
     return syst;                                                               \
   }
@@ -51,10 +51,9 @@
     auto syst =                                                                \
         typename lazy<typename decltype(std::declval<lazy<V>>().               \
                                         operator op_symbol())::action_type>::  \
-            varied(this->get_nominal().operator op_symbol());                  \
+            varied(this->nominal().operator op_symbol());                      \
     for (auto const &var_name : list_all_variation_names(*this)) {             \
-      syst.set_variation(var_name,                                             \
-                         get_variation(var_name).operator op_symbol());        \
+      syst.set_variation(var_name, variation(var_name).operator op_symbol());  \
     }                                                                          \
     return syst;                                                               \
   }
@@ -84,8 +83,8 @@ public:
 
   virtual void set_variation(const std::string &var_name, lazy &&var) override;
 
-  virtual lazy const &get_nominal() const override;
-  virtual lazy const &get_variation(const std::string &var_name) const override;
+  virtual lazy const &nominal() const override;
+  virtual lazy const &variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
@@ -166,13 +165,13 @@ void ana::dataflow<T>::lazy<Act>::varied::set_variation(
 
 template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::varied::get_nominal() const -> lazy const & {
+auto ana::dataflow<T>::lazy<Act>::varied::nominal() const -> lazy const & {
   return m_nom;
 }
 
 template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::varied::get_variation(
+auto ana::dataflow<T>::lazy<Act>::varied::variation(
     const std::string &var_name) const -> lazy const & {
   return (this->has_variation(var_name) ? m_var_map.at(var_name) : m_nom);
 }
@@ -199,10 +198,10 @@ auto ana::dataflow<T>::lazy<Act>::varied::filter(const std::string &name) ->
     typename delayed<selection::trivial_applicator_type>::varied {
   using syst_type =
       typename delayed<selection::trivial_applicator_type>::varied;
-  auto syst = syst_type(this->get_nominal().template filter<Sel>(name));
+  auto syst = syst_type(this->nominal().template filter<Sel>(name));
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(
-        var_name, this->get_variation(var_name).template filter<Sel>(name));
+    syst.set_variation(var_name,
+                       this->variation(var_name).template filter<Sel>(name));
   }
   return syst;
 }
@@ -215,10 +214,10 @@ auto ana::dataflow<T>::lazy<Act>::varied::channel(const std::string &name) ->
     typename delayed<selection::trivial_applicator_type>::varied {
   using syst_type =
       typename delayed<selection::trivial_applicator_type>::varied;
-  auto syst = syst_type(this->get_nominal().template channel<Sel>(name));
+  auto syst = syst_type(this->nominal().template channel<Sel>(name));
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(
-        var_name, this->get_variation(var_name).template channel<Sel>(name));
+    syst.set_variation(var_name,
+                       this->variation(var_name).template channel<Sel>(name));
   }
   return syst;
 }
@@ -235,12 +234,11 @@ auto ana::dataflow<T>::lazy<Act>::varied::filter(const std::string &name,
       typename delayed<selection::template custom_applicator_t<Lmbd>>::varied;
 
   auto syst = syst_type(
-      this->get_nominal().template filter<Sel>(name, std::forward<Lmbd>(lmbd)));
+      this->nominal().template filter<Sel>(name, std::forward<Lmbd>(lmbd)));
 
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name,
-                       this->get_variation(var_name).template filter<Sel>(
-                           name, std::forward<Lmbd>(lmbd)));
+    syst.set_variation(var_name, this->variation(var_name).template filter<Sel>(
+                                     name, std::forward<Lmbd>(lmbd)));
   }
   return syst;
 }
@@ -254,11 +252,11 @@ auto ana::dataflow<T>::lazy<Act>::varied::channel(const std::string &name,
     typename delayed<selection::template custom_applicator_t<Lmbd>>::varied {
   using syst_type =
       typename delayed<selection::template custom_applicator_t<Lmbd>>::varied;
-  auto syst = syst_type(this->get_nominal().template channel<Sel>(
-      name, std::forward<Lmbd>(lmbd)));
+  auto syst = syst_type(
+      this->nominal().template channel<Sel>(name, std::forward<Lmbd>(lmbd)));
   for (auto const &var_name : this->list_variation_names()) {
     syst.set_variation(var_name,
-                       this->get_variation(var_name).template channel<Sel>(
+                       this->variation(var_name).template channel<Sel>(
                            name, std::forward<Lmbd>(lmbd)));
   }
   return syst;
@@ -271,10 +269,10 @@ template <typename Node, typename V,
 auto ana::dataflow<T>::lazy<Act>::varied::operator&&(const Node &b) const ->
     typename lazy<selection::cut::a_and_b>::varied {
   using syst_type = typename lazy<selection::cut::a_and_b>::varied;
-  auto syst = syst_type(this->get_nominal().operator&&(b.get_nominal()));
+  auto syst = syst_type(this->nominal().operator&&(b.nominal()));
   for (auto const &var_name : list_all_variation_names(*this, b)) {
-    syst.set_variation(var_name, this->get_variation(var_name).operator&&(
-                                     b.get_variation(var_name)));
+    syst.set_variation(
+        var_name, this->variation(var_name).operator&&(b.variation(var_name)));
   }
   return syst;
 }
@@ -286,10 +284,10 @@ template <typename Node, typename V,
 auto ana::dataflow<T>::lazy<Act>::varied::operator||(const Node &b) const ->
     typename lazy<selection::cut::a_or_b>::varied {
   using syst_type = typename lazy<selection::cut::a_or_b>::varied;
-  auto syst = syst_type(this->get_nominal().operator||(b.get_nominal()));
+  auto syst = syst_type(this->nominal().operator||(b.nominal()));
   for (auto const &var_name : list_all_variation_names(*this, b)) {
-    syst.set_variation(var_name, this->get_variation(var_name).operator||(
-                                     b.get_variation(var_name)));
+    syst.set_variation(
+        var_name, this->variation(var_name).operator||(b.variation(var_name)));
   }
   return syst;
 }
@@ -303,7 +301,7 @@ auto ana::dataflow<DS>::lazy<Act>::varied::operator[](
   if (!this->has_variation(var_name)) {
     throw std::out_of_range("variation does not exist");
   }
-  return this->get_variation(var_name);
+  return this->variation(var_name);
 }
 
 DEFINE_VARIED_UNARY_OP(minus, -)

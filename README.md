@@ -23,7 +23,7 @@ The purpose of `ana` is to provide a clear _abstraction_ layer for dataset trans
 3. `#include "ana/analysis.h"`.
 
 
-# Walkthrough (using rootana)
+# Walkthrough
 
 The following example analyzes simulated physics collision data reconstructing the Higgs boson transverse momentum in $gg\to H\rightarrow WW^{\ast}$ events (publicly-available dataset [here](https://opendata.cern.ch/record/700)).
 
@@ -355,7 +355,7 @@ mll_vars.has_variation("sf_var"); // true : mll nominal & cut_2los varied
 ```
 Each variation can be accessed by its name:
 ```cpp
-mll_vars.get_nominal()->Draw();
+mll_vars.nominal()->Draw();
 mll_vars["lp4_up"]->Draw("same");
 ```
 ![mll_varied](images/mll_varied.png)
@@ -367,6 +367,6 @@ Keeping track of multiple systematic variations *and* selections is also possibl
 auto mll_channels_vars = df.book<Hist<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
 
 // specify variation name, followed by selection path
-mll_channels_vars.get_nominal()["2ldf"]->GetEntries();
+mll_channels_vars.nominal()["2ldf"]->GetEntries();
 mll_channels_vars["lp4_up"]["2lsf"]->GetEntries();
 ```

@@ -2,4 +2,4 @@ dataflow
 ---------
 
 .. doxygenclass:: ana::dataflow
-   :members: 
+   :members: read, constant, define, filter, channel, book

@@ -165,8 +165,8 @@ public:
 
   virtual void set_variation(const std::string &var_name, lazy &&var) override;
 
-  virtual lazy const &get_nominal() const override;
-  virtual lazy const &get_variation(const std::string &var_name) const override;
+  virtual lazy const &nominal() const override;
+  virtual lazy const &variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
@@ -176,8 +176,8 @@ public:
    * @param var_name Name of the systematic variation.
    * @param args... Alternate column name (`reader`) or value (`constant`).
    * @return Varied column.
-   * @details Creates a `varied` action whose `.get_nominal()` is the original
-   * lazy one, and `get_variation(var_name)` is the newly-constructed one.
+   * @details Creates a `varied` action whose `.nominal()` is the original
+   * lazy one, and `variation(var_name)` is the newly-constructed one.
    */
   template <typename... Args, typename V = U,
             std::enable_if_t<ana::column::template is_reader_v<V> ||
@@ -217,7 +217,7 @@ public:
    * ```cpp
    * auto sel =
    * ds.channel<cut>("a")(a).filter<weight>("b")(b).filter<cut>("c")(c);
-   * sel.get_path();  // "a/c"
+   * sel.path();  // "a/c"
    * ```
    */
   template <typename Sel, typename... Args>
@@ -226,7 +226,7 @@ public:
 
   template <typename V = U,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  std::string get_path() const {
+  std::string path() const {
     return this->get_model_value(
         [](const selection &me) { return me.get_path(); });
   }
@@ -240,7 +240,7 @@ public:
   template <
       typename V = U,
       std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
-  auto get_result() const -> decltype(std::declval<V>().get_result()) {
+  auto result() const -> decltype(std::declval<V>().get_result()) {
     this->m_df->analyze();
     this->merge_results();
     return this->get_model()->get_result();
@@ -285,11 +285,11 @@ public:
   auto operator||(typename lazy<selection>::varied const &b) const ->
       typename lazy<selection>::varied {
     using syst_type = typename lazy<selection>::varied;
-    auto syst = syst_type(this->get_nominal().operator||(b.get_nominal()));
+    auto syst = syst_type(this->nominal().operator||(b.nominal()));
     auto var_names = list_all_variation_names(b);
     for (auto const &var_name : var_names) {
-      syst.set_variation(var_name, this->get_variation(var_name).operator||(
-                                       b.get_variation(var_name)));
+      syst.set_variation(var_name, this->variation(var_name).operator||(
+                                       b.variation(var_name)));
     }
     return syst;
   }
@@ -306,11 +306,11 @@ public:
   auto operator&&(typename lazy<selection>::varied const &b) const ->
       typename lazy<selection>::varied {
     using syst_type = typename lazy<selection>::varied;
-    auto syst = syst_type(this->get_nominal().operator||(b.get_nominal()));
+    auto syst = syst_type(this->nominal().operator||(b.nominal()));
     auto var_names = list_all_variation_names(b);
     for (auto const &var_name : var_names) {
-      syst.set_variation(var_name, this->get_variation(var_name).operator&&(
-                                       b.get_variation(var_name)));
+      syst.set_variation(var_name, this->variation(var_name).operator&&(
+                                       b.variation(var_name)));
     }
     return syst;
   }
@@ -323,7 +323,7 @@ public:
       typename V = U,
       std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
   auto operator->() const -> decltype(std::declval<V>().get_result()) {
-    return this->get_result();
+    return this->result();
   }
 
   DEFINE_LAZY_SUBSCRIPT_OP()
@@ -373,14 +373,14 @@ void ana::dataflow<T>::lazy<Act>::set_variation(const std::string &, lazy &&) {
 
 template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::get_nominal() const -> lazy const & {
+auto ana::dataflow<T>::lazy<Act>::nominal() const -> lazy const & {
   // this is nominal
   return *this;
 }
 
 template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::get_variation(const std::string &) const
+auto ana::dataflow<T>::lazy<Act>::variation(const std::string &) const
     -> lazy const & {
   // propagation of variations must occur "transparently"
   return *this;
@@ -444,7 +444,7 @@ auto ana::dataflow<T>::lazy<Act>::vary(const std::string &var_name,
   // set variation of the column according to new constructor arguments
   syst.set_variation(
       var_name,
-      this->m_df->vary_column(syst.get_nominal(), std::forward<Args>(args)...));
+      this->m_df->vary_column(syst.nominal(), std::forward<Args>(args)...));
   // done
   return syst;
 }
