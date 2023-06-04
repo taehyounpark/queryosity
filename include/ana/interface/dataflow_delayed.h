@@ -7,6 +7,14 @@
 
 namespace ana {
 
+/**
+ * @brief Node representing a action to be performed in an analysis.
+ * @details A delayed action is not yet fully-specified to be considered lazy,
+ * as they require existing lazy actions as inputs to create a lazy one of
+ * itself.
+ * @tparam T Input dataset type.
+ * @tparam U Action for which a lazy one will be created.
+ */
 template <typename DS>
 template <typename Bld>
 class dataflow<DS>::delayed
@@ -44,37 +52,23 @@ public:
   virtual std::set<std::string> list_variation_names() const override;
 
   /**
-   * @brief Apply a systematic variation to an `equation` column.
+   * @brief Apply a systematic variation to a column evaluator.
    * @param var_name Name of the systematic variation.
-   * @param args... Constructor arguments for `definition`.
-   * @return Varied definition.
-   * @details Creates a `varied` action whose `.nominal()` is the original
-   * lazy one, and `variation(var_name)` is the newly-constructed one.
+   * @param args Constructor arguments column.
+   * @return Varied column evaluator.
+   * @details This method is to vary the instantiation of columns that must be
+   * `evaluated()`ed from input columns, which the `vary()` call must precede:
+   * ```cpp
+   * auto energy = df.read<float>("energy");
+   * auto e_pm_1pc = df.define([](float x){return
+   * x*1.0;}).vary("plus_1pc",[](double x){return
+   * x*1.01;}).vary("minus_1pc",[](double x){return x*0.99;}).evaluate(energy);
+   * ```
    */
-  template <typename... Args, typename V = Bld,
-            std::enable_if_t<ana::column::template is_evaluator_v<V> &&
-                                 !ana::column::template is_equation_v<
-                                     ana::column::template evaluated_t<V>>,
-                             bool> = false>
+  template <
+      typename... Args, typename V = Bld,
+      std::enable_if_t<ana::column::template is_evaluator_v<V>, bool> = false>
   auto vary(const std::string &var_name, Args &&...args) ->
-      typename delayed<V>::varied;
-
-  /**
-   * @brief Apply a systematic variation to `equation` column.
-   * @param var_name Name of the systematic variation.
-   * @param callable C++ function, lambda expression, or any other callable.
-   * **Note**: the function return type and signature must be convertible to the
-   * original's.
-   * @return Varied equation.
-   * @details Creates a `varied` action whose `.nominal()` is the original
-   * lazy one, and `variation(var_name)` is the newly-constructed one.
-   */
-  template <typename F, typename V = Bld,
-            std::enable_if_t<ana::column::template is_evaluator_v<V> &&
-                                 ana::column::template is_equation_v<
-                                     ana::column::template evaluated_t<V>>,
-                             bool> = false>
-  auto vary(const std::string &var_name, F callable) ->
       typename delayed<V>::varied;
 
   /**
@@ -110,10 +104,10 @@ public:
   auto evaluate_column(Nodes const &...columns) const ->
       typename lazy<column::template evaluated_t<V>>::varied {
 
-    using syst_type = typename lazy<column::template evaluated_t<V>>::varied;
+    using varied_type = typename lazy<column::template evaluated_t<V>>::varied;
 
     auto nom = this->m_df->evaluate_column(*this, columns.nominal()...);
-    auto syst = syst_type(std::move(nom));
+    auto syst = varied_type(std::move(nom));
 
     for (auto const &var_name : list_all_variation_names(columns...)) {
       auto var =
@@ -127,7 +121,7 @@ public:
   /**
    * @brief Apply the selection's expression based on input columns.
    * @param columns Input columns.
-   * @return `lazy/varied<selection>` Applied selection.
+   * @return Applied selection.
    */
   template <typename... Nodes, typename V = Bld,
             std::enable_if_t<ana::selection::template is_applicator_v<V>,
@@ -141,7 +135,7 @@ public:
   /**
    * @brief Fill the counter with input columns.
    * @param columns Input columns
-   * @return The counter to be filled with the input columns.
+   * @return The counter filled with input columns.
    */
   template <
       typename... Nodes, typename V = Bld,
@@ -176,8 +170,8 @@ public:
                              bool> = false>
   auto select_counter(Node const &sel) const ->
       typename lazy<counter::booked_t<V>>::varied {
-    using syst_type = typename lazy<counter::booked_t<V>>::varied;
-    auto syst = syst_type(this->m_df->select_counter(*this, sel.nominal()));
+    using varied_type = typename lazy<counter::booked_t<V>>::varied;
+    auto syst = varied_type(this->m_df->select_counter(*this, sel.nominal()));
     for (auto const &var_name : list_all_variation_names(sel)) {
       syst.set_variation(
           var_name, this->m_df->select_counter(*this, sel.variation(var_name)));
@@ -213,10 +207,10 @@ public:
   auto select_counters(Nodes const &...sels) const ->
       typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied {
     // variations
-    using syst_type =
+    using varied_type =
         typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied;
     auto syst =
-        syst_type(this->m_df->select_counters(*this, sels.nominal()...));
+        varied_type(this->m_df->select_counters(*this, sels.nominal()...));
     for (auto const &var_name : list_all_variation_names(sels...)) {
       syst.set_variation(var_name, this->m_df->select_counters(
                                        *this, sels.variation(var_name)...));
@@ -335,9 +329,9 @@ protected:
   auto apply_selection(Nodes const &...columns) const ->
       typename lazy<selection>::varied {
     // variations
-    using syst_type = typename lazy<selection>::varied;
+    using varied_type = typename lazy<selection>::varied;
     auto syst =
-        syst_type(this->nominal().apply_selection(columns.nominal()...));
+        varied_type(this->nominal().apply_selection(columns.nominal()...));
     auto var_names = list_all_variation_names(columns...);
     for (auto const &var_name : var_names) {
       syst.set_variation(var_name, this->variation(var_name).apply_selection(
@@ -389,34 +383,14 @@ bool ana::dataflow<DS>::delayed<Bld>::has_variation(const std::string &) const {
 
 template <typename DS>
 template <typename Bld>
-template <typename F, typename V,
-          std::enable_if_t<ana::column::template is_evaluator_v<V> &&
-                               ana::column::template is_equation_v<
-                                   ana::column::template evaluated_t<V>>,
-                           bool>>
-auto ana::dataflow<DS>::delayed<Bld>::vary(const std::string &var_name,
-                                           F callable) ->
-    typename delayed<V>::varied {
-
-  auto syst = varied(std::move(*this));
-  syst.set_variation(
-      var_name, std::move(syst.m_df->vary_equation(syst.nominal(), callable)));
-
-  return std::move(syst);
-}
-
-template <typename DS>
-template <typename Bld>
 template <typename... Args, typename V,
-          std::enable_if_t<ana::column::template is_evaluator_v<V> &&
-                               !ana::column::template is_equation_v<
-                                   ana::column::template evaluated_t<V>>,
-                           bool>>
+          std::enable_if_t<ana::column::template is_evaluator_v<V>, bool>>
 auto ana::dataflow<DS>::delayed<Bld>::vary(const std::string &var_name,
                                            Args &&...args) ->
     typename delayed<V>::varied {
   auto syst = varied(std::move(*this));
   syst.set_variation(var_name,
-                     std::move(syst.m_df->vary_definition(
+                     std::move(syst.m_df->vary_evaluator(
                          syst.nominal(), std::forward<Args>(args)...)));
+  return syst;
 }

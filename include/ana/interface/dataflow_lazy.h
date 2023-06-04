@@ -117,9 +117,10 @@ CHECK_FOR_SUBSCRIPT_OP()
 } // namespace op_check
 
 /**
- * @brief Node representing a lazy action to be performed in an analysis.
- * @details Depending on the concrete type of the lazy action, further
- * operations may be performed on it.
+ * @brief Node representing a action to be performed in an analysis.
+ * @details Lazy nodes represent the final operation to be performed in a
+ * dataset, pending its processing. It can be provided to other dataflow
+ * operations as inputs.
  * @tparam T Input dataset type
  * @tparam U Action to be performed lazily
  */
@@ -136,14 +137,9 @@ public:
   using action_type = U;
 
   template <typename Sel, typename... Args>
-  using lzy_sel_app_t =
+  using delayed_selection_applicator_t =
       decltype(std::declval<dataflow<T>>().template filter<Sel>(
           std::declval<std::string>(), std::declval<Args>()...));
-
-  template <typename Sel, typename... Args>
-  using selection_applicator_t =
-      typename decltype(std::declval<dataflow<T>>().template filter<Sel>(
-          std::declval<std::string>(), std::declval<Args>()...))::action_type;
 
 public:
   // friends with the main dataflow graph & any other lazy nodes
@@ -203,7 +199,7 @@ public:
    */
   template <typename Sel, typename... Args>
   auto filter(const std::string &name, Args &&...args) const
-      -> lzy_sel_app_t<Sel, Args...>;
+      -> delayed_selection_applicator_t<Sel, Args...>;
 
   /**
    * @brief Channel from an existing selection.
@@ -222,7 +218,7 @@ public:
    */
   template <typename Sel, typename... Args>
   auto channel(const std::string &name, Args &&...args) const
-      -> lzy_sel_app_t<Sel, Args...>;
+      -> delayed_selection_applicator_t<Sel, Args...>;
 
   template <typename V = U,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
@@ -284,8 +280,8 @@ public:
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto operator||(typename lazy<selection>::varied const &b) const ->
       typename lazy<selection>::varied {
-    using syst_type = typename lazy<selection>::varied;
-    auto syst = syst_type(this->nominal().operator||(b.nominal()));
+    using varied_type = typename lazy<selection>::varied;
+    auto syst = varied_type(this->nominal().operator||(b.nominal()));
     auto var_names = list_all_variation_names(b);
     for (auto const &var_name : var_names) {
       syst.set_variation(var_name, this->variation(var_name).operator||(
@@ -305,8 +301,8 @@ public:
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto operator&&(typename lazy<selection>::varied const &b) const ->
       typename lazy<selection>::varied {
-    using syst_type = typename lazy<selection>::varied;
-    auto syst = syst_type(this->nominal().operator||(b.nominal()));
+    using varied_type = typename lazy<selection>::varied;
+    auto syst = varied_type(this->nominal().operator||(b.nominal()));
     auto var_names = list_all_variation_names(b);
     for (auto const &var_name : var_names) {
       syst.set_variation(var_name, this->variation(var_name).operator&&(
@@ -343,9 +339,9 @@ public:
   DEFINE_LAZY_BINARY_OP(less_than_or_equal_to, <=)
 
 protected:
-  template <typename V = U,
-            typename std::enable_if<ana::counter::template has_output_v<V>,
-                                    void>::type * = nullptr>
+  template <
+      typename V = U,
+      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
   void merge_results() const {
     auto model = this->get_model();
     if (!model->is_merged()) {
@@ -406,7 +402,7 @@ template <typename Act>
 template <typename Sel, typename... Args>
 auto ana::dataflow<T>::lazy<Act>::filter(const std::string &name,
                                          Args &&...args) const
-    -> lzy_sel_app_t<Sel, Args...> {
+    -> delayed_selection_applicator_t<Sel, Args...> {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template filter<Sel>(*this, name,
                                             std::forward<Args>(args)...);
@@ -421,7 +417,7 @@ template <typename Act>
 template <typename Sel, typename... Args>
 auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
                                           Args &&...args) const
-    -> lzy_sel_app_t<Sel, Args...> {
+    -> delayed_selection_applicator_t<Sel, Args...> {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template channel<Sel>(*this, name,
                                              std::forward<Args>(args)...);

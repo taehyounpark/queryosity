@@ -26,10 +26,6 @@ public:
   virtual std::set<std::string> list_variation_names() const override;
 
 public:
-  template <typename... Args, typename V = Bld,
-            std::enable_if_t<ana::is_column_v<V>, bool> = false>
-  auto vary(const std::string &var_name, Args &&...args) -> varied;
-
   template <
       typename... Args, typename V = Bld,
       std::enable_if_t<ana::column::template is_evaluator_v<V>, bool> = false>
@@ -144,9 +140,9 @@ template <typename... Args, typename V,
 auto ana::dataflow<T>::delayed<Bld>::varied::evaluate(Args &&...args) ->
     typename ana::dataflow<T>::template lazy<
         column::template evaluated_t<V>>::varied {
-  using syst_type = typename ana::dataflow<T>::template lazy<
+  using varied_type = typename ana::dataflow<T>::template lazy<
       column::template evaluated_t<V>>::varied;
-  auto syst = syst_type(
+  auto syst = varied_type(
       this->nominal().evaluate(std::forward<Args>(args).nominal()...));
   for (auto const &var_name :
        list_all_variation_names(*this, std::forward<Args>(args)...)) {
@@ -164,8 +160,8 @@ template <typename... Nodes, typename V,
 auto ana::dataflow<T>::delayed<Bld>::varied::apply(Nodes const &...columns) ->
     typename lazy<selection>::varied {
 
-  using syst_type = typename lazy<selection>::varied;
-  auto syst = syst_type(this->nominal().apply(columns.nominal()...));
+  using varied_type = typename lazy<selection>::varied;
+  auto syst = varied_type(this->nominal().apply(columns.nominal()...));
 
   for (auto const &var_name : list_all_variation_names(*this, columns...)) {
     syst.set_variation(
@@ -197,8 +193,8 @@ auto ana::dataflow<T>::delayed<Bld>::varied::at(Node const &selection) ->
     typename lazy<counter::booked_t<V>>::varied
 // varied version of booking counter at a selection operation
 {
-  using syst_type = typename lazy<counter::booked_t<V>>::varied;
-  auto syst = syst_type(this->nominal().at(selection.nominal()));
+  using varied_type = typename lazy<counter::booked_t<V>>::varied;
+  auto syst = varied_type(this->nominal().at(selection.nominal()));
   for (auto const &var_name : list_all_variation_names(*this, selection)) {
     syst.set_variation(var_name,
                        variation(var_name).at(selection.variation(var_name)));
@@ -214,9 +210,9 @@ auto ana::dataflow<T>::delayed<Bld>::varied::at(Nodes const &...selections) ->
     typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied
 // varied version of booking counter at a selection operation
 {
-  using syst_type =
+  using varied_type =
       typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied;
-  auto syst = syst_type(this->nominal().at(selections.nominal()...));
+  auto syst = varied_type(this->nominal().at(selections.nominal()...));
   for (auto const &var_name : list_all_variation_names(*this, selections...)) {
     syst.set_variation(
         var_name, variation(var_name).at(selections.variation(var_name)...));
@@ -232,7 +228,7 @@ auto ana::dataflow<T>::delayed<Bld>::varied::vary(const std::string &var_name,
                                                   Args &&...args) -> varied {
   auto syst = varied(std::move(*this));
   syst.set_variation(var_name,
-                     std::move(syst.m_df->vary_equation(
+                     std::move(syst.m_df->vary_evaluator(
                          syst.nominal(), std::forward<Args>(args)...)));
   return std::move(syst);
 }
@@ -244,11 +240,11 @@ auto ana::dataflow<T>::delayed<Bld>::varied::operator()(Args &&...args) ->
     typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
         std::forward<Args>(args).nominal()...))::action_type>::varied {
 
-  using syst_type =
+  using varied_type =
       typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
           std::forward<Args>(args).nominal()...))::action_type>::varied;
 
-  auto syst = syst_type(
+  auto syst = varied_type(
       this->nominal().operator()(std::forward<Args>(args).nominal()...));
   for (auto const &var_name :
        list_all_variation_names(*this, std::forward<Args>(args)...)) {

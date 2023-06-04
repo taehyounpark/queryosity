@@ -1,5 +1,7 @@
 #pragma once
 
+#include "interface/multithread.h"
+
 #include "interface/dataset_input.h"
 #include "interface/dataset_reader.h"
 
