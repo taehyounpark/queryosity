@@ -43,9 +43,10 @@ void ana::counter::bookkeeper<Cnt>::bookkeep(Cnt &cnt, const selection &sel) {
 }
 
 template <typename T>
-T *ana::counter::bookkeeper<T>::get_counter(const std::string &sel_path) const {
-  if (m_booked_counter_map.find(sel_path) == m_booked_counter_map.end()) {
+T *ana::counter::bookkeeper<T>::get_counter(
+    const std::string &selection_path) const {
+  if (m_booked_counter_map.find(selection_path) == m_booked_counter_map.end()) {
     throw std::out_of_range("counter not booked at selection path");
   }
-  return m_booked_counter_map.at(sel_path);
+  return m_booked_counter_map.at(selection_path);
 }

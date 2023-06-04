@@ -29,17 +29,18 @@ void ana::output::dump(Node const &node, Dest &&dest, Args &&...args) {
   // record all results
   if constexpr (dataflow_t<Node>::template is_nominal_v<Node>) {
     // if node is nominal-only
-    for (auto const &sel_path : selection_paths) {
-      summary.record(sel_path, node[sel_path].result());
+    for (auto const &selection_path : selection_paths) {
+      summary.record(selection_path, node[selection_path].result());
     }
   } else {
     // if it has variations
-    for (auto const &sel_path : selection_paths) {
-      summary.record(sel_path, node.nominal()[sel_path].result());
+    for (auto const &selection_path : selection_paths) {
+      summary.record(selection_path, node.nominal()[selection_path].result());
     }
     for (auto const &var_name : list_all_variation_names(node)) {
-      for (auto const &sel_path : selection_paths) {
-        summary.record(var_name, sel_path, node[var_name][sel_path].result());
+      for (auto const &selection_path : selection_paths) {
+        summary.record(var_name, selection_path,
+                       node[var_name][selection_path].result());
       }
     }
   }

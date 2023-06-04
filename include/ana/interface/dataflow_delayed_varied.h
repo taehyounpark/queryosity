@@ -5,6 +5,13 @@
 
 namespace ana {
 
+/**
+ * @brief Varied version of a delayed action.
+ * @details A delayed varied action can be considered to be functionally
+ * equivalent to a delayed action, except that it contains multipled delayed
+ * ones for which the operation is applied. The nominal delayed action can be
+ * accessed by `nominal()`, and a systematic variation by `["variation name"]`.
+ */
 template <typename T>
 template <typename Bld>
 class dataflow<T>::delayed<Bld>::varied : public systematic<delayed<Bld>> {
@@ -63,15 +70,19 @@ public:
       typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
           std::forward<Args>(args).nominal()...))::action_type>::varied;
 
+  /**
+   * @brief Access the delayed action of a specific systematic variation.
+   * @param var_name The name of the systematic variation.
+   */
   template <
       typename V = Bld,
       std::enable_if_t<ana::counter::template is_bookkeeper_v<V>, bool> = false>
   auto operator[](const std::string &var_name) const -> delayed<V> const &;
 
 protected:
-  delayed<Bld> m_nom;
-  std::unordered_map<std::string, delayed<Bld>> m_var_map;
-  std::set<std::string> m_var_names;
+  delayed<Bld> m_nominal;
+  std::unordered_map<std::string, delayed<Bld>> m_variation_map;
+  std::set<std::string> m_variation_names;
 };
 
 } // namespace ana
@@ -83,42 +94,44 @@ protected:
 template <typename T>
 template <typename Bld>
 ana::dataflow<T>::delayed<Bld>::varied::varied(delayed<Bld> &&nom)
-    : systematic<delayed<Bld>>::systematic(*nom.m_df), m_nom(std::move(nom)) {}
+    : systematic<delayed<Bld>>::systematic(*nom.m_df),
+      m_nominal(std::move(nom)) {}
 
 template <typename T>
 template <typename Bld>
 void ana::dataflow<T>::delayed<Bld>::varied::set_variation(
     const std::string &var_name, delayed &&var) {
-  m_var_map.insert(std::move(std::make_pair(var_name, std::move(var))));
-  m_var_names.insert(var_name);
+  m_variation_map.insert(std::move(std::make_pair(var_name, std::move(var))));
+  m_variation_names.insert(var_name);
 }
 
 template <typename T>
 template <typename Bld>
 auto ana::dataflow<T>::delayed<Bld>::varied::nominal() const
     -> delayed const & {
-  return m_nom;
+  return m_nominal;
 }
 
 template <typename T>
 template <typename Bld>
 auto ana::dataflow<T>::delayed<Bld>::varied::variation(
     const std::string &var_name) const -> delayed const & {
-  return (this->has_variation(var_name) ? m_var_map.at(var_name) : m_nom);
+  return (this->has_variation(var_name) ? m_variation_map.at(var_name)
+                                        : m_nominal);
 }
 
 template <typename T>
 template <typename Bld>
 bool ana::dataflow<T>::delayed<Bld>::varied::has_variation(
     const std::string &var_name) const {
-  return m_var_map.find(var_name) != m_var_map.end();
+  return m_variation_map.find(var_name) != m_variation_map.end();
 }
 
 template <typename T>
 template <typename Bld>
 std::set<std::string>
 ana::dataflow<T>::delayed<Bld>::varied::list_variation_names() const {
-  return m_var_names;
+  return m_variation_names;
 }
 
 template <typename T>
@@ -190,9 +203,7 @@ template <typename Bld>
 template <typename Node, typename V,
           std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
 auto ana::dataflow<T>::delayed<Bld>::varied::at(Node const &selection) ->
-    typename lazy<counter::booked_t<V>>::varied
-// varied version of booking counter at a selection operation
-{
+    typename lazy<counter::booked_t<V>>::varied {
   using varied_type = typename lazy<counter::booked_t<V>>::varied;
   auto syst = varied_type(this->nominal().at(selection.nominal()));
   for (auto const &var_name : list_all_variation_names(*this, selection)) {
@@ -207,9 +218,7 @@ template <typename Bld>
 template <typename... Nodes, typename V,
           std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
 auto ana::dataflow<T>::delayed<Bld>::varied::at(Nodes const &...selections) ->
-    typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied
-// varied version of booking counter at a selection operation
-{
+    typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied {
   using varied_type =
       typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied;
   auto syst = varied_type(this->nominal().at(selections.nominal()...));

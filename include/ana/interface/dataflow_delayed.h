@@ -230,10 +230,9 @@ public:
   }
 
   /**
-   * @brief Evaluate/apply a column/selection, respectively.
-   * @param columns The input columns.
-   * @details A chained function call is equivalent to `evaluate` and `apply`
+   * @brief Shorthand for `evaluate()` and `apply()`
    * for column and selection respectively.
+   * @param columns The input columns.
    * @return The evaluated/applied column/selection.
    */
   template <typename... Args, typename V = Bld,
@@ -246,23 +245,29 @@ public:
     return this->evaluate_or_apply(std::forward<Args>(columns)...);
   }
 
+  /**
+   * @brief Access a counter booked at a selection path.
+   * @param selection_path The selection path.
+   * @return The counter.
+   */
   template <
       typename... Args, typename V = Bld,
       std::enable_if_t<counter::template is_bookkeeper_v<V>, bool> = false>
-  auto operator[](const std::string &sel_path) const
+  auto operator[](const std::string &selection_path) const
       -> lazy<counter::booked_t<V>> {
-    return this->get_counter(sel_path);
+    return this->get_counter(selection_path);
   }
 
 protected:
   template <
       typename V = Bld,
       std::enable_if_t<ana::counter::template is_bookkeeper_v<V>, bool> = false>
-  auto get_counter(const std::string &sel_path) const
+  auto get_counter(const std::string &selection_path) const
       -> lazy<counter::booked_t<V>> {
     return lazy<counter::booked_t<V>>(
-        *this->m_df, this->get_lockstep_view([sel_path = sel_path](V &bkpr) {
-          return bkpr.get_counter(sel_path);
+        *this->m_df,
+        this->get_lockstep_view([selection_path = selection_path](V &bkpr) {
+          return bkpr.get_counter(selection_path);
         }));
   }
 
