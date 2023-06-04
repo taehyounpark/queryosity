@@ -26,7 +26,7 @@ private:
 public:
   partition allocate_partition();
   double normalize_scale();
-  decltype(auto) read_dataset() const;
+  decltype(auto) read_dataset(const range &part) const;
 
   /**
    * @brief Allocate partition for multithreading.
@@ -62,7 +62,7 @@ public:
    * to be performed N times for each thread, and each subsequent call should
    * not alter the logical state of this class.
    */
-  decltype(auto) read() const;
+  decltype(auto) read(const range &part) const;
 
   void start_dataset();
   void finish_dataset();
@@ -112,9 +112,10 @@ template <typename T> void ana::dataset::input<T>::finish() {
 }
 
 template <typename T>
-decltype(auto) ana::dataset::input<T>::read_dataset() const {
+decltype(auto)
+ana::dataset::input<T>::read_dataset(const ana::dataset::range &part) const {
 
-  using result_type = decltype(static_cast<const T *>(this)->read());
+  using result_type = decltype(static_cast<const T *>(this)->read(part));
   static_assert(is_unique_ptr_v<result_type>,
                 "not a std::unique_ptr of ana::dataset::reader<T>");
 
@@ -122,9 +123,11 @@ decltype(auto) ana::dataset::input<T>::read_dataset() const {
   static_assert(std::is_base_of_v<dataset::reader<reader_type>, reader_type>,
                 "not an implementation of ana::dataset::reader<T>");
 
-  return this->read();
+  return this->read(part);
 }
 
-template <typename T> decltype(auto) ana::dataset::input<T>::read() const {
-  return static_cast<const T *>(this)->read();
+template <typename T>
+decltype(auto)
+ana::dataset::input<T>::read(const ana::dataset::range &part) const {
+  return static_cast<const T *>(this)->read(part);
 }

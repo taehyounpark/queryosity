@@ -98,7 +98,7 @@ template <typename T> void ana::sample<T>::initialize() {
   // open dataset reader and processor for each thread
   // model reprents whole dataset
   auto part = m_partition.total();
-  auto rdr = m_dataset->read_dataset();
+  auto rdr = m_dataset->read_dataset(part);
   auto proc = std::make_unique<dataset_processor_type>(part, *rdr, m_scale);
   m_readers.set_model(std::move(rdr));
   m_processors.set_model(std::move(proc));
@@ -107,7 +107,7 @@ template <typename T> void ana::sample<T>::initialize() {
   m_processors.clear_slots();
   for (unsigned int islot = 0; islot < m_partition.size(); ++islot) {
     auto part = m_partition.get_part(islot);
-    auto rdr = m_dataset->read_dataset();
+    auto rdr = m_dataset->read_dataset(part);
     auto proc = std::make_unique<dataset_processor_type>(part, *rdr, m_scale);
     m_readers.add_slot(std::move(rdr));
     m_processors.add_slot(std::move(proc));

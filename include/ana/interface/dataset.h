@@ -82,8 +82,8 @@ struct partition {
 } // namespace dataset
 
 template <typename T>
-using read_dataset_t =
-    typename decltype(std::declval<T const &>().read_dataset())::element_type;
+using read_dataset_t = typename decltype(std::declval<T const &>().read_dataset(
+    std::declval<const ana::dataset::range &>()))::element_type;
 
 template <typename T, typename Val>
 using read_column_t =
