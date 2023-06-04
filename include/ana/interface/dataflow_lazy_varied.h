@@ -6,6 +6,7 @@
 #include <utility>
 
 #include "dataflow_lazy.h"
+#include "dataflow_systematic.h"
 
 #define DECLARE_VARIED_BINARY_OP(op_symbol)                                    \
   template <typename Arg>                                                      \
@@ -122,7 +123,7 @@ public:
   template <
       typename V = Act,
       std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
-  auto operator[](const std::string &sel_path) const -> lazy<V>;
+  auto operator[](const std::string &var_name) const -> lazy<V>;
 
   DECLARE_VARIED_UNARY_OP(-)
   DECLARE_VARIED_UNARY_OP(!)
@@ -200,8 +201,8 @@ auto ana::dataflow<T>::lazy<Act>::varied::filter(const std::string &name) ->
       typename delayed<selection::trivial_applicator_type>::varied;
   auto syst = syst_type(this->get_nominal().template filter<Sel>(name));
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name,
-                       get_variation(var_name).template filter<Sel>(name));
+    syst.set_variation(
+        var_name, this->get_variation(var_name).template filter<Sel>(name));
   }
   return syst;
 }
@@ -216,8 +217,8 @@ auto ana::dataflow<T>::lazy<Act>::varied::channel(const std::string &name) ->
       typename delayed<selection::trivial_applicator_type>::varied;
   auto syst = syst_type(this->get_nominal().template channel<Sel>(name));
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name,
-                       get_variation(var_name).template channel<Sel>(name));
+    syst.set_variation(
+        var_name, this->get_variation(var_name).template channel<Sel>(name));
   }
   return syst;
 }
@@ -237,8 +238,9 @@ auto ana::dataflow<T>::lazy<Act>::varied::filter(const std::string &name,
       this->get_nominal().template filter<Sel>(name, std::forward<Lmbd>(lmbd)));
 
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name, get_variation(var_name).template filter<Sel>(
-                                     name, std::forward<Lmbd>(lmbd)));
+    syst.set_variation(var_name,
+                       this->get_variation(var_name).template filter<Sel>(
+                           name, std::forward<Lmbd>(lmbd)));
   }
   return syst;
 }
@@ -255,8 +257,9 @@ auto ana::dataflow<T>::lazy<Act>::varied::channel(const std::string &name,
   auto syst = syst_type(this->get_nominal().template channel<Sel>(
       name, std::forward<Lmbd>(lmbd)));
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name, get_variation(var_name).template channel<Sel>(
-                                     name, std::forward<Lmbd>(lmbd)));
+    syst.set_variation(var_name,
+                       this->get_variation(var_name).template channel<Sel>(
+                           name, std::forward<Lmbd>(lmbd)));
   }
   return syst;
 }

@@ -36,15 +36,15 @@ protected:
   void initialize();
 
 protected:
-  std::unique_ptr<T> m_dataset; //!
+  std::unique_ptr<T> m_dataset;
   bool m_initialized;
 
   long long m_max_entries;
   double m_scale;
 
   dataset::partition m_partition;
-  concurrent<dataset_reader_type> m_readers;       //!
-  concurrent<dataset_processor_type> m_processors; //!
+  concurrent<dataset_reader_type> m_readers;
+  concurrent<dataset_processor_type> m_processors;
 };
 
 } // namespace ana

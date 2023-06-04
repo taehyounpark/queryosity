@@ -1,5 +1,7 @@
 #pragma once
 
+/** @file */
+
 #include <memory>
 #include <set>
 #include <string>
@@ -16,22 +18,20 @@
 namespace ana {
 
 /**
- * @brief Analysis of an input dataset
+ * @brief Dataflow of an input dataset.
  */
 template <typename T> class dataflow : public sample<T> {
-
-public:
-  using dataset_reader_type = typename sample<T>::dataset_reader_type;
-  using dataset_processor_type = typename sample<T>::dataset_processor_type;
 
 public:
   template <typename U> class systematic;
 
   template <typename U> class delayed;
-  template <typename U> friend class delayed;
 
   template <typename U> class lazy;
-  template <typename U> friend class lazy;
+
+public:
+  using dataset_reader_type = typename sample<T>::dataset_reader_type;
+  using dataset_processor_type = typename sample<T>::dataset_processor_type;
 
   template <typename U>
   static constexpr std::true_type
@@ -41,30 +41,17 @@ public:
   static constexpr std::true_type
   check_delayed(typename dataflow<T>::template delayed<U> const &);
   static constexpr std::false_type check_delayed(...);
+
   template <typename V>
   static constexpr bool is_nominal_v =
       (decltype(check_lazy(std::declval<V>()))::value ||
        decltype(check_delayed(std::declval<V>()))::value);
-
-  template <typename U>
-  static constexpr std::true_type
-  check_lazy_varied(typename lazy<U>::varied const &);
-  static constexpr std::false_type check_lazy_varied(...);
-  template <typename U>
-  static constexpr std::true_type
-  check_delayed_varied(typename delayed<U>::varied const &);
-  static constexpr std::false_type check_delayed_varied(...);
-  template <typename V>
-  static constexpr bool is_varied_v =
-      (decltype(check_lazy_varied(std::declval<V>()))::value ||
-       decltype(check_delayed_varied(std::declval<V>()))::value);
+  template <typename V> static constexpr bool is_varied_v = !is_nominal_v<V>;
 
   template <typename... Args>
   static constexpr bool has_no_variation_v = (is_nominal_v<Args> && ...);
-  // template <typename... Args>
-  // static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
   template <typename... Args>
-  static constexpr bool has_variation_v = !(is_nominal_v<Args> && ...);
+  static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 public:
   virtual ~dataflow() = default;
@@ -74,12 +61,11 @@ public:
    * @param arguments Constructor arguments for the input dataset.
    */
   template <typename... Args> dataflow(Args &&...args);
-  // shortcuts for file paths provided with initializer braces
+
   template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<
                                 U, std::string, std::vector<std::string>>>>
-
   dataflow(const std::string &key, const std::vector<std::string> &file_paths);
-  // shortcuts for file paths provided with initializer braces
+
   template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<
                                 U, std::vector<std::string>, std::string>>>
   dataflow(const std::vector<std::string> &file_paths, const std::string &key);
@@ -200,9 +186,6 @@ public:
   auto book(Args &&...args) -> delayed<counter::booker<Cnt>>;
 
 protected:
-  /**
-   * @brief Default constructor for initial flags and values.
-   */
   dataflow();
   void analyze();
   void reset();
@@ -265,61 +248,20 @@ protected:
 
 protected:
   bool m_analyzed;
-  std::vector<std::unique_ptr<action>> m_actions; //!
-};
-
-template <typename T> template <typename U> class dataflow<T>::systematic {
-
-public:
-  using dataflow_type = dataflow<T>;
-  using dataset_type = T;
-  using nominal_type = U;
-
-public:
-  friend class dataflow<T>;
-  template <typename> friend class systematic;
-
-public:
-  systematic(dataflow<T> &dataflow);
-
-  virtual ~systematic() = default;
-
-public:
-  virtual void set_variation(const std::string &var_name, U &&nom) = 0;
-
-  virtual U const &get_nominal() const = 0;
-  virtual U const &get_variation(const std::string &var_name) const = 0;
-
-  virtual bool has_variation(const std::string &var_name) const = 0;
-  virtual std::set<std::string> list_variation_names() const = 0;
-
-protected:
-  dataflow<T> *m_df;
+  std::vector<std::unique_ptr<action>> m_actions;
 };
 
 template <typename T> using dataflow_t = typename T::dataflow_type;
 template <typename T> using action_t = typename T::nominal_type;
 
-template <typename... Nodes>
-auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
-
 } // namespace ana
 
 #include "dataflow_delayed.h"
 #include "dataflow_lazy.h"
-#include "dataflow_lazy_varied.h"
-
-// ----------------------------------------------------------------------------
-// node
-// ----------------------------------------------------------------------------
 
 template <typename T>
 template <typename U>
 ana::dataflow<T>::systematic<U>::systematic(dataflow<T> &df) : m_df(&df) {}
-
-// ----------------------------------------------------------------------------
-// dataflow
-// ----------------------------------------------------------------------------
 
 template <typename T> ana::dataflow<T>::dataflow() : m_analyzed(false) {}
 
@@ -347,8 +289,6 @@ ana::dataflow<T>::dataflow(const std::vector<std::string> &file_paths,
 
 template <typename T>
 template <typename Val>
-// typename ana::dataflow<T>::template lazy<ana::term<Val>>
-// ana::dataflow<T>::read(const std::string& name)
 auto ana::dataflow<T>::read(const std::string &name)
     -> lazy<read_column_t<read_dataset_t<T>, Val>> {
   this->initialize();
@@ -644,14 +584,6 @@ void ana::dataflow<T>::add_action(concurrent<action> action) {
 template <typename T>
 void ana::dataflow<T>::add_action(std::unique_ptr<action> action) {
   m_actions.emplace_back(std::move(action));
-}
-
-template <typename... Nodes>
-auto ana::list_all_variation_names(Nodes const &...nodes)
-    -> std::set<std::string> {
-  std::set<std::string> variation_names;
-  (variation_names.merge(nodes.list_variation_names()), ...);
-  return variation_names;
 }
 
 template <typename T>

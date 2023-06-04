@@ -1,10 +1,13 @@
 #pragma once
 
+/** @file */
+
 #include <iostream>
 #include <set>
 #include <type_traits>
 
 #include "dataflow.h"
+#include "dataflow_systematic.h"
 
 #define CHECK_FOR_BINARY_OP(op_name, op_symbol)                                \
   struct has_no_##op_name {};                                                  \
@@ -160,17 +163,6 @@ public:
 
   virtual ~lazy() = default;
 
-  // template <typename V>
-  // lazy(lazy<V> const &other)
-  //     : systematic<lazy<U>>::systematic(*other.m_df),
-  //     lockstep<U>::lockstep(other) {}
-
-  // template <typename V> lazy &operator=(lazy<V> const &other) {
-  //   this->m_df = other.m_df;
-  //   lockstep<U>::operator=(other);
-  //   return *this;
-  // }
-
   virtual void set_variation(const std::string &var_name, lazy &&var) override;
 
   virtual lazy const &get_nominal() const override;
@@ -199,13 +191,14 @@ public:
    * `ana::selection::weight`.
    * @tparam Args (Optional) Type of function/functor/callable expression.
    * @param name Name of the selection.
-   * @param args (Optional) function/functor/callable expression to be applied.
-   * @return Chained selection "applicator" to be applied with input columns.
+   * @param args (Optional) function/functor/callable expression to be used.
+   * @return Selection to be applied with input columns.
    * @details Chained selections have their cut and weight decisions compounded:
    * ```cpp
-   * auto sel = ds.channel<cut>("a")(a).filter<weight>("w")(w);
-   * // cut = (a) && (true);
-   * // weight = (1.0) * (w);
+   * auto sel =
+   * ds.channel<cut>("a")(a).filter<weight>("b")(b).filter<cut>("c")(c);
+   * // cut = (a) && (true) && (c);
+   * // weight = (1.0) * (w) * (1.0);
    * ```
    */
   template <typename Sel, typename... Args>
@@ -217,13 +210,14 @@ public:
    * @tparam Sel Type of selection to be applied, i.e. `ana::selection::cut` or
    * `ana::selection::weight`.
    * @param name Name of the selection.
-   * @param args (Optional) lambda expression to be evaluated.
-   * @return Chained selection (to be evaluated with input columns)
+   * @param args (Optional) function/functor/callable expression to be used.
+   * @return Selection to be applied with input columns.
    * @details The name of the selection from which this method is called from
    * will be preserved as part of the path for chained selections:
    * ```cpp
-   * auto sel = ds.channel<cut>("a")(a).filter<weight>("b")(b);
-   * sel.get_path();  // "a/b"
+   * auto sel =
+   * ds.channel<cut>("a")(a).filter<weight>("b")(b).filter<cut>("c")(c);
+   * sel.get_path();  // "a/c"
    * ```
    */
   template <typename Sel, typename... Args>
@@ -235,17 +229,6 @@ public:
   std::string get_path() const {
     return this->get_model_value(
         [](const selection &me) { return me.get_path(); });
-  }
-
-  /**
-   * @return The list of booked selection paths.
-   */
-  template <
-      typename V = U,
-      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
-  auto list_selection_paths() const -> std::set<std::string> {
-    return this->get_model_value(
-        [](U const &bkr) { return bkr.list_selection_paths(); });
   }
 
   /**

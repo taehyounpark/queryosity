@@ -6,4 +6,6 @@ Analysis
 
    dataflow
    dataflow_lazy
-   dataflow_varied
+   dataflow_lazy_varied
+   dataflow_delayed
+   dataflow_delayed_varied

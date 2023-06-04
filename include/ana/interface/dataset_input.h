@@ -32,24 +32,23 @@ public:
    * @brief Allocate partition for multithreading.
    * @details This step **must** be implemented by the analyzer.
    * It is performed to scan the dataset and determine any partitioning of the
-   * dataset as specfieid by the analyzer. If partitioning is perform to split
-   * the dataset, each range will be processed concurrently as allowed by
-   * `ana::multithread::enable();`. Else, a partition over the entire dataset
-   * range will force the analysis to be performed sequentially. The input
-   * reader (see `dataset::reader`) must support accessing each dataset range in
-   * the partition simultanesouly. The method is non-\a const to allow the scan
-   * itself to alter the logical state of the dataset, e.g. check input file
-   * paths and remember only valid ones for use later.
+   * dataset as specfieid by the analyzer. Each range in the partition as
+   * allocated by this function will be processed concurrently as allowed by
+   * `ana::multithread::enable()`, provided that the implemented input reader
+   * can access each dataset range from the dataset in a thread-safe manner.
+   * This method is non-\a const to allow altering the logical state of the
+   * dataset input itself, e.g. check file paths and filter out invalid/missing
+   * files.
    */
   partition allocate();
 
   /**
    * @brief Normalize the dataset.
-   * @details This step is performed to scan the dataset and determine any
-   * normalization to be applied to the analysis. By default, no normalization
-   * is applied (i.e. equal to 1.0). The method is non-\a const to allow the
-   * scan itself to alter the logical state of the dataset, e.g. check input
-   * file paths and remember only valid ones for use later.
+   * @details This step can be optionally done to determine a global
+   * normalization factor applied to all selection in the analysis. By default,
+   * normalization is not applied, i.e. is equal to 1. This method is non-\a
+   * const to allow altering the logical state of the dataset input itself, e.g.
+   * check file paths and filter out invalid/missing files.
    */
   double normalize();
 

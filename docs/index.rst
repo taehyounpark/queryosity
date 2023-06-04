@@ -23,6 +23,12 @@ Features
 * Multithreaded processing of the dataset.
 
 .. toctree::
+   :caption: INSTALLATION
+   :maxdepth: 1
+
+   installation/cmake
+
+.. toctree::
    :caption: HOW TO USE
    :maxdepth: 1
 

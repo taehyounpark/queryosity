@@ -2,6 +2,7 @@
 
 #include "dataflow.h"
 #include "dataflow_lazy.h"
+#include "dataflow_systematic.h"
 #include "multithread.h"
 
 namespace ana {
@@ -81,8 +82,6 @@ public:
    * @brief Evaluate the column out of existing ones.
    * @param columns Input columns.
    * @return Evaluated column.
-   * @details The input column(s) can be `lazy` or `varied`. Correspondingly,
-   * the evaluated column will be as well.
    */
   template <
       typename... Nodes, typename V = Bld,
@@ -172,8 +171,8 @@ public:
 
   /**
    * @brief Fill the counter with input columns.
-   * @param columns Input (`lazy` or `varied`) columns.
-   * @return The counter (`lazy` or `varied`) filled with the input columns.
+   * @param columns Input columns
+   * @return The counter to be filled with the input columns.
    */
   template <
       typename... Nodes, typename V = Bld,
@@ -215,7 +214,7 @@ public:
   /**
    * @brief Book the counter at a selection.
    * @param selection Selection to be counted.
-   * @return The (`lazy` or `varied`) counter booked at the selection.
+   * @return The counter booked at the selection.
    */
   template <typename Node> auto at(Node &&selection) const {
     return this->select_counter(std::forward<Node>(selection));
@@ -246,10 +245,9 @@ public:
   }
 
   /**
-   * @brief Book the counter at multiple selections.
-   * @param selections Selections to book the counter at.
-   * @return The (`lazy` or `varied`) counter "booker" that keeps track the
-   * counters at each selection.
+   * @brief Book multiple counters, one at each selection.
+   * @param selections The selections.
+   * @return The counters booked at selections.
    */
   template <typename... Nodes> auto at(Nodes &&...nodes) const {
     static_assert(counter::template is_booker_v<Bld>, "not a counter (booker)");
@@ -329,10 +327,10 @@ public:
 
   /**
    * @brief Evaluate/apply a column/selection, respectively.
+   * @param columns The input columns.
    * @details A chained function call is equivalent to `evaluate` and `apply`
    * for column and selection respectively.
-   * @return The resulting (`lazy` or `varied`) counter/selection from its
-   * evaluator/application.
+   * @return The evaluated/applied column/selection.
    */
   template <typename... Args, typename V = Bld,
             std::enable_if_t<column::template is_evaluator_v<V> ||

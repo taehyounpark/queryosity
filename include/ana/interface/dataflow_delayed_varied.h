@@ -1,6 +1,7 @@
 #pragma once
 
 #include "dataflow_delayed.h"
+#include "dataflow_systematic.h"
 
 namespace ana {
 

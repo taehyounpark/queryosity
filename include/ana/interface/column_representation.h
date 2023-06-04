@@ -8,8 +8,12 @@
 
 namespace ana {
 
-template <typename Ret, typename... Obs>
-class column::representation<Ret(Obs...)> : public term<Ret> {
+/**
+ * @brief Representation of multipile columns, out of which derived quantites
+ * can be calculated.
+ */
+template <typename Me, typename... Obs>
+class column::representation<Me(Obs...)> : public term<Me> {
 
 public:
   using vartuple_type = std::tuple<variable<Obs>...>;
@@ -21,7 +25,7 @@ public:
 
   template <typename... Vals> void set_arguments(const cell<Vals> &...args);
 
-  virtual Ret const &value() const override;
+  virtual Me const &value() const override;
 
   template <unsigned int N>
   constexpr auto value() const
@@ -35,14 +39,14 @@ protected:
 
 } // namespace ana
 
-template <typename Ret, typename... Obs>
-Ret const &ana::column::representation<Ret(Obs...)>::value() const {
-  return static_cast<const Ret &>(*this);
+template <typename Me, typename... Obs>
+Me const &ana::column::representation<Me(Obs...)>::value() const {
+  return static_cast<const Me &>(*this);
 }
 
-template <typename Ret, typename... Obs>
+template <typename Me, typename... Obs>
 template <typename... Vals>
-void ana::column::representation<Ret(Obs...)>::set_arguments(
+void ana::column::representation<Me(Obs...)>::set_arguments(
     cell<Vals> const &...args) {
   static_assert(sizeof...(Obs) == sizeof...(Vals));
   m_arguments = std::make_tuple(std::invoke(
@@ -52,16 +56,16 @@ void ana::column::representation<Ret(Obs...)>::set_arguments(
       args)...);
 }
 
-template <typename Ret, typename... Obs>
+template <typename Me, typename... Obs>
 template <unsigned int N>
-constexpr auto ana::column::representation<Ret(Obs...)>::value() const
+constexpr auto ana::column::representation<Me(Obs...)>::value() const
     -> decltype(std::get<N>(std::declval<vartuple_type>()).value()) {
   return std::get<N>(m_arguments).value();
 }
 
-template <typename Ret, typename... Obs>
+template <typename Me, typename... Obs>
 template <auto N>
-constexpr auto ana::column::representation<Ret(Obs...)>::value() const {
+constexpr auto ana::column::representation<Me(Obs...)>::value() const {
   constexpr auto idx = static_cast<std::underlying_type_t<decltype(N)>>(N);
   return std::get<idx>(this->m_arguments).value();
 }
