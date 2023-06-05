@@ -34,13 +34,18 @@ protected:
   mutable T const *m_addr;
   mutable bool m_updated;
 
-  mutable const dataset::range *m_part;
+  const dataset::range *m_part;
   unsigned long long m_current;
 };
 
 } // namespace ana
 
-template <typename T> ana::column::reader<T>::reader() : m_addr(nullptr) {}
+template <typename T> ana::column::reader<T>::reader() : 
+  m_addr(nullptr),
+  m_updated(false),
+  m_part(nullptr),
+  m_current(0)
+{}
 
 template <typename T> T const &ana::column::reader<T>::value() const {
   if (!this->m_updated) {
@@ -53,7 +58,7 @@ template <typename T> T const &ana::column::reader<T>::value() const {
 template <typename T>
 void ana::column::reader<T>::execute(const ana::dataset::range &part,
                                      unsigned long long entry) {
-  m_part = &part;
   m_current = entry;
+  m_part = &part;
   m_updated = false;
 }

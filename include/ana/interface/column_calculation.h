@@ -14,7 +14,7 @@ namespace ana {
 template <typename Val> class column::calculation : public term<Val> {
 
 public:
-  calculation() = default;
+  calculation();
   virtual ~calculation() = default;
 
 protected:
@@ -40,6 +40,10 @@ protected:
 };
 
 } // namespace ana
+
+template <typename Val>
+ana::column::calculation<Val>::calculation()
+    : m_value(Val{}), m_updated(false) {}
 
 template <typename Val>
 template <typename... Args>
