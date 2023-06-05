@@ -6,10 +6,10 @@
 namespace ana {
 
 /**
- * @brief Varied version of a delayed action.
- * @details A delayed varied action can be considered to be functionally
- * equivalent to a delayed action, except that it contains multipled delayed
- * ones for which the operation is applied. The nominal delayed action can be
+ * @brief Varied version of a delayed operation.
+ * @details A delayed varied operation can be considered to be functionally
+ * equivalent to a delayed operation, except that it contains multipled delayed
+ * ones for which the operation is applied. The nominal delayed operation can be
  * accessed by `nominal()`, and a systematic variation by `["variation name"]`.
  */
 template <typename T>
@@ -51,32 +51,33 @@ public:
 
   template <
       typename... Nodes, typename V = Bld,
-      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
+      std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
   auto fill(Nodes const &...columns) -> varied;
 
   template <
       typename Node, typename V = Bld,
-      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
-  auto at(Node const &selection) -> typename lazy<counter::booked_t<V>>::varied;
+      std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
+  auto at(Node const &selection) ->
+      typename lazy<aggregation::booked_t<V>>::varied;
 
   template <
       typename... Nodes, typename V = Bld,
-      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
-  auto at(Nodes const &...selections) ->
-      typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied;
+      std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
+  auto at(Nodes const &...selections) -> typename delayed<
+      aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
 
   template <typename... Args>
   auto operator()(Args &&...args) ->
       typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
-          std::forward<Args>(args).nominal()...))::action_type>::varied;
+          std::forward<Args>(args).nominal()...))::operation_type>::varied;
 
   /**
-   * @brief Access the delayed action of a specific systematic variation.
+   * @brief Access the delayed operation of a specific systematic variation.
    * @param var_name The name of the systematic variation.
    */
-  template <
-      typename V = Bld,
-      std::enable_if_t<ana::counter::template is_bookkeeper_v<V>, bool> = false>
+  template <typename V = Bld,
+            std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
+                             bool> = false>
   auto operator[](const std::string &var_name) const -> delayed<V> const &;
 
 protected:
@@ -137,7 +138,7 @@ ana::dataflow<T>::delayed<Bld>::varied::list_variation_names() const {
 template <typename T>
 template <typename Bld>
 template <typename V,
-          std::enable_if_t<ana::counter::template is_bookkeeper_v<V>, bool>>
+          std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>, bool>>
 auto ana::dataflow<T>::delayed<Bld>::varied::operator[](
     const std::string &var_name) const -> delayed<V> const & {
   if (!this->has_variation(var_name)) {
@@ -187,7 +188,7 @@ auto ana::dataflow<T>::delayed<Bld>::varied::apply(Nodes const &...columns) ->
 template <typename T>
 template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
+          std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
 auto ana::dataflow<T>::delayed<Bld>::varied::fill(Nodes const &...columns)
     -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
@@ -201,10 +202,10 @@ auto ana::dataflow<T>::delayed<Bld>::varied::fill(Nodes const &...columns)
 template <typename T>
 template <typename Bld>
 template <typename Node, typename V,
-          std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
+          std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
 auto ana::dataflow<T>::delayed<Bld>::varied::at(Node const &selection) ->
-    typename lazy<counter::booked_t<V>>::varied {
-  using varied_type = typename lazy<counter::booked_t<V>>::varied;
+    typename lazy<aggregation::booked_t<V>>::varied {
+  using varied_type = typename lazy<aggregation::booked_t<V>>::varied;
   auto syst = varied_type(this->nominal().at(selection.nominal()));
   for (auto const &var_name : list_all_variation_names(*this, selection)) {
     syst.set_variation(var_name,
@@ -216,11 +217,12 @@ auto ana::dataflow<T>::delayed<Bld>::varied::at(Node const &selection) ->
 template <typename T>
 template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
+          std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
 auto ana::dataflow<T>::delayed<Bld>::varied::at(Nodes const &...selections) ->
-    typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied {
-  using varied_type =
-      typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied;
+    typename delayed<
+        aggregation::bookkeeper<aggregation::booked_t<V>>>::varied {
+  using varied_type = typename delayed<
+      aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
   auto syst = varied_type(this->nominal().at(selections.nominal()...));
   for (auto const &var_name : list_all_variation_names(*this, selections...)) {
     syst.set_variation(
@@ -247,11 +249,11 @@ template <typename Bld>
 template <typename... Args>
 auto ana::dataflow<T>::delayed<Bld>::varied::operator()(Args &&...args) ->
     typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
-        std::forward<Args>(args).nominal()...))::action_type>::varied {
+        std::forward<Args>(args).nominal()...))::operation_type>::varied {
 
   using varied_type =
       typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
-          std::forward<Args>(args).nominal()...))::action_type>::varied;
+          std::forward<Args>(args).nominal()...))::operation_type>::varied;
 
   auto syst = varied_type(
       this->nominal().operator()(std::forward<Args>(args).nominal()...));

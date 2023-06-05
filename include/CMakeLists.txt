@@ -16,3 +16,9 @@ set_property(
 
 target_include_directories(ana INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>")
 target_compile_features(ana INTERFACE cxx_std_17)
+add_compile_options(
+  -Wall -Werror -Wno-error=maybe-uninitialized
+  $<$<CONFIG:RELEASE>:-O3>
+  $<$<CONFIG:DEBUG>:-O0>
+  $<$<CONFIG:DEBUG>:-ggdb3>
+)

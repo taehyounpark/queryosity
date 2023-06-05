@@ -28,7 +28,7 @@ Quickstart
     auto doubled = incl.filter<weight>("doubled")(two);
 
 .. code-block:: cpp
-   :caption: Booking counters
+   :caption: Booking aggregations
 
     // Hist<1,float> : user-implemented
     auto hist = df.book<WeightedAverage>().fill(one).at(doubled);

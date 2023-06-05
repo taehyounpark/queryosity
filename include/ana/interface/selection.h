@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
-#include "action.h"
 #include "column.h"
+#include "operation.h"
 
 namespace ana {
 
@@ -14,7 +14,7 @@ class selection;
 template <typename T>
 constexpr bool is_selection_v = std::is_base_of_v<ana::selection, T>;
 
-class selection : public action {
+class selection : public operation {
 
 public:
   class cutflow;
@@ -76,8 +76,8 @@ public:
 
 } // namespace ana
 
+#include "aggregation.h"
 #include "column_equation.h"
-#include "counter.h"
 
 inline std::string
 ana::selection::concatenate_names(std::vector<std::string> const &names,

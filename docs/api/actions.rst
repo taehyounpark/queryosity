@@ -8,5 +8,5 @@ Actions
   column_calculation
   column_definition
   column_representation 
-  counter_output
-  counter_logic
+  aggregation_output
+  aggregation_logic

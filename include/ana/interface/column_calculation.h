@@ -8,8 +8,8 @@ namespace ana {
  * @brief Calculate a column value for each dataset entry.
  * @tparam Val Column value type.
  * @details A calculation is performed once per-entry (if needed) and its value
- * is stored for multiple accesses by downstream actions within the entry. The
- * type `Val` must be *CopyConstructible* and *CopyAssignable*.
+ * is stored for multiple accesses by downstream operations within the entry.
+ * The type `Val` must be *CopyConstructible* and *CopyAssignable*.
  */
 template <typename Val> class column::calculation : public term<Val> {
 

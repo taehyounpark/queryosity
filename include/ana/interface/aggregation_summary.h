@@ -1,26 +1,26 @@
 #pragma once
 
-#include "counter.h"
+#include "aggregation.h"
 
 namespace ana {
 
-template <typename T> class counter::summary {
+template <typename T> class aggregation::summary {
 
 public:
-  // version for lazy<counter>
+  // version for lazy<aggregation>
   template <typename Res>
   void record(const std::string &selection_path,
-              std::decay_t<Res> counter_result) {
-    static_cast<T *>(this)->record(selection_path, counter_result);
+              std::decay_t<Res> aggregation_result) {
+    static_cast<T *>(this)->record(selection_path, aggregation_result);
   }
 
-  // version for varied<counter>
+  // version for varied<aggregation>
   template <typename Res>
   void record(const std::string &variation_name,
               const std::string &selection_path,
-              std::decay_t<Res> counter_result) {
+              std::decay_t<Res> aggregation_result) {
     static_cast<T *>(this)->record(variation_name, selection_path,
-                                   counter_result);
+                                   aggregation_result);
   }
 
   template <typename Dest> void output(Dest &destination) {

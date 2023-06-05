@@ -13,7 +13,7 @@ namespace ana {
 /**
  * @class dataflow::systematic dataflow_systematic.h
  * interface/dataflow_systematic.h
- * @brief Systematic of a dataflow action.
+ * @brief Systematic of a dataflow operation.
  */
 template <typename T> template <typename U> class dataflow<T>::systematic {
 

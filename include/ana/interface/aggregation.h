@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "action.h"
+#include "operation.h"
 
 namespace ana {
 
@@ -20,7 +20,7 @@ template <typename T> class observable;
 
 class selection;
 
-class counter : public action {
+class aggregation : public operation {
 
 public:
   class experiment;
@@ -36,8 +36,8 @@ public:
   template <typename T> class summary;
 
 public:
-  counter();
-  virtual ~counter() = default;
+  aggregation();
+  virtual ~aggregation() = default;
 
   void apply_scale(double scale);
   void use_weight(bool use = true);
@@ -58,21 +58,22 @@ protected:
 
 public:
   template <typename T>
-  static constexpr std::true_type check_implemented(const counter::output<T> &);
+  static constexpr std::true_type
+  check_implemented(const aggregation::output<T> &);
   static constexpr std::false_type check_implemented(...);
 
   template <typename Out, typename... Vals>
   static constexpr std::true_type
-  check_fillable(const typename counter::logic<Out(Vals...)> &);
+  check_fillable(const typename aggregation::logic<Out(Vals...)> &);
   static constexpr std::false_type check_fillable(...);
 
   template <typename T> struct is_booker : std::false_type {};
   template <typename T>
-  struct is_booker<counter::booker<T>> : std::true_type {};
+  struct is_booker<aggregation::booker<T>> : std::true_type {};
 
   template <typename T> struct is_bookkeeper : std::false_type {};
   template <typename T>
-  struct is_bookkeeper<counter::bookkeeper<T>> : std::true_type {};
+  struct is_bookkeeper<aggregation::bookkeeper<T>> : std::true_type {};
 
   template <typename T>
   static constexpr bool has_output_v =
@@ -86,37 +87,37 @@ public:
   template <typename T>
   static constexpr bool is_bookkeeper_v = is_bookkeeper<T>::value;
 
-  template <typename Bkr> using booked_t = typename Bkr::counter_type;
+  template <typename Bkr> using booked_t = typename Bkr::aggregation_type;
 };
 
 } // namespace ana
 
+#include "aggregation_bookkeeper.h"
 #include "column.h"
-#include "counter_bookkeeper.h"
 #include "selection.h"
 
-inline ana::counter::counter()
-    : m_selection(nullptr), m_scale(1.0), m_raw(false) {}
+inline ana::aggregation::aggregation()
+    : m_raw(false), m_scale(1.0), m_selection(nullptr) {}
 
-inline void ana::counter::set_selection(const selection &selection) {
+inline void ana::aggregation::set_selection(const selection &selection) {
   m_selection = &selection;
 }
 
-inline const ana::selection *ana::counter::get_selection() const {
+inline const ana::selection *ana::aggregation::get_selection() const {
   return m_selection;
 }
 
-inline void ana::counter::apply_scale(double scale) { m_scale *= scale; }
+inline void ana::aggregation::apply_scale(double scale) { m_scale *= scale; }
 
-inline void ana::counter::use_weight(bool use) { m_raw = !use; }
+inline void ana::aggregation::use_weight(bool use) { m_raw = !use; }
 
-inline void ana::counter::initialize(const ana::dataset::range &part) {
+inline void ana::aggregation::initialize(const ana::dataset::range &) {
   if (!m_selection)
     throw std::runtime_error("no booked selection");
 }
 
-inline void ana::counter::execute(const ana::dataset::range &,
-                                  unsigned long long) {
+inline void ana::aggregation::execute(const ana::dataset::range &,
+                                      unsigned long long) {
   if (m_selection->passed_cut())
     this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
 }

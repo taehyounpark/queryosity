@@ -13,7 +13,7 @@ namespace ana {
  * @brief Computation graph of columns.
  * @details `column::computation<Dataset_t>` issues `unique::ptr<Column_t>`
  * for all columns, or their evaluators, used in the analysis.
- * It keeps a raw pointer of each, only if their action needs to be called
+ * It keeps a raw pointer of each, only if their operation needs to be called
  * for each dataset entry (e.g. constant values are not stored).
  */
 template <typename T> class column::computation {
@@ -59,7 +59,7 @@ protected:
 template <typename T>
 ana::column::computation<T>::computation(const ana::dataset::range &part,
                                          dataset::reader<T> &reader)
-    : m_reader(&reader), m_part(part) {}
+    : m_part(part), m_reader(&reader) {}
 
 template <typename T>
 template <typename Val>

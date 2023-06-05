@@ -26,16 +26,16 @@
 #define DEFINE_LAZY_BINARY_OP(op_name, op_symbol)                              \
   template <                                                                   \
       typename Arg, typename V = U,                                            \
-      std::enable_if_t<                                                        \
-          ana::is_column_v<V> &&                                               \
-              ana::is_column_v<typename Arg::action_type> &&                   \
-              op_check::has_##op_name##_v<                                     \
-                  cell_value_t<V>, cell_value_t<typename Arg::action_type>>,   \
-          bool> = false>                                                       \
+      std::enable_if_t<ana::is_column_v<V> &&                                  \
+                           ana::is_column_v<typename Arg::operation_type> &&   \
+                           op_check::has_##op_name##_v<                        \
+                               cell_value_t<V>,                                \
+                               cell_value_t<typename Arg::operation_type>>,    \
+                       bool> = false>                                          \
   auto operator op_symbol(Arg const &arg) const {                              \
     return this->m_df                                                          \
         ->define([](cell_value_t<V> const &me,                                 \
-                    cell_value_t<typename Arg::action_type> const &you) {      \
+                    cell_value_t<typename Arg::operation_type> const &you) {   \
           return me op_symbol you;                                             \
         })                                                                     \
         .evaluate(*this, arg);                                                 \
@@ -81,16 +81,17 @@
   static constexpr bool has_subscript_v = has_subscript<T, Index>::value;
 
 #define DEFINE_LAZY_SUBSCRIPT_OP()                                             \
-  template <typename Arg, typename V = U,                                      \
-            std::enable_if_t<is_column_v<V> &&                                 \
-                                 op_check::has_subscript_v<                    \
-                                     cell_value_t<V>,                          \
-                                     cell_value_t<typename Arg::action_type>>, \
-                             bool> = false>                                    \
+  template <                                                                   \
+      typename Arg, typename V = U,                                            \
+      std::enable_if_t<is_column_v<V> &&                                       \
+                           op_check::has_subscript_v<                          \
+                               cell_value_t<V>,                                \
+                               cell_value_t<typename Arg::operation_type>>,    \
+                       bool> = false>                                          \
   auto operator[](Arg const &arg) const {                                      \
     return this->m_df->define(                                                 \
         [](cell_value_t<V> me,                                                 \
-           cell_value_t<typename Arg::action_type> index) {                    \
+           cell_value_t<typename Arg::operation_type> index) {                 \
           return me[index];                                                    \
         })(*this, arg);                                                        \
   }
@@ -101,7 +102,7 @@ namespace op_check {
 CHECK_FOR_UNARY_OP(logical_not, !)
 CHECK_FOR_UNARY_OP(minus, -)
 CHECK_FOR_BINARY_OP(addition, +)
-CHECK_FOR_BINARY_OP(subtraction, -)
+CHECK_FOR_BINARY_OP(subtroperation, -)
 CHECK_FOR_BINARY_OP(multiplication, *)
 CHECK_FOR_BINARY_OP(division, /)
 CHECK_FOR_BINARY_OP(remainder, %)
@@ -117,7 +118,7 @@ CHECK_FOR_SUBSCRIPT_OP()
 } // namespace op_check
 
 /**
- * @brief Node representing a action to be performed in an analysis.
+ * @brief Node representing a operation to be performed in an analysis.
  * @details Lazy nodes represent the final operation to be performed in a
  * dataset, pending its processing. It can be provided to other dataflow
  * operations as inputs.
@@ -134,7 +135,7 @@ public:
 public:
   using dataflow_type = typename systematic<lazy<U>>::dataflow_type;
   using dataset_type = typename systematic<lazy<U>>::dataset_type;
-  using action_type = U;
+  using operation_type = U;
 
   template <typename Sel, typename... Args>
   using delayed_selection_applicator_t =
@@ -147,12 +148,12 @@ public:
   template <typename> friend class lazy;
 
 public:
-  lazy(dataflow<T> &dataflow, const lockstep<U> &action)
+  lazy(dataflow<T> &dataflow, const lockstep<U> &operation)
       : systematic<lazy<U>>::systematic(dataflow),
-        lockstep<U>::lockstep(action) {}
-  lazy(dataflow<T> &dataflow, const concurrent<U> &action)
+        lockstep<U>::lockstep(operation) {}
+  lazy(dataflow<T> &dataflow, const concurrent<U> &operation)
       : systematic<lazy<U>>::systematic(dataflow),
-        lockstep<U>::lockstep(action) {}
+        lockstep<U>::lockstep(operation) {}
 
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;
@@ -172,7 +173,7 @@ public:
    * @param var_name Name of the systematic variation.
    * @param args... Alternate column name (`reader`) or value (`constant`).
    * @return Varied column.
-   * @details Creates a `varied` action whose `.nominal()` is the original
+   * @details Creates a `varied` operation whose `.nominal()` is the original
    * lazy one, and `variation(var_name)` is the newly-constructed one.
    */
   template <typename... Args, typename V = U,
@@ -228,14 +229,14 @@ public:
   }
 
   /**
-   * @brief Retrieve the result of a counter.
+   * @brief Retrieve the result of a aggregation.
    * @details Triggers processing of the dataset if that the result is not
    * already available.
-   * @return The result of the implemented counter.
+   * @return The result of the implemented aggregation.
    */
-  template <
-      typename V = U,
-      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
+  template <typename V = U,
+            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
+                false>
   auto result() const -> decltype(std::declval<V>().get_result()) {
     this->m_df->analyze();
     this->merge_results();
@@ -312,12 +313,12 @@ public:
   }
 
   /**
-   * @brief Shorthand for `result` of counter.
-   * @return `Result` the result of the implemented counter.
+   * @brief Shorthand for `result` of aggregation.
+   * @return `Result` the result of the implemented aggregation.
    */
-  template <
-      typename V = U,
-      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
+  template <typename V = U,
+            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
+                false>
   auto operator->() const -> decltype(std::declval<V>().get_result()) {
     return this->result();
   }
@@ -328,7 +329,7 @@ public:
   DEFINE_LAZY_BINARY_OP(equality, ==)
   DEFINE_LAZY_BINARY_OP(inequality, !=)
   DEFINE_LAZY_BINARY_OP(addition, +)
-  DEFINE_LAZY_BINARY_OP(subtraction, -)
+  DEFINE_LAZY_BINARY_OP(subtroperation, -)
   DEFINE_LAZY_BINARY_OP(multiplication, *)
   DEFINE_LAZY_BINARY_OP(division, /)
   DEFINE_LAZY_BINARY_OP(logical_or, ||)
@@ -339,9 +340,9 @@ public:
   DEFINE_LAZY_BINARY_OP(less_than_or_equal_to, <=)
 
 protected:
-  template <
-      typename V = U,
-      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
+  template <typename V = U,
+            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
+                false>
   void merge_results() const {
     auto model = this->get_model();
     if (!model->is_merged()) {
@@ -364,7 +365,7 @@ template <typename T>
 template <typename Act>
 void ana::dataflow<T>::lazy<Act>::set_variation(const std::string &, lazy &&) {
   // should never be called
-  throw std::logic_error("cannot set variation to a lazy action");
+  throw std::logic_error("cannot set variation to a lazy operation");
 }
 
 template <typename T>

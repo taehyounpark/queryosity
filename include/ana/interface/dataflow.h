@@ -11,8 +11,8 @@
 #include "multithread.h"
 #include "sample.h"
 
+#include "aggregation.h"
 #include "column.h"
-#include "counter.h"
 #include "selection.h"
 
 namespace ana {
@@ -176,14 +176,14 @@ public:
       -> delayed<selection::trivial_applicator_type>;
 
   /**
-   * @brief Book a counter
-   * @tparam Cnt Any full user-implementation of `counter`.
+   * @brief Book a aggregation
+   * @tparam Cnt Any full user-implementation of `aggregation`.
    * @param args Constructor arguments for the **Cnt**.
-   * @return The `lazy` counter "booker" to be filled with input column(s) and
-   * booked at selection(s).
+   * @return The `lazy` aggregation "booker" to be filled with input column(s)
+   * and booked at selection(s).
    */
   template <typename Cnt, typename... Args>
-  auto book(Args &&...args) -> delayed<counter::booker<Cnt>>;
+  auto book(Args &&...args) -> delayed<aggregation::booker<Cnt>>;
 
 protected:
   dataflow();
@@ -197,12 +197,12 @@ protected:
   auto apply_selection(delayed<selection::applicator<Eqn>> const &calc,
                        lazy<Cols> const &...columns) -> lazy<selection>;
   template <typename Cnt>
-  auto select_counter(delayed<counter::booker<Cnt>> const &bkr,
-                      lazy<selection> const &sel) -> lazy<Cnt>;
+  auto select_aggregation(delayed<aggregation::booker<Cnt>> const &bkr,
+                          lazy<selection> const &sel) -> lazy<Cnt>;
   template <typename Cnt, typename... Sels>
-  auto select_counters(delayed<counter::booker<Cnt>> const &bkr,
-                       lazy<Sels> const &...sels)
-      -> delayed<counter::bookkeeper<Cnt>>;
+  auto select_aggregations(delayed<aggregation::booker<Cnt>> const &bkr,
+                           lazy<Sels> const &...sels)
+      -> delayed<aggregation::bookkeeper<Cnt>>;
 
   template <typename Sel, typename F>
   auto filter(lazy<selection> const &prev, const std::string &name, F callable)
@@ -244,16 +244,16 @@ protected:
   auto vary_evaluator(delayed<column::evaluator<V>> const &nom, F callable)
       -> delayed<column::evaluator<V>>;
 
-  void add_action(concurrent<action> act);
-  void add_action(std::unique_ptr<action> act);
+  void add_operation(concurrent<operation> act);
+  void add_operation(std::unique_ptr<operation> act);
 
 protected:
   bool m_analyzed;
-  std::vector<std::unique_ptr<action>> m_actions;
+  std::vector<std::unique_ptr<operation>> m_operations;
 };
 
 template <typename T> using dataflow_t = typename T::dataflow_type;
-template <typename T> using action_t = typename T::nominal_type;
+template <typename T> using operation_t = typename T::nominal_type;
 
 } // namespace ana
 
@@ -298,7 +298,7 @@ auto ana::dataflow<T>::read(const std::string &name)
         return proc.template read<Val>(name);
       });
   auto lzy = lazy<read_column_t<read_dataset_t<T>, Val>>(*this, act);
-  this->add_action(std::move(act));
+  this->add_operation(std::move(act));
   return lzy;
 }
 
@@ -312,7 +312,7 @@ auto ana::dataflow<T>::constant(const Val &val)
         return proc.template constant<Val>(val);
       });
   auto lzy = lazy<column::constant<Val>>(*this, act);
-  this->add_action(std::move(act));
+  this->add_operation(std::move(act));
   return lzy;
 }
 
@@ -399,8 +399,9 @@ auto ana::dataflow<T>::channel(const std::string &name, F callable)
 
 template <typename T>
 template <typename Cnt, typename... Args>
-auto ana::dataflow<T>::book(Args &&...args) -> delayed<counter::booker<Cnt>> {
-  return delayed<counter::booker<Cnt>>(
+auto ana::dataflow<T>::book(Args &&...args)
+    -> delayed<aggregation::booker<Cnt>> {
+  return delayed<aggregation::booker<Cnt>>(
       *this, this->m_processors.get_concurrent_result(
                  [&args...](dataset_processor_type &proc) {
                    return proc.template book<Cnt>(std::forward<Args>(args)...);
@@ -481,7 +482,7 @@ auto ana::dataflow<T>::evaluate_column(
       },
       lockstep<column::evaluator<Def>>(calc), columns...);
   auto lzy = lazy<Def>(*this, act);
-  this->add_action(std::move(act));
+  this->add_operation(std::move(act));
   return lzy;
 }
 
@@ -497,52 +498,53 @@ auto ana::dataflow<T>::apply_selection(
       },
       lockstep<selection::applicator<Eqn>>(calc), columns...);
   auto lzy = lazy<selection>(*this, act);
-  this->add_action(std::move(act));
+  this->add_operation(std::move(act));
   return lzy;
 }
 
 template <typename T>
 template <typename Cnt>
-auto ana::dataflow<T>::select_counter(delayed<counter::booker<Cnt>> const &bkr,
-                                      lazy<selection> const &sel) -> lazy<Cnt> {
-  // any time a new counter is booked, means the dataflow must run: so reset its
-  // status
+auto ana::dataflow<T>::select_aggregation(
+    delayed<aggregation::booker<Cnt>> const &bkr, lazy<selection> const &sel)
+    -> lazy<Cnt> {
+  // any time a new aggregation is booked, means the dataflow must run: so reset
+  // its status
   this->reset();
   auto act = this->m_processors.get_concurrent_result(
-      [](dataset_processor_type &proc, counter::booker<Cnt> &bkr,
-         const selection &sel) { return proc.select_counter(bkr, sel); },
-      lockstep<counter::booker<Cnt>>(bkr), sel);
+      [](dataset_processor_type &proc, aggregation::booker<Cnt> &bkr,
+         const selection &sel) { return proc.select_aggregation(bkr, sel); },
+      lockstep<aggregation::booker<Cnt>>(bkr), sel);
   auto lzy = lazy<Cnt>(*this, act);
-  this->add_action(std::move(act));
+  this->add_operation(std::move(act));
   return lzy;
 }
 
 template <typename T>
 template <typename Cnt, typename... Sels>
-auto ana::dataflow<T>::select_counters(delayed<counter::booker<Cnt>> const &bkr,
-                                       lazy<Sels> const &...sels)
-    -> delayed<counter::bookkeeper<Cnt>> {
-  // any time a new counter is booked, means the dataflow must run: so reset its
-  // status
+auto ana::dataflow<T>::select_aggregations(
+    delayed<aggregation::booker<Cnt>> const &bkr, lazy<Sels> const &...sels)
+    -> delayed<aggregation::bookkeeper<Cnt>> {
+  // any time a new aggregation is booked, means the dataflow must run: so reset
+  // its status
   this->reset();
 
-  using delayed_bookkeeper_type = delayed<counter::bookkeeper<Cnt>>;
+  using delayed_bookkeeper_type = delayed<aggregation::bookkeeper<Cnt>>;
   auto bkpr = delayed_bookkeeper_type(
       *this, this->m_processors.get_concurrent_result(
-                 [this](dataset_processor_type &proc, counter::booker<Cnt> &bkr,
-                        Sels const &...sels) {
-                   // get bookkeeper and counters
-                   auto bkpr_and_cntrs = proc.select_counters(bkr, sels...);
+                 [this](dataset_processor_type &proc,
+                        aggregation::booker<Cnt> &bkr, Sels const &...sels) {
+                   // get bookkeeper and aggregations
+                   auto bkpr_and_cntrs = proc.select_aggregations(bkr, sels...);
 
-                   // add each counter to this dataflow
+                   // add each aggregation to this dataflow
                    for (auto &&cntr : bkpr_and_cntrs.second) {
-                     this->add_action(std::move(cntr));
+                     this->add_operation(std::move(cntr));
                    }
 
                    // take the bookkeeper
                    return std::move(bkpr_and_cntrs.first);
                  },
-                 lockstep<counter::booker<Cnt>>(bkr), sels...));
+                 lockstep<aggregation::booker<Cnt>>(bkr), sels...));
 
   return std::move(bkpr);
 }
@@ -563,10 +565,10 @@ template <typename T> void ana::dataflow<T>::analyze() {
 
   this->m_dataset->finish_dataset();
 
-  // clear counters in counter::experiment
+  // clear aggregations in aggregation::experiment
   // if they are not, they will be repeated in future runs
   this->m_processors.call_all(
-      [](dataset_processor_type &proc) { proc.clear_counters(); });
+      [](dataset_processor_type &proc) { proc.clear_aggregations(); });
 }
 
 template <typename T> void ana::dataflow<T>::reset() { m_analyzed = false; }
@@ -580,7 +582,7 @@ auto ana::dataflow<T>::join(lazy<selection> const &a, lazy<selection> const &b)
         return proc.template join<Sel>(a, b);
       },
       a, b);
-  this->add_action(act);
+  this->add_operation(act);
   auto lzy = lazy<selection>(*this, act);
   return lzy;
 }
@@ -596,8 +598,7 @@ auto ana::dataflow<T>::vary_column(lazy<V> const &, const std::string &colname)
 template <typename T>
 template <typename Val, typename V,
           std::enable_if_t<ana::column::template is_constant_v<V>, bool>>
-auto ana::dataflow<T>::vary_column(lazy<V> const &nom, Val const &val)
-    -> lazy<V> {
+auto ana::dataflow<T>::vary_column(lazy<V> const &, Val const &val) -> lazy<V> {
   return this->constant<Val>(val);
 }
 
@@ -622,14 +623,14 @@ auto ana::dataflow<T>::vary_evaluator(delayed<column::evaluator<V>> const &,
 }
 
 template <typename T>
-void ana::dataflow<T>::add_action(concurrent<action> action) {
-  m_actions.emplace_back(std::move(action.m_model));
-  for (unsigned int i = 0; i < action.concurrency(); ++i) {
-    m_actions.emplace_back(std::move(action.m_slots[i]));
+void ana::dataflow<T>::add_operation(concurrent<operation> operation) {
+  m_operations.emplace_back(std::move(operation.m_model));
+  for (unsigned int i = 0; i < operation.concurrency(); ++i) {
+    m_operations.emplace_back(std::move(operation.m_slots[i]));
   }
 }
 
 template <typename T>
-void ana::dataflow<T>::add_action(std::unique_ptr<action> action) {
-  m_actions.emplace_back(std::move(action));
+void ana::dataflow<T>::add_operation(std::unique_ptr<operation> operation) {
+  m_operations.emplace_back(std::move(operation));
 }

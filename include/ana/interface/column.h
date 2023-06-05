@@ -4,7 +4,7 @@
 #include <memory>
 #include <type_traits>
 
-#include "action.h"
+#include "operation.h"
 
 namespace ana {
 
@@ -25,7 +25,7 @@ class column;
 
 template <typename T> constexpr bool is_column_v = std::is_base_of_v<column, T>;
 
-class column : public action {
+class column : public operation {
 
 public:
   template <typename T> class computation;
@@ -215,11 +215,14 @@ public:
   template <typename U> variable(const cell<U> &val);
   virtual ~variable() = default;
 
+  variable(variable &&) = default;
+  variable &operator=(variable &&) = default;
+
   const T &value() const;
   const T *field() const;
 
 protected:
-  std::shared_ptr<const cell<T>> m_val;
+  std::unique_ptr<const cell<T>> m_val;
 };
 
 // easy to move around
@@ -240,7 +243,7 @@ protected:
 };
 
 template <typename To, typename From>
-std::shared_ptr<cell<To>> cell_as(const cell<From> &from);
+std::unique_ptr<cell<To>> cell_as(const cell<From> &from);
 
 template <typename T>
 using cell_value_t = std::decay_t<decltype(std::declval<T>().value())>;
@@ -284,12 +287,14 @@ const Base &ana::cell<Base>::interface_of<Impl>::value() const {
 }
 
 template <typename To, typename From>
-std::shared_ptr<ana::cell<To>> ana::cell_as(const cell<From> &from) {
+std::unique_ptr<ana::cell<To>> ana::cell_as(const cell<From> &from) {
   if constexpr (std::is_same_v<From, To> || std::is_base_of_v<From, To>) {
-    return std::make_shared<
+    std::cout << "good" << std::endl;
+    return std::make_unique<
         typename ana::cell<To>::template interface_of<From>>(from);
   } else if constexpr (std::is_convertible_v<From, To>) {
-    return std::make_shared<
+    std::cout << "bad" << std::endl;
+    return std::make_unique<
         typename ana::cell<To>::template conversion_of<From>>(from);
   } else {
     static_assert(std::is_same_v<From, To> || std::is_base_of_v<From, To> ||

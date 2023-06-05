@@ -6,8 +6,8 @@
 #include "interface/column_definition.h"
 #include "interface/column_reader.h"
 
-#include "interface/counter_logic.h"
-#include "interface/counter_output.h"
-#include "interface/counter_summary.h"
+#include "interface/aggregation_logic.h"
+#include "interface/aggregation_output.h"
+#include "interface/aggregation_summary.h"
 
 #include "interface/output_dump.h"

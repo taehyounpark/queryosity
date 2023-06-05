@@ -5,14 +5,14 @@
 namespace ana {
 
 /**
- * @class action
+ * @class operation
  * @brief abstract base class with initialization, execution, finalization steps
  */
-class action {
+class operation {
 
 public:
-  action() = default;
-  virtual ~action() = default;
+  operation() = default;
+  virtual ~operation() = default;
 
   virtual void initialize(const dataset::range &part) = 0;
   virtual void execute(const dataset::range &part,

@@ -1,15 +1,15 @@
 #pragma once
 
-#include "counter.h"
+#include "aggregation.h"
 
 namespace ana {
 
 /**
- * @brief Minimal counter with an output result.
+ * @brief Minimal aggregation with an output result.
  * @details This ABC should be used for counting operations that do not require
  * any input columns, e.g. a cutflow of selections.
  */
-template <typename T> class counter::output : public counter {
+template <typename T> class aggregation::output : public aggregation {
 
 public:
   using result_type = T;
@@ -19,7 +19,7 @@ public:
   virtual ~output() = default;
 
   /**
-   * @brief Create and return the result of the counter.
+   * @brief Create and return the result of the aggregation.
    * @return The result.
    * @detail The output from each concurrent slot, which is returned by value,
    * are collected into a list to be merged into one.
@@ -39,7 +39,7 @@ public:
    * @param weight The value of the weight at booked selection for the passed
    * entry.
    */
-  using counter::count;
+  using aggregation::count;
 
   virtual void finalize(const dataset::range &) final override;
 
@@ -62,27 +62,28 @@ protected:
 
 #include "selection.h"
 
-template <typename T> ana::counter::output<T>::output() : m_merged(false) {}
+template <typename T> ana::aggregation::output<T>::output() : m_merged(false) {}
 
-template <typename T> bool ana::counter::output<T>::is_merged() const {
+template <typename T> bool ana::aggregation::output<T>::is_merged() const {
   return m_merged;
 }
 
-template <typename T> void ana::counter::output<T>::set_merged(bool merged) {
+template <typename T>
+void ana::aggregation::output<T>::set_merged(bool merged) {
   m_merged = merged;
 }
 
 template <typename T>
-void ana::counter::output<T>::finalize(const ana::dataset::range &) {
+void ana::aggregation::output<T>::finalize(const ana::dataset::range &) {
   m_result = this->result();
 }
 
-template <typename T> T const &ana::counter::output<T>::get_result() const {
+template <typename T> T const &ana::aggregation::output<T>::get_result() const {
   return m_result;
 }
 
 template <typename T>
-void ana::counter::output<T>::merge_results(std::vector<T> results) {
+void ana::aggregation::output<T>::merge_results(std::vector<T> results) {
   if (!results.size()) {
     throw std::logic_error("merging requires at least one result");
   }

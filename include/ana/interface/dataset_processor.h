@@ -1,17 +1,17 @@
 #pragma once
 
-#include "action.h"
+#include "aggregation_experiment.h"
 #include "column_computation.h"
-#include "counter_experiment.h"
+#include "operation.h"
 
 namespace ana {
 
 namespace dataset {
 
 template <typename T>
-class processor : public action,
+class processor : public operation,
                   public column::computation<T>,
-                  public counter::experiment {
+                  public aggregation::experiment {
 
 public:
   processor(const dataset::range &part, dataset::reader<T> &reader,
@@ -31,14 +31,14 @@ public:
 
 } // namespace ana
 
-#include "counter.h"
+#include "aggregation.h"
 #include "selection.h"
 
 template <typename T>
 ana::dataset::processor<T>::processor(const ana::dataset::range &part,
                                       dataset::reader<T> &reader, double scale)
-    : action(), column::computation<T>(part, reader),
-      counter::experiment(scale) {}
+    : operation(), column::computation<T>(part, reader),
+      aggregation::experiment(scale) {}
 
 template <typename T>
 void ana::dataset::processor<T>::initialize(const ana::dataset::range &part) {
@@ -50,7 +50,7 @@ void ana::dataset::processor<T>::initialize(const ana::dataset::range &part) {
   for (auto const &sel : this->m_selections) {
     sel->initialize(part);
   }
-  for (auto const &cnt : this->m_counters) {
+  for (auto const &cnt : this->m_aggregations) {
     cnt->initialize(part);
   }
 }
@@ -65,7 +65,7 @@ void ana::dataset::processor<T>::execute(const ana::dataset::range &part,
   for (auto const &sel : this->m_selections) {
     sel->execute(part, entry);
   }
-  for (auto const &cnt : this->m_counters) {
+  for (auto const &cnt : this->m_aggregations) {
     cnt->execute(part, entry);
   }
 }
@@ -78,7 +78,7 @@ void ana::dataset::processor<T>::finalize(const ana::dataset::range &part) {
   for (auto const &sel : this->m_selections) {
     sel->finalize(part);
   }
-  for (auto const &cnt : this->m_counters) {
+  for (auto const &cnt : this->m_aggregations) {
     cnt->finalize(part);
   }
   this->m_reader->finish_part(this->m_part);

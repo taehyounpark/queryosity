@@ -8,10 +8,10 @@
 namespace ana {
 
 /**
- * @brief Node representing a action to be performed in an analysis.
- * @details A delayed action is not yet fully-specified to be considered lazy,
- * as they require existing lazy actions as inputs to create a lazy one of
- * itself.
+ * @brief Node representing a operation to be performed in an analysis.
+ * @details A delayed operation is not yet fully-specified to be considered
+ * lazy, as they require existing lazy operations as inputs to create a lazy one
+ * of itself.
  * @tparam T Input dataset type.
  * @tparam U Action for which a lazy one will be created.
  */
@@ -25,9 +25,9 @@ public:
   class varied;
 
 public:
-  delayed(dataflow<DS> &dataflow, concurrent<Bld> &&action)
+  delayed(dataflow<DS> &dataflow, concurrent<Bld> &&operation)
       : systematic<delayed<Bld>>::systematic(dataflow),
-        concurrent<Bld>::concurrent(std::move(action)) {}
+        concurrent<Bld>::concurrent(std::move(operation)) {}
 
   virtual ~delayed() = default;
 
@@ -133,86 +133,89 @@ public:
   }
 
   /**
-   * @brief Fill the counter with input columns.
+   * @brief Fill the aggregation with input columns.
    * @param columns Input columns
-   * @return The counter filled with input columns.
+   * @return The aggregation filled with input columns.
    */
   template <
       typename... Nodes, typename V = Bld,
-      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
+      std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
   auto fill(Nodes &&...columns) const
-      -> decltype(std::declval<delayed<V>>().fill_counter(
+      -> decltype(std::declval<delayed<V>>().fill_aggregation(
           std::declval<Nodes>()...)) {
-    return this->fill_counter(std::forward<Nodes>(columns)...);
+    return this->fill_aggregation(std::forward<Nodes>(columns)...);
   }
 
   /**
-   * @brief Book the counter at a selection.
+   * @brief Book the aggregation at a selection.
    * @param selection Selection to be counted.
-   * @return The counter booked at the selection.
+   * @return The aggregation booked at the selection.
    */
   template <typename Node> auto at(Node &&selection) const {
-    return this->select_counter(std::forward<Node>(selection));
+    return this->select_aggregation(std::forward<Node>(selection));
   }
 
   template <typename Node, typename V = Bld,
-            std::enable_if_t<ana::counter::template is_booker_v<V> &&
+            std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  ana::dataflow<DS>::template is_nominal_v<Node>,
                              bool> = false>
-  auto select_counter(Node const &sel) const -> lazy<counter::booked_t<V>> {
+  auto select_aggregation(Node const &sel) const
+      -> lazy<aggregation::booked_t<V>> {
     // nominal
-    return this->m_df->select_counter(*this, sel);
+    return this->m_df->select_aggregation(*this, sel);
   }
 
   template <typename Node, typename V = Bld,
-            std::enable_if_t<ana::counter::template is_booker_v<V> &&
+            std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  ana::dataflow<DS>::template is_varied_v<Node>,
                              bool> = false>
-  auto select_counter(Node const &sel) const ->
-      typename lazy<counter::booked_t<V>>::varied {
-    using varied_type = typename lazy<counter::booked_t<V>>::varied;
-    auto syst = varied_type(this->m_df->select_counter(*this, sel.nominal()));
+  auto select_aggregation(Node const &sel) const ->
+      typename lazy<aggregation::booked_t<V>>::varied {
+    using varied_type = typename lazy<aggregation::booked_t<V>>::varied;
+    auto syst =
+        varied_type(this->m_df->select_aggregation(*this, sel.nominal()));
     for (auto const &var_name : list_all_variation_names(sel)) {
-      syst.set_variation(
-          var_name, this->m_df->select_counter(*this, sel.variation(var_name)));
+      syst.set_variation(var_name, this->m_df->select_aggregation(
+                                       *this, sel.variation(var_name)));
     }
     return syst;
   }
 
   /**
-   * @brief Book multiple counters, one at each selection.
+   * @brief Book multiple aggregations, one at each selection.
    * @param selections The selections.
-   * @return The counters booked at selections.
+   * @return The aggregations booked at selections.
    */
   template <typename... Nodes> auto at(Nodes &&...nodes) const {
-    static_assert(counter::template is_booker_v<Bld>, "not a counter (booker)");
-    return this->select_counters(std::forward<Nodes>(nodes)...);
+    static_assert(aggregation::template is_booker_v<Bld>,
+                  "not a aggregation (booker)");
+    return this->select_aggregations(std::forward<Nodes>(nodes)...);
   }
 
   template <typename... Nodes, typename V = Bld,
             std::enable_if_t<
-                ana::counter::template is_booker_v<V> &&
+                ana::aggregation::template is_booker_v<V> &&
                     ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
                 bool> = false>
-  auto select_counters(Nodes const &...sels) const
-      -> delayed<counter::bookkeeper<counter::booked_t<V>>> {
+  auto select_aggregations(Nodes const &...sels) const
+      -> delayed<aggregation::bookkeeper<aggregation::booked_t<V>>> {
     // nominal
-    return this->m_df->select_counters(*this, sels...);
+    return this->m_df->select_aggregations(*this, sels...);
   }
 
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<ana::counter::template is_booker_v<V> &&
+            std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
-  auto select_counters(Nodes const &...sels) const ->
-      typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied {
+  auto select_aggregations(Nodes const &...sels) const -> typename delayed<
+      aggregation::bookkeeper<aggregation::booked_t<V>>>::varied {
     // variations
-    using varied_type =
-        typename delayed<counter::bookkeeper<counter::booked_t<V>>>::varied;
+    using varied_type = typename delayed<
+        aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
     auto syst =
-        varied_type(this->m_df->select_counters(*this, sels.nominal()...));
+        varied_type(this->m_df->select_aggregations(*this, sels.nominal()...));
     for (auto const &var_name : list_all_variation_names(sels...)) {
-      syst.set_variation(var_name, this->m_df->select_counters(
+      syst.set_variation(var_name, this->m_df->select_aggregations(
                                        *this, sels.variation(var_name)...));
     }
     return syst;
@@ -221,9 +224,9 @@ public:
   /**
    * @return The list of booked selection paths.
    */
-  template <
-      typename V = Bld,
-      std::enable_if_t<ana::counter::template is_bookkeeper_v<V>, bool> = false>
+  template <typename V = Bld,
+            std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
+                             bool> = false>
   auto list_selection_paths() const -> std::set<std::string> {
     return this->get_model_value(
         [](Bld const &bkpr) { return bkpr.list_selection_paths(); });
@@ -246,28 +249,28 @@ public:
   }
 
   /**
-   * @brief Access a counter booked at a selection path.
+   * @brief Access a aggregation booked at a selection path.
    * @param selection_path The selection path.
-   * @return The counter.
+   * @return The aggregation.
    */
   template <
       typename... Args, typename V = Bld,
-      std::enable_if_t<counter::template is_bookkeeper_v<V>, bool> = false>
+      std::enable_if_t<aggregation::template is_bookkeeper_v<V>, bool> = false>
   auto operator[](const std::string &selection_path) const
-      -> lazy<counter::booked_t<V>> {
-    return this->get_counter(selection_path);
+      -> lazy<aggregation::booked_t<V>> {
+    return this->get_aggregation(selection_path);
   }
 
 protected:
-  template <
-      typename V = Bld,
-      std::enable_if_t<ana::counter::template is_bookkeeper_v<V>, bool> = false>
-  auto get_counter(const std::string &selection_path) const
-      -> lazy<counter::booked_t<V>> {
-    return lazy<counter::booked_t<V>>(
+  template <typename V = Bld,
+            std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
+                             bool> = false>
+  auto get_aggregation(const std::string &selection_path) const
+      -> lazy<aggregation::booked_t<V>> {
+    return lazy<aggregation::booked_t<V>>(
         *this->m_df,
         this->get_lockstep_view([selection_path = selection_path](V &bkpr) {
-          return bkpr.get_counter(selection_path);
+          return bkpr.get_aggregation(selection_path);
         }));
   }
 
@@ -290,27 +293,28 @@ protected:
 
   template <typename... Nodes, typename V = Bld,
             std::enable_if_t<
-                ana::counter::template is_booker_v<V> &&
+                ana::aggregation::template is_booker_v<V> &&
                     ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
                 bool> = false>
-  auto fill_counter(Nodes const &...columns) const -> delayed<V> {
+  auto fill_aggregation(Nodes const &...columns) const -> delayed<V> {
     // nominal
     return delayed<V>(
-        *this->m_df, this->get_concurrent_result(
-                         [](V &fillable, typename Nodes::action_type &...cols) {
-                           return fillable.book_fill(cols...);
-                         },
-                         columns...));
+        *this->m_df,
+        this->get_concurrent_result(
+            [](V &fillable, typename Nodes::operation_type &...cols) {
+              return fillable.book_fill(cols...);
+            },
+            columns...));
   }
 
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<ana::counter::template is_booker_v<V> &&
+            std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
-  auto fill_counter(Nodes const &...columns) const -> varied {
-    auto syst = varied(std::move(this->fill_counter(columns.nominal())...));
+  auto fill_aggregation(Nodes const &...columns) const -> varied {
+    auto syst = varied(std::move(this->fill_aggregation(columns.nominal())...));
     for (auto const &var_name : list_all_variation_names(columns...)) {
-      syst.set_variation(var_name, this->fill_counter(std::move(
+      syst.set_variation(var_name, this->fill_aggregation(std::move(
                                        columns.variation(var_name))...));
     }
     return syst;
@@ -353,7 +357,7 @@ template <typename Bld>
 void ana::dataflow<DS>::delayed<Bld>::set_variation(const std::string &,
                                                     delayed<Bld> &&) {
   // should never be called
-  throw std::logic_error("cannot set variation to a lazy action");
+  throw std::logic_error("cannot set variation to a lazy operation");
 }
 
 template <typename DS>

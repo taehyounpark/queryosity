@@ -12,7 +12,7 @@
   template <typename Arg>                                                      \
   auto operator op_symbol(Arg &&b) const->typename lazy<                       \
       typename decltype(std::declval<lazy<Act>>().operator op_symbol(          \
-          std::forward<Arg>(b).nominal()))::action_type>::varied;
+          std::forward<Arg>(b).nominal()))::operation_type>::varied;
 #define DEFINE_LAZY_VARIED_BINARY_OP(op_symbol)                                \
   template <typename T>                                                        \
   template <typename Act>                                                      \
@@ -20,10 +20,10 @@
   auto ana::dataflow<T>::lazy<Act>::varied::operator op_symbol(Arg &&b)        \
       const->typename lazy<                                                    \
           typename decltype(std::declval<lazy<Act>>().operator op_symbol(      \
-              std::forward<Arg>(b).nominal()))::action_type>::varied {         \
+              std::forward<Arg>(b).nominal()))::operation_type>::varied {      \
     auto syst = typename lazy<                                                 \
         typename decltype(std::declval<lazy<Act>>().operator op_symbol(        \
-            std::forward<Arg>(b).nominal()))::action_type>::                   \
+            std::forward<Arg>(b).nominal()))::operation_type>::                \
         varied(this->nominal().operator op_symbol(                             \
             std::forward<Arg>(b).nominal()));                                  \
     for (auto const &var_name :                                                \
@@ -39,7 +39,7 @@
             std::enable_if_t<ana::is_column_v<V>, bool> = false>               \
   auto operator op_symbol() const->typename lazy<                              \
       typename decltype(std::declval<lazy<V>>().                               \
-                        operator op_symbol())::action_type>::varied;
+                        operator op_symbol())::operation_type>::varied;
 #define DEFINE_LAZY_VARIED_UNARY_OP(op_name, op_symbol)                        \
   template <typename T>                                                        \
   template <typename Act>                                                      \
@@ -47,11 +47,10 @@
   auto ana::dataflow<T>::lazy<Act>::varied::operator op_symbol() const->       \
       typename lazy<                                                           \
           typename decltype(std::declval<lazy<V>>().                           \
-                            operator op_symbol())::action_type>::varied {      \
-    auto syst =                                                                \
-        typename lazy<typename decltype(std::declval<lazy<V>>().               \
-                                        operator op_symbol())::action_type>::  \
-            varied(this->nominal().operator op_symbol());                      \
+                            operator op_symbol())::operation_type>::varied {   \
+    auto syst = typename lazy<                                                 \
+        typename decltype(std::declval<lazy<V>>().operator op_symbol())::      \
+            operation_type>::varied(this->nominal().operator op_symbol());     \
     for (auto const &var_name : list_all_variation_names(*this)) {             \
       syst.set_variation(var_name, variation(var_name).operator op_symbol());  \
     }                                                                          \
@@ -61,11 +60,11 @@
 namespace ana {
 
 /**
- * @brief Variations of a lazy action to be performed in an dataflow.
+ * @brief Variations of a lazy operation to be performed in an dataflow.
  * @tparam T Input dataset type
  * @tparam U Actions to be performed lazily.
  * @details A `varied` node can be treated identical to a `lazy` one, except
- * that it contains multiple variations of the action as dictated by the
+ * that it contains multiple variations of the operation as dictated by the
  * analyzer that propagate through the rest of the analysis.
  */
 template <typename T>
@@ -75,7 +74,7 @@ class dataflow<T>::lazy<Act>::varied : public systematic<lazy<Act>> {
 public:
   using dataflow_type = typename lazy<Act>::dataflow_type;
   using dataset_type = typename lazy<Act>::dataset_type;
-  using action_type = typename lazy<Act>::action_type;
+  using operation_type = typename lazy<Act>::operation_type;
 
   template <typename Sel, typename... Args>
   using delayed_varied_selection_applicator_t =
@@ -114,7 +113,7 @@ public:
 
   template <typename V = Act,
             std::enable_if_t<ana::is_column_v<V> ||
-                                 ana::counter::template has_output_v<V>,
+                                 ana::aggregation::template has_output_v<V>,
                              bool> = false>
   auto operator[](const std::string &var_name) const -> lazy<V>;
 
@@ -254,10 +253,10 @@ auto ana::dataflow<T>::lazy<Act>::varied::operator||(const Node &b) const ->
 
 template <typename DS>
 template <typename Act>
-template <
-    typename V,
-    std::enable_if_t<
-        ana::is_column_v<V> || ana::counter::template has_output_v<V>, bool>>
+template <typename V,
+          std::enable_if_t<ana::is_column_v<V> ||
+                               ana::aggregation::template has_output_v<V>,
+                           bool>>
 auto ana::dataflow<DS>::lazy<Act>::varied::operator[](
     const std::string &var_name) const -> lazy<V> {
   if (!this->has_variation(var_name)) {

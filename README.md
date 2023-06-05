@@ -169,7 +169,7 @@ public:
 
 auto l1 = df.define<Lepton>()(l1p4, lep_charge[0], lep_type[0]);
 ```
-Representations provide a complementary role to definitions that can improve conceptual clarity (but not necessity) of the computation graph and (in some cases) its efficiency, demonstrated by the following counter-example.
+Representations provide a complementary role to definitions that can improve conceptual clarity (but not necessity) of the computation graph and (in some cases) its efficiency, demonstrated by the following aggregation-example.
 ```cpp
 // using a simple struct to hold properties
 struct Lepton { const P4 p4; const double q; const double type; };
@@ -201,7 +201,7 @@ using cut = ana::selection::cut;
 using weight = ana::selection::weight;
 
 auto n_lep_sel = df.define([](VecF const& lep){return lep.size();})(lep_pt_sel);
-auto n_lep_req = df.constant(2);
+auto n_lep_req = df.constant<unsigned int>(2);
 
 auto cut_2l = df.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
                 .filter<cut>("2l")(n_lep_sel == n_lep_req);
@@ -231,8 +231,8 @@ auto cut_2lsf_wwcr = cut_2lsf.filter<cut>("wwcr")(mll > mll_cut);  // path = "2l
 To preserve uniqueness (should it be desired) of identifiers associated with branched selections, replacing `filter` with `channel` for selection(s) after the fork, such that the _path_ of a selection includes the upstream selection to form a unique string, may be helpful (as done above).
 
 ## 3. Counting entries
-### 3.1 Booking counters and accessing their results
-A `counter` defines an action that is
+### 3.1 Booking aggregations and accessing their results
+A `aggregation` defines an action that is
 - Performed `at()` at a selection, i.e. only if the cut has passed.
     -  Handling (or ignoring) the selection weight.
 - Can be `fill()`ed with columns such that their values are also handled.
@@ -246,12 +246,12 @@ auto pth_hist = df.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
 //     pth_hist->Fill(pth, cut_2los.get_weight());
 //   }
 ```
-Accessing a result of any counter triggers the dataset processing:
+Accessing a result of any aggregation triggers the dataset processing:
 ```cpp
 pth_hist.get_result();  // -> std::unique_ptr<TH1> (specified by Hist<1,float>)
 pth_hist->GetEntries();  // shortcut access
 ```
-Each `fill()` and `at()` call returns a new node with those operations applied, such that any counter can be:
+Each `fill()` and `at()` call returns a new node with those operations applied, such that any aggregation can be:
 - Filled with columns any number of times, as long as their dimensionality matches that of the implementation.
 - Booked at any (set of) selection(s), as long as the selections booked in each set has unique paths.
 ```cpp
@@ -264,14 +264,14 @@ auto l1n2_pt_hists_srs = l1n2_pt_hist.at(cut_2ldf_sr, cut_2ldf_wwcr);
 // also at "2ldf/wwcr", "2lsf/wwcr"
 auto l1n2_pt_hists_wwcrs = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_wwcr);
 ```
-When a counter is booked at multiple selections such as the above, result at each selection can be accessed by its path.
+When a aggregation is booked at multiple selections such as the above, result at each selection can be accessed by its path.
 ```cpp
 l1n2_pt_hist_2ldf_sr = l1n2_pt_hists_srs["2ldf/sr"];
 l1n2_pt_hist_2ldf_wwcr = l1n2_pt_hists_wwcrs["2ldf/wwcr"];
 ```
 ### 3.2 (Optional) "Dumping" results
 
-If a counter is booked at numerous selections, it might be convenient to have a consistent way to write out the results across all selections at once. This can be done completely on the user-side or through yet another helper interface class.
+If a aggregation is booked at numerous selections, it might be convenient to have a consistent way to write out the results across all selections at once. This can be done completely on the user-side or through yet another helper interface class.
 ```cpp
 // booked at multiple selections
 auto pth_hists = df.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, cut_2ldf, cut_2lsf);
@@ -289,7 +289,7 @@ delete out_file;
 ## Laziness of `lazy` actions
 
 All actions shown above are performed once per entry only if needed:
-1. A counter will perform its action only if its booked selection has passed its cut.
+1. A aggregation will perform its action only if its booked selection has passed its cut.
 2. A selection will evaluate its cut decision only if all upstream selections in the chain have passed, and its weight value only if the cut passes.
 4. A column value will be evaluated only if it is needed to perform any of the above.
 
@@ -300,7 +300,7 @@ Consider the above example:
 
 ## 4. Systematic variations
 
-A systematic variation of an analysis constitutes a __change in a column value that affects the outcome of the set of selection and counters in an analysis__. Processing these variations within a single computation graph at once offers the following benefits:
+A systematic variation of an analysis constitutes a __change in a column value that affects the outcome of the set of selection and aggregations in an analysis__. Processing these variations within a single computation graph at once offers the following benefits:
 
 - Guarantee that each variation and only the variation is in effect between the nominal and varied results in the rest of the analysis logic.
 - Eliminate the runtime overhead associated with repeated processing of the dataset.
@@ -324,11 +324,11 @@ auto lep_E_sel = Escale(lep_E)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max
 ```
 This results in a `varied` action, which now contains multiple variations of the `lazy` action.
 
-### 4.2 Propagation of variations through selections and counters
+### 4.2 Propagation of variations through selections and aggregations
 
 The analysis interface works the same way, whether an action is `lazy` or `varied`, meaning:
 - Any column evaluated from varied input columns containing will be varied correspondingly.
-- Any selections and counters performed with varied columns will be varied correspondingly.
+- Any selections and aggregations performed with varied columns will be varied correspondingly.
 
 The propagation of variations across multiple actions occur "in lockstep" and "transparently", meaning:
 - If two actions each have a variation of the same name, they are in effect together.
