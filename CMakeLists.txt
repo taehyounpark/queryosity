@@ -1,5 +1,3 @@
-cmake_minimum_required (VERSION 3.24)
-
 project ("ana")
 
 OPTION(BUILD_DOCS "build documentation" OFF)
