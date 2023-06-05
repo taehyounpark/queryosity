@@ -63,7 +63,7 @@ auto ana::aggregation::booker<T>::book_fill(term<Vals> const &...columns) const
   // add fills
   filled->fill_aggregation(columns...);
   // return new booker
-  return std::move(filled);
+  return filled;
 }
 
 template <typename T>
@@ -88,7 +88,7 @@ auto ana::aggregation::booker<T>::select_aggregation(const selection &sel) const
   // book cnt at the selection
   cnt->set_selection(sel);
   // return
-  return std::move(cnt);
+  return cnt;
 }
 
 template <typename T>

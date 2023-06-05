@@ -62,7 +62,7 @@ auto ana::selection::cutflow::filter(const std::string &name,
   auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
       std::function{expression});
   calc->template set_selection<Sel>(nullptr, false, name);
-  return std::move(calc);
+  return calc;
 }
 
 template <typename Sel, typename F>
@@ -72,7 +72,7 @@ auto ana::selection::cutflow::channel(const std::string &name,
   auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
       std::function{expression});
   calc->template set_selection<Sel>(nullptr, true, name);
-  return std::move(calc);
+  return calc;
 }
 
 template <typename Sel, typename F>
@@ -83,7 +83,7 @@ auto ana::selection::cutflow::filter(selection const &prev,
   auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
       std::function{expression});
   calc->template set_selection<Sel>(&prev, false, name);
-  return std::move(calc);
+  return calc;
 }
 
 template <typename Sel, typename F>
@@ -94,7 +94,7 @@ auto ana::selection::cutflow::channel(selection const &prev,
   auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
       std::function{expression});
   calc->template set_selection<Sel>(&prev, true, name);
-  return std::move(calc);
+  return calc;
 }
 
 template <typename Sel, typename... Cols>
@@ -103,7 +103,7 @@ auto ana::selection::cutflow::apply_selection(applicator<Sel> const &calc,
     -> std::unique_ptr<selection> {
   auto sel = calc.apply_selection(columns...);
   this->add_selection(*sel);
-  return std::move(sel);
+  return sel;
 }
 
 template <typename Sel>

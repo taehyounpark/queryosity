@@ -72,7 +72,7 @@ auto ana::column::computation<T>::read(const std::string &name)
                 "dataset must open a std::unique_ptr of its column reader");
   auto rdr = m_reader->template read_column<Val>(m_part, name);
   this->add_column(*rdr);
-  return std::move(rdr);
+  return rdr;
 }
 
 template <typename T>
@@ -107,7 +107,7 @@ auto ana::column::computation<T>::evaluate_column(column::evaluator<Def> &calc,
   if constexpr (column::template is_definition_v<Def>) {
     this->add_column(*defn);
   }
-  return std::move(defn);
+  return defn;
 }
 
 template <typename T>

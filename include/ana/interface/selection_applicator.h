@@ -70,5 +70,5 @@ std::unique_ptr<ana::selection> ana::selection::applicator<T>::apply_selection(
   // auto eqn = std::unique_ptr<term<cell_value_t<T>>>(m_equation.release());
   sel->set_decision(std::move(eqn));
 
-  return std::move(sel);
+  return sel;
 }

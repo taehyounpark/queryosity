@@ -57,7 +57,7 @@ template <typename Cnt, typename... Args>
 std::unique_ptr<ana::aggregation::booker<Cnt>>
 ana::aggregation::experiment::book(Args &&...args) {
   auto bkr = std::make_unique<booker<Cnt>>(std::forward<Args>(args)...);
-  return std::move(bkr);
+  return bkr;
 }
 
 template <typename Cnt>
@@ -67,7 +67,7 @@ auto ana::aggregation::experiment::select_aggregation(booker<Cnt> const &bkr,
   auto cnt = bkr.select_aggregation(sel);
   cnt->apply_scale(m_norm);
   this->add_aggregation(*cnt);
-  return std::move(cnt);
+  return cnt;
 }
 
 template <typename Cnt, typename... Sels>
