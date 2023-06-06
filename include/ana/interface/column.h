@@ -99,8 +99,7 @@ public:
   using equation_t = typename equation_traits<F>::equation_type;
 
   template <typename F>
-  struct evaluator_traits<F, typename std::enable_if_t<!ana::is_column_v<F> &&
-                                                       ana::is_callable_v<F>>> {
+  struct evaluator_traits<F, typename std::enable_if_t<!ana::is_column_v<F>>> {
     using evaluator_type = typename ana::column::template evaluator<
         ana::column::template equation_t<F>>;
   };
