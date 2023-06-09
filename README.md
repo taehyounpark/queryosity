@@ -1,7 +1,6 @@
-# Introduction
+*Analysis Logic Abstraction Layer*
 
-The purpose of `ana` is to provide a clear _abstraction_ layer for dataset transformation procedures.
-
+# How it works
 - A `dataflow` graph defines the set of operations on the dataset.
 - An operation is a `lazy` action to be performed in a row-wise manner.
 - An action can be `varied`, meaning alternate versions are performed at once.
