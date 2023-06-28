@@ -5,11 +5,11 @@ OPTION(BUILD_TESTS "build tests" OFF)
 
 add_subdirectory ("include")
 
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
+
 if (BUILD_DOCS)
-  set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
   add_subdirectory("docs")
 endif()
-
 if (BUILD_TESTS)
   add_subdirectory("tests")
 endif()
