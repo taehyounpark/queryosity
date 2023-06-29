@@ -11,8 +11,9 @@ namespace ana {
 
 template <typename T> class lockstep;
 
-struct multithread {
-  static int s_suggestion;
+class multithread {
+public:
+  static inline int s_suggestion = 0;
   static void enable(int suggestion = -1);
   static void disable();
   static bool status();
@@ -192,8 +193,6 @@ protected:
 };
 
 } // namespace ana
-
-inline int ana::multithread::s_suggestion = 0;
 
 inline void ana::multithread::enable(int suggestion) {
   s_suggestion = suggestion;
