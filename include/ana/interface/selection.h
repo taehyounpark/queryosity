@@ -14,7 +14,8 @@ class selection;
 template <typename T>
 constexpr bool is_selection_v = std::is_base_of_v<ana::selection, T>;
 
-class selection : public operation {
+// class selection : public operation {
+class selection : public column::calculation<double> {
 
 public:
   class cutflow;
@@ -47,6 +48,8 @@ public:
   virtual double get_weight() const = 0;
 
 public:
+  virtual double calculate() const override;
+
   virtual void initialize(const dataset::range &part) override;
   virtual void execute(const dataset::range &part,
                        unsigned long long entry) override;
@@ -129,12 +132,17 @@ inline std::string ana::selection::get_full_path() const {
   return concatenate_names(presels, "/") + this->get_name();
 }
 
+inline double ana::selection::calculate() const {
+  return m_variable.value();
+}
+
 inline void ana::selection::initialize(const ana::dataset::range &part) {
   m_decision->initialize(part);
 }
 
 inline void ana::selection::execute(const ana::dataset::range &part,
                                     unsigned long long entry) {
+  ana::column::calculation<double>::execute(part,entry);
   m_decision->execute(part, entry);
 }
 

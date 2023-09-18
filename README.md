@@ -184,7 +184,7 @@ Note that the following computing inefficiencies occur:
 
 No restrictions are placed on user-implementations of `column` on methods that users may want to add to the class, which can be used to "configure" them prior to the dataset processing. In such cases, access to each instance (one for each thread) can be done synchronously:
 ```cpp
-custom_column.call_all( [](CustomColumn& col){ /* call whatever methods you want to "configure" it, if implemented */ } );
+custom_column.call_all_slots( [](CustomColumn& col){ /* call whatever methods you want to "configure" it, if implemented */ } );
 ```
 
 Representations possess neither of these shortcomings.
@@ -247,7 +247,7 @@ auto pth_hist = df.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
 ```
 Accessing a result of any aggregation triggers the dataset processing:
 ```cpp
-pth_hist.get_result();  // -> std::unique_ptr<TH1> (specified by Hist<1,float>)
+pth_hist.result();  // -> std::unique_ptr<TH1> (specified by Hist<1,float>)
 pth_hist->GetEntries();  // shortcut access
 ```
 Each `fill()` and `at()` call returns a new node with those operations applied, such that any aggregation can be:

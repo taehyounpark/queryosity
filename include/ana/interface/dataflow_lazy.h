@@ -127,7 +127,7 @@ CHECK_FOR_SUBSCRIPT_OP()
  */
 template <typename T>
 template <typename U>
-class dataflow<T>::lazy : public systematic<lazy<U>>, public lockstep<U> {
+class dataflow<T>::lazy : public systematic<lazy<U>>, public lockstep::view<U> {
 
 public:
   class varied;
@@ -148,12 +148,12 @@ public:
   template <typename> friend class lazy;
 
 public:
-  lazy(dataflow<T> &dataflow, const lockstep<U> &operation)
+  lazy(dataflow<T> &dataflow, const lockstep::view<U> &operation)
       : systematic<lazy<U>>::systematic(dataflow),
-        lockstep<U>::lockstep(operation) {}
-  lazy(dataflow<T> &dataflow, const concurrent<U> &operation)
+        lockstep::view<U>::view(operation) {}
+  lazy(dataflow<T> &dataflow, const lockstep::node<U> &operation)
       : systematic<lazy<U>>::systematic(dataflow),
-        lockstep<U>::lockstep(operation) {}
+        lockstep::view<U>::view(operation) {}
 
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;

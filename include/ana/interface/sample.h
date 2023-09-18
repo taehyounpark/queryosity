@@ -43,8 +43,8 @@ protected:
   double m_scale;
 
   dataset::partition m_partition;
-  concurrent<dataset_reader_type> m_readers;
-  concurrent<dataset_processor_type> m_processors;
+  lockstep::node<dataset_reader_type> m_readers;
+  lockstep::node<dataset_processor_type> m_processors;
 };
 
 } // namespace ana

@@ -19,26 +19,26 @@ template <typename DS>
 template <typename Bld>
 class dataflow<DS>::delayed
     : public dataflow<DS>::template systematic<delayed<Bld>>,
-      public concurrent<Bld> {
+      public lockstep::node<Bld> {
 
 public:
   class varied;
 
 public:
-  delayed(dataflow<DS> &dataflow, concurrent<Bld> &&operation)
+  delayed(dataflow<DS> &dataflow, lockstep::node<Bld> &&operation)
       : systematic<delayed<Bld>>::systematic(dataflow),
-        concurrent<Bld>::concurrent(std::move(operation)) {}
+        lockstep::node<Bld>::node(std::move(operation)) {}
 
   virtual ~delayed() = default;
 
   template <typename V>
   delayed(delayed<V> &&other)
       : systematic<delayed<Bld>>::systematic(*other.m_df),
-        concurrent<Bld>::concurrent(std::move(other)) {}
+        lockstep::node<Bld>::node(std::move(other)) {}
 
   template <typename V> delayed &operator=(delayed<V> &&other) {
     this->m_df = other.m_df;
-    concurrent<Bld>::operator=(std::move(other));
+    lockstep::node<Bld>::operator=(std::move(other));
     return *this;
   }
 
@@ -300,7 +300,7 @@ protected:
     // nominal
     return delayed<V>(
         *this->m_df,
-        this->get_concurrent_result(
+        this->get_lockstep_node(
             [](V &fillable, typename Nodes::operation_type &...cols) {
               return fillable.book_fill(cols...);
             },

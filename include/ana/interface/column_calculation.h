@@ -27,7 +27,7 @@ public:
 
   virtual void initialize(const dataset::range &part) override;
   virtual void execute(const dataset::range &part,
-                       unsigned long long entry) final override;
+                       unsigned long long entry) override;
   virtual void finalize(const dataset::range &part) override;
 
 protected:
