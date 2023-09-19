@@ -283,7 +283,7 @@ ana::output::dump<Folder>(pth_hists, out_file, "hww");
 
 delete out_file;
 ```
-![pth_hists](images/hww_hists.png)
+![pth_hists](docs/images/hww_hists.png)
 
 ## Laziness of `lazy` actions
 
@@ -357,7 +357,7 @@ Each variation can be accessed by its name:
 mll_vars.nominal()->Draw();
 mll_vars["lp4_up"]->Draw("same");
 ```
-![mll_varied](images/mll_varied.png)
+![mll_varied](docs/images/mll_varied.png)
 
 Keeping track of multiple systematic variations *and* selections is also possible:
 ```cpp
