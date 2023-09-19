@@ -18,7 +18,7 @@ namespace ana {
 template <typename DS>
 template <typename Bld>
 class dataflow<DS>::delayed
-    : public dataflow<DS>::template systematic<delayed<Bld>>,
+    : public systematic<delayed<Bld>>,
       public lockstep::node<Bld> {
 
 public:

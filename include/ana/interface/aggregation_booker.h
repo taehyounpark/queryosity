@@ -19,7 +19,6 @@ public:
                          std::vector<std::unique_ptr<T>>>;
 
 public:
-  booker() = default;
   template <typename... Args> booker(Args... args);
   ~booker() = default;
 

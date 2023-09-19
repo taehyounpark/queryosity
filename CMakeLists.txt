@@ -1,15 +1,10 @@
-project ("ana")
+project(analogical VERSION 1.0.0 LANGUAGES CXX)
 
-OPTION(BUILD_DOCS "build documentation" OFF)
-OPTION(BUILD_TESTS "build tests" OFF)
+OPTION(ANALOGICAL_BuildDocs  "Build documentation" OFF)
+OPTION(ANALOGICAL_BuildTests "Build tests" ON)
 
-add_subdirectory ("include")
+add_subdirectory("include")
 
-set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
-
-if (BUILD_DOCS)
-  add_subdirectory("docs")
-endif()
-if (BUILD_TESTS)
+if (ANALOGICAL_BuildTests)
   add_subdirectory("tests")
 endif()

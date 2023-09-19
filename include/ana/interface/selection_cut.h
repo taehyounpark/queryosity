@@ -71,7 +71,7 @@ inline bool ana::selection::cut::a_or_b::passed_cut() const {
   return m_a.passed_cut() || m_b.passed_cut();
 }
 
-inline double ana::selection::cut::a_or_b::get_weight() const { return m_a.get_weight() || m_b.get_weight(); }
+inline double ana::selection::cut::a_or_b::get_weight() const { return 1.0; }
 
 inline ana::selection::cut::a_and_b::a_and_b(const selection &a,
                                              const selection &b)
@@ -82,4 +82,4 @@ inline bool ana::selection::cut::a_and_b::passed_cut() const {
   return m_a.passed_cut() && m_b.passed_cut();
 }
 
-inline double ana::selection::cut::a_and_b::get_weight() const { return m_a.get_weight() && m_b.get_weight(); }
+inline double ana::selection::cut::a_and_b::get_weight() const { return 1.0; }
