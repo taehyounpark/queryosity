@@ -41,7 +41,6 @@ TEST_CASE("correctness & consistency of selections") {
   long long correct_count_a = 0;
   long long correct_count_b = 0;
   long long correct_count_c = 0;
-  long long correct_count_tot = 0;
   for (int i=0 ; i<nentries ; ++i) {
     auto c = std::get<std::string>(random_data[i]["category"]);
     auto w = std::get<int>(random_data[i]["weight"]);
@@ -52,7 +51,6 @@ TEST_CASE("correctness & consistency of selections") {
     } else {
       ++correct_count_c;
     }
-    ++correct_count_tot;
   }
 
   // compute answer with analogical
@@ -66,15 +64,26 @@ TEST_CASE("correctness & consistency of selections") {
   auto category_a = weighted_all.filter<cut>("category_a")(entry_category==df.constant<std::string>("a"));
   auto category_b = weighted_all.filter<cut>("category_b")(entry_category==df.constant<std::string>("b"));
   auto category_c = weighted_all.filter<cut>("category_c")(entry_category==df.constant<std::string>("c"));
-  auto category_any = category_a || category_b || category_c;
+
+  auto category_ab = category_a || category_b;
+  auto category_bc = category_b || category_c;
+  auto category_abc = category_a || category_b || category_c;
 
   auto count_a = df.book<entry_count>().at(category_a);
   auto count_b = df.book<entry_count>().at(category_b);
   auto count_c = df.book<entry_count>().at(category_c);
-  auto count_tot = df.book<entry_count>().at(category_any);
+
+  auto count_ab = df.book<entry_count>().at(category_ab);
+  auto count_bc = df.book<entry_count>().at(category_bc);
+  auto count_abc = df.book<entry_count>().at(category_abc);
 
   // compare answers
   CHECK(count_a.result() == correct_count_a);
-  CHECK(count_tot.result() == correct_count_tot);
+  CHECK(count_b.result() == correct_count_b);
+  CHECK(count_c.result() == correct_count_c);
+
+  CHECK(count_ab.result() == correct_count_a+correct_count_b);
+  CHECK(count_bc.result() == correct_count_b+correct_count_c);
+  CHECK(count_abc.result() == correct_count_a+correct_count_b+correct_count_c);
 
 }
