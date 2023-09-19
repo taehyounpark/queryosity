@@ -583,8 +583,8 @@ auto ana::dataflow<T>::join(lazy<selection> const &a, lazy<selection> const &b)
         return proc.template join<Sel>(a, b);
       },
       a, b);
-  this->add_operation(std::move(act));
   auto lzy = lazy<selection>(*this, act);
+  this->add_operation(std::move(act));
   return lzy;
 }
 
