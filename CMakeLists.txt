@@ -75,6 +75,11 @@ if (ANALOGICAL_INSTALL)
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/analogical
   )
 
+  export(EXPORT analogicalTargets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/analogicalTargets.cmake"
+    NAMESPACE analogical::
+  )
+
 endif()
 
 if (ANALOGICAL_TESTS)
