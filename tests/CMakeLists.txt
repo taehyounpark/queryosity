@@ -1,33 +1,28 @@
 project(
-  analogical-tests
+  analogical_tests
   LANGUAGES CXX
 )
-set(ANALOGICAL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../include/)
-file(GLOB ANALOGICAL_TESTS_Headers plugins/*.h)
 
+find_package(analogical REQUIRED)
+
+file(GLOB ANALOGICAL_PLUGINS_HEADERS plugins/*.h)
 add_library(
-  analogical-tests
+  analogical_tests
   SHARED
-  ${ANALOGICAL_TESTS_Headers}
+  ${ANALOGICAL_PLUGINS_HEADERS}
 )
-
-set_target_properties(analogical-tests PROPERTIES LINKER_LANGUAGE CXX)
-target_include_directories(
-  analogical-tests PUBLIC ${ANALOGICAL_INCLUDE_DIR}
-)
+set_target_properties(analogical_tests PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(
-  analogical-tests
-  analogical
+  analogical_tests
+  analogical::analogical
 )
 
 find_package(Threads REQUIRED)
 
 add_executable(test-selection ./test-selection.cxx)
 target_compile_features(test-selection PUBLIC cxx_std_17)
-target_include_directories(test-selection PUBLIC ${ANALOGICAL_INCLUDE_DIR})
-target_link_libraries(test-selection analogical pthread)
+target_link_libraries(test-selection analogical_tests pthread)
 
 add_executable(test-multithread ./test-multithread.cxx)
 target_compile_features(test-multithread PUBLIC cxx_std_17)
-target_include_directories(test-multithread PUBLIC ${ANALOGICAL_INCLUDE_DIR})
-target_link_libraries(test-multithread analogical pthread)
+target_link_libraries(test-multithread analogical_tests pthread)

@@ -39,8 +39,8 @@ TEST_CASE("multithreading consistency") {
   trivial_data_t random_data;
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution<int> random_weight(0,2);
-  std::uniform_int_distribution<int> random_entry(0,10);
+  std::uniform_int_distribution random_weight(0,2);
+  std::uniform_int_distribution random_entry(0,10);
   auto nentries = 1000;
   for (int i=0 ; i<nentries ; ++i) {
     auto w = random_weight(gen);
@@ -54,16 +54,21 @@ TEST_CASE("multithreading consistency") {
 
   // get answers
   auto correct_answer = get_correct_answer(random_data);
-  auto analogical_answer_1 = get_analogical_answer(random_data,1);
-  auto analogical_answer_2 = get_analogical_answer(random_data,2);
-  auto analogical_answer_3 = get_analogical_answer(random_data,3);
-  auto analogical_answer_4 = get_analogical_answer(random_data,4);
-  auto analogical_answer_5 = get_analogical_answer(random_data,5);
+  auto analogical_answer1 = get_analogical_answer(random_data,1);
+  auto analogical_answer2 = get_analogical_answer(random_data,2);
+  auto analogical_answer3 = get_analogical_answer(random_data,3);
+  auto analogical_answer4 = get_analogical_answer(random_data,4);
+  auto analogical_answer5 = get_analogical_answer(random_data,5);
 
   // compare answers
-  CHECK(analogical_answer_1 == correct_answer);
-  CHECK(analogical_answer_1 == analogical_answer_2);
-  CHECK(analogical_answer_1 == analogical_answer_3);
-  CHECK(analogical_answer_1 == analogical_answer_4);
-  CHECK(analogical_answer_1 == analogical_answer_5);
+  SUBCASE("single-threaded result correctness") {
+    CHECK(analogical_answer1 == correct_answer);
+  }
+
+  SUBCASE("multithreaded results consistency") {
+    CHECK(analogical_answer1 == analogical_answer2);
+    CHECK(analogical_answer1 == analogical_answer3);
+    CHECK(analogical_answer1 == analogical_answer4);
+    CHECK(analogical_answer1 == analogical_answer5);
+  }
 }

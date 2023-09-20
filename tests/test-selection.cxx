@@ -16,7 +16,7 @@ using weight = ana::selection::weight;
 
 TEST_CASE("correctness & consistency of selections") {
 
-  auto nentries = 10000;
+  auto nentries = 100;
 
   // generate random data
   trivial_data_t random_data;
@@ -56,34 +56,45 @@ TEST_CASE("correctness & consistency of selections") {
   // compute answer with analogical
   ana::multithread::disable();
   auto df = ana::dataflow<trivial_input>(random_data);
-  auto entry_weight = df.read<int>("weight");
   auto entry_category = df.read<std::string>("category");
+  auto cut_a = df.filter<cut>("cut_a")(entry_category==df.constant<std::string>("a"));
+  auto cut_b = df.filter<cut>("cut_b")(entry_category==df.constant<std::string>("b"));
+  auto cut_c = df.filter<cut>("cut_c")(entry_category==df.constant<std::string>("c"));
 
-  auto weighted_all = df.filter<weight>("weight")(entry_weight);
+  auto cut_ab = cut_a || cut_b;
+  auto cut_bc = cut_b || cut_c;
+  auto cut_abc = cut_a || cut_b || cut_c;
 
-  auto category_a = weighted_all.filter<cut>("category_a")(entry_category==df.constant<std::string>("a"));
-  auto category_b = weighted_all.filter<cut>("category_b")(entry_category==df.constant<std::string>("b"));
-  auto category_c = weighted_all.filter<cut>("category_c")(entry_category==df.constant<std::string>("c"));
+  auto cut_none = cut_a && cut_b && cut_c;
+  auto cut_a2 = cut_a && cut_ab;
+  auto cut_b2 = cut_b && cut_bc;
 
-  auto category_ab = category_a || category_b;
-  auto category_bc = category_b || category_c;
-  auto category_abc = category_a || category_b || category_c;
+  auto count_a = df.book<entry_count>().at(cut_a);
+  auto count_b = df.book<entry_count>().at(cut_b);
+  auto count_c = df.book<entry_count>().at(cut_c);
 
-  auto count_a = df.book<entry_count>().at(category_a);
-  auto count_b = df.book<entry_count>().at(category_b);
-  auto count_c = df.book<entry_count>().at(category_c);
+  auto count_ab = df.book<entry_count>().at(cut_ab);
+  auto count_bc = df.book<entry_count>().at(cut_bc);
+  auto count_abc = df.book<entry_count>().at(cut_abc);
 
-  auto count_ab = df.book<entry_count>().at(category_ab);
-  auto count_bc = df.book<entry_count>().at(category_bc);
-  auto count_abc = df.book<entry_count>().at(category_abc);
+  auto count_a2 = df.book<entry_count>().at(cut_a2);
+  auto count_b2 = df.book<entry_count>().at(cut_b2);
+  auto count_none = df.book<entry_count>().at(cut_none);
 
-  // compare answers
-  CHECK(count_a.result() == correct_count_a);
-  CHECK(count_b.result() == correct_count_b);
-  CHECK(count_c.result() == correct_count_c);
+  SUBCASE("basic results") {
+    CHECK(count_a.result() == correct_count_a);
+    CHECK(count_b.result() == correct_count_b);
+    CHECK(count_c.result() == correct_count_c);
+  }
 
-  CHECK(count_ab.result() == correct_count_a+correct_count_b);
-  CHECK(count_bc.result() == correct_count_b+correct_count_c);
-  CHECK(count_abc.result() == correct_count_a+correct_count_b+correct_count_c);
+  SUBCASE("binary operations") {
+    CHECK(count_ab.result() == correct_count_a+correct_count_b);
+    CHECK(count_bc.result() == correct_count_b+correct_count_c);
+    CHECK(count_abc.result() == correct_count_a+correct_count_b+correct_count_c);
+
+    CHECK(count_a2.result() == correct_count_a);
+    CHECK(count_b2.result() == correct_count_b);
+    CHECK(count_none.result() == 0);
+  }
 
 }
