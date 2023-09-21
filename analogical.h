@@ -3353,8 +3353,7 @@ protected:
     if (!model->is_merged()) {
       std::vector<std::decay_t<decltype(model->get_result())>> results;
       for (size_t islot = 0; islot < this->concurrency(); ++islot) {
-        auto slot = this->get_slot(islot);
-        results.push_back(slot->get_result());
+        results.push_back(this->get_slot(islot)->get_result());
       }
       model->merge_results(results);
     }
@@ -4049,10 +4048,10 @@ protected:
                                  has_variation_v<Nodes...>,
                              bool> = false>
   auto fill_aggregation(Nodes const &...columns) const -> varied {
-    auto syst = varied(std::move(this->fill_aggregation(columns.nominal())...));
+    auto syst = varied(std::move(this->fill_aggregation(columns.nominal()...)));
     for (auto const &var_name : list_all_variation_names(columns...)) {
-      syst.set_variation(var_name, this->fill_aggregation(std::move(
-                                       columns.variation(var_name))...));
+      syst.set_variation(var_name, std::move(this->fill_aggregation(
+                                       columns.variation(var_name)...)));
     }
     return syst;
   }
@@ -4441,7 +4440,7 @@ template <typename T> void ana::dataflow<T>::analyze() {
 
   this->m_dataset->start_dataset();
 
-  // multilockstep (if enabled)
+  // multithread (if enabled)
   this->m_processors.run_slots(
       [](dataset_processor_type &proc) { proc.process(); });
 
