@@ -354,8 +354,7 @@ protected:
     if (!model->is_merged()) {
       std::vector<std::decay_t<decltype(model->get_result())>> results;
       for (size_t islot = 0; islot < this->concurrency(); ++islot) {
-        auto slot = this->get_slot(islot);
-        results.push_back(slot->get_result());
+        results.push_back(this->get_slot(islot)->get_result());
       }
       model->merge_results(results);
     }

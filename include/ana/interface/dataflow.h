@@ -560,7 +560,7 @@ template <typename T> void ana::dataflow<T>::analyze() {
 
   this->m_dataset->start_dataset();
 
-  // multilockstep (if enabled)
+  // multithread (if enabled)
   this->m_processors.run_slots(
       [](dataset_processor_type &proc) { proc.process(); });
 

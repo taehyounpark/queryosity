@@ -311,10 +311,10 @@ protected:
                                  has_variation_v<Nodes...>,
                              bool> = false>
   auto fill_aggregation(Nodes const &...columns) const -> varied {
-    auto syst = varied(std::move(this->fill_aggregation(columns.nominal())...));
+    auto syst = varied(std::move(this->fill_aggregation(columns.nominal()...)));
     for (auto const &var_name : list_all_variation_names(columns...)) {
-      syst.set_variation(var_name, this->fill_aggregation(std::move(
-                                       columns.variation(var_name))...));
+      syst.set_variation(var_name, std::move(this->fill_aggregation(
+                                       columns.variation(var_name)...)));
     }
     return syst;
   }
