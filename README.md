@@ -365,7 +365,7 @@ mll_channels_vars["lp4_up"]["2lsf"]->GetEntries();
 
 C++17 support is required (tested with Clang 14.0.0 and GCC 9.3.0).
 
-### [Single-header](https://raw.githubusercontent.com/taehyounpark/analogical/blob/master/analogical.h)
+### [Single-header](https://raw.githubusercontent.com/taehyounpark/analogical/master/analogical.h)
 ```cpp
 #include "analogical.h"
 ```
