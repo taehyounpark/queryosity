@@ -270,6 +270,12 @@ public:
     return this->m_df->template join<selection::cut::a_and_b>(*this, b);
   }
 
+  template <typename V = U,
+            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  auto operator*(const lazy<selection> &b) const -> lazy<selection> {
+    return this->m_df->template join<selection::weight::a_times_b>(*this, b);
+  }
+
   /**
    * @brief Join two filters (OR)
    * @return selection Its decision is given by `passed_cut() = a.passed_cut()

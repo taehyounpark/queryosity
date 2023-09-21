@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.14)
 project(analogical)
 
 
-OPTION(ANALOGICAL_INSTALL "Install target" OFF)
+OPTION(ANALOGICAL_INSTALL "Install target" ON)
 OPTION(ANALOGICAL_DOCS    "Documentation" OFF)
 OPTION(ANALOGICAL_TESTS   "Tests" OFF)
 
@@ -85,7 +85,5 @@ if (ANALOGICAL_INSTALL)
 endif()
 
 if (ANALOGICAL_TESTS)
-  add_subdirectory("plugins")
-  enable_testing()
   add_subdirectory("tests")
 endif()

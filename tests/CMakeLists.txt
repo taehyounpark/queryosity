@@ -1,11 +1,26 @@
-find_package(Threads REQUIRED)
+file(GLOB ANALOGICAL_PLUGINS_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/plugins/*.h)
 
-add_executable(test-selection ./test-selection.cxx)
-target_compile_features(test-selection PUBLIC cxx_std_17)
-target_link_libraries(test-selection ana::plugins pthread)
-add_test(NAME test-selection COMMAND test-selection)
+add_library(
+  analogical_plugins
+  SHARED
+  ${ANALOGICAL_PLUGINS_HEADERS}
+)
 
-add_executable(test-multithread ./test-multithread.cxx)
-target_compile_features(test-multithread PUBLIC cxx_std_17)
-target_link_libraries(test-multithread ana::plugins pthread)
-add_test(NAME test-multithread COMMAND test-multithread)
+add_library(
+  ana::plugins ALIAS analogical_plugins
+)
+
+set_target_properties(analogical_plugins PROPERTIES LINKER_LANGUAGE CXX)
+
+target_include_directories(
+  analogical_plugins 
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
+)
+
+target_link_libraries(
+  analogical_plugins
+  INTERFACE ana::analogical
+)
+
+enable_testing()
+add_subdirectory("units")

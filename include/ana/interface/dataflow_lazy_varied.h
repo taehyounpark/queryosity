@@ -111,6 +111,10 @@ public:
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto operator&&(const Node &b) const -> typename lazy<selection>::varied;
 
+  template <typename Node, typename V = Act,
+            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  auto operator*(const Node &b) const -> typename lazy<selection>::varied;
+
   template <typename V = Act,
             std::enable_if_t<ana::is_column_v<V> ||
                                  ana::aggregation::template has_output_v<V>,
@@ -232,6 +236,21 @@ auto ana::dataflow<T>::lazy<Act>::varied::operator&&(const Node &b) const ->
   for (auto const &var_name : list_all_variation_names(*this, b)) {
     syst.set_variation(
         var_name, this->variation(var_name).operator&&(b.variation(var_name)));
+  }
+  return syst;
+}
+
+template <typename T>
+template <typename Act>
+template <typename Node, typename V,
+          std::enable_if_t<ana::is_selection_v<V>, bool>>
+auto ana::dataflow<T>::lazy<Act>::varied::operator*(const Node &b) const ->
+    typename lazy<selection>::varied {
+  using varied_type = typename lazy<selection>::varied;
+  auto syst = varied_type(this->nominal().operator*(b.nominal()));
+  for (auto const &var_name : list_all_variation_names(*this, b)) {
+    syst.set_variation(
+        var_name, this->variation(var_name).operator*(b.variation(var_name)));
   }
   return syst;
 }

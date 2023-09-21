@@ -1,52 +1,49 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include "ana/analogical.h"
 #include <random>
 #include <unordered_map>
 
-#include "ana/trivial_input.h"
-#include "ana/weighted_sum.h"
+#include "ana/analogical.h"
+
+#include "plugins/table.h"
+#include "plugins/vecx.h"
 
 using ana::multithread;
 template <typename T> using dataflow = ana::dataflow<T>;
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
 
-int get_correct_answer(const trivial_data_t &random_data) {
-  int correct_answer = 0;
+std::vector<int> get_correct_answer(const table_data_t &random_data) {
+  std::vector<int> correct_answer;
   for (unsigned int i = 0; i < random_data.size(); ++i) {
     auto x = std::get<int>(random_data.at(i).at("value"));
-    auto w = std::get<int>(random_data.at(i).at("weight"));
-    correct_answer += x * w;
+    correct_answer.push_back(x);
   }
   return correct_answer;
 }
 
-int get_analogical_answer(const trivial_data_t &random_data, int ncores) {
+std::vector<int> get_analogical_answer(const table_data_t &random_data,
+                                       int ncores) {
   ana::multithread::enable(ncores);
-  auto df = ana::dataflow<trivial_input>(random_data);
-  auto entry_weight = df.read<int>("weight");
+  auto df = ana::dataflow<table>(random_data);
   auto entry_value = df.read<int>("value");
-  auto weightd_entries = df.filter<weight>("weight")(entry_weight);
-  auto answer = df.book<weighted_sum>().fill(entry_value).at(weightd_entries);
+  auto all_entries = df.filter<cut>("all")(df.constant(true));
+  auto answer = df.book<vecx<int>>().fill(entry_value).at(all_entries);
   return answer.result();
 }
 
 TEST_CASE("multithreading consistency") {
 
   // generate random data
-  trivial_data_t random_data;
+  table_data_t random_data;
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_int_distribution random_weight(0, 2);
-  std::uniform_int_distribution random_entry(0, 10);
   unsigned int nentries = 100;
+  std::uniform_int_distribution<int> random_value(0, nentries);
   for (unsigned int i = 0; i < nentries; ++i) {
-    auto w = random_weight(gen);
-    auto x = random_entry(gen);
-    random_data.emplace_back(
-        trivial_row_t{{"index", i}, {"weight", w}, {"value", x}});
+    auto x = random_value(gen);
+    random_data.emplace_back(table_row_t{{"index", i}, {"value", x}});
   }
 
   // get answers
