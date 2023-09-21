@@ -1,5 +1,10 @@
 ***Ana**lysis **Logic** **A**bstraction **L**ayer*
 
+![Version](https://img.shields.io/badge/Version-0.1.0-blue.svg)
+![macOS CI](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml/badge.svg)
+[![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
 ## Design goals
 
 - **Coherent interface.** Higher-level languages have intuitive ways to do dataset transformations, e.g. the "DataFrame". The syntax used here aims to achieve the same level of abstraction in a unique way that was originally intended for high-energy physics use cases, referred to as a "DataFlow".
