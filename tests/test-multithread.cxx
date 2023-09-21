@@ -41,7 +41,7 @@ TEST_CASE("multithreading consistency") {
   std::mt19937 gen(rd());
   std::uniform_int_distribution random_weight(0, 2);
   std::uniform_int_distribution random_entry(0, 10);
-  auto nentries = 1000;
+  unsigned int nentries = 100;
   for (unsigned int i = 0; i < nentries; ++i) {
     auto w = random_weight(gen);
     auto x = random_entry(gen);

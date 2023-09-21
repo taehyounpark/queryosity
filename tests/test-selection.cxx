@@ -16,7 +16,7 @@ using weight = ana::selection::weight;
 
 TEST_CASE("correctness & consistency of selections") {
 
-  auto nentries = 100;
+  unsigned int nentries = 100;
 
   // generate random data
   trivial_data_t random_data;
