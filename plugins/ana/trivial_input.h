@@ -6,8 +6,9 @@
 
 #include "ana/analogical.h"
 
-using trivial_data_t = std::vector<
-    std::unordered_map<std::string, std::variant<int, double, std::string>>>;
+using trivial_row_t = std::unordered_map<
+    std::string, std::variant<unsigned int, int, float, double, std::string>>;
+using trivial_data_t = std::vector<trivial_row_t>;
 
 class trivial_input;
 class trivial_reader;
@@ -61,7 +62,7 @@ trivial_input::trivial_input(trivial_data_t data) : m_data(data) {}
 ana::dataset::partition trivial_input::allocate() {
   ana::dataset::partition parts;
   auto nentries = m_data.size();
-  for (int i = 0; i < nentries; ++i) {
+  for (unsigned int i = 0; i < nentries; ++i) {
     parts.add_part(i, i, i + 1);
   }
   return parts;

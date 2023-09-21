@@ -15,7 +15,7 @@ using weight = ana::selection::weight;
 
 int get_correct_answer(const trivial_data_t &random_data) {
   int correct_answer = 0;
-  for (int i = 0; i < random_data.size(); ++i) {
+  for (unsigned int i = 0; i < random_data.size(); ++i) {
     auto x = std::get<int>(random_data.at(i).at("value"));
     auto w = std::get<int>(random_data.at(i).at("weight"));
     correct_answer += x * w;
@@ -42,12 +42,11 @@ TEST_CASE("multithreading consistency") {
   std::uniform_int_distribution random_weight(0, 2);
   std::uniform_int_distribution random_entry(0, 10);
   auto nentries = 1000;
-  for (int i = 0; i < nentries; ++i) {
+  for (unsigned int i = 0; i < nentries; ++i) {
     auto w = random_weight(gen);
     auto x = random_entry(gen);
     random_data.emplace_back(
-        std::unordered_map<std::string, std::variant<int, double, std::string>>{
-            {"index", i}, {"weight", w}, {"value", x}});
+        trivial_row_t{{"index", i}, {"weight", w}, {"value", x}});
   }
 
   // get answers

@@ -28,21 +28,19 @@ TEST_CASE("correctness & consistency of selections") {
   std::unordered_map<int, std::string> category_name{
       {1, "a"}, {2, "b"}, {3, "c"}};
 
-  for (int i = 0; i < nentries; ++i) {
+  for (unsigned int i = 0; i < nentries; ++i) {
     auto w = random_weight(gen);
     auto c = category_name[random_category(gen)];
     random_data.emplace_back(
-        std::unordered_map<std::string, std::variant<int, double, std::string>>{
-            {"index", i}, {"category", c}, {"weight", w}});
+        trivial_row_t{{"index", i}, {"category", c}, {"weight", w}});
   }
 
   // compute correct answer
   long long correct_count_a = 0;
   long long correct_count_b = 0;
   long long correct_count_c = 0;
-  for (int i = 0; i < nentries; ++i) {
+  for (unsigned int i = 0; i < nentries; ++i) {
     auto c = std::get<std::string>(random_data[i]["category"]);
-    auto w = std::get<int>(random_data[i]["weight"]);
     if (c == "a") {
       ++correct_count_a;
     } else if (c == "b") {
