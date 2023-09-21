@@ -1,58 +1,45 @@
-*Analysis Logic Abstraction Layer*
+***Ana**lysis **Logic** **A**bstraction **L**ayer*
 
-# How it works
-- A `dataflow` graph defines the set of operations on the dataset.
-- An operation is a `lazy` action to be performed in a row-wise manner.
-- An action can be `varied`, meaning alternate versions are performed at once.
+## Design goals
 
-# Features
-- Manipulation of any data types as column values.
-- Arbitrary action execution and results retrieval.
-- Propagation of systematic variations.
-- Multithreaded processing of the dataset.
+- **Coherent interface.** Higher-level languages have intuitive ways to do dataset transformations, e.g. the "DataFrame". The syntax used here aims to achieve the same level of abstraction in a unique way that was originally intended for high-energy physics use cases, referred to as a "DataFlow".
+- **Custom implementations.** Users can implement any tabular data: a trivial example is used here, and the a realistic one of CERN ROOT Framework here. Similarly, custom columns and aggregations receive first-class treatment that supports arbitrary inputs, execution, and output.
+- **Non-proliferative workflow.** Often times, small changes to an analysis need to be explored. How often has CTRL+C/V been used to copy an entire analysis, made minute changes, and re-process the dataset? With built-in handling of "systematic variations", such changes can be performed and retrieved simultaneously.
+- **Computational efficiency.** All operations within the dataset processing is performed at most once per-entry, only when needed. All systematic variations are processed at once. The dataset processing is multi-threaded for thread-safe plugins.
 
-# Requirements
-- C++17-supported compiler (tested with GCC 9.3.0 and Clang 14.0.0)
-- CMake 3.24 or newer
+## Examples
 
-# How to use
+The following exercise analyzes simulated physics collision data to reconstruct the Higgs boson transverse momentum in $H\rightarrow WW^{\ast}\rightarrow \ell\nu\ell\nu$ events (public dataset available [here](https://opendata.cern.ch/record/700)).
 
-1. Clone this repository.
-2. Add `ana/include` to the include path.
-3. `#include "ana/analysis.h"`.
+### Opening the dataset
 
-
-# Walkthrough
-
-The following example analyzes simulated physics collision data reconstructing the Higgs boson transverse momentum in $gg\to H\rightarrow WW^{\ast}$ events (publicly-available dataset [here](https://opendata.cern.ch/record/700)).
-
-## 0. Opening the dataset
-
-Specify the multithreading configuration and the input dataset as the following:
+The multithreading configuration must be specified before opening a dataset.
 
 ```cpp
-// enable (or disable) multithreading
-ana::multithread::enable(/* 10 */);  // provide thread count (default: system maximum)
+// provide thread count (default: system maximum)
+// can also be disabled()'ed
+ana::multithread::enable(/* 10 */); 
 
 // Tree is user-implemented
 auto df = ana::dataflow<Tree>({"hww.root"}, "mini");
 ```
 
-## 1. Computing quantities of interest
+### Computing quantities of interest
 
-A `column` is a quantity to be read, or defined out of existng ones for each entry.
+A `column` holds a value of a specific data type per-entry.
 
-### 1.1 Reading columns in the dataset
+#### Reading columns in the dataset
 Existing columns in the dataset can be accessed by supplying their types and names.
 ```cpp
+auto mc_weight = data.read<float>("mcWeight");
+
+auto el_sf = data.read<float>("scaleFactor_ELE");
+auto mu_sf = df.read<float>("scaleFactor_MUON");
+
 using VecUI = ROOT::RVec<unsigned int>;
 using VecF = ROOT::RVec<float>;
 using VecD = ROOT::RVec<float>;
 
-// Tree::Branch<T> is user-implemented
-auto mc_weight = data.read<float>("mcWeight");
-auto el_sf = data.read<float>("scaleFactor_ELE");
-auto mu_sf = df.read<float>("scaleFactor_MUON");
 auto lep_pt_MeV = df.read<VecF>("lep_pt");
 auto lep_eta = df.read<VecF>("lep_eta");
 auto lep_phi = df.read<VecF>("lep_phi");
@@ -62,18 +49,16 @@ auto lep_type = df.read<VecUI>("lep_type");
 auto met_MeV = df.read<float>("met_et");
 auto met_phi = df.read<float>("met_phi");
 ```
-
-### 1.2 Defining new quantities
 #### Simple expressions
 Mathematical binary and unary operations available for the underlying data types are supported:
 ```cpp
-auto GeV = ana.constant(1000.0);
-auto lep_pt = lep_pt_MeV / GeV;
-// (lep_E, met, ...)
+// convert the energy scale from MeV to GeV
+auto MeV = ana.constant(1000.0);
+auto lep_pt = lep_pt_MeV / MeV;
 
+// select leptons whos |eta| < 2.4
 auto lep_eta_max = df.constant(2.4);
 auto lep_pt_sel = lep_pt[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
-// (lep_eta_sel, lep_phi_sel, lep_E_sel, ...)
 ```
 (Shorthand operators, such as `+=`, are not supported).
 
@@ -93,7 +78,7 @@ auto pth = df.define(
   })(p4ll, met, met_phi);
 ```
 The computation graph is guaranteed to be
-- Recursion-free, as the grammar forbids this by construction.
+- Recursion-free, as the interface forbids this by construction.
 - No-copy of column values passed from one another, unless a conversion is required.
 
 #### Custom definitions
@@ -368,4 +353,42 @@ auto mll_channels_vars = df.book<Hist<1,float>>("mll",50,0,200).fill(mll).at(cut
 // specify variation name, followed by selection path
 mll_channels_vars.nominal()["2ldf"]->GetEntries();
 mll_channels_vars["lp4_up"]["2lsf"]->GetEntries();
+```
+
+## Installation
+
+C++17 support is required (tested with Clang 14.0.0 and GCC 9.3.0).
+
+### [Single-header](https://raw.githubusercontent.com/taehyounpark/analogical/blob/master/analogical.h)
+```cpp
+#include "analogical.h"
+```
+### CMake
+```sh
+git clone https://github.com/taehyounpark/analogical.git
+``````
+#### External
+```sh
+cd analogical/ && mkdir build/ && cd build/
+cmake ../
+cmake --build .
+cmake --install .
+```
+```CMake
+find_package(analogical 0.1.0 REQUIRED)
+...
+add_library(Analysis ...)
+...
+target_link_libraries(Analysis INTERFACE ana::analogical)
+```
+```cpp
+#include "ana/analogical.h"
+```
+#### Integrated
+```CMake
+add_subdirectory(analogical)
+...
+add_library(Analysis ...)
+...
+target_link_libraries(Analysis INTERFACE ana::analogical)
 ```

@@ -1,0 +1,48 @@
+name: macOS
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+  
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  macos_xcode:
+    runs-on: macos-12
+    strategy:
+      matrix:
+        xcode: ['13.1', '13.2.1', '13.3.1', '13.4.1', '14.0', '14.0.1', '14.1']
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_${{ matrix.xcode }}.app/Contents/Developer
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DANALOGICAL_TESTS=ON
+      - name: Build
+        run: cmake --build build --parallel 4
+      - name: Test
+        run: cd build ; ctest -j 4 --output-on-failure
+
+  macos_cxx:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        standard: [17, 20, 23]
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run CMake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DANALOGICAL_TESTS=ON -DANALOGICAL_CXX_STANDARD=${{ matrix.standard }}
+      - name: Build
+        run: cmake --build build --parallel 4
+      - name: Test
+        run: cd build ; ctest -j 4 --output-on-failure

@@ -132,9 +132,7 @@ inline std::string ana::selection::get_full_path() const {
   return concatenate_names(presels, "/") + this->get_name();
 }
 
-inline double ana::selection::calculate() const {
-  return m_variable.value();
-}
+inline double ana::selection::calculate() const { return m_variable.value(); }
 
 inline void ana::selection::initialize(const ana::dataset::range &part) {
   m_decision->initialize(part);
@@ -142,7 +140,7 @@ inline void ana::selection::initialize(const ana::dataset::range &part) {
 
 inline void ana::selection::execute(const ana::dataset::range &part,
                                     unsigned long long entry) {
-  ana::column::calculation<double>::execute(part,entry);
+  ana::column::calculation<double>::execute(part, entry);
   m_decision->execute(part, entry);
 }
 

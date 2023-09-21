@@ -40,12 +40,9 @@ protected:
 
 } // namespace ana
 
-template <typename T> ana::column::reader<T>::reader() : 
-  m_addr(nullptr),
-  m_updated(false),
-  m_part(nullptr),
-  m_current(0)
-{}
+template <typename T>
+ana::column::reader<T>::reader()
+    : m_addr(nullptr), m_updated(false), m_part(nullptr), m_current(0) {}
 
 template <typename T> T const &ana::column::reader<T>::value() const {
   if (!this->m_updated) {

@@ -149,11 +149,11 @@ public:
 
 public:
   lazy(dataflow<T> &dataflow, const lockstep::view<U> &operation)
-      : systematic<lazy<U>>::systematic(dataflow),
-        lockstep::view<U>::view(operation) {}
+      : systematic<lazy<U>>::systematic(dataflow), lockstep::view<U>::view(
+                                                       operation) {}
   lazy(dataflow<T> &dataflow, const lockstep::node<U> &operation)
-      : systematic<lazy<U>>::systematic(dataflow),
-        lockstep::view<U>::view(operation) {}
+      : systematic<lazy<U>>::systematic(dataflow), lockstep::view<U>::view(
+                                                       operation) {}
 
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;

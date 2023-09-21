@@ -48,12 +48,15 @@ inline double ana::selection::weight::get_weight() const {
 }
 
 inline ana::selection::weight::a_times_b::a_times_b(const selection &a,
-                                           const selection &b)
-    : selection(nullptr, false, "(" + a.get_path() + ")*(" + b.get_path() + ")"),
+                                                    const selection &b)
+    : selection(nullptr, false,
+                "(" + a.get_path() + ")*(" + b.get_path() + ")"),
       m_a(a), m_b(b) {}
 
 inline bool ana::selection::weight::a_times_b::passed_cut() const {
   return m_a.passed_cut() && m_b.passed_cut();
 }
 
-inline double ana::selection::weight::a_times_b::get_weight() const { return m_a.get_weight() * m_b.get_weight(); }
+inline double ana::selection::weight::a_times_b::get_weight() const {
+  return m_a.get_weight() * m_b.get_weight();
+}

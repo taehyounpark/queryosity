@@ -3,11 +3,11 @@
 
 #include <random>
 #include <unordered_map>
-#include "ana/analysis.h"
 
-#include "plugins/trivial_input.h"
-#include "plugins/sum_of_weights.h"
-#include "plugins/entry_count.h"
+#include "ana/analogical.h"
+#include "ana/entry_count.h"
+#include "ana/sum_of_weights.h"
+#include "ana/trivial_input.h"
 
 using ana::multithread;
 template <typename T> using dataflow = ana::dataflow<T>;
@@ -24,29 +24,28 @@ TEST_CASE("correctness & consistency of selections") {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::poisson_distribution random_weight(1);
-  std::uniform_int_distribution random_category(1,3);
-  std::unordered_map<int,std::string> category_name{{1,"a"},{2,"b"},{3,"c"}};
+  std::uniform_int_distribution random_category(1, 3);
+  std::unordered_map<int, std::string> category_name{
+      {1, "a"}, {2, "b"}, {3, "c"}};
 
-  for (int i=0 ; i<nentries ; ++i) {
+  for (int i = 0; i < nentries; ++i) {
     auto w = random_weight(gen);
     auto c = category_name[random_category(gen)];
-    random_data.emplace_back(std::unordered_map<std::string,std::variant<int,double,std::string>>{
-      {"index", i},
-      {"category", c}, 
-      {"weight", w}
-      });
+    random_data.emplace_back(
+        std::unordered_map<std::string, std::variant<int, double, std::string>>{
+            {"index", i}, {"category", c}, {"weight", w}});
   }
 
   // compute correct answer
   long long correct_count_a = 0;
   long long correct_count_b = 0;
   long long correct_count_c = 0;
-  for (int i=0 ; i<nentries ; ++i) {
+  for (int i = 0; i < nentries; ++i) {
     auto c = std::get<std::string>(random_data[i]["category"]);
     auto w = std::get<int>(random_data[i]["weight"]);
-    if (c=="a") {
+    if (c == "a") {
       ++correct_count_a;
-    } else if (c=="b") {
+    } else if (c == "b") {
       ++correct_count_b;
     } else {
       ++correct_count_c;
@@ -57,9 +56,12 @@ TEST_CASE("correctness & consistency of selections") {
   ana::multithread::disable();
   auto df = ana::dataflow<trivial_input>(random_data);
   auto entry_category = df.read<std::string>("category");
-  auto cut_a = df.filter<cut>("cut_a")(entry_category==df.constant<std::string>("a"));
-  auto cut_b = df.filter<cut>("cut_b")(entry_category==df.constant<std::string>("b"));
-  auto cut_c = df.filter<cut>("cut_c")(entry_category==df.constant<std::string>("c"));
+  auto cut_a =
+      df.filter<cut>("cut_a")(entry_category == df.constant<std::string>("a"));
+  auto cut_b =
+      df.filter<cut>("cut_b")(entry_category == df.constant<std::string>("b"));
+  auto cut_c =
+      df.filter<cut>("cut_c")(entry_category == df.constant<std::string>("c"));
 
   auto cut_ab = cut_a || cut_b;
   auto cut_bc = cut_b || cut_c;
@@ -88,13 +90,13 @@ TEST_CASE("correctness & consistency of selections") {
   }
 
   SUBCASE("binary operations") {
-    CHECK(count_ab.result() == correct_count_a+correct_count_b);
-    CHECK(count_bc.result() == correct_count_b+correct_count_c);
-    CHECK(count_abc.result() == correct_count_a+correct_count_b+correct_count_c);
+    CHECK(count_ab.result() == correct_count_a + correct_count_b);
+    CHECK(count_bc.result() == correct_count_b + correct_count_c);
+    CHECK(count_abc.result() ==
+          correct_count_a + correct_count_b + correct_count_c);
 
     CHECK(count_a2.result() == correct_count_a);
     CHECK(count_b2.result() == correct_count_b);
     CHECK(count_none.result() == 0);
   }
-
 }

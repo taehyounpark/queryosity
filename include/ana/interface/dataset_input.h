@@ -12,7 +12,7 @@ namespace dataset {
  * (CRPT)](https://en.cppreference.com/w/cpp/language/crtp) idiom. A proper
  * implementation should be written as follows:
  * ```cpp
- * #include "ana/analysis.h"
+ * #include "ana/analogical.h"
  * class DataFormat : public ana::dataset::dataset<DataFormat> {};
  * ```
  */

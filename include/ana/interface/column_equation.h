@@ -41,8 +41,8 @@ ana::column::equation<Ret(Vals...)>::equation(F callable)
 template <typename Ret, typename... Vals>
 template <typename F, typename... Args>
 ana::column::equation<Ret(Vals...)>::equation(F callable, Args &&...args)
-    : m_evaluate(callable),
-      definition<Ret(Vals...)>(std::forward<Args>(args)...) {}
+    : m_evaluate(callable), definition<Ret(Vals...)>(
+                                std::forward<Args>(args)...) {}
 
 template <typename Ret, typename... Vals>
 Ret ana::column::equation<Ret(Vals...)>::evaluate(

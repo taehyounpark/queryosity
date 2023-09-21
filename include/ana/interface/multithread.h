@@ -1,17 +1,16 @@
 #pragma once
 
 #include <algorithm>
-#include <type_traits>
 #include <cassert>
 #include <functional>
 #include <memory>
 #include <thread>
+#include <type_traits>
 #include <vector>
 
 namespace ana {
 
-template <typename T>
-class dataflow;
+template <typename T> class dataflow;
 
 class multithread {
 
@@ -21,16 +20,15 @@ public:
   static void disable();
   static bool status();
   static unsigned int concurrency();
-
 };
 
 namespace lockstep {
 
-  template <typename T> class slotted;
-  template <typename T> class node;
-  template <typename T> class view;
+template <typename T> class slotted;
+template <typename T> class node;
+template <typename T> class view;
 
-}
+} // namespace lockstep
 
 template <typename T> class lockstep::slotted {
 
@@ -38,11 +36,9 @@ public:
   virtual T *get_model() const = 0;
   virtual T *get_slot(size_t i) const = 0;
   virtual size_t concurrency() const = 0;
-
 };
 
-template <typename T>
-class lockstep::node : public lockstep::slotted<T> {
+template <typename T> class lockstep::node : public lockstep::slotted<T> {
 
 public:
   template <typename> friend class node;
@@ -133,11 +129,9 @@ public:
 protected:
   std::unique_ptr<T> m_model;
   std::vector<std::unique_ptr<T>> m_slots;
-
 };
 
-template <typename T>
-class lockstep::view : public lockstep::slotted<T> {
+template <typename T> class lockstep::view : public lockstep::slotted<T> {
 
 public:
   template <typename> friend class node;
@@ -167,12 +161,12 @@ public:
 
   template <typename Fn, typename... Args>
   auto get_lockstep_node(Fn const &fn, view<Args> const &...args) const
-      -> lockstep::node<typename std::invoke_result_t<Fn, T &, Args &...>::element_type>;
+      -> lockstep::node<
+          typename std::invoke_result_t<Fn, T &, Args &...>::element_type>;
 
 protected:
   T *m_model;
   std::vector<T *> m_slots;
-
 };
 
 } // namespace ana
@@ -247,7 +241,7 @@ template <typename T> ana::lockstep::node<T>::operator view<T>() const {
 template <typename T>
 template <typename Fn, typename... Args>
 auto ana::lockstep::node<T>::get_model_value(Fn const &fn,
-                                         Args const &...args) const
+                                             Args const &...args) const
     -> std::invoke_result_t<Fn, T const &, Args const &...> {
   auto result = fn(static_cast<const T &>(*this->get_model()), args...);
   // result at each slot must match the model's
@@ -259,12 +253,14 @@ auto ana::lockstep::node<T>::get_model_value(Fn const &fn,
 
 template <typename T>
 template <typename Fn, typename... Args>
-auto ana::lockstep::node<T>::get_lockstep_node(
-    Fn const &fn, view<Args> const &...args) const
+auto ana::lockstep::node<T>::get_lockstep_node(Fn const &fn,
+                                               view<Args> const &...args) const
     -> lockstep::node<
         typename std::invoke_result_t<Fn, T &, Args &...>::element_type> {
   assert(((concurrency() == args.concurrency()) && ...));
-  typename lockstep::node<typename std::invoke_result_t<Fn, T &, Args &...>::element_type> invoked;
+  typename lockstep::node<
+      typename std::invoke_result_t<Fn, T &, Args &...>::element_type>
+      invoked;
   invoked.m_model = std::move(fn(*this->get_model(), *args.get_model()...));
   for (size_t i = 0; i < this->concurrency(); ++i) {
     invoked.m_slots.emplace_back(fn(*this->get_slot(i), *args.get_slot(i)...));
@@ -275,7 +271,7 @@ auto ana::lockstep::node<T>::get_lockstep_node(
 template <typename T>
 template <typename Fn, typename... Args>
 auto ana::lockstep::node<T>::get_lockstep_view(Fn const &fn,
-                                           view<Args> const &...args) const
+                                               view<Args> const &...args) const
     -> typename lockstep::view<std::remove_pointer_t<
         typename std::invoke_result_t<Fn, T &, Args &...>>> {
   assert(((concurrency() == args.concurrency()) && ...));
@@ -292,7 +288,7 @@ auto ana::lockstep::node<T>::get_lockstep_view(Fn const &fn,
 template <typename T>
 template <typename Fn, typename... Args>
 void ana::lockstep::node<T>::call_all_slots(Fn const &fn,
-                                  view<Args> const &...args) const {
+                                            view<Args> const &...args) const {
   assert(((concurrency() == args.concurrency()) && ...));
   fn(*this->get_model(), *args.get_model()...);
   for (size_t i = 0; i < concurrency(); ++i) {
@@ -303,7 +299,7 @@ void ana::lockstep::node<T>::call_all_slots(Fn const &fn,
 template <typename T>
 template <typename Fn, typename... Args>
 void ana::lockstep::node<T>::run_slots(Fn const &fn,
-                                   view<Args> const &...args) const {
+                                       view<Args> const &...args) const {
   assert(((concurrency() == args.concurrency()) && ...));
 
   // multi-lockstep
@@ -337,7 +333,8 @@ ana::lockstep::view<T>::view(const ana::lockstep::node<U> &derived) {
 
 template <typename T>
 template <typename U>
-ana::lockstep::view<T>& ana::lockstep::view<T>::operator=(const ana::lockstep::node<U> &derived) {
+ana::lockstep::view<T> &
+ana::lockstep::view<T>::operator=(const ana::lockstep::node<U> &derived) {
   this->m_model = derived.m_model.get();
   this->m_slots.clear();
   for (size_t i = 0; i < derived.concurrency(); ++i) {
@@ -360,7 +357,8 @@ template <typename T> size_t ana::lockstep::view<T>::concurrency() const {
 
 template <typename T>
 template <typename Fn, typename... Args>
-auto ana::lockstep::view<T>::get_model_value(Fn const &fn, Args const &...args) const
+auto ana::lockstep::view<T>::get_model_value(Fn const &fn,
+                                             Args const &...args) const
     -> std::invoke_result_t<Fn, T const &, Args const &...> {
   auto result = fn(static_cast<const T &>(*this->get_model()), args...);
   // result at each slot must match the model's

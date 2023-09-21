@@ -43,9 +43,9 @@ public:
   static constexpr std::false_type check_delayed(...);
 
   template <typename V>
-  static constexpr bool is_nominal_v =
-      (decltype(check_lazy(std::declval<V>()))::value ||
-       decltype(check_delayed(std::declval<V>()))::value);
+  static constexpr bool
+      is_nominal_v = (decltype(check_lazy(std::declval<V>()))::value ||
+                      decltype(check_delayed(std::declval<V>()))::value);
   template <typename V> static constexpr bool is_varied_v = !is_nominal_v<V>;
 
   template <typename... Args>
@@ -545,7 +545,7 @@ auto ana::dataflow<T>::select_aggregations(
                    return std::move(bkpr_and_cntrs.first);
                  },
                  lockstep::view<aggregation::booker<Cnt>>(bkr), sels...));
-                //  lockstep::node<aggregation::booker<Cnt>>(bkr), sels...));
+  //  lockstep::node<aggregation::booker<Cnt>>(bkr), sels...));
 
   return std::move(bkpr);
 }

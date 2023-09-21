@@ -85,8 +85,8 @@ public:
   };
 
   template <typename F> struct equation_traits {
-    using equation_type = typename equation_traits<decltype(std::function{
-        std::declval<F>()})>::equation_type;
+    using equation_type = typename equation_traits<decltype(
+        std::function{std::declval<F>()})>::equation_type;
   };
 
   template <typename Ret, typename... Args>

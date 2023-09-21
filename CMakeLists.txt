@@ -2,33 +2,35 @@ cmake_minimum_required(VERSION 3.14)
 
 project(analogical)
 
-OPTION(ANALOGICAL_INSTALL "Install target" ON)
+
+OPTION(ANALOGICAL_INSTALL "Install target" OFF)
 OPTION(ANALOGICAL_DOCS    "Documentation" OFF)
-OPTION(ANALOGICAL_TESTS   "Tests" ON)
+OPTION(ANALOGICAL_TESTS   "Tests" OFF)
 
 set(ANALOGICAL_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(ANALOGICAL_MAJOR_VERSION 0)
 set(ANALOGICAL_MINOR_VERSION 1)
 set(ANALOGICAL_PATCH_VERSION 0)
-set(ANALOGICAL_VERSION
-  ${ANALOGICAL_MAJOR_VERSION}.${ANALOGICAL_MINOR_VERSION}.${ANALOGICAL_PATCH_VERSION})
+set(ANALOGICAL_VERSION ${ANALOGICAL_MAJOR_VERSION}.${ANALOGICAL_MINOR_VERSION}.${ANALOGICAL_PATCH_VERSION})
 
-add_library(analogical_analogical INTERFACE)
-add_library(analogical::analogical ALIAS analogical_analogical)
+set(ANALOGICAL_CXX_STANDARD 17 CACHE STRING "Minimum C++ standard") 
 
-set_target_properties(analogical_analogical PROPERTIES LINKER_LANGUAGE CXX)
+add_library(analogical INTERFACE)
+add_library(ana::analogical ALIAS analogical)
+
+set_target_properties(analogical PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(
-  analogical_analogical
+  analogical
   INTERFACE
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
-target_compile_features(analogical_analogical INTERFACE cxx_std_17 )
+target_compile_features(analogical INTERFACE "cxx_std_${ANALOGICAL_CXX_STANDARD}" )
 
 target_compile_options(
-  analogical_analogical INTERFACE 
+  analogical INTERFACE 
   -Wall -Werror 
   -Wno-error=unused-variable -Wno-error=uninitialized 
   $<$<CONFIG:Release>:-O3> 
@@ -58,30 +60,32 @@ if (ANALOGICAL_INSTALL)
           DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/analogical)
 
   install(
-    TARGETS analogical_analogical
+    TARGETS analogical
     EXPORT analogicalTargets
     INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
   )
 
   install(
-    DIRECTORY   ${ANALOGICAL_INCLUDE_DIRS}
+    DIRECTORY   ${ANALOGICAL_INCLUDE_DIRS}/ana
     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
   )
 
   install(
     EXPORT analogicalTargets
     FILE   analogicalTargets.cmake
-    NAMESPACE analogical::
+    NAMESPACE ana::
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/analogical
   )
 
   export(EXPORT analogicalTargets
     FILE "${CMAKE_CURRENT_BINARY_DIR}/analogicalTargets.cmake"
-    NAMESPACE analogical::
+    NAMESPACE ana::
   )
 
 endif()
 
 if (ANALOGICAL_TESTS)
+  add_subdirectory("plugins")
+  enable_testing()
   add_subdirectory("tests")
 endif()
