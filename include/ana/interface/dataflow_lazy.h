@@ -182,41 +182,10 @@ public:
                              bool> = false>
   auto vary(const std::string &var_name, Args &&...args) -> varied;
 
-  /**
-   * @brief Filter from an existing selection.
-   * @tparam Sel Type of selection to be applied, i.e. `ana::selection::cut` or
-   * `ana::selection::weight`.
-   * @tparam Args (Optional) Type of function/functor/callable expression.
-   * @param name Name of the selection.
-   * @param args (Optional) function/functor/callable expression to be used.
-   * @return Selection to be applied with input columns.
-   * @details Chained selections have their cut and weight decisions compounded:
-   * ```cpp
-   * auto sel =
-   * ds.channel<cut>("a")(a).filter<weight>("b")(b).filter<cut>("c")(c);
-   * // cut = (a) && (true) && (c);
-   * // weight = (1.0) * (w) * (1.0);
-   * ```
-   */
   template <typename Sel, typename... Args>
   auto filter(const std::string &name, Args &&...args) const
       -> delayed_selection_applicator_t<Sel, Args...>;
 
-  /**
-   * @brief Channel from an existing selection.
-   * @tparam Sel Type of selection to be applied, i.e. `ana::selection::cut` or
-   * `ana::selection::weight`.
-   * @param name Name of the selection.
-   * @param args (Optional) function/functor/callable expression to be used.
-   * @return Selection to be applied with input columns.
-   * @details The name of the selection from which this method is called from
-   * will be preserved as part of the path for chained selections:
-   * ```cpp
-   * auto sel =
-   * ds.channel<cut>("a")(a).filter<weight>("b")(b).filter<cut>("c")(c);
-   * sel.path();  // "a/c"
-   * ```
-   */
   template <typename Sel, typename... Args>
   auto channel(const std::string &name, Args &&...args) const
       -> delayed_selection_applicator_t<Sel, Args...>;
@@ -241,81 +210,6 @@ public:
     this->m_df->analyze();
     this->merge_results();
     return this->get_model()->get_result();
-  }
-
-  /**
-   * @brief Take the OR of two cuts
-   * @return selection Its cut decision is given by `passed_cut() =
-   * a.passed_cut()
-   * || b.passed_cut()`.
-   * @details A joined filter is defined as a cut without any
-   * preselection (i.e. weight = 1.0), and one that is not a `channel`.
-   */
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator||(const lazy<selection> &b) const -> lazy<selection> {
-    return this->m_df->template join<selection::cut::a_or_b>(*this, b);
-  }
-
-  /**
-   * @brief Take the AND of two cuts
-   * @return `lazy<selection>` Its decision is given by `passed_cut() =
-   * a.passed_cut() && b.passed_cut()`.
-   * @details A joined filter is defined as a cut without any
-   * preselection (i.e. weight = 1.0), and one that is not a `channel`.
-   */
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator&&(const lazy<selection> &b) const -> lazy<selection> {
-    return this->m_df->template join<selection::cut::a_and_b>(*this, b);
-  }
-
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator*(const lazy<selection> &b) const -> lazy<selection> {
-    return this->m_df->template join<selection::weight::a_times_b>(*this, b);
-  }
-
-  /**
-   * @brief Join two filters (OR)
-   * @return selection Its decision is given by `passed_cut() = a.passed_cut()
-   * || b.passed_cut()`.
-   * @details A joined filter is a cut without any preselection (i.e. weight
-   * = 1.0), and one that cannot be designated as a `channel`.
-   */
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator||(typename lazy<selection>::varied const &b) const ->
-      typename lazy<selection>::varied {
-    using varied_type = typename lazy<selection>::varied;
-    auto syst = varied_type(this->nominal().operator||(b.nominal()));
-    auto var_names = list_all_variation_names(b);
-    for (auto const &var_name : var_names) {
-      syst.set_variation(var_name, this->variation(var_name).operator||(
-                                       b.variation(var_name)));
-    }
-    return syst;
-  }
-
-  /**
-   * @brief Join two filters (AND)
-   * @return `lazy<selection>` Its decision is given by `passed_cut() =
-   * a.passed_cut() && b.passed_cut()`.
-   * @details A joined filter is a cut without any preselection (i.e. weight
-   * = 1.0), and one that cannot be designated as a `channel`.
-   */
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator&&(typename lazy<selection>::varied const &b) const ->
-      typename lazy<selection>::varied {
-    using varied_type = typename lazy<selection>::varied;
-    auto syst = varied_type(this->nominal().operator||(b.nominal()));
-    auto var_names = list_all_variation_names(b);
-    for (auto const &var_name : var_names) {
-      syst.set_variation(var_name, this->variation(var_name).operator&&(
-                                       b.variation(var_name)));
-    }
-    return syst;
   }
 
   /**
@@ -353,6 +247,7 @@ protected:
     auto model = this->get_model();
     if (!model->is_merged()) {
       std::vector<std::decay_t<decltype(model->get_result())>> results;
+      results.reserve(this->concurrency());
       for (size_t islot = 0; islot < this->concurrency(); ++islot) {
         results.push_back(this->get_slot(islot)->get_result());
       }

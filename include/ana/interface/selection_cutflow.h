@@ -16,29 +16,17 @@ public:
 
 public:
   template <typename Sel, typename F>
-  auto filter(const std::string &name, F expression) const
-      -> std::unique_ptr<applicator<column::template equation_t<F>>>;
-
-  template <typename Sel, typename F>
-  auto channel(const std::string &name, F expression) const
-      -> std::unique_ptr<applicator<column::template equation_t<F>>>;
-
-  template <typename Sel, typename F>
-  auto filter(selection const &prev, const std::string &name,
+  auto filter(selection const *prev, const std::string &name,
               F expression) const
       -> std::unique_ptr<applicator<column::template equation_t<F>>>;
 
   template <typename Sel, typename F>
-  auto channel(selection const &prev, const std::string &name,
+  auto channel(selection const *prev, const std::string &name,
                F expression) const
       -> std::unique_ptr<applicator<column::template equation_t<F>>>;
 
   template <typename Sel, typename... Cols>
   auto apply_selection(applicator<Sel> const &calc, Cols const &...columns)
-      -> std::unique_ptr<selection>;
-
-  template <typename Sel>
-  auto join(selection const &a, selection const &b) const
       -> std::unique_ptr<selection>;
 
 protected:
@@ -56,44 +44,24 @@ protected:
 #include "selection_weight.h"
 
 template <typename Sel, typename F>
-auto ana::selection::cutflow::filter(const std::string &name,
-                                     F expression) const
-    -> std::unique_ptr<applicator<column::template equation_t<F>>> {
-  auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
-      std::function{expression});
-  calc->template set_selection<Sel>(nullptr, false, name);
-  return calc;
-}
-
-template <typename Sel, typename F>
-auto ana::selection::cutflow::channel(const std::string &name,
-                                      F expression) const
-    -> std::unique_ptr<applicator<column::template equation_t<F>>> {
-  auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
-      std::function{expression});
-  calc->template set_selection<Sel>(nullptr, true, name);
-  return calc;
-}
-
-template <typename Sel, typename F>
-auto ana::selection::cutflow::filter(selection const &prev,
+auto ana::selection::cutflow::filter(selection const *prev,
                                      const std::string &name,
                                      F expression) const
     -> std::unique_ptr<applicator<column::template equation_t<F>>> {
   auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
       std::function{expression});
-  calc->template set_selection<Sel>(&prev, false, name);
+  calc->template set_selection<Sel>(prev, false, name);
   return calc;
 }
 
 template <typename Sel, typename F>
-auto ana::selection::cutflow::channel(selection const &prev,
+auto ana::selection::cutflow::channel(selection const *prev,
                                       const std::string &name,
                                       F expression) const
     -> std::unique_ptr<applicator<column::template equation_t<F>>> {
   auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
       std::function{expression});
-  calc->template set_selection<Sel>(&prev, true, name);
+  calc->template set_selection<Sel>(prev, true, name);
   return calc;
 }
 
@@ -104,13 +72,6 @@ auto ana::selection::cutflow::apply_selection(applicator<Sel> const &calc,
   auto sel = calc.apply_selection(columns...);
   this->add_selection(*sel);
   return sel;
-}
-
-template <typename Sel>
-auto ana::selection::cutflow::join(ana::selection const &a,
-                                   ana::selection const &b) const
-    -> std::unique_ptr<ana::selection> {
-  return std::make_unique<Sel>(a, b);
 }
 
 inline void ana::selection::cutflow::add_selection(ana::selection &sel) {

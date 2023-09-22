@@ -262,6 +262,7 @@ auto ana::lockstep::node<T>::get_lockstep_node(Fn const &fn,
       typename std::invoke_result_t<Fn, T &, Args &...>::element_type>
       invoked;
   invoked.m_model = std::move(fn(*this->get_model(), *args.get_model()...));
+  invoked.m_slots.reserve(this->concurrency());
   for (size_t i = 0; i < this->concurrency(); ++i) {
     invoked.m_slots.emplace_back(fn(*this->get_slot(i), *args.get_slot(i)...));
   }
@@ -279,6 +280,7 @@ auto ana::lockstep::node<T>::get_lockstep_view(Fn const &fn,
       std::remove_pointer_t<typename std::invoke_result_t<Fn, T &, Args &...>>>
       invoked;
   invoked.m_model = fn(*this->get_model(), *args.get_model()...);
+  invoked.m_slots.reserve(this->concurrency());
   for (size_t i = 0; i < this->concurrency(); ++i) {
     invoked.m_slots.push_back(fn(*this->get_slot(i), *args.get_slot(i)...));
   }

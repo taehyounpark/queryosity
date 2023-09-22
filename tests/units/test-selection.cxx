@@ -55,21 +55,24 @@ TEST_CASE("correctness & consistency of selections") {
   ana::multithread::disable();
   auto df = ana::dataflow<table>(random_data);
   auto entry_category = df.read<std::string>("category");
-  auto weight_entry = df.filter<weight>("weight")(df.read<int>("weight"));
-  auto cut_a = weight_entry.filter<cut>("cut_a")(entry_category ==
+
+  auto raw_entries = df.filter("raw")(df.constant(true));
+  auto weighted_entries = df.filter<weight>("weight")(df.read<int>("weight"));
+
+  auto cut_a = weighted_entries.filter<cut>("a")(entry_category ==
                                                  df.constant<std::string>("a"));
-  auto cut_b = weight_entry.filter<cut>("cut_b")(entry_category ==
+  auto cut_b = weighted_entries.filter<cut>("b")(entry_category ==
                                                  df.constant<std::string>("b"));
-  auto cut_c = weight_entry.filter<cut>("cut_c")(entry_category ==
+  auto cut_c = weighted_entries.filter<cut>("c")(entry_category ==
                                                  df.constant<std::string>("c"));
 
-  auto cut_ab = (cut_a || cut_b) * weight_entry;
-  auto cut_bc = (cut_b || cut_c) * weight_entry;
-  auto cut_abc = (cut_a || cut_b || cut_c) * weight_entry;
+  auto cut_ab = weighted_entries.filter<cut>("ab")(cut_a || cut_b);
+  auto cut_bc = weighted_entries.filter<cut>("bc")(cut_b || cut_c);
+  auto cut_abc = weighted_entries.filter<cut>("abc")(cut_a || cut_b || cut_c);
 
-  auto cut_none = (cut_a && cut_b && cut_c) * weight_entry;
-  auto cut_a2 = (cut_a && cut_ab) * weight_entry;
-  auto cut_b2 = (cut_b && cut_bc) * weight_entry;
+  auto cut_none = weighted_entries.filter<cut>("none")(cut_a && cut_b && cut_c);
+  auto cut_a2 = weighted_entries.filter<cut>("a2")(cut_ab && cut_a);
+  auto cut_b2 = weighted_entries.filter<cut>("b2")(cut_ab && cut_b);
 
   auto sumw_a = df.book<sumw>().at(cut_a);
   auto sumw_b = df.book<sumw>().at(cut_b);
@@ -79,9 +82,9 @@ TEST_CASE("correctness & consistency of selections") {
   auto sumw_bc = df.book<sumw>().at(cut_bc);
   auto sumw_abc = df.book<sumw>().at(cut_abc);
 
+  auto sumw_none = df.book<sumw>().at(cut_none);
   auto sumw_a2 = df.book<sumw>().at(cut_a2);
   auto sumw_b2 = df.book<sumw>().at(cut_b2);
-  auto sumw_none = df.book<sumw>().at(cut_none);
 
   SUBCASE("basic results") {
     CHECK(sumw_a.result() == correct_sumw_a);

@@ -17,9 +17,6 @@
 
 namespace ana {
 
-/**
- * @brief Dataflow of an input dataset.
- */
 template <typename T> class dataflow : public sample<T> {
 
 public:
@@ -56,10 +53,6 @@ public:
 public:
   virtual ~dataflow() = default;
 
-  /**
-   * @brief Constructor using arguments for input dataset.
-   * @param arguments Constructor arguments for the input dataset.
-   */
   template <typename... Args> dataflow(Args &&...args);
 
   template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<
@@ -115,65 +108,19 @@ public:
   template <typename F>
   auto define(F callable) -> delayed<column::template evaluator_t<F>>;
 
-  /**
-   * @brief Apply a filter.
-   * @tparam Sel Type of selection, i.e. `selection::cut` or
-   * `selection::weight`.
-   * @tparam F Any function/functor/callable type.
-   * @param name The name of the selection.
-   * @param callable The function/functor/callable object used as the
-   * expression.
-   * @return The `lazy` selection "applicator" to be applied with input columns.
-   * @details Perform a filter operation from the dataflow to define one without
-   * a preselection.
-   */
+  auto filter(const std::string &name);
+  template <typename Sel> auto filter(const std::string &name);
+  template <typename F> auto filter(const std::string &name, F callable);
   template <typename Sel, typename F>
   auto filter(const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
 
-  /**
-   * @brief Apply a filter as a channel.
-   * @tparam Sel Type of selection, i.e. `selection::cut` or
-   * `selection::weight`.
-   * @tparam F Any function/functor/callable type.
-   * @param name The name of the selection.
-   * @param callable The function/functor/callable object used as the
-   * expression.
-   * @return The `lazy` selection "applicator" to be applied with input columns.
-   * @details Perform a filter operation from the dataflow to define one without
-   * a preselection.
-   */
+  auto channel(const std::string &name);
+  template <typename Sel> auto channel(const std::string &name);
+  template <typename F> auto channel(const std::string &name, F callable);
   template <typename Sel, typename F>
   auto channel(const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
-  template <typename Sel>
-
-  /**
-   * @brief Apply a selection.
-   * @tparam Sel Type of selection, i.e. `selection::cut` or
-   * `selection::weight`.
-   * @param name The name of the selection.
-   * @return The `lazy` selection "applicator" to be applied with the input
-   * column.
-   * @details When a filter operation is called without a custom expression, the
-   * value of the input column itself is used as its decision.
-   */
-  auto filter(const std::string &name)
-      -> delayed<selection::trivial_applicator_type>;
-  template <typename Sel>
-
-  /**
-   * @brief Apply a selection.
-   * @tparam Sel Type of selection, i.e. `selection::cut` or
-   * `selection::weight`.
-   * @param name The name of the selection.
-   * @return The `lazy` selection "applicator" to be applied with the input
-   * column.
-   * @details When a filter operation is called without a custom expression, the
-   * value of the input column itself is used as its decision.
-   */
-  auto channel(const std::string &name)
-      -> delayed<selection::trivial_applicator_type>;
 
   /**
    * @brief Book a aggregation
@@ -204,22 +151,17 @@ protected:
                            lazy<Sels> const &...sels)
       -> delayed<aggregation::bookkeeper<Cnt>>;
 
+  template <typename Sel>
+  auto filter(lazy<selection> const &prev, const std::string &name);
   template <typename Sel, typename F>
   auto filter(lazy<selection> const &prev, const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
+
   template <typename Sel, typename F>
   auto channel(lazy<selection> const &prev, const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
   template <typename Sel>
-  auto filter(lazy<selection> const &prev, const std::string &name)
-      -> delayed<selection::trivial_applicator_type>;
-  template <typename Sel>
-  auto channel(lazy<selection> const &prev, const std::string &name)
-      -> delayed<selection::trivial_applicator_type>;
-
-  template <typename Sel>
-  auto join(lazy<selection> const &a, lazy<selection> const &b)
-      -> lazy<selection>;
+  auto channel(lazy<selection> const &prev, const std::string &name);
 
   // recreate a lazy node as a variation under new arguments
   template <typename V, std::enable_if_t<ana::column::template is_reader_v<V>,
@@ -341,34 +283,23 @@ auto ana::dataflow<T>::define(F callable)
                  }));
 }
 
-template <typename T>
-template <typename Sel>
-auto ana::dataflow<T>::filter(const std::string &name)
-    -> delayed<selection::trivial_applicator_type> {
-  this->initialize();
+template <typename T> auto ana::dataflow<T>::filter(const std::string &name) {
   auto callable = [](double x) { return x; };
-  auto sel = delayed<selection::trivial_applicator_type>(
-      *this,
-      this->m_processors.get_lockstep_node(
-          [name = name, callable = callable](dataset_processor_type &proc) {
-            return proc.template filter<Sel>(name, callable);
-          }));
-  return sel;
+  return this->template filter<selection::cut, decltype(callable)>(name,
+                                                                   callable);
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::dataflow<T>::channel(const std::string &name)
-    -> delayed<selection::trivial_applicator_type> {
-  this->initialize();
+auto ana::dataflow<T>::filter(const std::string &name) {
   auto callable = [](double x) { return x; };
-  auto sel = delayed<selection::trivial_applicator_type>(
-      *this,
-      this->m_processors.get_lockstep_node(
-          [name = name, callable = callable](dataset_processor_type &proc) {
-            return proc.template channel<Sel>(name, callable);
-          }));
-  return sel;
+  return this->template filter<Sel, decltype(callable)>(name, callable);
+}
+
+template <typename T>
+template <typename F>
+auto ana::dataflow<T>::filter(const std::string &name, F callable) {
+  return this->template filter<selection::cut, F>(name, callable);
 }
 
 template <typename T>
@@ -380,8 +311,27 @@ auto ana::dataflow<T>::filter(const std::string &name, F callable)
       *this,
       this->m_processors.get_lockstep_node(
           [name = name, callable = callable](dataset_processor_type &proc) {
-            return proc.template filter<Sel>(name, callable);
+            return proc.template filter<Sel>(nullptr, name, callable);
           }));
+}
+
+template <typename T> auto ana::dataflow<T>::channel(const std::string &name) {
+  auto callable = [](double x) { return x; };
+  return this->template channel<selection::cut, decltype(callable)>(name,
+                                                                    callable);
+}
+
+template <typename T>
+template <typename Sel>
+auto ana::dataflow<T>::channel(const std::string &name) {
+  auto callable = [](double x) { return x; };
+  return this->template channel<Sel, decltype(callable)>(name, callable);
+}
+
+template <typename T>
+template <typename F>
+auto ana::dataflow<T>::channel(const std::string &name, F callable) {
+  return this->template channel<selection::cut, F>(name, callable);
 }
 
 template <typename T>
@@ -393,7 +343,7 @@ auto ana::dataflow<T>::channel(const std::string &name, F callable)
       *this,
       this->m_processors.get_lockstep_node(
           [name = name, callable = callable](dataset_processor_type &proc) {
-            return proc.template channel<Sel>(name, callable);
+            return proc.template channel<Sel>(nullptr, name, callable);
           }));
 }
 
@@ -411,33 +361,17 @@ auto ana::dataflow<T>::book(Args &&...args)
 template <typename T>
 template <typename Sel>
 auto ana::dataflow<T>::filter(lazy<selection> const &prev,
-                              const std::string &name)
-    -> delayed<selection::trivial_applicator_type> {
-  this->initialize();
+                              const std::string &name) {
   auto callable = [](double x) { return x; };
-  return delayed<selection::trivial_applicator_type>(
-      *this, this->m_processors.get_lockstep_node(
-                 [name = name, callable = callable](
-                     dataset_processor_type &proc, selection const &prev) {
-                   return proc.template filter<Sel>(prev, name, callable);
-                 },
-                 prev));
+  return this->template filter<Sel, decltype(callable)>(prev, name, callable);
 }
 
 template <typename T>
 template <typename Sel>
 auto ana::dataflow<T>::channel(lazy<selection> const &prev,
-                               const std::string &name)
-    -> delayed<selection::trivial_applicator_type> {
-  this->initialize();
+                               const std::string &name) {
   auto callable = [](double x) { return x; };
-  return delayed<selection::trivial_applicator_type>(
-      *this, this->m_processors.get_lockstep_node(
-                 [name = name, callable = callable](
-                     dataset_processor_type &proc, selection const &prev) {
-                   return proc.template channel<Sel>(prev, name, callable);
-                 },
-                 prev));
+  return this->template channel<Sel, decltype(callable)>(prev, name, callable);
 }
 
 template <typename T>
@@ -450,7 +384,7 @@ auto ana::dataflow<T>::filter(lazy<selection> const &prev,
       *this, this->m_processors.get_lockstep_node(
                  [name = name, callable = callable](
                      dataset_processor_type &proc, selection const &prev) {
-                   return proc.template filter<Sel>(prev, name, callable);
+                   return proc.template filter<Sel>(&prev, name, callable);
                  },
                  prev));
 }
@@ -465,7 +399,7 @@ auto ana::dataflow<T>::channel(lazy<selection> const &prev,
       *this, this->m_processors.get_lockstep_node(
                  [name = name, callable = callable](
                      dataset_processor_type &proc, selection const &prev) {
-                   return proc.template channel<Sel>(prev, name, callable);
+                   return proc.template channel<Sel>(&prev, name, callable);
                  },
                  prev));
 }
@@ -573,20 +507,6 @@ template <typename T> void ana::dataflow<T>::analyze() {
 }
 
 template <typename T> void ana::dataflow<T>::reset() { m_analyzed = false; }
-
-template <typename T>
-template <typename Sel>
-auto ana::dataflow<T>::join(lazy<selection> const &a, lazy<selection> const &b)
-    -> lazy<selection> {
-  auto act = this->m_processors.get_lockstep_node(
-      [](dataset_processor_type &proc, selection const &a, selection const &b) {
-        return proc.template join<Sel>(a, b);
-      },
-      a, b);
-  auto lzy = lazy<selection>(*this, act);
-  this->add_operation(std::move(act));
-  return lzy;
-}
 
 template <typename T>
 template <typename V,
