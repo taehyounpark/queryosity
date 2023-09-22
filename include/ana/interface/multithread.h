@@ -156,14 +156,6 @@ public:
   auto get_model_value(Fn const &fn, Args const &...args) const
       -> std::invoke_result_t<Fn, T const &, Args const &...>;
 
-  template <typename Fn, typename... Args>
-  void call_all_slots(Fn const &fn, view<Args> const &...args) const;
-
-  template <typename Fn, typename... Args>
-  auto get_lockstep_node(Fn const &fn, view<Args> const &...args) const
-      -> lockstep::node<
-          typename std::invoke_result_t<Fn, T &, Args &...>::element_type>;
-
 protected:
   T *m_model;
   std::vector<T *> m_slots;
