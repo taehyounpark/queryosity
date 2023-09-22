@@ -18,7 +18,7 @@ The following tasks will be performed:
     2. The dilepton invariant mass is \(m_{\ell\ell} < 60\,\mathrm{GeV}\) or  \(m_{\ell\ell} > 60\,\mathrm{GeV}\).
 4. In each case, get the distribution of the Higgs boson transverse momentum, \(p_{\mathrm{T}}^{H}\).
 
-## Analysis in action
+## Nominal
 
 ```cpp title="Setup"
 // This specific TTree has no sub-clusters available for concurrent processing
