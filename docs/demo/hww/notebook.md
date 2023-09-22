@@ -1,6 +1,6 @@
 # Higgs boson analysis
 
-## Conceptual overview
+## Overview
 
 This demo analyzes physics collision in simulated \(H\rightarrow WW^{\ast}\rightarrow \ell\nu\ell\nu\) events.
 
