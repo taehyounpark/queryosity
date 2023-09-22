@@ -1,4 +1,5 @@
 .vscode/
 build/
+site/
 
 *.DS_Store

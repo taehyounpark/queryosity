@@ -1,1 +1,29 @@
-site_name: My Docs
+site_name: Coherent data analysis in C++
+
+nav:
+  - Home:
+    - Welcome: index.md
+    - Installation: home/installation.md
+  - Features:
+      - Basic concepts: features/basic.md
+      - Implicit multithreading: features/multithread.md
+      - Computing columns: features/column.md
+      - Applying selections: features/selection.md
+      - Booking aggregations: features/aggregation.md
+      - Lazy actions: features/lazy.md
+  - Tech Demo: demo.md
+
+theme:
+  name: 'material'
+  features:
+    - navigation.tabs
+
+markdown_extensions:
+  - tables
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
