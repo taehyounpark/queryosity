@@ -31,8 +31,7 @@ target_compile_features(analogical INTERFACE "cxx_std_${ANALOGICAL_CXX_STANDARD}
 
 target_compile_options(
   analogical INTERFACE 
-  -Wall -Werror 
-  -Wno-error=unused-variable -Wno-error=uninitialized 
+  -Wall -Wextra
   $<$<CONFIG:Release>:-O3> 
   $<$<CONFIG:RelWithDebInfo>:-O3> 
   $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-ggdb3> 

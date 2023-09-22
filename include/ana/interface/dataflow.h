@@ -481,7 +481,7 @@ auto ana::dataflow<T>::select_aggregations(
                  lockstep::view<aggregation::booker<Cnt>>(bkr), sels...));
   //  lockstep::node<aggregation::booker<Cnt>>(bkr), sels...));
 
-  return std::move(bkpr);
+  return bkpr;
 }
 
 template <typename T> void ana::dataflow<T>::analyze() {

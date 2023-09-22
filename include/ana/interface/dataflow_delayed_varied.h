@@ -241,7 +241,7 @@ auto ana::dataflow<T>::delayed<Bld>::varied::vary(const std::string &var_name,
   syst.set_variation(var_name,
                      std::move(syst.m_df->vary_evaluator(
                          syst.nominal(), std::forward<Args>(args)...)));
-  return std::move(syst);
+  return syst;
 }
 
 template <typename T>
@@ -263,5 +263,5 @@ auto ana::dataflow<T>::delayed<Bld>::varied::operator()(Args &&...args) ->
                        variation(var_name).operator()(
                            std::forward<Args>(args).variation(var_name)...));
   }
-  return std::move(syst);
+  return syst;
 }
