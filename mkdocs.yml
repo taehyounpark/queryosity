@@ -4,14 +4,34 @@ nav:
   - Home:
     - Welcome: index.md
     - Installation: home/installation.md
+    - Design goals: home/design.md
   - Features:
-      - Basic concepts: features/basic.md
+      - Key ingredients: features/basic.md
       - Implicit multithreading: features/multithread.md
       - Computing columns: features/column.md
       - Applying selections: features/selection.md
       - Booking aggregations: features/aggregation.md
+      - Systematic variations: features/varied.md
       - Lazy actions: features/lazy.md
-  - Tech Demo: demo.md
+  - Demos:
+    - Higgs boson: demo/hww/notebook.md
+  - API:
+    - dataflow:
+      - Constructor: api/dataflow/ctor.md
+      - read: api/dataflow/read.md
+      - read: api/dataflow/constant.md
+      - define: api/dataflow/define.md
+      - filter: api/dataflow/filter.md
+      - channel: api/dataflow/channel.md
+      - book: api/dataflow/book.md
+    - lazy:
+      - filter: api/lazy/filter.md
+      - channel: api/lazy/channel.md
+      - evaluate: api/lazy/evaluate.md
+      - apply: api/lazy/apply.md
+    - delayed:
+      - fill: api/lazy/fill.md
+      - at: api/lazy/at.md
 
 theme:
   name: 'material'
@@ -19,9 +39,26 @@ theme:
     - navigation.tabs
 
 markdown_extensions:
+  - def_list
   - tables
+  - admonition
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - pymdownx.arithmatex:
       generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      use_pygments: true
+      pygments_lang_class: true
 
 extra_javascript:
   - javascripts/mathjax.js

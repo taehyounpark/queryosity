@@ -156,14 +156,6 @@ public:
   auto get_model_value(Fn const &fn, Args const &...args) const
       -> std::invoke_result_t<Fn, T const &, Args const &...>;
 
-  template <typename Fn, typename... Args>
-  void call_all_slots(Fn const &fn, view<Args> const &...args) const;
-
-  template <typename Fn, typename... Args>
-  auto get_lockstep_node(Fn const &fn, view<Args> const &...args) const
-      -> lockstep::node<
-          typename std::invoke_result_t<Fn, T &, Args &...>::element_type>;
-
 protected:
   T *m_model;
   std::vector<T *> m_slots;
@@ -262,6 +254,7 @@ auto ana::lockstep::node<T>::get_lockstep_node(Fn const &fn,
       typename std::invoke_result_t<Fn, T &, Args &...>::element_type>
       invoked;
   invoked.m_model = std::move(fn(*this->get_model(), *args.get_model()...));
+  invoked.m_slots.reserve(this->concurrency());
   for (size_t i = 0; i < this->concurrency(); ++i) {
     invoked.m_slots.emplace_back(fn(*this->get_slot(i), *args.get_slot(i)...));
   }
@@ -279,6 +272,7 @@ auto ana::lockstep::node<T>::get_lockstep_view(Fn const &fn,
       std::remove_pointer_t<typename std::invoke_result_t<Fn, T &, Args &...>>>
       invoked;
   invoked.m_model = fn(*this->get_model(), *args.get_model()...);
+  invoked.m_slots.reserve(this->concurrency());
   for (size_t i = 0; i < this->concurrency(); ++i) {
     invoked.m_slots.push_back(fn(*this->get_slot(i), *args.get_slot(i)...));
   }
@@ -1446,8 +1440,6 @@ public:
   virtual double get_weight() const = 0;
 
 public:
-  virtual double calculate() const override;
-
   virtual void initialize(const dataset::range &part) override;
   virtual void execute(const dataset::range &part,
                        unsigned long long entry) override;
@@ -1580,8 +1572,6 @@ inline std::string ana::selection::get_full_path() const {
   std::reverse(presels.begin(), presels.end());
   return concatenate_names(presels, "/") + this->get_name();
 }
-
-inline double ana::selection::calculate() const { return m_variable.value(); }
 
 inline void ana::selection::initialize(const ana::dataset::range &part) {
   m_decision->initialize(part);
@@ -1822,29 +1812,17 @@ public:
 
 public:
   template <typename Sel, typename F>
-  auto filter(const std::string &name, F expression) const
-      -> std::unique_ptr<applicator<column::template equation_t<F>>>;
-
-  template <typename Sel, typename F>
-  auto channel(const std::string &name, F expression) const
-      -> std::unique_ptr<applicator<column::template equation_t<F>>>;
-
-  template <typename Sel, typename F>
-  auto filter(selection const &prev, const std::string &name,
+  auto filter(selection const *prev, const std::string &name,
               F expression) const
       -> std::unique_ptr<applicator<column::template equation_t<F>>>;
 
   template <typename Sel, typename F>
-  auto channel(selection const &prev, const std::string &name,
+  auto channel(selection const *prev, const std::string &name,
                F expression) const
       -> std::unique_ptr<applicator<column::template equation_t<F>>>;
 
   template <typename Sel, typename... Cols>
   auto apply_selection(applicator<Sel> const &calc, Cols const &...columns)
-      -> std::unique_ptr<selection>;
-
-  template <typename Sel>
-  auto join(selection const &a, selection const &b) const
       -> std::unique_ptr<selection>;
 
 protected:
@@ -1930,44 +1908,13 @@ namespace ana {
 class selection::cut : public selection {
 
 public:
-  class a_or_b;
-  class a_and_b;
-
-public:
   cut(const selection *presel, bool ch, const std::string &name);
   virtual ~cut() = default;
 
 public:
+  virtual double calculate() const override;
   virtual bool passed_cut() const override;
   virtual double get_weight() const override;
-};
-
-class selection::cut::a_or_b : public selection {
-
-public:
-  a_or_b(const selection &a, const selection &b);
-  virtual ~a_or_b() = default;
-
-  virtual bool passed_cut() const override;
-  virtual double get_weight() const override;
-
-protected:
-  const selection &m_a;
-  const selection &m_b;
-};
-
-class selection::cut::a_and_b : public selection {
-
-public:
-  a_and_b(const selection &a, const selection &b);
-  virtual ~a_and_b() = default;
-
-  virtual bool passed_cut() const override;
-  virtual double get_weight() const override;
-
-protected:
-  const selection &m_a;
-  const selection &m_b;
 };
 
 } // namespace ana
@@ -1976,38 +1923,17 @@ inline ana::selection::cut::cut(const selection *presel, bool ch,
                                 const std::string &name)
     : selection(presel, ch, name) {}
 
-inline bool ana::selection::cut::passed_cut() const {
-  return m_preselection ? m_preselection->passed_cut() && this->value()
-                        : this->value();
+inline double ana::selection::cut::calculate() const {
+  return this->m_preselection
+             ? this->m_preselection->passed_cut() && m_variable.value()
+             : m_variable.value();
 }
+
+inline bool ana::selection::cut::passed_cut() const { return this->value(); }
 
 inline double ana::selection::cut::get_weight() const {
-  return m_preselection ? m_preselection->get_weight() : 1.0;
+  return this->m_preselection ? this->m_preselection->get_weight() : 1.0;
 }
-
-inline ana::selection::cut::a_or_b::a_or_b(const selection &a,
-                                           const selection &b)
-    : selection(nullptr, false,
-                "(" + a.get_path() + ")||(" + b.get_path() + ")"),
-      m_a(a), m_b(b) {}
-
-inline bool ana::selection::cut::a_or_b::passed_cut() const {
-  return m_a.passed_cut() || m_b.passed_cut();
-}
-
-inline double ana::selection::cut::a_or_b::get_weight() const { return 1.0; }
-
-inline ana::selection::cut::a_and_b::a_and_b(const selection &a,
-                                             const selection &b)
-    : selection(nullptr, false,
-                "(" + a.get_path() + ")&&(" + b.get_path() + ")"),
-      m_a(a), m_b(b) {}
-
-inline bool ana::selection::cut::a_and_b::passed_cut() const {
-  return m_a.passed_cut() && m_b.passed_cut();
-}
-
-inline double ana::selection::cut::a_and_b::get_weight() const { return 1.0; }
 
 namespace ana {
 
@@ -2021,22 +1947,9 @@ public:
   virtual ~weight() = default;
 
 public:
+  virtual double calculate() const override;
   virtual bool passed_cut() const override;
   virtual double get_weight() const override;
-};
-
-class selection::weight::a_times_b : public selection {
-
-public:
-  a_times_b(const selection &a, const selection &b);
-  virtual ~a_times_b() = default;
-
-  virtual bool passed_cut() const override;
-  virtual double get_weight() const override;
-
-protected:
-  const selection &m_a;
-  const selection &m_b;
 };
 
 } // namespace ana
@@ -2045,68 +1958,39 @@ inline ana::selection::weight::weight(const selection *presel, bool ch,
                                       const std::string &name)
     : selection(presel, ch, name) {}
 
+inline double ana::selection::weight::calculate() const {
+  return this->m_preselection
+             ? this->m_preselection->get_weight() * m_variable.value()
+             : m_variable.value();
+}
+
 inline bool ana::selection::weight::passed_cut() const {
-  return m_preselection ? m_preselection->passed_cut() : true;
+  return this->m_preselection ? this->m_preselection->passed_cut() : true;
 }
 
 inline double ana::selection::weight::get_weight() const {
-  return m_preselection ? m_preselection->passed_cut() * this->value()
-                        : this->value();
-}
-
-inline ana::selection::weight::a_times_b::a_times_b(const selection &a,
-                                                    const selection &b)
-    : selection(nullptr, false,
-                "(" + a.get_path() + ")*(" + b.get_path() + ")"),
-      m_a(a), m_b(b) {}
-
-inline bool ana::selection::weight::a_times_b::passed_cut() const {
-  return m_a.passed_cut() && m_b.passed_cut();
-}
-
-inline double ana::selection::weight::a_times_b::get_weight() const {
-  return m_a.get_weight() * m_b.get_weight();
+  return this->value();
 }
 
 template <typename Sel, typename F>
-auto ana::selection::cutflow::filter(const std::string &name,
-                                     F expression) const
-    -> std::unique_ptr<applicator<column::template equation_t<F>>> {
-  auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
-      std::function{expression});
-  calc->template set_selection<Sel>(nullptr, false, name);
-  return calc;
-}
-
-template <typename Sel, typename F>
-auto ana::selection::cutflow::channel(const std::string &name,
-                                      F expression) const
-    -> std::unique_ptr<applicator<column::template equation_t<F>>> {
-  auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
-      std::function{expression});
-  calc->template set_selection<Sel>(nullptr, true, name);
-  return calc;
-}
-
-template <typename Sel, typename F>
-auto ana::selection::cutflow::filter(selection const &prev,
+auto ana::selection::cutflow::filter(selection const *prev,
                                      const std::string &name,
                                      F expression) const
     -> std::unique_ptr<applicator<column::template equation_t<F>>> {
   auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
       std::function{expression});
-  calc->template set_selection<Sel>(&prev, false, name);
+  calc->template set_selection<Sel>(prev, false, name);
   return calc;
 }
 
 template <typename Sel, typename F>
-auto ana::selection::cutflow::channel(selection const &prev,
+auto ana::selection::cutflow::channel(selection const *prev,
                                       const std::string &name,
                                       F expression) const
     -> std::unique_ptr<applicator<column::template equation_t<F>>> {
   auto calc = std::make_unique<applicator<column::template equation_t<F>>>(
       std::function{expression});
-  calc->template set_selection<Sel>(&prev, true, name);
+  calc->template set_selection<Sel>(prev, true, name);
   return calc;
 }
 
@@ -2117,13 +2001,6 @@ auto ana::selection::cutflow::apply_selection(applicator<Sel> const &calc,
   auto sel = calc.apply_selection(columns...);
   this->add_selection(*sel);
   return sel;
-}
-
-template <typename Sel>
-auto ana::selection::cutflow::join(ana::selection const &a,
-                                   ana::selection const &b) const
-    -> std::unique_ptr<ana::selection> {
-  return std::make_unique<Sel>(a, b);
 }
 
 inline void ana::selection::cutflow::add_selection(ana::selection &sel) {
@@ -2707,9 +2584,6 @@ template <typename T> double ana::sample<T>::get_normalized_scale() const {
 
 namespace ana {
 
-/**
- * @brief Dataflow of an input dataset.
- */
 template <typename T> class dataflow : public sample<T> {
 
 public:
@@ -2746,10 +2620,6 @@ public:
 public:
   virtual ~dataflow() = default;
 
-  /**
-   * @brief Constructor using arguments for input dataset.
-   * @param arguments Constructor arguments for the input dataset.
-   */
   template <typename... Args> dataflow(Args &&...args);
 
   template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<
@@ -2805,65 +2675,19 @@ public:
   template <typename F>
   auto define(F callable) -> delayed<column::template evaluator_t<F>>;
 
-  /**
-   * @brief Apply a filter.
-   * @tparam Sel Type of selection, i.e. `selection::cut` or
-   * `selection::weight`.
-   * @tparam F Any function/functor/callable type.
-   * @param name The name of the selection.
-   * @param callable The function/functor/callable object used as the
-   * expression.
-   * @return The `lazy` selection "applicator" to be applied with input columns.
-   * @details Perform a filter operation from the dataflow to define one without
-   * a preselection.
-   */
+  auto filter(const std::string &name);
+  template <typename Sel> auto filter(const std::string &name);
+  template <typename F> auto filter(const std::string &name, F callable);
   template <typename Sel, typename F>
   auto filter(const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
 
-  /**
-   * @brief Apply a filter as a channel.
-   * @tparam Sel Type of selection, i.e. `selection::cut` or
-   * `selection::weight`.
-   * @tparam F Any function/functor/callable type.
-   * @param name The name of the selection.
-   * @param callable The function/functor/callable object used as the
-   * expression.
-   * @return The `lazy` selection "applicator" to be applied with input columns.
-   * @details Perform a filter operation from the dataflow to define one without
-   * a preselection.
-   */
+  auto channel(const std::string &name);
+  template <typename Sel> auto channel(const std::string &name);
+  template <typename F> auto channel(const std::string &name, F callable);
   template <typename Sel, typename F>
   auto channel(const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
-  template <typename Sel>
-
-  /**
-   * @brief Apply a selection.
-   * @tparam Sel Type of selection, i.e. `selection::cut` or
-   * `selection::weight`.
-   * @param name The name of the selection.
-   * @return The `lazy` selection "applicator" to be applied with the input
-   * column.
-   * @details When a filter operation is called without a custom expression, the
-   * value of the input column itself is used as its decision.
-   */
-  auto filter(const std::string &name)
-      -> delayed<selection::trivial_applicator_type>;
-  template <typename Sel>
-
-  /**
-   * @brief Apply a selection.
-   * @tparam Sel Type of selection, i.e. `selection::cut` or
-   * `selection::weight`.
-   * @param name The name of the selection.
-   * @return The `lazy` selection "applicator" to be applied with the input
-   * column.
-   * @details When a filter operation is called without a custom expression, the
-   * value of the input column itself is used as its decision.
-   */
-  auto channel(const std::string &name)
-      -> delayed<selection::trivial_applicator_type>;
 
   /**
    * @brief Book a aggregation
@@ -2894,22 +2718,17 @@ protected:
                            lazy<Sels> const &...sels)
       -> delayed<aggregation::bookkeeper<Cnt>>;
 
+  template <typename Sel>
+  auto filter(lazy<selection> const &prev, const std::string &name);
   template <typename Sel, typename F>
   auto filter(lazy<selection> const &prev, const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
+
   template <typename Sel, typename F>
   auto channel(lazy<selection> const &prev, const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
   template <typename Sel>
-  auto filter(lazy<selection> const &prev, const std::string &name)
-      -> delayed<selection::trivial_applicator_type>;
-  template <typename Sel>
-  auto channel(lazy<selection> const &prev, const std::string &name)
-      -> delayed<selection::trivial_applicator_type>;
-
-  template <typename Sel>
-  auto join(lazy<selection> const &a, lazy<selection> const &b)
-      -> lazy<selection>;
+  auto channel(lazy<selection> const &prev, const std::string &name);
 
   // recreate a lazy node as a variation under new arguments
   template <typename V, std::enable_if_t<ana::column::template is_reader_v<V>,
@@ -3181,41 +3000,10 @@ public:
                              bool> = false>
   auto vary(const std::string &var_name, Args &&...args) -> varied;
 
-  /**
-   * @brief Filter from an existing selection.
-   * @tparam Sel Type of selection to be applied, i.e. `ana::selection::cut` or
-   * `ana::selection::weight`.
-   * @tparam Args (Optional) Type of function/functor/callable expression.
-   * @param name Name of the selection.
-   * @param args (Optional) function/functor/callable expression to be used.
-   * @return Selection to be applied with input columns.
-   * @details Chained selections have their cut and weight decisions compounded:
-   * ```cpp
-   * auto sel =
-   * ds.channel<cut>("a")(a).filter<weight>("b")(b).filter<cut>("c")(c);
-   * // cut = (a) && (true) && (c);
-   * // weight = (1.0) * (w) * (1.0);
-   * ```
-   */
   template <typename Sel, typename... Args>
   auto filter(const std::string &name, Args &&...args) const
       -> delayed_selection_applicator_t<Sel, Args...>;
 
-  /**
-   * @brief Channel from an existing selection.
-   * @tparam Sel Type of selection to be applied, i.e. `ana::selection::cut` or
-   * `ana::selection::weight`.
-   * @param name Name of the selection.
-   * @param args (Optional) function/functor/callable expression to be used.
-   * @return Selection to be applied with input columns.
-   * @details The name of the selection from which this method is called from
-   * will be preserved as part of the path for chained selections:
-   * ```cpp
-   * auto sel =
-   * ds.channel<cut>("a")(a).filter<weight>("b")(b).filter<cut>("c")(c);
-   * sel.path();  // "a/c"
-   * ```
-   */
   template <typename Sel, typename... Args>
   auto channel(const std::string &name, Args &&...args) const
       -> delayed_selection_applicator_t<Sel, Args...>;
@@ -3240,81 +3028,6 @@ public:
     this->m_df->analyze();
     this->merge_results();
     return this->get_model()->get_result();
-  }
-
-  /**
-   * @brief Take the OR of two cuts
-   * @return selection Its cut decision is given by `passed_cut() =
-   * a.passed_cut()
-   * || b.passed_cut()`.
-   * @details A joined filter is defined as a cut without any
-   * preselection (i.e. weight = 1.0), and one that is not a `channel`.
-   */
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator||(const lazy<selection> &b) const -> lazy<selection> {
-    return this->m_df->template join<selection::cut::a_or_b>(*this, b);
-  }
-
-  /**
-   * @brief Take the AND of two cuts
-   * @return `lazy<selection>` Its decision is given by `passed_cut() =
-   * a.passed_cut() && b.passed_cut()`.
-   * @details A joined filter is defined as a cut without any
-   * preselection (i.e. weight = 1.0), and one that is not a `channel`.
-   */
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator&&(const lazy<selection> &b) const -> lazy<selection> {
-    return this->m_df->template join<selection::cut::a_and_b>(*this, b);
-  }
-
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator*(const lazy<selection> &b) const -> lazy<selection> {
-    return this->m_df->template join<selection::weight::a_times_b>(*this, b);
-  }
-
-  /**
-   * @brief Join two filters (OR)
-   * @return selection Its decision is given by `passed_cut() = a.passed_cut()
-   * || b.passed_cut()`.
-   * @details A joined filter is a cut without any preselection (i.e. weight
-   * = 1.0), and one that cannot be designated as a `channel`.
-   */
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator||(typename lazy<selection>::varied const &b) const ->
-      typename lazy<selection>::varied {
-    using varied_type = typename lazy<selection>::varied;
-    auto syst = varied_type(this->nominal().operator||(b.nominal()));
-    auto var_names = list_all_variation_names(b);
-    for (auto const &var_name : var_names) {
-      syst.set_variation(var_name, this->variation(var_name).operator||(
-                                       b.variation(var_name)));
-    }
-    return syst;
-  }
-
-  /**
-   * @brief Join two filters (AND)
-   * @return `lazy<selection>` Its decision is given by `passed_cut() =
-   * a.passed_cut() && b.passed_cut()`.
-   * @details A joined filter is a cut without any preselection (i.e. weight
-   * = 1.0), and one that cannot be designated as a `channel`.
-   */
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator&&(typename lazy<selection>::varied const &b) const ->
-      typename lazy<selection>::varied {
-    using varied_type = typename lazy<selection>::varied;
-    auto syst = varied_type(this->nominal().operator||(b.nominal()));
-    auto var_names = list_all_variation_names(b);
-    for (auto const &var_name : var_names) {
-      syst.set_variation(var_name, this->variation(var_name).operator&&(
-                                       b.variation(var_name)));
-    }
-    return syst;
   }
 
   /**
@@ -3352,6 +3065,7 @@ protected:
     auto model = this->get_model();
     if (!model->is_merged()) {
       std::vector<std::decay_t<decltype(model->get_result())>> results;
+      results.reserve(this->concurrency());
       for (size_t islot = 0; islot < this->concurrency(); ++islot) {
         results.push_back(this->get_slot(islot)->get_result());
       }
@@ -4221,34 +3935,23 @@ auto ana::dataflow<T>::define(F callable)
                  }));
 }
 
-template <typename T>
-template <typename Sel>
-auto ana::dataflow<T>::filter(const std::string &name)
-    -> delayed<selection::trivial_applicator_type> {
-  this->initialize();
+template <typename T> auto ana::dataflow<T>::filter(const std::string &name) {
   auto callable = [](double x) { return x; };
-  auto sel = delayed<selection::trivial_applicator_type>(
-      *this,
-      this->m_processors.get_lockstep_node(
-          [name = name, callable = callable](dataset_processor_type &proc) {
-            return proc.template filter<Sel>(name, callable);
-          }));
-  return sel;
+  return this->template filter<selection::cut, decltype(callable)>(name,
+                                                                   callable);
 }
 
 template <typename T>
 template <typename Sel>
-auto ana::dataflow<T>::channel(const std::string &name)
-    -> delayed<selection::trivial_applicator_type> {
-  this->initialize();
+auto ana::dataflow<T>::filter(const std::string &name) {
   auto callable = [](double x) { return x; };
-  auto sel = delayed<selection::trivial_applicator_type>(
-      *this,
-      this->m_processors.get_lockstep_node(
-          [name = name, callable = callable](dataset_processor_type &proc) {
-            return proc.template channel<Sel>(name, callable);
-          }));
-  return sel;
+  return this->template filter<Sel, decltype(callable)>(name, callable);
+}
+
+template <typename T>
+template <typename F>
+auto ana::dataflow<T>::filter(const std::string &name, F callable) {
+  return this->template filter<selection::cut, F>(name, callable);
 }
 
 template <typename T>
@@ -4260,8 +3963,27 @@ auto ana::dataflow<T>::filter(const std::string &name, F callable)
       *this,
       this->m_processors.get_lockstep_node(
           [name = name, callable = callable](dataset_processor_type &proc) {
-            return proc.template filter<Sel>(name, callable);
+            return proc.template filter<Sel>(nullptr, name, callable);
           }));
+}
+
+template <typename T> auto ana::dataflow<T>::channel(const std::string &name) {
+  auto callable = [](double x) { return x; };
+  return this->template channel<selection::cut, decltype(callable)>(name,
+                                                                    callable);
+}
+
+template <typename T>
+template <typename Sel>
+auto ana::dataflow<T>::channel(const std::string &name) {
+  auto callable = [](double x) { return x; };
+  return this->template channel<Sel, decltype(callable)>(name, callable);
+}
+
+template <typename T>
+template <typename F>
+auto ana::dataflow<T>::channel(const std::string &name, F callable) {
+  return this->template channel<selection::cut, F>(name, callable);
 }
 
 template <typename T>
@@ -4273,7 +3995,7 @@ auto ana::dataflow<T>::channel(const std::string &name, F callable)
       *this,
       this->m_processors.get_lockstep_node(
           [name = name, callable = callable](dataset_processor_type &proc) {
-            return proc.template channel<Sel>(name, callable);
+            return proc.template channel<Sel>(nullptr, name, callable);
           }));
 }
 
@@ -4291,33 +4013,17 @@ auto ana::dataflow<T>::book(Args &&...args)
 template <typename T>
 template <typename Sel>
 auto ana::dataflow<T>::filter(lazy<selection> const &prev,
-                              const std::string &name)
-    -> delayed<selection::trivial_applicator_type> {
-  this->initialize();
+                              const std::string &name) {
   auto callable = [](double x) { return x; };
-  return delayed<selection::trivial_applicator_type>(
-      *this, this->m_processors.get_lockstep_node(
-                 [name = name, callable = callable](
-                     dataset_processor_type &proc, selection const &prev) {
-                   return proc.template filter<Sel>(prev, name, callable);
-                 },
-                 prev));
+  return this->template filter<Sel, decltype(callable)>(prev, name, callable);
 }
 
 template <typename T>
 template <typename Sel>
 auto ana::dataflow<T>::channel(lazy<selection> const &prev,
-                               const std::string &name)
-    -> delayed<selection::trivial_applicator_type> {
-  this->initialize();
+                               const std::string &name) {
   auto callable = [](double x) { return x; };
-  return delayed<selection::trivial_applicator_type>(
-      *this, this->m_processors.get_lockstep_node(
-                 [name = name, callable = callable](
-                     dataset_processor_type &proc, selection const &prev) {
-                   return proc.template channel<Sel>(prev, name, callable);
-                 },
-                 prev));
+  return this->template channel<Sel, decltype(callable)>(prev, name, callable);
 }
 
 template <typename T>
@@ -4330,7 +4036,7 @@ auto ana::dataflow<T>::filter(lazy<selection> const &prev,
       *this, this->m_processors.get_lockstep_node(
                  [name = name, callable = callable](
                      dataset_processor_type &proc, selection const &prev) {
-                   return proc.template filter<Sel>(prev, name, callable);
+                   return proc.template filter<Sel>(&prev, name, callable);
                  },
                  prev));
 }
@@ -4345,7 +4051,7 @@ auto ana::dataflow<T>::channel(lazy<selection> const &prev,
       *this, this->m_processors.get_lockstep_node(
                  [name = name, callable = callable](
                      dataset_processor_type &proc, selection const &prev) {
-                   return proc.template channel<Sel>(prev, name, callable);
+                   return proc.template channel<Sel>(&prev, name, callable);
                  },
                  prev));
 }
@@ -4427,7 +4133,7 @@ auto ana::dataflow<T>::select_aggregations(
                  lockstep::view<aggregation::booker<Cnt>>(bkr), sels...));
   //  lockstep::node<aggregation::booker<Cnt>>(bkr), sels...));
 
-  return std::move(bkpr);
+  return bkpr;
 }
 
 template <typename T> void ana::dataflow<T>::analyze() {
@@ -4453,20 +4159,6 @@ template <typename T> void ana::dataflow<T>::analyze() {
 }
 
 template <typename T> void ana::dataflow<T>::reset() { m_analyzed = false; }
-
-template <typename T>
-template <typename Sel>
-auto ana::dataflow<T>::join(lazy<selection> const &a, lazy<selection> const &b)
-    -> lazy<selection> {
-  auto act = this->m_processors.get_lockstep_node(
-      [](dataset_processor_type &proc, selection const &a, selection const &b) {
-        return proc.template join<Sel>(a, b);
-      },
-      a, b);
-  auto lzy = lazy<selection>(*this, act);
-  this->add_operation(std::move(act));
-  return lzy;
-}
 
 template <typename T>
 template <typename V,
@@ -4750,7 +4442,7 @@ auto ana::dataflow<T>::delayed<Bld>::varied::vary(const std::string &var_name,
   syst.set_variation(var_name,
                      std::move(syst.m_df->vary_evaluator(
                          syst.nominal(), std::forward<Args>(args)...)));
-  return std::move(syst);
+  return syst;
 }
 
 template <typename T>
@@ -4772,7 +4464,7 @@ auto ana::dataflow<T>::delayed<Bld>::varied::operator()(Args &&...args) ->
                        variation(var_name).operator()(
                            std::forward<Args>(args).variation(var_name)...));
   }
-  return std::move(syst);
+  return syst;
 }
 
 namespace ana {

@@ -85,12 +85,12 @@ table_reader::read(const ana::dataset::range &,
   return std::make_unique<table_column<T>>(this->m_data, column_name);
 }
 
-void table_reader::start(const ana::dataset::range &part) {}
+void table_reader::start(const ana::dataset::range &) {}
 
-void table_reader::next(const ana::dataset::range &part,
-                        unsigned long long entry) {}
+void table_reader::next(const ana::dataset::range &,
+                        unsigned long long) {}
 
-void table_reader::finish(const ana::dataset::range &part) {}
+void table_reader::finish(const ana::dataset::range &) {}
 
 template <typename T>
 table_column<T>::table_column(const table_data_t &data,
@@ -98,7 +98,7 @@ table_column<T>::table_column(const table_data_t &data,
     : m_data(data), m_column_name(column_name) {}
 
 template <typename T>
-const T &table_column<T>::read(const ana::dataset::range &part,
+const T &table_column<T>::read(const ana::dataset::range &,
                                unsigned long long entry) const {
   return std::get<T>(m_data.at(entry).at(m_column_name));
 }
