@@ -6,12 +6,23 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
+## Introduction
+
+`analogical` is a C++ interface for dataset transformations.
+
+Its key features include:
+
+- "DataFlow" paradigm of computational tasks within a directed graph.
+- Lazy execution.
+- Implicit multithreading.
+
+
 ## Design goals
 
-- **Coherent interface.** Higher-level languages have intuitive ways to do dataset transformations, e.g. the "DataFrame". The syntax used here aims to achieve the same level of abstraction in a unique way that was originally intended for high-energy physics use cases, referred to as a "DataFlow".
-- **Custom implementations.** Users can implement any tabular data: a trivial example is used here, and the a realistic one of CERN ROOT Framework here. Similarly, custom columns and aggregations receive first-class treatment that supports arbitrary inputs, execution, and output.
-- **Non-proliferative workflow.** Often times, small changes to an analysis need to be explored. How often has CTRL+C/V been used to copy an entire analysis, made minute changes, and re-process the dataset? With built-in handling of "systematic variations", such changes can be performed and retrieved simultaneously.
-- **Computational efficiency.** All operations within the dataset processing is performed at most once per-entry, only when needed. All systematic variations are processed at once. The dataset processing is multi-threaded for thread-safe plugins.
+- **Clear syntax.** Higher-level languages have myriad of libraries available to do columnar data analysis intuitively, e.g. "DataFrame". The syntax used here aims to achieve a similar level of abstraction in its own way, referred to as "DataFlow" here.
+- **Interface-only.** No implementation of a data formats or aggregation output is provided out-of-the-box. Instead, the interface allows defining operations with arbitrary inputs, execution, and outputs as needed.
+- **Non-proliferative workflow.** Often times, small changes to an analysis need to be explored. How many times has CTRL+C/V been used to copy an entire analysis, made minute changes, and re-process the dataset? With built-in handling of "systematic variations", such changes can be performed and retrieved simultaneously.
+- **Computational efficiency.** All operations within the dataset processing is performed at most once per-entry, only when needed. All systematic variations are processed at once. The dataset processing is multithreaded for thread-safe plugins.
 
 
 ## Installation

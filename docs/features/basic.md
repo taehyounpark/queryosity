@@ -1,4 +1,18 @@
-Dataset transformations consist of a set of operations that fall into one of these categories:
+An arbitrary analysis structure can be constructed as a directed graph of operations that contains a task be performed for each entry. This is called a `dataflow` object in analogical.
+
+!!! example "A dataflow object"
+
+    ``` mermaid 
+    graph LR
+    A(Column A) --Value--> X(Define X);
+    B(Column B) --> X;
+    Y(Define Y) --> F([Filter W]);
+    B --> F;
+    X --> O[(Aggregate O)];
+    F -. Pass? .-> O
+    ```
+
+An operation falls into one of three categories, each associated with a set of methods:
 
 <style>
 table th:first-of-type {
@@ -21,9 +35,7 @@ table th:nth-of-type(4) {
 | | | `constant()` | Set a constant value of a column |
 | | | `define()` | Evaluate a column value per-entry |
 | `selection` | A boolean/floating-point decision | `filter()` | Apply a selection | 
-| | | `channel()` | Apply a selection, remember its "path" |
+| | | `channel()` | Same as filter, but remember its "path" |
 | `aggregation` | Perform an action and output a result | `book()` | Book the creation of a result |
-| | | `fill()` | Perform aggregation with column values |
+| | | `fill()` | Perform aggregation with column value(s) |
 | | | `at()` | Perform aggregation for entries passing the selection(s) |
-
-It follows that any arbitrary analysis structure can be constructed by creating and connecting each task as nodes of a directed computation graph to be performed for each entry of a tabular dataset, called a `dataflow` object.

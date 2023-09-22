@@ -1,16 +1,22 @@
-# Introduction
+# Higgs boson analysis
 
-The following exercise will analyze physics collision in simulated \(H\rightarrow WW^{\ast}\rightarrow \ell\nu\ell\nu\) events.
+## Conceptual overview
+
+This demo analyzes physics collision in simulated \(H\rightarrow WW^{\ast}\rightarrow \ell\nu\ell\nu\) events.
 
 - The public dataset is available at [CERN Open Data Portal](https://opendata.cern.ch/record/700).
 - The implementation of [CERN ROOT Framework](https://root.cern) for analogical is provided by [AnalysisPlugins](https://github.com/taehyounpark/AnalysisPlugins).
 
-## Conceptual overview
-
 The following tasks will be performed:
 
-1. Compute and plot the dilepton invariant mass, \(m_{\ell\ell}\).
-2. Compute and plot the transverse momentum of the dilepton+MET system, \(\ell\ell+E_{\mathrm{T}}^{\mathrm{miss}}\), i.e. of the reconstructed Higgs boson.
+<!-- 1. Compute the dilepton invariant mass, \(m_{\ell\ell}\). -->
+<!-- 2. Compute the transverse momentum of the dilepton+MET system, \(\ell\ell+E_{\mathrm{T}}^{\mathrm{miss}}\), i.e. of the reconstructed Higgs boson. -->
+1. Apply the MC event weight.
+2. Select entries for which there are exactly two opposite-sign leptons in the event.
+3. Form a \(2 \times 2\) matrix of cut regions:
+    1. The leptons are same- or different-flavour.
+    2. The dilepton invariant mass is \(m_{\ell\ell} < 60\,\mathrm{GeV}\) or  \(m_{\ell\ell} > 60\,\mathrm{GeV}\).
+4. In each case, get the distribution of the Higgs boson transverse momentum, \(p_{\mathrm{T}}^{H}\).
 
 ## Analysis in action
 
