@@ -8,18 +8,20 @@
 
 namespace ana {
 
-template <typename T> struct is_callable {
-  using yes = bool;
-  using no = int;
-  template <typename C> static yes check_callable(decltype(&C::operator()));
-  template <typename C> static no check_callable(...);
-  enum { value = sizeof(check_callable<T>(0)) == sizeof(yes) };
-};
+namespace detail 
+{
 
-/**
- * @brief Determine whether a type is callable, i.e. has a valid `operator()`.
- */
-template <typename T> constexpr bool is_callable_v = is_callable<T>::value;
+  // traits to check if a type is callable but not a std::function
+  template <typename T, typename = void>
+  struct is_callable : std::false_type {};
+
+  template <typename T>
+  struct is_callable<T, std::void_t<decltype(&T::operator())>> : std::true_type {};
+
+  template <typename Ret, typename... Args>
+  struct is_callable<std::function<Ret(Args...)>> : std::false_type {};
+
+}
 
 class column;
 
@@ -84,17 +86,23 @@ public:
     using evaluator_type = typename ana::column::template evaluator<T>;
   };
 
-  template <typename F> struct equation_traits {
-    using equation_type = typename equation_traits<decltype(
-        std::function{std::declval<F>()})>::equation_type;
+  // traits class to deduce equation type for a callable
+  template <typename F, typename = void>
+  struct equation_traits;
+
+  // for callables that aren't std::function
+  template <typename F>
+  struct equation_traits<F, std::enable_if_t<detail::is_callable<F>::value>> {
+      using equation_type = typename equation_traits<decltype(std::function{std::declval<F>()})>::equation_type;
   };
 
+  // specialization for std::function
   template <typename Ret, typename... Args>
   struct equation_traits<std::function<Ret(Args...)>> {
-    using equation_type =
-        typename column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
+      using equation_type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
   };
 
+  // alias template for convenience
   template <typename F>
   using equation_t = typename equation_traits<F>::equation_type;
 
