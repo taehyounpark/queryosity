@@ -8,20 +8,19 @@
 
 namespace ana {
 
-namespace detail 
-{
+namespace detail {
 
-  // traits to check if a type is callable but not a std::function
-  template <typename T, typename = void>
-  struct is_callable : std::false_type {};
+// traits to check if a type is callable but not a std::function
+template <typename T, typename = void> struct is_callable : std::false_type {};
 
-  template <typename T>
-  struct is_callable<T, std::void_t<decltype(&T::operator())>> : std::true_type {};
+template <typename T>
+struct is_callable<T, std::void_t<decltype(&T::operator())>> : std::true_type {
+};
 
-  template <typename Ret, typename... Args>
-  struct is_callable<std::function<Ret(Args...)>> : std::false_type {};
+template <typename Ret, typename... Args>
+struct is_callable<std::function<Ret(Args...)>> : std::false_type {};
 
-}
+} // namespace detail
 
 class column;
 
@@ -87,19 +86,20 @@ public:
   };
 
   // traits class to deduce equation type for a callable
-  template <typename F, typename = void>
-  struct equation_traits;
+  template <typename F, typename = void> struct equation_traits;
 
   // for callables that aren't std::function
   template <typename F>
   struct equation_traits<F, std::enable_if_t<detail::is_callable<F>::value>> {
-      using equation_type = typename equation_traits<decltype(std::function{std::declval<F>()})>::equation_type;
+    using equation_type = typename equation_traits<decltype(std::function{
+        std::declval<F>()})>::equation_type;
   };
 
   // specialization for std::function
   template <typename Ret, typename... Args>
   struct equation_traits<std::function<Ret(Args...)>> {
-      using equation_type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
+    using equation_type =
+        column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
   };
 
   // alias template for convenience
