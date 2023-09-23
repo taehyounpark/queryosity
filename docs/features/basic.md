@@ -1,16 +1,10 @@
 An arbitrary analysis structure can be constructed as a directed graph of operations that contains a task be performed for each entry. This is called a `dataflow` object in analogical.
 
-!!! example "A dataflow object"
-
-    ``` mermaid 
-    graph LR
-    A(Column A) --Value--> X(Define X);
-    B(Column B) --> X;
-    Y(Define Y) --> F([Filter W]);
-    B --> F;
-    X --> O[(Aggregate O)];
-    F -. Pass? .-> O
-    ```
+``` mermaid 
+graph LR
+A[Column] --> B([Selection]);
+B --> C[(Aggregation)];
+```
 
 An operation falls into one of three categories, each associated with a set of methods:
 

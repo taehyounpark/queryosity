@@ -1,13 +1,8 @@
 # Coherent data analysis in C++
 
   ``` mermaid 
-  graph TB
-  A( ) --> X( );
-  B( ) --> X;
-  Y( ) --> F([ ]);
-  B --> F;
-  X --> O[( )];
-  F -.-> O
+  graph LR
+  A[ ] --> B([ ]) --> C[( )];
   ```
 
 _**Ana**lysis **Logic** **A**bstraction **L**ayer_

@@ -1,5 +1,9 @@
 site_name: Coherent data analysis in C++
 
+repo_url: https://github.com/taehyounpark/analogical
+repo_name: taehyounpark/analogical
+
+
 nav:
   - Home:
     - Welcome: index.md
@@ -48,13 +52,27 @@ nav:
 
 theme:
   name: 'material'
+  font:
+    text: Roboto
+    code: Roboto Mono
+  palette:
+    primary: custom
+  icon:
+    repo: fontawesome/brands/github
   features:
     - navigation.tabs
+    - navigation.prune
+    - navigation.top
+    - navigation.footer
+    - toc.follow
 
 markdown_extensions:
-  - def_list
-  - tables
   - admonition
+  - tables
+  - footnotes
+  - attr_list
+  - def_list
+  - md_in_html
   - pymdownx.details
   - pymdownx.inlinehilite
   - pymdownx.snippets
@@ -72,8 +90,13 @@ markdown_extensions:
       line_spans: __span
       use_pygments: true
       pygments_lang_class: true
+  - toc:
+      title: On this page
 
 extra_javascript:
   - javascripts/mathjax.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
   - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - stylesheets/extra.css
