@@ -44,7 +44,7 @@ cmake ../
 cmake --build .
 cmake --install .
 ```
-```CMake
+```cmake
 find_package(analogical 0.1.0 REQUIRED)
 ...
 add_library(Analysis ...)
@@ -55,7 +55,7 @@ target_link_libraries(Analysis INTERFACE ana::analogical)
 #include "ana/analogical.h"
 ```
 #### Integrated
-```CMake
+```cmake
 add_subdirectory(analogical)
 ...
 add_library(Analysis ...)

@@ -13,10 +13,10 @@ The following tasks will be performed:
 <!-- 2. Compute the transverse momentum of the dilepton+MET system, \(\ell\ell+E_{\mathrm{T}}^{\mathrm{miss}}\), i.e. of the reconstructed Higgs boson. -->
 1. Apply the MC event weight.
 2. Select entries for which there are exactly two opposite-sign leptons in the event.
-3. Form a \(2 \times 2\) matrix of cut regions:
-    1. The leptons are same- or different-flavour.
-    2. The dilepton invariant mass is \(m_{\ell\ell} < 60\,\mathrm{GeV}\) or  \(m_{\ell\ell} > 60\,\mathrm{GeV}\).
-4. In each case, get the distribution of the Higgs boson transverse momentum, \(p_{\mathrm{T}}^{H}\).
+3. Form a (2, 2) matrix of cut regions:
+    1. The leptons are same-/different-flavour.
+    2. The dilepton invariant mass is less/greater than 60 GeV.
+4. In each case, plot the distribution of the dilepton+MET transverse momentum.
 
 ## Nominal
 
@@ -49,17 +49,17 @@ auto met_MeV = df.read<float>("met_et");
 auto met_phi = df.read<float>("met_phi");
 ```
 
-```cpp title="Convert from \(\mathrm{MeV}\) to \(\mathrm{GeV}\)"
+```cpp title="Convert from MeV to GeV"
 auto MeV = ana.constant(1000.0);
 auto lep_pt = lep_pt_MeV / MeV;
 auto lep_E = lep_pt_MeV / MeV;
 auto met = met_MeV / MeV;
 ```
-```cpp title="Select leptons with \(|\eta| < 2.4\)"
+```cpp title="Select leptons within detector acceptance"
 auto lep_eta_max = df.constant(2.4);
 auto lep_pt_sel = lep_pt[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 ```
-```cpp title="Compute \(p_{\mathrm{T}}^{H} = p_{\mathrm{T}}^{\ell\ell+\mathrm{MET}}\)"
+```cpp title="Compute dilepton+MET transverse momentum"
 using P4 = TLorentzVector;
 
 // first- & second-leading lepton four-momenta
@@ -111,7 +111,7 @@ auto pth_hist = df.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
 // also at "2ldf/wwcr", "2lsf/wwcr"
 auto l1n2_pt_hists_wwcrs = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_wwcr);
 ```
-```cpp title="(Optional) dump out results"
+```cpp title="(Optional) Dump out results"
 // booked at multiple selections
 auto pth_hists = df.book<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, cut_2ldf, cut_2lsf);
 
@@ -136,7 +136,7 @@ auto Escale = df.define([](VecD E){return E;}).vary("lp4_up",[](VecD E){return E
 auto lep_pt_sel = Escale(lep_pt)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 auto lep_E_sel = Escale(lep_E)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 ```
-```cpp title="Everything else is the same as above..."
+```cpp title="Everything else is the same..."
 auto l1p4 = df.define<NthP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
 auto l2p4 = df.define<NthP4>(1)(lep_pt, lep_eta, lep_phi, lep_E);
 l1p4.has_variation("lp4_up");  // true

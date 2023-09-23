@@ -6,20 +6,33 @@ nav:
     - Installation: home/installation.md
     - Design goals: home/design.md
   - Features:
-      - Key ingredients: features/basic.md
-      - Implicit multithreading: features/multithread.md
-      - Computing columns: features/column.md
-      - Applying selections: features/selection.md
-      - Booking aggregations: features/aggregation.md
-      - Systematic variations: features/varied.md
+      - Basic concepts: features/basic.md
+      - Computing columns: 
+        - Reading columns: features/column/reader.md
+        - Simple expressions: features/column/equation.md
+        - Custom definitions: features/column/definition.md
+        - (Advanced) Representations: features/column/representation.md
+      - Applying selections: 
+        - Cuts and weights: features/selection/filter.md
+        - Branches in cutflow: features/selection/channel.md
+        - Joining selections: features/selection/join.md
+      - Aggregating results: 
+        - Creating aggregations: features/aggregation/book.md
+        - Filling columns: features/aggregation/fill.md
+        - Booking selections: features/aggregation/at.md
+        - Accessing results: features/aggregation/result.md
+      - Sensitivity analysis: 
+        - Applying variations: features/sensitivity/vary.md
+        - Accessing variations: features/sensitivity/variation.md
       - Lazy actions: features/lazy.md
+      - Implicit multithreading: features/multithread.md
   - Demos:
     - Higgs boson: demo/hww/notebook.md
   - API:
     - dataflow:
       - Constructor: api/dataflow/ctor.md
       - read: api/dataflow/read.md
-      - read: api/dataflow/constant.md
+      - constant: api/dataflow/constant.md
       - define: api/dataflow/define.md
       - filter: api/dataflow/filter.md
       - channel: api/dataflow/channel.md

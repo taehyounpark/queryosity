@@ -32,7 +32,6 @@ table th:nth-of-type(4) {
 | Operation | Description | Methods | Description |
 | :------------ | :------------------------------------ | :------------ | :------------------------------------ |
 | `column` | Access or evaluate a quantity | `read()` | Read the value of a column |
-| | | `constant()` | Set a constant value of a column |
 | | | `define()` | Evaluate a column value per-entry |
 | `selection` | A boolean/floating-point decision | `filter()` | Apply a selection | 
 | | | `channel()` | Same as filter, but remember its "path" |
