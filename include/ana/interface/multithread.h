@@ -12,21 +12,38 @@ namespace ana {
 
 template <typename T> class dataflow;
 
-class multithread {
+namespace multithread {
 
-public:
-  static inline int s_suggestion = 0;
-  static void enable(int suggestion = -1);
-  static void disable();
-  static bool status();
-  static unsigned int concurrency();
+struct configuration {
+  bool enabled;
+  unsigned int concurrency;
 };
+
+configuration enable(int suggestion = -1);
+configuration disable();
+
+}; // namespace multithread
 
 namespace lockstep {
 
 template <typename T> class slotted;
 template <typename T> class node;
 template <typename T> class view;
+
+template <typename T, typename... Args>
+auto make_node(size_t concurrency, Args &&...args) -> node<T>;
+
+template <typename Fn, typename... Args>
+auto get_value(Fn const &fn, view<Args> const &...args)
+    -> std::invoke_result_t<Fn, Args &...>;
+
+template <typename Fn, typename... Args>
+auto get_node(Fn const &fn, view<Args> const &...args) -> lockstep::node<
+    typename std::invoke_result_t<Fn, Args &...>::element_type>;
+
+template <typename Fn, typename... Args>
+auto get_view(Fn const &fn, view<Args> const &...args) -> lockstep::view<
+    std::remove_pointer_t<typename std::invoke_result_t<Fn, Args &...>>>;
 
 } // namespace lockstep
 
@@ -124,7 +141,8 @@ public:
    * (as it is meant to represent the "merged" instance of all slots).
    */
   template <typename Fn, typename... Args>
-  void run_slots(Fn const &fn, view<Args> const &...args) const;
+  void run_slots(multithread::configuration const &mtcfg, Fn const &fn,
+                 view<Args> const &...args) const;
 
 protected:
   std::unique_ptr<T> m_model;
@@ -163,19 +181,30 @@ protected:
 
 } // namespace ana
 
-inline void ana::multithread::enable(int suggestion) {
-  s_suggestion = suggestion;
+template <typename T, typename... Args>
+inline auto ana::lockstep::make_node(size_t concurrency, Args &&...args)
+    -> ana::lockstep::node<T> {
+  node<T> nd;
+  nd.set_model(std::make_unique<T>(std::forward<Args>(args)...));
+  for (unsigned int islot = 0; islot < concurrency; ++islot) {
+    nd.add_slot(std::make_unique<T>(std::forward<Args>(args)...));
+  }
+  return nd;
 }
 
-inline void ana::multithread::disable() { s_suggestion = 0; }
-
-inline bool ana::multithread::status() {
-  return s_suggestion == 0 ? false : true;
+inline ana::multithread::configuration
+ana::multithread::enable(int suggestion) {
+  return suggestion ? multithread::disable()
+                    : configuration{
+                          true, suggestion < 0
+                                    ? std::thread::hardware_concurrency()
+                                    : std::min<unsigned int>(
+                                          std::thread::hardware_concurrency(),
+                                          suggestion)};
 }
 
-inline unsigned int ana::multithread::concurrency() {
-  return std::max<unsigned int>(
-      1, s_suggestion < 0 ? std::thread::hardware_concurrency() : s_suggestion);
+inline ana::multithread::configuration ana::multithread::disable() {
+  return configuration{false, 1};
 }
 
 template <typename T>
@@ -292,12 +321,13 @@ void ana::lockstep::node<T>::call_all_slots(Fn const &fn,
 
 template <typename T>
 template <typename Fn, typename... Args>
-void ana::lockstep::node<T>::run_slots(Fn const &fn,
-                                       view<Args> const &...args) const {
+void ana::lockstep::node<T>::run_slots(
+    ana::multithread::configuration const &mtcfg, Fn const &fn,
+    view<Args> const &...args) const {
   assert(((concurrency() == args.concurrency()) && ...));
 
   // multi-lockstep
-  if (multithread::status()) {
+  if (mtcfg.enabled) {
     std::vector<std::thread> pool;
     for (size_t islot = 0; islot < this->concurrency(); ++islot) {
       pool.emplace_back(fn, std::ref(*this->get_slot(islot)),

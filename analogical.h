@@ -12,7 +12,7 @@ namespace ana {
 
 template <typename T> class dataflow;
 
-class multithread {
+struct multithread {
 
 public:
   static inline int s_suggestion = 0;
@@ -564,8 +564,8 @@ public:
   };
 
   template <typename F> struct equation_traits {
-    using equation_type = typename equation_traits<decltype(
-        std::function{std::declval<F>()})>::equation_type;
+    using equation_type = typename equation_traits<decltype(std::function{
+        std::declval<F>()})>::equation_type;
   };
 
   template <typename Ret, typename... Args>
@@ -967,7 +967,7 @@ namespace dataset {
  * @brief
  * @tparam T Input dataset type (CRTP: see above)
  * @details This class uses the [Curiously Recurring Template Parameter
- * (CRPT)](https://en.cppreference.com/w/cpp/language/crtp) idiom. A proper
+ * (CRPT)](https://en.cppreference.com/w/cpp/language/crtp). A proper
  * implementation should be written as follows:
  * ```cpp
  * #include "ana/analogical.h"
@@ -1508,8 +1508,8 @@ ana::column::equation<Ret(Vals...)>::equation(F callable)
 template <typename Ret, typename... Vals>
 template <typename F, typename... Args>
 ana::column::equation<Ret(Vals...)>::equation(F callable, Args &&...args)
-    : m_evaluate(callable), definition<Ret(Vals...)>(
-                                std::forward<Args>(args)...) {}
+    : m_evaluate(callable),
+      definition<Ret(Vals...)>(std::forward<Args>(args)...) {}
 
 template <typename Ret, typename... Vals>
 Ret ana::column::equation<Ret(Vals...)>::evaluate(
@@ -2607,9 +2607,9 @@ public:
   static constexpr std::false_type check_delayed(...);
 
   template <typename V>
-  static constexpr bool
-      is_nominal_v = (decltype(check_lazy(std::declval<V>()))::value ||
-                      decltype(check_delayed(std::declval<V>()))::value);
+  static constexpr bool is_nominal_v =
+      (decltype(check_lazy(std::declval<V>()))::value ||
+       decltype(check_delayed(std::declval<V>()))::value);
   template <typename V> static constexpr bool is_varied_v = !is_nominal_v<V>;
 
   template <typename... Args>
@@ -2967,11 +2967,11 @@ public:
 
 public:
   lazy(dataflow<T> &dataflow, const lockstep::view<U> &operation)
-      : systematic<lazy<U>>::systematic(dataflow), lockstep::view<U>::view(
-                                                       operation) {}
+      : systematic<lazy<U>>::systematic(dataflow),
+        lockstep::view<U>::view(operation) {}
   lazy(dataflow<T> &dataflow, const lockstep::node<U> &operation)
-      : systematic<lazy<U>>::systematic(dataflow), lockstep::view<U>::view(
-                                                       operation) {}
+      : systematic<lazy<U>>::systematic(dataflow),
+        lockstep::view<U>::view(operation) {}
 
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;

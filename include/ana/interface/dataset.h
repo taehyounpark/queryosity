@@ -8,13 +8,17 @@
 #include <string>
 #include <vector>
 
+#include "multithread.h"
+
 namespace ana {
 
 namespace dataset {
 
-template <typename T> class input;
+// template <typename T, typename... Args> T open(Args &&...args);
 
-template <typename T> class reader;
+template <typename T> class dataset;
+
+class reader;
 
 /**
  * @brief Range of a dataset to process by one thread slot.
@@ -50,7 +54,7 @@ struct range {
  * configuration as specified by the analyzer.
  */
 struct partition {
-  static std::vector<std::vector<dataset::range>>
+  static std::vector<std::vector<range>>
   group_parts(const std::vector<range> &parts, size_t n);
   static range sum_parts(const std::vector<range> &parts);
 
@@ -79,6 +83,11 @@ struct partition {
   std::vector<range> parts;
 };
 
+struct head {
+  head(long long value) : value(value) {}
+  long long value;
+};
+
 } // namespace dataset
 
 template <typename T>
@@ -101,6 +110,14 @@ static constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 
 #include "column.h"
 #include "dataset_reader.h"
+
+// template <typename T, typename... Args>
+// T inline ana::dataset::open(Args &&...args) {
+//   static_assert(std::is_convertible_v<T, Args &&...>,
+//                 "dataset cannot be constructed with argument types.");
+//   auto ds = T(std::forward<Args>(args)...);
+//   return input<T>{std::move(ds), std::move(ds.allocate()), ds.normalize()};
+// }
 
 inline ana::dataset::range::range(size_t slot, unsigned long long begin,
                                   unsigned long long end)

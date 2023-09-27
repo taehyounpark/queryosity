@@ -6,10 +6,10 @@
 
 #include "ana/analogical.h"
 
-#include "plugins/sumw.h"
-#include "plugins/table.h"
+#include "ana/sumw.h"
+#include "ana/table.h"
 
-using ana::multithread;
+using multithread = ana::multithread;
 template <typename T> using dataflow = ana::dataflow<T>;
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;

@@ -16,15 +16,16 @@ namespace ana {
  * It keeps a raw pointer of each, only if their operation needs to be called
  * for each dataset entry (e.g. constant values are not stored).
  */
-template <typename T> class column::computation {
+class column::computation {
 
 public:
-  computation(const dataset::range &part, dataset::reader<T> &reader);
+  computation() = default;
   virtual ~computation() = default;
 
 public:
-  template <typename Val>
-  auto read(const std::string &name) -> std::unique_ptr<read_column_t<T, Val>>;
+  template <typename DS, typename Val>
+  auto read(DS &ds, const dataset::range &part, const std::string &name)
+      -> std::unique_ptr<read_column_t<DS, Val>>;
 
   template <typename Val>
   auto constant(Val const &val) -> std::unique_ptr<column::constant<Val>>;
@@ -45,8 +46,6 @@ protected:
   void add_column(column &column);
 
 protected:
-  const dataset::range m_part;
-  dataset::reader<T> *m_reader;
   std::vector<column *> m_columns;
 };
 
@@ -56,61 +55,48 @@ protected:
 #include "column_equation.h"
 #include "column_evaluator.h"
 
-template <typename T>
-ana::column::computation<T>::computation(const ana::dataset::range &part,
-                                         dataset::reader<T> &reader)
-    : m_part(part), m_reader(&reader) {}
-
-template <typename T>
-template <typename Val>
-auto ana::column::computation<T>::read(const std::string &name)
-    -> std::unique_ptr<read_column_t<T, Val>> {
-  using read_column_type = decltype(m_reader->template read_column<Val>(
-      std::declval<const dataset::range &>(),
-      std::declval<const std::string &>()));
-  static_assert(is_unique_ptr_v<read_column_type>,
-                "dataset must open a std::unique_ptr of its column reader");
-  auto rdr = m_reader->template read_column<Val>(m_part, name);
+template <typename DS, typename Val>
+auto ana::column::computation::read(DS &ds, const ana::dataset::range &part,
+                                    const std::string &name)
+    -> std::unique_ptr<read_column_t<DS, Val>> {
+  auto rdr = ds.template read_column<Val>(part, name);
   this->add_column(*rdr);
   return rdr;
 }
 
-template <typename T>
 template <typename Val>
-auto ana::column::computation<T>::constant(Val const &val)
+auto ana::column::computation::constant(Val const &val)
     -> std::unique_ptr<ana::column::constant<Val>> {
   return std::make_unique<typename column::constant<Val>>(val);
 }
 
-template <typename T>
 template <typename Def, typename... Args>
-auto ana::column::computation<T>::define(Args const &...args) const
+auto ana::column::computation::define(Args const &...args) const
     -> std::unique_ptr<ana::column::template evaluator_t<Def>> {
   return std::make_unique<evaluator<Def>>(args...);
 }
 
-template <typename T>
 template <typename F>
-auto ana::column::computation<T>::define(F expression) const
+auto ana::column::computation::define(F expression) const
     -> std::unique_ptr<ana::column::template evaluator_t<F>> {
   return std::make_unique<evaluator<ana::column::template equation_t<F>>>(
       expression);
 }
 
-template <typename T>
 template <typename Def, typename... Cols>
-auto ana::column::computation<T>::evaluate_column(column::evaluator<Def> &calc,
-                                                  Cols const &...columns)
+auto ana::column::computation::evaluate_column(column::evaluator<Def> &calc,
+                                               Cols const &...columns)
     -> std::unique_ptr<Def> {
   auto defn = calc.evaluate_column(columns...);
-  // only if the evaluated column is a definition
-  if constexpr (column::template is_definition_v<Def>) {
-    this->add_column(*defn);
-  }
+  // only if the evaluated column is not a representation, which does not need
+  // to executed
+  // ... but it still needs to be initialized and finalized!
+  // if constexpr (!column::template is_representation_v<Def>) {
+  //   this->add_column(*defn);
+  // }
   return defn;
 }
 
-template <typename T>
-void ana::column::computation<T>::add_column(column &column) {
+void ana::column::computation::add_column(column &column) {
   m_columns.push_back(&column);
 }

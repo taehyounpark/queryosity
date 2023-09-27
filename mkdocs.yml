@@ -11,16 +11,14 @@ nav:
     - Design goals: home/design.md
   - Features:
       - Basic concepts: features/basic.md
-      - Computing columns: 
-        - Reading columns: features/column/reader.md
-        - Simple expressions: features/column/equation.md
-        - Custom definitions: features/column/definition.md
-        - (Advanced) Representations: features/column/representation.md
-      - Applying selections: 
+      - Columns: 
+        - Computation graph: features/column/computation.md
+        - Creating columns: features/column/column.md
+      - Selections: 
         - Cuts and weights: features/selection/filter.md
         - Branches in cutflow: features/selection/channel.md
         - Joining selections: features/selection/join.md
-      - Aggregating results: 
+      - Aggregations: 
         - Creating aggregations: features/aggregation/book.md
         - Filling columns: features/aggregation/fill.md
         - Booking selections: features/aggregation/at.md

@@ -37,12 +37,13 @@ protected:
 
 protected:
   std::vector<aggregation *> m_aggregations;
-  const double m_norm;
+  const double m_scale;
 };
 
 } // namespace ana
 
-inline ana::aggregation::experiment::experiment(double norm) : m_norm(norm) {}
+inline ana::aggregation::experiment::experiment(double scale)
+    : m_scale(scale) {}
 
 inline void
 ana::aggregation::experiment::add_aggregation(ana::aggregation &cnt) {
@@ -65,7 +66,7 @@ auto ana::aggregation::experiment::select_aggregation(booker<Cnt> const &bkr,
                                                       const selection &sel)
     -> std::unique_ptr<Cnt> {
   auto cnt = bkr.select_aggregation(sel);
-  cnt->apply_scale(m_norm);
+  cnt->apply_scale(m_scale);
   this->add_aggregation(*cnt);
   return cnt;
 }

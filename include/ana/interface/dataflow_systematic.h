@@ -49,6 +49,10 @@ auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 } // namespace ana
 
+template <typename T>
+template <typename U>
+ana::dataflow<T>::systematic<U>::systematic(dataflow<T> &df) : m_df(&df) {}
+
 template <typename... Nodes>
 auto ana::list_all_variation_names(Nodes const &...nodes)
     -> std::set<std::string> {

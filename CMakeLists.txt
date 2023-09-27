@@ -84,5 +84,6 @@ if (ANALOGICAL_INSTALL)
 endif()
 
 if (ANALOGICAL_TESTS)
+  add_subdirectory("plugins")
   add_subdirectory("tests")
 endif()

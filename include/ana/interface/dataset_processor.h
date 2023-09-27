@@ -8,23 +8,14 @@ namespace ana {
 
 namespace dataset {
 
-template <typename T>
-class processor : public operation,
-                  public column::computation<T>,
-                  public aggregation::experiment {
+class processor : public column::computation, public aggregation::experiment {
 
 public:
-  processor(const dataset::range &part, dataset::reader<T> &reader,
-            double scale);
+  processor(double scale);
   virtual ~processor() = default;
 
 public:
-  virtual void initialize(const dataset::range &part) override;
-  virtual void execute(const dataset::range &part,
-                       unsigned long long entry) override;
-  virtual void finalize(const dataset::range &part) override;
-
-  void process();
+  void process(reader &rdr, range const &part);
 };
 
 } // namespace dataset
@@ -34,16 +25,14 @@ public:
 #include "aggregation.h"
 #include "selection.h"
 
-template <typename T>
-ana::dataset::processor<T>::processor(const ana::dataset::range &part,
-                                      dataset::reader<T> &reader, double scale)
-    : operation(), column::computation<T>(part, reader),
-      aggregation::experiment(scale) {}
+ana::dataset::processor::processor(double scale)
+    : aggregation::experiment(scale) {}
 
-template <typename T>
-void ana::dataset::processor<T>::initialize(const ana::dataset::range &part) {
-  this->m_reader->start_part(this->m_part);
+void ana::dataset::processor::process(ana::dataset::reader &rdr,
+                                      ana::dataset::range const &part) {
 
+  // initialize
+  rdr.initialize(part);
   for (auto const &col : this->m_columns) {
     col->initialize(part);
   }
@@ -53,47 +42,30 @@ void ana::dataset::processor<T>::initialize(const ana::dataset::range &part) {
   for (auto const &cnt : this->m_aggregations) {
     cnt->initialize(part);
   }
-}
 
-template <typename T>
-void ana::dataset::processor<T>::execute(const ana::dataset::range &part,
-                                         unsigned long long entry) {
-  this->m_reader->read_entry(part, entry);
-  for (auto const &col : this->m_columns) {
-    col->execute(part, entry);
+  // execute
+  for (unsigned long long entry = part.begin; entry < part.end; ++entry) {
+    rdr.execute(part, entry);
+    for (auto const &col : this->m_columns) {
+      col->execute(part, entry);
+    }
+    for (auto const &sel : this->m_selections) {
+      sel->execute(part, entry);
+    }
+    for (auto const &cnt : this->m_aggregations) {
+      cnt->execute(part, entry);
+    }
   }
-  for (auto const &sel : this->m_selections) {
-    sel->execute(part, entry);
-  }
+
+  // finalize (in reverse order)
   for (auto const &cnt : this->m_aggregations) {
-    cnt->execute(part, entry);
-  }
-}
-
-template <typename T>
-void ana::dataset::processor<T>::finalize(const ana::dataset::range &part) {
-  for (auto const &col : this->m_columns) {
-    col->finalize(part);
+    cnt->finalize(part);
   }
   for (auto const &sel : this->m_selections) {
     sel->finalize(part);
   }
-  for (auto const &cnt : this->m_aggregations) {
-    cnt->finalize(part);
+  for (auto const &col : this->m_columns) {
+    col->finalize(part);
   }
-  this->m_reader->finish_part(this->m_part);
-}
-
-template <typename T> void ana::dataset::processor<T>::process() {
-  // start processing
-  this->initialize(this->m_part);
-
-  // processing
-  for (unsigned long long entry = this->m_part.begin; entry < this->m_part.end;
-       ++entry) {
-    this->execute(this->m_part, entry);
-  }
-
-  // finish processing
-  this->finalize(this->m_part);
+  rdr.finalize(part);
 }

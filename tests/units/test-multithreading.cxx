@@ -6,11 +6,12 @@
 
 #include "ana/analogical.h"
 
-#include "plugins/table.h"
-#include "plugins/vecx.h"
+#include "ana/table.h"
+#include "ana/vecx.h"
 
-using ana::multithread;
 template <typename T> using dataflow = ana::dataflow<T>;
+using multithread = ana::multithread;
+
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
 
@@ -25,8 +26,7 @@ std::vector<int> get_correct_answer(const table_data_t &random_data) {
 
 std::vector<int> get_analogical_answer(const table_data_t &random_data,
                                        int ncores) {
-  ana::multithread::enable(ncores);
-  auto df = ana::dataflow<table>(random_data);
+  auto df = ana::dataflow<table>(random_data, multithread::enable(ncores));
   auto entry_value = df.read<int>("value");
   auto all_entries = df.filter<cut>("all")(df.constant(true));
   auto answer = df.book<vecx<int>>().fill(entry_value).at(all_entries);

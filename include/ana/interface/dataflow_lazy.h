@@ -149,11 +149,11 @@ public:
 
 public:
   lazy(dataflow<T> &dataflow, const lockstep::view<U> &operation)
-      : systematic<lazy<U>>::systematic(dataflow), lockstep::view<U>::view(
-                                                       operation) {}
+      : systematic<lazy<U>>::systematic(dataflow),
+        lockstep::view<U>::view(operation) {}
   lazy(dataflow<T> &dataflow, const lockstep::node<U> &operation)
-      : systematic<lazy<U>>::systematic(dataflow), lockstep::view<U>::view(
-                                                       operation) {}
+      : systematic<lazy<U>>::systematic(dataflow),
+        lockstep::view<U>::view(operation) {}
 
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;
@@ -177,8 +177,8 @@ public:
    * lazy one, and `variation(var_name)` is the newly-constructed one.
    */
   template <typename... Args, typename V = U,
-            std::enable_if_t<ana::column::template is_reader_v<V> ||
-                                 ana::column::template is_constant_v<V>,
+            std::enable_if_t<column::template is_reader_v<V> ||
+                                 column::template is_constant_v<V>,
                              bool> = false>
   auto vary(const std::string &var_name, Args &&...args) -> varied;
 
@@ -190,8 +190,7 @@ public:
   auto channel(const std::string &name, Args &&...args) const
       -> delayed_selection_applicator_t<Sel, Args...>;
 
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  template <typename V = U, std::enable_if_t<is_selection_v<V>, bool> = false>
   std::string path() const {
     return this->get_model_value(
         [](const selection &me) { return me.get_path(); });
@@ -203,9 +202,9 @@ public:
    * already available.
    * @return The result of the implemented aggregation.
    */
-  template <typename V = U,
-            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
-                false>
+  template <
+      typename V = U,
+      std::enable_if_t<aggregation::template has_output_v<V>, bool> = false>
   auto result() const -> decltype(std::declval<V>().get_result()) {
     this->m_df->analyze();
     this->merge_results();
@@ -216,9 +215,9 @@ public:
    * @brief Shorthand for `result` of aggregation.
    * @return `Result` the result of the implemented aggregation.
    */
-  template <typename V = U,
-            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
-                false>
+  template <
+      typename V = U,
+      std::enable_if_t<aggregation::template has_output_v<V>, bool> = false>
   auto operator->() const -> decltype(std::declval<V>().get_result()) {
     return this->result();
   }
@@ -240,9 +239,9 @@ public:
   DEFINE_LAZY_BINARY_OP(less_than_or_equal_to, <=)
 
 protected:
-  template <typename V = U,
-            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
-                false>
+  template <
+      typename V = U,
+      std::enable_if_t<aggregation::template has_output_v<V>, bool> = false>
   void merge_results() const {
     auto model = this->get_model();
     if (!model->is_merged()) {

@@ -1,45 +1,53 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
+#include <boost/histogram.hpp>
+#include <nlohmann/json.hpp>
 #include <random>
 #include <unordered_map>
 
 #include "ana/analogical.h"
 
-#include "plugins/table.h"
-#include "plugins/wavg.h"
+#include "ana/hist.h"
+#include "ana/json.h"
 
-using ana::multithread;
+namespace multithread = ana::multithread;
+namespace sample = ana::sample;
 template <typename T> using dataflow = ana::dataflow<T>;
 using cut = ana::selection::cut;
 using weight = ana::selection::weight;
 
-double get_correct_answer(const table_data_t &random_data) {
+double get_correct_answer(const nlohmann::json &random_data) {
   double wsum = 0;
   unsigned long long sumw = 0.0;
   for (unsigned int i = 0; i < random_data.size(); ++i) {
-    auto x = std::get<double>(random_data.at(i).at("value"));
-    auto w = std::get<unsigned int>(random_data.at(i).at("weight"));
+    auto x = random_data[i]["x"].template get<double>();
+    auto w = random_data[i]["weight"].template get<unsigned int>();
     wsum += x * w;
     sumw += w;
   }
-  return wsum / sumw;
+  return sumw;
 }
 
-double get_analogical_answer(const table_data_t &random_data) {
-  ana::multithread::disable();
-  auto df = ana::dataflow<table>(random_data);
-  auto entry_value = df.read<double>("value");
+double get_analogical_answer(const nlohmann::json &random_data) {
+  // auto data = ana::json(random_data);
+  auto df = ana::dataflow(ana::json(random_data), multithread::enable(1),
+                          sample::weight(1.0));
+  auto entry_value = df.read<double>("x");
   auto entries_weighted =
       df.filter<weight>("weight")(df.read<unsigned int>("weight"));
-  auto answer = df.book<wavg>().fill(entry_value).at(entries_weighted);
-  return answer.result();
+  auto answer =
+      df.book<ana::hist::hist<double>>(ana::hist::axis::regular(10, 0.0, 1000))
+          .fill(entry_value)
+          .at(entries_weighted);
+  return boost::histogram::algorithm::sum(*answer.result());
+  return 0.0;
 }
 
 TEST_CASE("compute weighted average") {
 
   // generate random data
-  table_data_t random_data;
+  nlohmann::json random_data;
   std::random_device rd;
   std::mt19937 gen(rd());
   unsigned int nentries = 100;
@@ -48,8 +56,8 @@ TEST_CASE("compute weighted average") {
   for (unsigned int i = 0; i < nentries; ++i) {
     auto x = random_value(gen);
     auto w = random_weight(gen);
-    random_data.emplace_back(
-        table_row_t{{"index", i}, {"value", x}, {"weight", w}});
+    random_data.emplace_back<nlohmann::json>(
+        {{"index", i}, {"x", x}, {"weight", w}});
   }
 
   // get answers

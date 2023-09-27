@@ -6,8 +6,9 @@ namespace ana {
 
 namespace output {
 
-template <typename Sum, typename Node, typename Dest, typename... Args>
-void dump(Node const &node, Dest &&dest, Args &&...args);
+template <typename Summary, typename Bookkeeper, typename Destination,
+          typename... Args>
+void dump(Bookkeeper const &node, Destination &&dest, Args &&...args);
 
 }
 
@@ -15,19 +16,21 @@ void dump(Node const &node, Dest &&dest, Args &&...args);
 
 #include "dataflow.h"
 
-template <typename Sum, typename Node, typename Dest, typename... Args>
-void ana::output::dump(Node const &node, Dest &&dest, Args &&...args) {
+template <typename Summary, typename Bookkeeper, typename Destination,
+          typename... Args>
+void ana::output::dump(Bookkeeper const &node, Destination &&dest,
+                       Args &&...args) {
   // instantiate summary
-  Sum summary(std::forward<Args>(args)...);
+  Summary summary(std::forward<Args>(args)...);
 
   // get selection paths
   auto selection_paths = node.nominal().get_model_value(
-      [](typename Node::nominal_type const &node) {
+      [](typename Bookkeeper::nominal_type const &node) {
         return node.list_selection_paths();
       });
 
   // record all results
-  if constexpr (dataflow_t<Node>::template is_nominal_v<Node>) {
+  if constexpr (dataflow_t<Bookkeeper>::template is_nominal_v<Bookkeeper>) {
     // if node is nominal-only
     for (auto const &selection_path : selection_paths) {
       summary.record(selection_path, node[selection_path].result());
@@ -45,5 +48,5 @@ void ana::output::dump(Node const &node, Dest &&dest, Args &&...args) {
     }
   }
   // dump all results to destination
-  summary.output(std::forward<Dest>(dest));
+  summary.output(std::forward<Destination>(dest));
 }
