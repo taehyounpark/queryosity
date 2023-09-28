@@ -28,23 +28,28 @@ nlohmann::json generate_random_data(unsigned int nentries = 100) {
     auto x = random_signal(gen);
     auto v = random_variation(gen);
     auto w = random_weight(gen);
-    random_data.emplace_back<nlohmann::json>(
-        {{"i", i}, {"w", w}, {"x_nom", x}, {"x_var", x * v}});
+    auto w_var = random_weight(gen);
+    random_data.emplace_back<nlohmann::json>({{"i", i},
+                                              {"w_nom", w},
+                                              {"w_var", w_var},
+                                              {"x_nom", x},
+                                              {"x_var", x * v}});
   }
   return random_data;
 }
 
 double get_correct_answer(const nlohmann::json &random_data) {
-  double wsumx_nom = 0;
-  double wsumx_var = 0;
+  double wsumx_xnom = 0;
+  double wsumx_xvar = 0;
   unsigned long long sumw = 0.0;
   for (unsigned int i = 0; i < random_data.size(); ++i) {
     auto x_nom = random_data[i]["x_nom"].template get<double>();
     auto x_var = random_data[i]["x_var"].template get<double>();
-    auto w = random_data[i]["w"].template get<unsigned int>();
-    wsumx_nom += x_nom * w;
-    wsumx_var += x_var * w;
-    sumw += w;
+    auto w_nom = random_data[i]["w_nom"].template get<unsigned int>();
+    auto w_var = random_data[i]["w_var"].template get<unsigned int>();
+    wsumx_xnom += x_nom * w_nom;
+    wsumx_xvar += x_var * w_nom;
+    sumw += w_nom;
   }
   return sumw;
 }
@@ -53,7 +58,8 @@ double get_analogical_answer(const nlohmann::json &random_data) {
   // auto data = ana::json(random_data);
   auto df = ana::dataflow(ana::json(random_data));
   auto x = df.read<double>("x_nom").vary("vary_x", "x_var");
-  auto weighted = df.weight("weight")(df.read<unsigned int>("w"));
+  auto weighted = df.weight("weight")(
+      df.read<unsigned int>("w_nom").vary("vary_w", "w_var"));
   auto answer =
       df.book<ana::hist::hist<double>>(ana::hist::axis::regular(20, 0.0, 200))
           .fill(x)
