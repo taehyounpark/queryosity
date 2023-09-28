@@ -12,17 +12,17 @@
 #include "ana/json.h"
 
 namespace multithread = ana::multithread;
+namespace dataset = ana::dataset;
 namespace sample = ana::sample;
+
 template <typename T> using dataflow = ana::dataflow<T>;
-using cut = ana::selection::cut;
+using json = ana::json;
+namespace hist = ana::hist;
 
 double get_correct_answer(const nlohmann::json &random_data) {
-  double sumx = 0;
   unsigned long long sumw = 0.0;
   for (unsigned int i = 0; i < random_data.size(); ++i) {
-    auto x = random_data[i]["x"].template get<double>();
     auto w = random_data[i]["w"].template get<unsigned int>();
-    sumx += x * w;
     sumw += w;
   }
   return sumw;
@@ -30,11 +30,11 @@ double get_correct_answer(const nlohmann::json &random_data) {
 
 double get_analogical_answer(const nlohmann::json &random_data) {
   // auto data = ana::json(random_data);
-  auto df = ana::dataflow(ana::json(random_data));
+  auto df = ana::dataflow(json(random_data));
   auto entry_value = df.read<double>("x");
   auto entries_weighted = df.weight("weight")(df.read<unsigned int>("w"));
   auto answer =
-      df.book<ana::hist::hist<double>>(ana::hist::axis::regular(10, 0.0, 1000))
+      df.book<hist::hist<double>>(ana::hist::axis::regular(10, 0.0, 1000))
           .fill(entry_value)
           .at(entries_weighted);
   return boost::histogram::algorithm::sum(*answer.result());

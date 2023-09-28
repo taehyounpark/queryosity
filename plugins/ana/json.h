@@ -16,7 +16,7 @@ public:
 
   ana::dataset::partition allocate();
 
-  // std::unique_ptr<ana::dataset::reader>
+  // std::unique_ptr<ana::dataset::row>
   // read(const ana::dataset::range &part) const;
 
   template <typename T>
@@ -60,9 +60,9 @@ ana::dataset::partition ana::json::allocate() {
   return parts;
 }
 
-// std::unique_ptr<ana::dataset::reader>
+// std::unique_ptr<ana::dataset::row>
 // ana::json::read(const ana::dataset::range &part) const {
-//   return std::make_unique<ana::dataset::reader>();
+//   return std::make_unique<ana::dataset::row>();
 // }
 
 template <typename Val>

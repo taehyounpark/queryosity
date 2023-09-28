@@ -444,7 +444,7 @@ struct partition {
 } // namespace dataset
 
 template <typename T>
-using read_dataset_t = typename decltype(std::declval<T const &>().read_dataset(
+using open_rows_t = typename decltype(std::declval<T const &>().open_rows(
     std::declval<const ana::dataset::range &>()))::element_type;
 
 template <typename T, typename Val>
@@ -842,8 +842,8 @@ public:
 template <typename T>
 template <typename Val>
 decltype(auto)
-ana::dataset::reader<T>::read_column(const range &part,
-                                     const std::string &name) const {
+ana::dataset::row<T>::read_column(const range &part,
+                                  const std::string &name) const {
 
   using result_type =
       decltype(static_cast<const T *>(this)->template read<Val>(part, name));
@@ -854,18 +854,18 @@ ana::dataset::reader<T>::read_column(const range &part,
 }
 
 template <typename T>
-void ana::dataset::reader<T>::start_part(const ana::dataset::range &part) {
+void ana::dataset::row<T>::start_part(const ana::dataset::range &part) {
   static_cast<T *>(this)->start(part);
 }
 
 template <typename T>
-void ana::dataset::reader<T>::read_entry(const ana::dataset::range &part,
-                                         unsigned long long entry) {
+void ana::dataset::row<T>::read_entry(const ana::dataset::range &part,
+                                      unsigned long long entry) {
   static_cast<T *>(this)->next(part, entry);
 }
 
 template <typename T>
-void ana::dataset::reader<T>::finish_part(const ana::dataset::range &part) {
+void ana::dataset::row<T>::finish_part(const ana::dataset::range &part) {
   static_cast<T *>(this)->finish(part);
 }
 
@@ -984,7 +984,7 @@ private:
 public:
   partition allocate_partition();
   double normalize_scale();
-  decltype(auto) read_dataset(const range &part) const;
+  decltype(auto) open_rows(const range &part) const;
 
   /**
    * @brief Allocate partition for multithreading.
@@ -1015,7 +1015,7 @@ public:
    * dataset.
    * @return The input reader.
    * @details **Important**: the return type is required to be a
-   * `std::unique_ptr` of a valid `dataset::reader` implementation as required
+   * `std::unique_ptr` of a valid `dataset::row` implementation as required
    * for use in a `ana::concurrent` container. This method is \a const as it is
    * to be performed N times for each thread, and each subsequent call should
    * not alter the logical state of this class.
@@ -1069,15 +1069,15 @@ template <typename T> void ana::dataset::input<T>::finish() {
 
 template <typename T>
 decltype(auto)
-ana::dataset::input<T>::read_dataset(const ana::dataset::range &part) const {
+ana::dataset::input<T>::open_rows(const ana::dataset::range &part) const {
 
   using result_type = decltype(static_cast<const T *>(this)->read(part));
   static_assert(is_unique_ptr_v<result_type>,
-                "not a std::unique_ptr of ana::dataset::reader<T>");
+                "not a std::unique_ptr of ana::dataset::row<T>");
 
   using reader_type = typename result_type::element_type;
-  static_assert(std::is_base_of_v<dataset::reader<reader_type>, reader_type>,
-                "not an implementation of ana::dataset::reader<T>");
+  static_assert(std::is_base_of_v<dataset::row<reader_type>, reader_type>,
+                "not an implementation of ana::dataset::row<T>");
 
   return this->read(part);
 }
@@ -2210,7 +2210,7 @@ namespace ana {
 template <typename T> class column::computation {
 
 public:
-  computation(const dataset::range &part, dataset::reader<T> &reader);
+  computation(const dataset::range &part, dataset::row<T> &reader);
   virtual ~computation() = default;
 
 public:
@@ -2237,7 +2237,7 @@ protected:
 
 protected:
   const dataset::range m_part;
-  dataset::reader<T> *m_reader;
+  dataset::row<T> *m_reader;
   std::vector<column *> m_columns;
 };
 
@@ -2313,7 +2313,7 @@ ana::column::evaluator<T>::evaluate_column(cell<Vals> const &...columns) const {
 
 template <typename T>
 ana::column::computation<T>::computation(const ana::dataset::range &part,
-                                         dataset::reader<T> &reader)
+                                         dataset::row<T> &reader)
     : m_part(part), m_reader(&reader) {}
 
 template <typename T>
@@ -2380,8 +2380,7 @@ class processor : public operation,
                   public aggregation::experiment {
 
 public:
-  processor(const dataset::range &part, dataset::reader<T> &reader,
-            double scale);
+  processor(const dataset::range &part, dataset::row<T> &reader, double scale);
   virtual ~processor() = default;
 
 public:
@@ -2399,7 +2398,7 @@ public:
 
 template <typename T>
 ana::dataset::processor<T>::processor(const ana::dataset::range &part,
-                                      dataset::reader<T> &reader, double scale)
+                                      dataset::row<T> &reader, double scale)
     : operation(), column::computation<T>(part, reader),
       aggregation::experiment(scale) {}
 
@@ -2466,9 +2465,8 @@ namespace ana {
 template <typename T> class sample {
 
 public:
-  using dataset_reader_type = read_dataset_t<T>;
-  using dataset_processor_type =
-      typename dataset::processor<dataset_reader_type>;
+  using dataset_row_type = open_rows_t<T>;
+  using dataset_processor_type = typename dataset::processor<dataset_row_type>;
 
 public:
   sample();
@@ -2497,7 +2495,7 @@ protected:
   double m_scale;
 
   dataset::partition m_partition;
-  lockstep::node<dataset_reader_type> m_readers;
+  lockstep::node<dataset_row_type> m_readers;
   lockstep::node<dataset_processor_type> m_processors;
 };
 
@@ -2552,7 +2550,7 @@ template <typename T> void ana::sample<T>::initialize() {
   // open dataset reader and processor for each thread
   // model reprents whole dataset
   auto part = m_partition.total();
-  auto rdr = m_dataset->read_dataset(part);
+  auto rdr = m_dataset->open_rows(part);
   auto proc = std::make_unique<dataset_processor_type>(part, *rdr, m_scale);
   m_readers.set_model(std::move(rdr));
   m_processors.set_model(std::move(proc));
@@ -2561,7 +2559,7 @@ template <typename T> void ana::sample<T>::initialize() {
   m_processors.clear_slots();
   for (unsigned int islot = 0; islot < m_partition.size(); ++islot) {
     auto part = m_partition.get_part(islot);
-    auto rdr = m_dataset->read_dataset(part);
+    auto rdr = m_dataset->open_rows(part);
     auto proc = std::make_unique<dataset_processor_type>(part, *rdr, m_scale);
     m_readers.add_slot(std::move(rdr));
     m_processors.add_slot(std::move(proc));
@@ -2594,7 +2592,7 @@ public:
   template <typename U> class lazy;
 
 public:
-  using dataset_reader_type = typename sample<T>::dataset_reader_type;
+  using dataset_row_type = typename sample<T>::dataset_row_type;
   using dataset_processor_type = typename sample<T>::dataset_processor_type;
 
   template <typename U>
@@ -2644,7 +2642,7 @@ public:
    */
   template <typename Val>
   auto read(const std::string &name)
-      -> lazy<read_column_t<read_dataset_t<T>, Val>>;
+      -> lazy<read_column_t<open_rows_t<T>, Val>>;
 
   /**
    * @brief Define a constant.
@@ -3885,13 +3883,13 @@ ana::dataflow<T>::dataflow(const std::vector<std::string> &file_paths,
 template <typename T>
 template <typename Val>
 auto ana::dataflow<T>::read(const std::string &name)
-    -> lazy<read_column_t<read_dataset_t<T>, Val>> {
+    -> lazy<read_column_t<open_rows_t<T>, Val>> {
   this->initialize();
   auto act = this->m_processors.get_lockstep_node(
       [name = name](dataset_processor_type &proc) {
         return proc.template read<Val>(name);
       });
-  auto lzy = lazy<read_column_t<read_dataset_t<T>, Val>>(*this, act);
+  auto lzy = lazy<read_column_t<open_rows_t<T>, Val>>(*this, act);
   this->add_operation(std::move(act));
   return lzy;
 }

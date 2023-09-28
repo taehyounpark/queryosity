@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "dataset_processor.h"
-#include "dataset_reader.h"
+#include "dataset_row.h"
 #include "multithread.h"
 
 namespace ana {

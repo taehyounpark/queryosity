@@ -27,7 +27,7 @@ public:
   template <typename U> class lazy;
 
 public:
-  using dataset_reader_type = dataset::reader;
+  using dataset_row_type = dataset::row;
   using dataset_processor_type = dataset::processor;
 
   template <typename U>
@@ -203,7 +203,7 @@ protected:
   dataset::partition m_partition;
 
   lockstep::node<dataset::range> m_parts;
-  lockstep::node<dataset_reader_type> m_readers;
+  lockstep::node<dataset_row_type> m_rows;
   lockstep::node<dataset_processor_type> m_processors;
 
   std::vector<std::unique_ptr<operation>> m_operations;
@@ -247,24 +247,22 @@ ana::dataflow<T>::dataflow(T &&ds, ana::multithread::configuration mtcfg,
 
   // open dataset reader and processor for each thread
   // slot for each partition range
-  this->m_readers = lockstep::invoke_node(
-      [this](dataset::range &part) {
-        return this->m_dataset.read_dataset(part);
-      },
+  this->m_rows = lockstep::invoke_node(
+      [this](dataset::range &part) { return this->m_dataset.open_rows(part); },
       this->m_parts.get_view());
   this->m_processors =
       lockstep::node<dataset::processor>(m_parts.concurrency(), this->m_weight);
 
   // auto part = this->m_partition.total();
-  // auto rdr = this->m_dataset.read_dataset(part);
+  // auto rdr = this->m_dataset.open_rows(part);
   // auto proc = std::make_unique<dataset_processor_type>(this->m_weight);
-  // this->m_readers.set_model(std::move(rdr));
+  // this->m_rows.set_model(std::move(rdr));
   // this->m_processors.set_model(std::move(proc));
   // for (unsigned int ipart = 0; ipart < m_partition.size(); ++ipart) {
   //   auto part = m_partition.get_part(ipart);
-  //   auto rdr = m_dataset->read_dataset(part);
+  //   auto rdr = m_dataset->open_rows(part);
   //   auto proc = std::make_unique<dataset_processor_type>(this->m_weight);
-  //   this->m_readers.add_slot(std::move(rdr));
+  //   this->m_rows.add_slot(std::move(rdr));
   //   this->m_processors.add_slot(std::move(proc));
   // }
 }
@@ -528,9 +526,9 @@ template <typename T> void ana::dataflow<T>::analyze() {
 
   this->m_processors.run_slots(
       this->m_mtcfg,
-      [](dataset_processor_type &proc, dataset::reader &rdr,
+      [](dataset_processor_type &proc, dataset::row &rdr,
          const dataset::range &part) { proc.process(rdr, part); },
-      this->m_readers.get_view(), this->m_parts.get_view());
+      this->m_rows.get_view(), this->m_parts.get_view());
 
   this->m_dataset.finalize_dataset();
 

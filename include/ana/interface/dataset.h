@@ -14,11 +14,11 @@ namespace ana {
 
 namespace dataset {
 
-class reader;
+template <typename T> class input;
+
+class row;
 
 template <typename T> class column;
-
-template <typename T> class dataset;
 
 /**
  * @brief Range of a dataset to process by one thread slot.
@@ -91,7 +91,7 @@ struct head {
 } // namespace dataset
 
 template <typename T>
-using read_dataset_t = typename decltype(std::declval<T const &>().read_dataset(
+using open_rows_t = typename decltype(std::declval<T const &>().open_rows(
     std::declval<const ana::dataset::range &>()))::element_type;
 
 template <typename T, typename Val>
@@ -109,7 +109,7 @@ static constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 } // namespace ana
 
 #include "column.h"
-#include "dataset_reader.h"
+#include "dataset_row.h"
 
 // template <typename T, typename... Args>
 // T inline ana::dataset::open(Args &&...args) {

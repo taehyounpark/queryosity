@@ -4,7 +4,7 @@
 
 #include "interface/dataset_column.h"
 #include "interface/dataset_input.h"
-#include "interface/dataset_reader.h"
+#include "interface/dataset_row.h"
 
 #include "interface/column_definition.h"
 

@@ -8,11 +8,11 @@ namespace dataset {
 
 struct range;
 
-class reader : public operation {
+class row : public operation {
 
 public:
-  reader() = default;
-  virtual ~reader() = default;
+  row() = default;
+  virtual ~row() = default;
 
 public:
   virtual void initialize(const range &) override;
@@ -26,9 +26,9 @@ public:
 
 #include "dataset.h"
 
-void ana::dataset::reader::initialize(const ana::dataset::range &) {}
+void ana::dataset::row::initialize(const ana::dataset::range &) {}
 
-void ana::dataset::reader::execute(const ana::dataset::range &,
-                                   unsigned long long) {}
+void ana::dataset::row::execute(const ana::dataset::range &,
+                                unsigned long long) {}
 
-void ana::dataset::reader::finalize(const ana::dataset::range &) {}
+void ana::dataset::row::finalize(const ana::dataset::range &) {}

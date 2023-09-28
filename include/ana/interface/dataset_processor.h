@@ -16,7 +16,7 @@ public:
   virtual ~processor() = default;
 
 public:
-  void process(reader &rdr, range const &part);
+  void process(row &row, range const &part);
 };
 
 } // namespace dataset
@@ -29,11 +29,11 @@ public:
 ana::dataset::processor::processor(double scale)
     : aggregation::experiment(scale) {}
 
-void ana::dataset::processor::process(ana::dataset::reader &rdr,
+void ana::dataset::processor::process(ana::dataset::row &row,
                                       ana::dataset::range const &part) {
 
   // initialize
-  rdr.initialize(part);
+  row.initialize(part);
   for (auto const &col : this->m_columns) {
     col->initialize(part);
   }
@@ -46,7 +46,7 @@ void ana::dataset::processor::process(ana::dataset::reader &rdr,
 
   // execute
   for (unsigned long long entry = part.begin; entry < part.end; ++entry) {
-    rdr.execute(part, entry);
+    row.execute(part, entry);
     for (auto const &col : this->m_columns) {
       col->execute(part, entry);
     }
@@ -68,5 +68,5 @@ void ana::dataset::processor::process(ana::dataset::reader &rdr,
   for (auto const &col : this->m_columns) {
     col->finalize(part);
   }
-  rdr.finalize(part);
+  row.finalize(part);
 }
