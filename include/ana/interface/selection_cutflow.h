@@ -16,7 +16,7 @@ public:
 
 public:
   template <typename Sel, typename F>
-  auto filter(selection const *prev, const std::string &name,
+  auto select(selection const *prev, const std::string &name,
               F expression) const
       -> std::unique_ptr<applicator<column::template equation_t<F>>>;
 
@@ -44,7 +44,7 @@ protected:
 #include "selection_weight.h"
 
 template <typename Sel, typename F>
-auto ana::selection::cutflow::filter(selection const *prev,
+auto ana::selection::cutflow::select(selection const *prev,
                                      const std::string &name,
                                      F expression) const
     -> std::unique_ptr<applicator<column::template equation_t<F>>> {

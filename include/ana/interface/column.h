@@ -8,6 +8,10 @@
 
 namespace ana {
 
+namespace dataset {
+template <typename T> class column;
+}
+
 namespace detail {
 
 // traits to check if a type is callable but not a std::function
@@ -31,8 +35,6 @@ class column : public operation {
 public:
   class computation;
 
-  template <typename T> class reader;
-
   template <typename T> class constant;
 
   template <typename T> class calculation;
@@ -52,7 +54,7 @@ public:
 public:
   template <typename T>
   static constexpr std::true_type
-  check_reader(typename column::reader<T> const &);
+  check_reader(typename dataset::column<T> const &);
   static constexpr std::false_type check_reader(...);
 
   template <typename T>

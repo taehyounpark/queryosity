@@ -137,10 +137,10 @@ public:
   using dataset_type = typename systematic<lazy<U>>::dataset_type;
   using operation_type = U;
 
-  template <typename Sel, typename... Args>
-  using delayed_selection_applicator_t =
-      decltype(std::declval<dataflow<T>>().template filter<Sel>(
-          std::declval<std::string>(), std::declval<Args>()...));
+  // template <typename... Args>
+  // using delayed_selection_applicator_t =
+  //     decltype(std::declval<dataflow<T>>().template filter(
+  //         std::declval<std::string>(), std::declval<Args>()...));
 
 public:
   // friends with the main dataflow graph & any other lazy nodes
@@ -182,13 +182,14 @@ public:
                              bool> = false>
   auto vary(const std::string &var_name, Args &&...args) -> varied;
 
-  template <typename Sel, typename... Args>
-  auto filter(const std::string &name, Args &&...args) const
-      -> delayed_selection_applicator_t<Sel, Args...>;
+  template <typename... Args>
+  auto filter(const std::string &name, Args &&...args) const;
 
-  template <typename Sel, typename... Args>
-  auto channel(const std::string &name, Args &&...args) const
-      -> delayed_selection_applicator_t<Sel, Args...>;
+  template <typename... Args>
+  auto weight(const std::string &name, Args &&...args) const;
+
+  template <typename... Args>
+  auto channel(const std::string &name, Args &&...args) const;
 
   template <typename V = U, std::enable_if_t<is_selection_v<V>, bool> = false>
   std::string path() const {
@@ -299,13 +300,12 @@ bool ana::dataflow<T>::lazy<Act>::has_variation(const std::string &) const {
 
 template <typename T>
 template <typename Act>
-template <typename Sel, typename... Args>
+template <typename... Args>
 auto ana::dataflow<T>::lazy<Act>::filter(const std::string &name,
-                                         Args &&...args) const
-    -> delayed_selection_applicator_t<Sel, Args...> {
+                                         Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Act>) {
-    return this->m_df->template filter<Sel>(*this, name,
-                                            std::forward<Args>(args)...);
+    return this->m_df->template select<selection::cut>(
+        *this, name, std::forward<Args>(args)...);
   } else {
     static_assert(std::is_base_of_v<selection, Act>,
                   "filter must be called from a selection");
@@ -314,13 +314,26 @@ auto ana::dataflow<T>::lazy<Act>::filter(const std::string &name,
 
 template <typename T>
 template <typename Act>
-template <typename Sel, typename... Args>
-auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
-                                          Args &&...args) const
-    -> delayed_selection_applicator_t<Sel, Args...> {
+template <typename... Args>
+auto ana::dataflow<T>::lazy<Act>::weight(const std::string &name,
+                                         Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Act>) {
-    return this->m_df->template channel<Sel>(*this, name,
-                                             std::forward<Args>(args)...);
+    return this->m_df->template select<selection::weight>(
+        *this, name, std::forward<Args>(args)...);
+  } else {
+    static_assert(std::is_base_of_v<selection, Act>,
+                  "filter must be called from a selection");
+  }
+}
+
+template <typename T>
+template <typename Act>
+template <typename... Args>
+auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
+                                          Args &&...args) const {
+  if constexpr (std::is_base_of_v<selection, Act>) {
+    return this->m_df->template channel<selection::weight>(
+        *this, name, std::forward<Args>(args)...);
   } else {
     static_assert(std::is_base_of_v<selection, Act>,
                   "channel must be called from a selection");

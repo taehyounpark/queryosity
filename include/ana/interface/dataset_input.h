@@ -5,11 +5,11 @@
 namespace ana {
 namespace dataset {
 
-template <typename DS> class dataset {
+template <typename DS> class input {
 
 public:
-  dataset() = default;
-  ~dataset() = default;
+  input() = default;
+  ~input() = default;
 
 public:
   partition allocate_partition();
@@ -39,42 +39,42 @@ public:
 #include "dataset_reader.h"
 
 template <typename DS>
-ana::dataset::partition ana::dataset::dataset<DS>::allocate_partition() {
+ana::dataset::partition ana::dataset::input<DS>::allocate_partition() {
   return this->allocate();
 }
 
 template <typename DS>
-ana::dataset::partition ana::dataset::dataset<DS>::allocate() {
+ana::dataset::partition ana::dataset::input<DS>::allocate() {
   return static_cast<DS *>(this)->allocate();
 }
 
-template <typename DS> double ana::dataset::dataset<DS>::normalize_scale() {
+template <typename DS> double ana::dataset::input<DS>::normalize_scale() {
   return static_cast<DS *>(this)->normalize();
 }
 
-template <typename DS> inline double ana::dataset::dataset<DS>::normalize() {
+template <typename DS> inline double ana::dataset::input<DS>::normalize() {
   return 1.0;
 }
 
-template <typename DS> void ana::dataset::dataset<DS>::initialize_dataset() {
+template <typename DS> void ana::dataset::input<DS>::initialize_dataset() {
   static_cast<DS *>(this)->initialize();
 }
 
-template <typename DS> void ana::dataset::dataset<DS>::finalize_dataset() {
+template <typename DS> void ana::dataset::input<DS>::finalize_dataset() {
   static_cast<DS *>(this)->finalize();
 }
 
-template <typename DS> void ana::dataset::dataset<DS>::initialize() {
+template <typename DS> void ana::dataset::input<DS>::initialize() {
   // nothing to do (yet)
 }
 
-template <typename DS> void ana::dataset::dataset<DS>::finalize() {
+template <typename DS> void ana::dataset::input<DS>::finalize() {
   // nothing to do (yet)
 }
 
 template <typename DS>
 decltype(auto)
-ana::dataset::dataset<DS>::read_dataset(const ana::dataset::range &part) const {
+ana::dataset::input<DS>::read_dataset(const ana::dataset::range &part) const {
 
   // using result_type = decltype(static_cast<const DS *>(this)->read(part));
   // static_assert(is_unique_ptr_v<result_type>,
@@ -90,8 +90,8 @@ ana::dataset::dataset<DS>::read_dataset(const ana::dataset::range &part) const {
 template <typename DS>
 template <typename Val>
 decltype(auto)
-ana::dataset::dataset<DS>::read_column(const ana::dataset::range &part,
-                                       const std::string &name) const {
+ana::dataset::input<DS>::read_column(const ana::dataset::range &part,
+                                     const std::string &name) const {
 
   // using result_type =
   //     decltype(static_cast<const DS *>(this)->template read<Val>(part,
@@ -108,6 +108,6 @@ ana::dataset::dataset<DS>::read_column(const ana::dataset::range &part,
 
 template <typename DS>
 std::unique_ptr<ana::dataset::reader>
-ana::dataset::dataset<DS>::play(const ana::dataset::range &part) const {
+ana::dataset::input<DS>::play(const ana::dataset::range &) const {
   return std::make_unique<ana::dataset::reader>();
 }

@@ -1,8 +1,10 @@
 #pragma once
 
-#include "dataset.h"
-
 namespace ana {
+
+namespace dataset {
+struct range;
+}
 
 /**
  * @class operation
@@ -14,10 +16,10 @@ public:
   operation() = default;
   virtual ~operation() = default;
 
-  virtual void initialize(const dataset::range &part) = 0;
-  virtual void execute(const dataset::range &part,
+  virtual void initialize(const ana::dataset::range &part) = 0;
+  virtual void execute(const ana::dataset::range &part,
                        unsigned long long entry) = 0;
-  virtual void finalize(const dataset::range &part) = 0;
+  virtual void finalize(const ana::dataset::range &part) = 0;
 };
 
 } // namespace ana

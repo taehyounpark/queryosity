@@ -14,13 +14,11 @@ using regular = boost::histogram::axis::regular<>;
 using integer = boost::histogram::axis::integer<>;
 using variable = boost::histogram::axis::variable<>;
 using boolean = boost::histogram::axis::boolean<>;
-using category = boost::histogram::axis::category<>;
 
 } // namespace axis
 
 using axis_t = boost::histogram::axis::variant<axis::regular, axis::integer,
-                                               axis::variable, axis::boolean,
-                                               axis::category>;
+                                               axis::variable, axis::boolean>;
 using axes_t = std::vector<axis_t>;
 using hist_t = boost::histogram::histogram<axes_t>;
 

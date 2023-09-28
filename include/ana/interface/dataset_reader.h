@@ -1,30 +1,34 @@
 #pragma once
 
-#include "dataset.h"
+#include "operation.h"
 
 namespace ana {
 
 namespace dataset {
 
+struct range;
+
 class reader : public operation {
 
 public:
   reader() = default;
-  ~reader() = default;
+  virtual ~reader() = default;
 
 public:
-  virtual void initialize(const range &part) override;
-  virtual void execute(const range &part, unsigned long long entry) override;
-  virtual void finalize(const range &part) override;
+  virtual void initialize(const range &) override;
+  virtual void execute(const range &, unsigned long long) override;
+  virtual void finalize(const range &) override;
 };
 
 } // namespace dataset
 
 } // namespace ana
 
-void ana::dataset::reader::initialize(const ana::dataset::range &part) {}
+#include "dataset.h"
 
-void ana::dataset::reader::execute(const ana::dataset::range &part,
-                                   unsigned long long entry) {}
+void ana::dataset::reader::initialize(const ana::dataset::range &) {}
 
-void ana::dataset::reader::finalize(const ana::dataset::range &part) {}
+void ana::dataset::reader::execute(const ana::dataset::range &,
+                                   unsigned long long) {}
+
+void ana::dataset::reader::finalize(const ana::dataset::range &) {}

@@ -14,11 +14,11 @@ namespace ana {
 
 namespace dataset {
 
-// template <typename T, typename... Args> T open(Args &&...args);
+class reader;
+
+template <typename T> class column;
 
 template <typename T> class dataset;
-
-class reader;
 
 /**
  * @brief Range of a dataset to process by one thread slot.

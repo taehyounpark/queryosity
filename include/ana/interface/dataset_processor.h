@@ -8,7 +8,8 @@ namespace ana {
 
 namespace dataset {
 
-class processor : public column::computation, public aggregation::experiment {
+class processor : public ana::column::computation,
+                  public aggregation::experiment {
 
 public:
   processor(double scale);

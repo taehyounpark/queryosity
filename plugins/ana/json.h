@@ -4,7 +4,7 @@
 
 namespace ana {
 
-class json : public ana::dataset::dataset<json> {
+class json : public ana::dataset::input<json> {
 
 public:
   template <typename T> class column;
@@ -27,7 +27,7 @@ protected:
   nlohmann::json m_data;
 };
 
-template <typename T> class json::column : public ana::column::reader<T> {
+template <typename T> class json::column : public ana::dataset::column<T> {
 
 public:
   column(const nlohmann::json &data, const std::string &name);

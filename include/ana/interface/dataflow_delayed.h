@@ -267,10 +267,11 @@ protected:
   auto get_aggregation(const std::string &selection_path) const
       -> lazy<aggregation::booked_t<V>> {
     return lazy<aggregation::booked_t<V>>(
-        *this->m_df,
-        this->get_lockstep_view([selection_path = selection_path](V &bkpr) {
-          return bkpr.get_aggregation(selection_path);
-        }));
+        *this->m_df, lockstep::invoke_view(
+                         [selection_path = selection_path](V &bkpr) {
+                           return bkpr.get_aggregation(selection_path);
+                         },
+                         this->get_view()));
   }
 
   template <typename... Args, typename V = Bld,
@@ -299,11 +300,11 @@ protected:
     // nominal
     return delayed<V>(
         *this->m_df,
-        this->get_lockstep_node(
+        lockstep::invoke_node(
             [](V &fillable, typename Nodes::operation_type &...cols) {
               return fillable.book_fill(cols...);
             },
-            columns...));
+            this->get_view(), columns...));
   }
 
   template <typename... Nodes, typename V = Bld,
