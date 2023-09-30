@@ -26,9 +26,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - name: Install Boost
+      - name: Install nlohmann::json & boost::histogram
         run: |
           sudo apt-get -y update
+          sudo apt-get install -y nlohmann-json-dev
           sudo apt-get -y install libboost-dev
       - name: Run CMake
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DANALOGICAL_TESTS=ON
