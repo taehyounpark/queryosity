@@ -26,11 +26,11 @@ public:
 #include "aggregation.h"
 #include "selection.h"
 
-ana::dataset::processor::processor(double scale)
+inline ana::dataset::processor::processor(double scale)
     : aggregation::experiment(scale) {}
 
-void ana::dataset::processor::process(ana::dataset::row &row,
-                                      ana::dataset::range const &part) {
+inline void ana::dataset::processor::process(ana::dataset::row &row,
+                                             ana::dataset::range const &part) {
 
   // initialize
   row.initialize(part);

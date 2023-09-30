@@ -56,7 +56,7 @@ double get_correct_answer(const nlohmann::json &random_data) {
 
 double get_analogical_answer(const nlohmann::json &random_data) {
   // auto data = ana::json(random_data);
-  auto df = ana::dataflow(ana::json(random_data));
+  ana::dataflow<Tree> df(ana::json(random_data));
   auto x = df.read<double>("x_nom").vary("vary_x", "x_var");
   auto weighted = df.weight("weight")(
       df.read<unsigned int>("w_nom").vary("vary_w", "w_var"));

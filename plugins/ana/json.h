@@ -16,9 +16,6 @@ public:
 
   ana::dataset::partition allocate();
 
-  // std::unique_ptr<ana::dataset::row>
-  // read(const ana::dataset::range &part) const;
-
   template <typename T>
   std::unique_ptr<column<T>> read(const ana::dataset::range &part,
                                   const std::string &name) const;

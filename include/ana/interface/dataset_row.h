@@ -26,9 +26,9 @@ public:
 
 #include "dataset.h"
 
-void ana::dataset::row::initialize(const ana::dataset::range &) {}
+inline void ana::dataset::row::initialize(const ana::dataset::range &) {}
 
-void ana::dataset::row::execute(const ana::dataset::range &,
-                                unsigned long long) {}
+inline void ana::dataset::row::execute(const ana::dataset::range &,
+                                       unsigned long long) {}
 
-void ana::dataset::row::finalize(const ana::dataset::range &) {}
+inline void ana::dataset::row::finalize(const ana::dataset::range &) {}

@@ -51,7 +51,7 @@ TEST_CASE("correctness & consistency of selections") {
   }
 
   // compute answer with analogical
-  auto df = ana::dataflow(ana::json(random_data));
+  ana::dataflow<Tree> df(ana::json(random_data));
   auto category = df.read<std::string>("c");
 
   auto raw_entries = df.filter("raw")(df.constant(true));

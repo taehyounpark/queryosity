@@ -173,7 +173,7 @@ inline bool ana::multithread::status() {
   return s_suggestion == 0 ? false : true;
 }
 
-inline unsigned int ana::multithread::concurrency() {
+inline unsigned int nthreads {
   return std::max<unsigned int>(
       1, s_suggestion < 0 ? std::thread::hardware_concurrency() : s_suggestion);
 }
@@ -2541,7 +2541,7 @@ template <typename T> void ana::sample<T>::initialize() {
   // 2. truncate entries to limit
   m_partition.truncate(m_max_entries);
   // 3. merge parts to concurrency limit
-  m_partition.merge(ana::multithread::concurrency());
+  m_partition.merge(nthreads);
 
   // calculate a normalization factor
   // scale the sample by its inverse

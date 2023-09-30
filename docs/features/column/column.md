@@ -6,7 +6,7 @@ auto x = df.read<int>("x");
 ??? abstract "Implementation source code"
     ```cpp
     template <typename T>
-    class Tree::Branch : public ana::column::reader<T>
+    class Tree::Branch : public ana::dataset::column<T>
     {
 
     public:
@@ -36,11 +36,11 @@ auto x = df.read<int>("x");
 
 !!! info "Arbitrary column types"
     The interface is agnostic (oblivious, to be exact) to the column data types being read.
-    As long the `column::reader` of a given arbitrary type is properly implemented, it can be used.
+    As long the `dataset::column` of a given arbitrary type is properly implemented, it can be used.
     ```cpp
     // explicit template specialization for DataType
     template <>
-    class Tree::Branch<DataType> : public ana::column::reader<DataType> { /* ... */ };
+    class Tree::Branch<DataType> : public ana::dataset::column<DataType> { /* ... */ };
     ```
     ```cpp
     auto y = df.read<DataType>("y");  // <- success!

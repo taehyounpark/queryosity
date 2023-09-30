@@ -7,5 +7,5 @@ ana::multithread::enable(/* optional: thread count, default: system max. */);
     In order for the multithreading to be valid for, analyzers must ensure the following:
 
     1. `ana::dataset::input` must define a way of partitioning the dataset for parallel processing.
-    2. `ana::dataset::row` and `ana::column::reader` must access the underlying data in a thread-safe way.
+    2. `ana::dataset::row` and `ana::dataset::column` must access the underlying data in a thread-safe way.
     2. `ana::column::definition` and `ana::aggregation::logic` implementations must be thread-safe.

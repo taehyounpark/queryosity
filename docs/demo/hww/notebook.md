@@ -91,7 +91,7 @@ auto cut_2l = df.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
                 .filter("2l")(n_lep_sel == n_lep_req);
 
 // opposite-sign
-auto cut_2los = cut_2l.filter<cut>("2los", [](const VecI& lep_charge){return lep_charge.at(0)+lep_charge.at(1)==0;})(lep_Q);
+auto cut_2los = cut_2l.filter("2los", [](const VecI& lep_charge){return lep_charge.at(0)+lep_charge.at(1)==0;})(lep_Q);
 // opposite-sign+different-flavour
 auto cut_2ldf = cut_2los.channel<cut>("2ldf", [](const VecUI& lep_type){return lep_type.at(0)+lep_type.at(1)==24;})(lep_type);
 // opposite-sign+same-flavour
@@ -99,10 +99,10 @@ auto cut_2lsf = cut_2los.channel<cut>("2lsf", [](const VecUI& lep_type){return (
 
 // same cuts at different branches
 auto mll_cut = df.constant(60.0);
-auto cut_2ldf_sr = cut_2ldf.filter<cut>("sr")(mll < mll_cut);  // path = "2ldf/sr"
-auto cut_2lsf_sr = cut_2lsf.filter<cut>("sr")(mll < mll_cut);  // path = "2lsf/sr"
-auto cut_2ldf_wwcr = cut_2ldf.filter<cut>("wwcr")(mll > mll_cut);  // path = "2ldf/cr"
-auto cut_2lsf_wwcr = cut_2lsf.filter<cut>("wwcr")(mll > mll_cut);  // path = "2lsf/cr"
+auto cut_2ldf_sr = cut_2ldf.filter("sr")(mll < mll_cut);  // path = "2ldf/sr"
+auto cut_2lsf_sr = cut_2lsf.filter("sr")(mll < mll_cut);  // path = "2lsf/sr"
+auto cut_2ldf_wwcr = cut_2ldf.filter("wwcr")(mll > mll_cut);  // path = "2ldf/cr"
+auto cut_2lsf_wwcr = cut_2lsf.filter("wwcr")(mll > mll_cut);  // path = "2lsf/cr"
 ```
 ```cpp title="Book histograms"
 // Hist<1,float> is user-implemented.
@@ -145,7 +145,7 @@ l1p4.has_variation("sf_var");  // false
 // ...
 
 auto cut_2l = df.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
-                 .filter<cut>("2l")(n_lep_sel == n_lep_req);
+                 .filter("2l")(n_lep_sel == n_lep_req);
 cut_2l.has_variation("lp4_up");  // true
 cut_2l.has_variation("sf_var");  // true
 

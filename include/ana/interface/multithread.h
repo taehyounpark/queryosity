@@ -238,7 +238,7 @@ ana::lockstep::node<T>::node(node<U> &&derived) {
 template <typename T>
 template <typename U>
 ana::lockstep::node<T> &ana::lockstep::node<T>::operator=(node<U> &&derived) {
-  this->m_model = derived.m_model;
+  this->m_model = std::move(derived.m_model);
   this->m_slots.clear();
   for (size_t i = 0; i < derived.concurrency(); ++i) {
     this->m_slots.emplace_back(std::move(derived.m_slots[i]));
@@ -412,17 +412,17 @@ auto ana::lockstep::view<T>::get_model_value(Fn const &fn,
   return result;
 }
 
-unsigned int ana::lockstep::check_concurrency() { return 0; }
+inline unsigned int ana::lockstep::check_concurrency() { return 0; }
 
 template <typename T, typename... Args>
-unsigned int ana::lockstep::check_concurrency(T const &first,
-                                              Args const &...args) {
+inline unsigned int ana::lockstep::check_concurrency(T const &first,
+                                                     Args const &...args) {
   assert((first.concurrency() == args.concurrency()) && ...);
   return first.concurrency();
 }
 
 template <typename Fn, typename... Args>
-auto ana::lockstep::check_value(Fn const &fn, view<Args> const &...args)
+inline auto ana::lockstep::check_value(Fn const &fn, view<Args> const &...args)
     -> std::invoke_result_t<Fn, Args &...> {
   auto concurrency = check_concurrency(args...);
   // result at each slot must match the model
@@ -434,7 +434,7 @@ auto ana::lockstep::check_value(Fn const &fn, view<Args> const &...args)
 }
 
 template <typename Fn, typename... Args>
-auto ana::lockstep::invoke_node(Fn const &fn, view<Args> const &...args)
+inline auto ana::lockstep::invoke_node(Fn const &fn, view<Args> const &...args)
     -> lockstep::node<
         typename std::invoke_result_t<Fn, Args &...>::element_type> {
   auto concurrency = check_concurrency(args...);
@@ -450,8 +450,8 @@ auto ana::lockstep::invoke_node(Fn const &fn, view<Args> const &...args)
 }
 
 template <typename Fn, typename... Args>
-auto ana::lockstep::invoke_view(Fn const &fn, view<Args> const &...args) ->
-    typename lockstep::view<
+inline auto ana::lockstep::invoke_view(Fn const &fn, view<Args> const &...args)
+    -> typename lockstep::view<
         std::remove_pointer_t<typename std::invoke_result_t<Fn, Args &...>>> {
   auto concurrency = check_concurrency(args...);
   typename lockstep::view<

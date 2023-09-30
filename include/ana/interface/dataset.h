@@ -96,7 +96,7 @@ using open_rows_t = typename decltype(std::declval<T const &>().open_rows(
 
 template <typename T, typename Val>
 using read_column_t =
-    typename decltype(std::declval<T const &>().template read_column<Val>(
+    typename decltype(std::declval<T>().template read_column<Val>(
         std::declval<dataset::range const &>(),
         std::declval<std::string const &>()))::element_type;
 

@@ -97,6 +97,6 @@ auto ana::column::computation::evaluate_column(column::evaluator<Def> &calc,
   return defn;
 }
 
-void ana::column::computation::add_column(column &column) {
+inline void ana::column::computation::add_column(column &column) {
   m_columns.push_back(&column);
 }

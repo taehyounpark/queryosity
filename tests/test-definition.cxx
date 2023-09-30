@@ -30,7 +30,7 @@ double get_correct_answer(const nlohmann::json &random_data) {
 
 double get_analogical_answer(const nlohmann::json &random_data) {
   // auto data = ana::json(random_data);
-  auto df = ana::dataflow(json(random_data));
+  ana::dataflow<Tree> df(json(random_data));
   auto entry_value = df.read<double>("x");
   auto entries_weighted = df.weight("weight")(df.read<unsigned int>("w"));
   auto answer =

@@ -28,7 +28,7 @@ std::vector<int> get_analogical_answer(const table_data_t &random_data,
                                        int ncores) {
   auto df = ana::dataflow<table>(random_data, multithread::enable(ncores));
   auto entry_value = df.read<int>("value");
-  auto all_entries = df.filter<cut>("all")(df.constant(true));
+  auto all_entries = df.filter("all")(df.constant(true));
   auto answer = df.book<vecx<int>>().fill(entry_value).at(all_entries);
   return answer.result();
 }
