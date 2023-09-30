@@ -417,7 +417,7 @@ inline unsigned int ana::lockstep::check_concurrency() { return 0; }
 template <typename T, typename... Args>
 inline unsigned int ana::lockstep::check_concurrency(T const &first,
                                                      Args const &...args) {
-  assert((first.concurrency() == args.concurrency()) && ...);
+  assert(((first.concurrency() == args.concurrency()) && ...));
   return first.concurrency();
 }
 
