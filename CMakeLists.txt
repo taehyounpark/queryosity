@@ -85,5 +85,6 @@ endif()
 
 if (ANALOGICAL_TESTS)
   add_subdirectory("plugins")
+  enable_testing()
   add_subdirectory("tests")
 endif()

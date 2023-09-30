@@ -1,5 +1,4 @@
 if (ANALOGICAL_TESTS)
-  enable_testing()
 
   find_package(Threads REQUIRED)
 
