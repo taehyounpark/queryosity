@@ -15,16 +15,15 @@ namespace ana {
  * @tparam T Input dataset type.
  * @tparam U Action for which a lazy one will be created.
  */
-template <typename DS>
 template <typename Bld>
-class dataflow<DS>::delayed : public systematic<delayed<Bld>>,
-                              public lockstep::node<Bld> {
+class dataflow::delayed : public systematic<delayed<Bld>>,
+                          public lockstep::node<Bld> {
 
 public:
   class varied;
 
 public:
-  delayed(dataflow<DS> &dataflow, lockstep::node<Bld> &&operation)
+  delayed(dataflow &dataflow, lockstep::node<Bld> &&operation)
       : systematic<delayed<Bld>>::systematic(dataflow),
         lockstep::node<Bld>::node(std::move(operation)) {}
 
@@ -84,22 +83,22 @@ public:
     return this->evaluate_column(std::forward<Nodes>(columns)...);
   }
 
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                ana::column::template is_evaluator_v<V> &&
-                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
-                bool> = false>
+  template <
+      typename... Nodes, typename V = Bld,
+      std::enable_if_t<ana::column::template is_evaluator_v<V> &&
+                           ana::dataflow::template has_no_variation_v<Nodes...>,
+                       bool> = false>
   auto evaluate_column(Nodes const &...columns) const
       -> lazy<column::template evaluated_t<V>> {
     // nominal
     return this->m_df->evaluate_column(*this, columns...);
   }
 
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                ana::column::template is_evaluator_v<V> &&
-                    ana::dataflow<DS>::template has_variation_v<Nodes...>,
-                bool> = false>
+  template <
+      typename... Nodes, typename V = Bld,
+      std::enable_if_t<ana::column::template is_evaluator_v<V> &&
+                           ana::dataflow::template has_variation_v<Nodes...>,
+                       bool> = false>
   auto evaluate_column(Nodes const &...columns) const ->
       typename lazy<column::template evaluated_t<V>>::varied {
 
@@ -156,7 +155,7 @@ public:
 
   template <typename Node, typename V = Bld,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
-                                 ana::dataflow<DS>::template is_nominal_v<Node>,
+                                 ana::dataflow::template is_nominal_v<Node>,
                              bool> = false>
   auto select_aggregation(Node const &sel) const
       -> lazy<aggregation::booked_t<V>> {
@@ -166,7 +165,7 @@ public:
 
   template <typename Node, typename V = Bld,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
-                                 ana::dataflow<DS>::template is_varied_v<Node>,
+                                 ana::dataflow::template is_varied_v<Node>,
                              bool> = false>
   auto select_aggregation(Node const &sel) const ->
       typename lazy<aggregation::booked_t<V>>::varied {
@@ -191,11 +190,11 @@ public:
     return this->select_aggregations(std::forward<Nodes>(nodes)...);
   }
 
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                ana::aggregation::template is_booker_v<V> &&
-                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
-                bool> = false>
+  template <
+      typename... Nodes, typename V = Bld,
+      std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
+                           ana::dataflow::template has_no_variation_v<Nodes...>,
+                       bool> = false>
   auto select_aggregations(Nodes const &...sels) const
       -> delayed<aggregation::bookkeeper<aggregation::booked_t<V>>> {
     // nominal
@@ -291,11 +290,11 @@ protected:
     return this->apply(std::forward<Args>(columns)...);
   }
 
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                ana::aggregation::template is_booker_v<V> &&
-                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
-                bool> = false>
+  template <
+      typename... Nodes, typename V = Bld,
+      std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
+                           ana::dataflow::template has_no_variation_v<Nodes...>,
+                       bool> = false>
   auto fill_aggregation(Nodes const &...columns) const -> delayed<V> {
     // nominal
     return delayed<V>(
@@ -320,21 +319,21 @@ protected:
     return syst;
   }
 
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                selection::template is_applicator_v<V> &&
-                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
-                bool> = false>
+  template <
+      typename... Nodes, typename V = Bld,
+      std::enable_if_t<selection::template is_applicator_v<V> &&
+                           ana::dataflow::template has_no_variation_v<Nodes...>,
+                       bool> = false>
   auto apply_selection(Nodes const &...columns) const -> lazy<selection> {
     // nominal
     return this->m_df->apply_selection(*this, columns...);
   }
 
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                selection::template is_applicator_v<V> &&
-                    ana::dataflow<DS>::template has_variation_v<Nodes...>,
-                bool> = false>
+  template <
+      typename... Nodes, typename V = Bld,
+      std::enable_if_t<selection::template is_applicator_v<V> &&
+                           ana::dataflow::template has_variation_v<Nodes...>,
+                       bool> = false>
   auto apply_selection(Nodes const &...columns) const ->
       typename lazy<selection>::varied {
     // variations
@@ -352,50 +351,44 @@ protected:
 
 } // namespace ana
 
-template <typename DS>
 template <typename Bld>
-void ana::dataflow<DS>::delayed<Bld>::set_variation(const std::string &,
-                                                    delayed<Bld> &&) {
+void ana::dataflow::delayed<Bld>::set_variation(const std::string &,
+                                                delayed<Bld> &&) {
   // should never be called
   throw std::logic_error("cannot set variation to a lazy operation");
 }
 
-template <typename DS>
 template <typename Bld>
-auto ana::dataflow<DS>::delayed<Bld>::nominal() const -> delayed const & {
+auto ana::dataflow::delayed<Bld>::nominal() const -> delayed const & {
   // this is nominal
   return *this;
 }
 
-template <typename DS>
 template <typename Bld>
-auto ana::dataflow<DS>::delayed<Bld>::variation(const std::string &) const
+auto ana::dataflow::delayed<Bld>::variation(const std::string &) const
     -> delayed const & {
   // propagation of variations must occur "transparently"
   return *this;
 }
 
-template <typename DS>
 template <typename Bld>
 std::set<std::string>
-ana::dataflow<DS>::delayed<Bld>::list_variation_names() const {
+ana::dataflow::delayed<Bld>::list_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
 
-template <typename DS>
 template <typename Bld>
-bool ana::dataflow<DS>::delayed<Bld>::has_variation(const std::string &) const {
+bool ana::dataflow::delayed<Bld>::has_variation(const std::string &) const {
   // always false
   return false;
 }
 
-template <typename DS>
 template <typename Bld>
 template <typename... Args, typename V,
           std::enable_if_t<ana::column::template is_evaluator_v<V>, bool>>
-auto ana::dataflow<DS>::delayed<Bld>::vary(const std::string &var_name,
-                                           Args &&...args) ->
+auto ana::dataflow::delayed<Bld>::vary(const std::string &var_name,
+                                       Args &&...args) ->
     typename delayed<V>::varied {
   auto syst = varied(std::move(*this));
   syst.set_variation(var_name,

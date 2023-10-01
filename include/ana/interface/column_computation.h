@@ -24,8 +24,8 @@ public:
 
 public:
   template <typename DS, typename Val>
-  auto read(DS &ds, const dataset::range &part, const std::string &name)
-      -> std::unique_ptr<read_column_t<DS, Val>>;
+  auto read(dataset::input<DS> &ds, const dataset::range &part,
+            const std::string &name) -> std::unique_ptr<read_column_t<DS, Val>>;
 
   template <typename Val>
   auto constant(Val const &val) -> std::unique_ptr<column::constant<Val>>;
@@ -56,7 +56,8 @@ protected:
 #include "column_evaluator.h"
 
 template <typename DS, typename Val>
-auto ana::column::computation::read(DS &ds, const ana::dataset::range &part,
+auto ana::column::computation::read(dataset::input<DS> &ds,
+                                    const ana::dataset::range &part,
                                     const std::string &name)
     -> std::unique_ptr<read_column_t<DS, Val>> {
   auto rdr = ds.template read_column<Val>(part, name);

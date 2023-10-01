@@ -15,19 +15,17 @@ namespace ana {
  * interface/dataflow_systematic.h
  * @brief Systematic of a dataflow operation.
  */
-template <typename T> template <typename U> class dataflow<T>::systematic {
+template <typename U> class dataflow::systematic {
 
 public:
-  using dataflow_type = dataflow<T>;
-  using dataset_type = T;
   using nominal_type = U;
 
 public:
-  friend class dataflow<T>;
+  friend class low;
   template <typename> friend class systematic;
 
 public:
-  systematic(dataflow<T> &dataflow);
+  systematic(dataflow &df);
 
   virtual ~systematic() = default;
 
@@ -41,7 +39,7 @@ public:
   virtual std::set<std::string> list_variation_names() const = 0;
 
 protected:
-  dataflow<T> *m_df;
+  dataflow *m_df;
 };
 
 template <typename... Nodes>
@@ -49,9 +47,8 @@ auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 } // namespace ana
 
-template <typename T>
 template <typename U>
-ana::dataflow<T>::systematic<U>::systematic(dataflow<T> &df) : m_df(&df) {}
+ana::dataflow::systematic<U>::systematic(dataflow &df) : m_df(&df) {}
 
 template <typename... Nodes>
 auto ana::list_all_variation_names(Nodes const &...nodes)

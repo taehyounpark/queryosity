@@ -30,7 +30,7 @@ void ana::output::dump(Bookkeeper const &node, Destination &&dest,
       });
 
   // record all results
-  if constexpr (dataflow_t<Bookkeeper>::template is_nominal_v<Bookkeeper>) {
+  if constexpr (dataflow::template is_nominal_v<Bookkeeper>) {
     // if node is nominal-only
     for (auto const &selection_path : selection_paths) {
       summary.record(selection_path, node[selection_path].result());

@@ -10,7 +10,7 @@
 
 namespace ana {
 
-template <typename T> class dataflow;
+class dataflow;
 
 namespace multithread {
 
@@ -66,9 +66,9 @@ public:
 template <typename T> class lockstep::node : public lockstep::slotted<T> {
 
 public:
+  friend class ana::dataflow;
   template <typename> friend class node;
   template <typename> friend class view;
-  template <typename> friend class ana::dataflow;
 
 public:
   node() = default;

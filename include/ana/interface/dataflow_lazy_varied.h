@@ -14,11 +14,10 @@
       typename decltype(std::declval<lazy<Act>>().operator op_symbol(          \
           std::forward<Arg>(b).nominal()))::operation_type>::varied;
 #define DEFINE_LAZY_VARIED_BINARY_OP(op_symbol)                                \
-  template <typename T>                                                        \
   template <typename Act>                                                      \
   template <typename Arg>                                                      \
-  auto ana::dataflow<T>::lazy<Act>::varied::operator op_symbol(Arg &&b)        \
-      const->typename lazy<                                                    \
+  auto ana::dataflow::lazy<Act>::varied::operator op_symbol(Arg &&b) const->   \
+      typename lazy<                                                           \
           typename decltype(std::declval<lazy<Act>>().operator op_symbol(      \
               std::forward<Arg>(b).nominal()))::operation_type>::varied {      \
     auto syst = typename lazy<                                                 \
@@ -41,10 +40,9 @@
       typename decltype(std::declval<lazy<V>>().                               \
                         operator op_symbol())::operation_type>::varied;
 #define DEFINE_LAZY_VARIED_UNARY_OP(op_name, op_symbol)                        \
-  template <typename T>                                                        \
   template <typename Act>                                                      \
   template <typename V, std::enable_if_t<ana::is_column_v<V>, bool>>           \
-  auto ana::dataflow<T>::lazy<Act>::varied::operator op_symbol() const->       \
+  auto ana::dataflow::lazy<Act>::varied::operator op_symbol() const->          \
       typename lazy<                                                           \
           typename decltype(std::declval<lazy<V>>().                           \
                             operator op_symbol())::operation_type>::varied {   \
@@ -67,18 +65,15 @@ namespace ana {
  * that it contains multiple variations of the operation as dictated by the
  * analyzer that propagate through the rest of the analysis.
  */
-template <typename T>
 template <typename Act>
-class dataflow<T>::lazy<Act>::varied : public systematic<lazy<Act>> {
+class dataflow::lazy<Act>::varied : public systematic<lazy<Act>> {
 
 public:
-  using dataflow_type = typename lazy<Act>::dataflow_type;
-  using dataset_type = typename lazy<Act>::dataset_type;
   using operation_type = typename lazy<Act>::operation_type;
 
   template <typename... Args>
   using delayed_varied_selection_applicator_t =
-      typename decltype(std::declval<dataflow<T>>().filter(
+      typename decltype(std::declval<dataflow>().filter(
           std::declval<std::string>(), std::declval<Args>()...))::varied;
 
 public:
@@ -140,52 +135,45 @@ protected:
 
 #include "selection.h"
 
-template <typename T>
 template <typename Act>
-ana::dataflow<T>::lazy<Act>::varied::varied(lazy<Act> const &nom)
+ana::dataflow::lazy<Act>::varied::varied(lazy<Act> const &nom)
     : systematic<lazy<Act>>::systematic(*nom.m_df), m_nom(nom) {}
 
-template <typename T>
 template <typename Act>
-void ana::dataflow<T>::lazy<Act>::varied::set_variation(
+void ana::dataflow::lazy<Act>::varied::set_variation(
     const std::string &var_name, lazy &&var) {
   m_var_map.insert(std::make_pair(var_name, std::move(var)));
   m_var_names.insert(var_name);
 }
 
-template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::varied::nominal() const -> lazy const & {
+auto ana::dataflow::lazy<Act>::varied::nominal() const -> lazy const & {
   return m_nom;
 }
 
-template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::varied::variation(
+auto ana::dataflow::lazy<Act>::varied::variation(
     const std::string &var_name) const -> lazy const & {
   return (this->has_variation(var_name) ? m_var_map.at(var_name) : m_nom);
 }
 
-template <typename T>
 template <typename Act>
-bool ana::dataflow<T>::lazy<Act>::varied::has_variation(
+bool ana::dataflow::lazy<Act>::varied::has_variation(
     const std::string &var_name) const {
   return m_var_map.find(var_name) != m_var_map.end();
 }
 
-template <typename T>
 template <typename Act>
 std::set<std::string>
-ana::dataflow<T>::lazy<Act>::varied::list_variation_names() const {
+ana::dataflow::lazy<Act>::varied::list_variation_names() const {
   return m_var_names;
 }
 
-template <typename T>
 template <typename Act>
 template <typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::dataflow<T>::lazy<Act>::varied::filter(const std::string &name,
-                                                 Args &&...arguments)
+auto ana::dataflow::lazy<Act>::varied::filter(const std::string &name,
+                                              Args &&...arguments)
     -> delayed_varied_selection_applicator_t<Args...> {
 
   using varied_type = delayed_varied_selection_applicator_t<Args...>;
@@ -200,12 +188,11 @@ auto ana::dataflow<T>::lazy<Act>::varied::filter(const std::string &name,
   return syst;
 }
 
-template <typename T>
 template <typename Act>
 template <typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::dataflow<T>::lazy<Act>::varied::weight(const std::string &name,
-                                                 Args &&...arguments)
+auto ana::dataflow::lazy<Act>::varied::weight(const std::string &name,
+                                              Args &&...arguments)
     -> delayed_varied_selection_applicator_t<Args...> {
 
   using varied_type = delayed_varied_selection_applicator_t<Args...>;
@@ -220,12 +207,11 @@ auto ana::dataflow<T>::lazy<Act>::varied::weight(const std::string &name,
   return syst;
 }
 
-template <typename T>
 template <typename Act>
 template <typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::dataflow<T>::lazy<Act>::varied::channel(const std::string &name,
-                                                  Args &&...arguments)
+auto ana::dataflow::lazy<Act>::varied::channel(const std::string &name,
+                                               Args &&...arguments)
     -> delayed_varied_selection_applicator_t<Args...> {
   using varied_type = delayed_varied_selection_applicator_t<Args...>;
   auto syst = varied_type(
@@ -237,13 +223,12 @@ auto ana::dataflow<T>::lazy<Act>::varied::channel(const std::string &name,
   return syst;
 }
 
-template <typename DS>
 template <typename Act>
 template <typename V,
           std::enable_if_t<ana::is_column_v<V> ||
                                ana::aggregation::template has_output_v<V>,
                            bool>>
-auto ana::dataflow<DS>::lazy<Act>::varied::operator[](
+auto ana::dataflow::lazy<Act>::varied::operator[](
     const std::string &var_name) const -> lazy<V> {
   if (!this->has_variation(var_name)) {
     throw std::out_of_range("variation does not exist");

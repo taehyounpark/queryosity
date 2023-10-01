@@ -125,33 +125,30 @@ CHECK_FOR_SUBSCRIPT_OP()
  * @tparam T Input dataset type
  * @tparam U Action to be performed lazily
  */
-template <typename T>
 template <typename U>
-class dataflow<T>::lazy : public systematic<lazy<U>>, public lockstep::view<U> {
+class dataflow::lazy : public systematic<lazy<U>>, public lockstep::view<U> {
 
 public:
   class varied;
 
 public:
-  using dataflow_type = typename systematic<lazy<U>>::dataflow_type;
-  using dataset_type = typename systematic<lazy<U>>::dataset_type;
   using operation_type = U;
 
   // template <typename... Args>
   // using delayed_selection_applicator_t =
-  //     decltype(std::declval<dataflow<T>>().template filter(
+  //     decltype(std::declval<dataflow>().template filter(
   //         std::declval<std::string>(), std::declval<Args>()...));
 
 public:
   // friends with the main dataflow graph & any other lazy nodes
-  friend class dataflow<T>;
+  friend class dataflow;
   template <typename> friend class lazy;
 
 public:
-  lazy(dataflow<T> &dataflow, const lockstep::view<U> &operation)
+  lazy(dataflow &dataflow, const lockstep::view<U> &operation)
       : systematic<lazy<U>>::systematic(dataflow),
         lockstep::view<U>::view(operation) {}
-  lazy(dataflow<T> &dataflow, const lockstep::node<U> &operation)
+  lazy(dataflow &dataflow, const lockstep::node<U> &operation)
       : systematic<lazy<U>>::systematic(dataflow),
         lockstep::view<U>::view(operation) {}
 
@@ -261,48 +258,41 @@ protected:
 #include "column.h"
 #include "dataflow_lazy_varied.h"
 
-template <typename T>
 template <typename Act>
-void ana::dataflow<T>::lazy<Act>::set_variation(const std::string &, lazy &&) {
+void ana::dataflow::lazy<Act>::set_variation(const std::string &, lazy &&) {
   // should never be called
   throw std::logic_error("cannot set variation to a lazy operation");
 }
 
-template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::nominal() const -> lazy const & {
+auto ana::dataflow::lazy<Act>::nominal() const -> lazy const & {
   // this is nominal
   return *this;
 }
 
-template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::variation(const std::string &) const
+auto ana::dataflow::lazy<Act>::variation(const std::string &) const
     -> lazy const & {
   // propagation of variations must occur "transparently"
   return *this;
 }
 
-template <typename T>
 template <typename Act>
-std::set<std::string>
-ana::dataflow<T>::lazy<Act>::list_variation_names() const {
+std::set<std::string> ana::dataflow::lazy<Act>::list_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
 
-template <typename T>
 template <typename Act>
-bool ana::dataflow<T>::lazy<Act>::has_variation(const std::string &) const {
+bool ana::dataflow::lazy<Act>::has_variation(const std::string &) const {
   // always false
   return false;
 }
 
-template <typename T>
 template <typename Act>
 template <typename... Args>
-auto ana::dataflow<T>::lazy<Act>::filter(const std::string &name,
-                                         Args &&...args) const {
+auto ana::dataflow::lazy<Act>::filter(const std::string &name,
+                                      Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template select<selection::cut>(
         *this, name, std::forward<Args>(args)...);
@@ -312,11 +302,10 @@ auto ana::dataflow<T>::lazy<Act>::filter(const std::string &name,
   }
 }
 
-template <typename T>
 template <typename Act>
 template <typename... Args>
-auto ana::dataflow<T>::lazy<Act>::weight(const std::string &name,
-                                         Args &&...args) const {
+auto ana::dataflow::lazy<Act>::weight(const std::string &name,
+                                      Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template select<selection::weight>(
         *this, name, std::forward<Args>(args)...);
@@ -326,11 +315,10 @@ auto ana::dataflow<T>::lazy<Act>::weight(const std::string &name,
   }
 }
 
-template <typename T>
 template <typename Act>
 template <typename... Args>
-auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
-                                          Args &&...args) const {
+auto ana::dataflow::lazy<Act>::channel(const std::string &name,
+                                       Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template channel<selection::weight>(
         *this, name, std::forward<Args>(args)...);
@@ -340,14 +328,13 @@ auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
   }
 }
 
-template <typename T>
 template <typename Act>
 template <typename... Args, typename V,
           std::enable_if_t<ana::column::template is_reader_v<V> ||
                                ana::column::template is_constant_v<V>,
                            bool>>
-auto ana::dataflow<T>::lazy<Act>::vary(const std::string &var_name,
-                                       Args &&...args) -> varied {
+auto ana::dataflow::lazy<Act>::vary(const std::string &var_name, Args &&...args)
+    -> varied {
   // create a lazy varied with the this as nominal
   auto syst = varied(std::move(*this));
   // set variation of the column according to new constructor arguments
