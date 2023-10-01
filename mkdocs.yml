@@ -64,6 +64,7 @@ theme:
     - navigation.top
     - navigation.footer
     - toc.follow
+    - content.tabs.link
 
 markdown_extensions:
   - admonition
@@ -91,6 +92,8 @@ markdown_extensions:
       pygments_lang_class: true
   - toc:
       title: On this page
+  - pymdownx.tabbed:
+      alternate_style: true
 
 extra_javascript:
   - javascripts/mathjax.js

@@ -1,15 +1,8 @@
-A `aggregation` defines an action that is:
+A `aggregation` defines an action that:
 
-- Booked "at" at a selection, i.e. only if the cut has passed.
-    -  Handles (or ignores) the selection weight.
-- (optional) Can be "fill"ed with columns whose values are used in the action.
+- Executes at a particular selection, i.e. only if the cut has passed.
+    -  (Optional) Takes into account the weight.
+- (Optional) Populate the aggregation output with a given set of column values.
 - Outputs a result after the full dataset has been traversed.
 
 The action and output is implemented by the analyzer.
-
-Each `fill()` and `at()` call returns a new node with those operations applied, such that any aggregation can be:
-
-- Filled with columns any number of times, as long as their dimensionality matches that of the implementation.
-- Booked at any (set of) selection(s), as long as the selections booked in each set has unique paths.
-
-When an aggregation is booked at multiple selections such as the above, result at each selection can be accessed by its path.
