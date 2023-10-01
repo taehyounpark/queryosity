@@ -25,10 +25,11 @@ table th:nth-of-type(4) {
 
 | Operation | Description | Methods | Description |
 | :------------ | :------------------------------------ | :------------ | :------------------------------------ |
-| `column` | Access or evaluate a quantity | `read()` | Read the value of a column |
-| | | `define()` | Evaluate a column value per-entry |
-| `selection` | A boolean/floating-point decision | `filter()` | Apply a selection | 
-| | | `channel()` | Same as filter, but remember its "path" |
-| `aggregation` | Perform an action and output a result | `book()` | Book the creation of a result |
-| | | `fill()` | Perform aggregation with column value(s) |
-| | | `at()` | Perform aggregation for entries passing the selection(s) |
+| `column` | Access or evaluate a quantity | `read()` | Read the value of a column. |
+| | | `define()` | Evaluate a column value per-entry. |
+| `selection` | A boolean/floating-point decision | `filter()` | Apply a selection. | 
+| | | `weight()` | Apply a statistical significance. |
+| | | `channel()` | Same as filter, but remember its "path". |
+| `aggregation` | Perform an action and output a result | `book()` | Book the creation of a result. |
+| | | `fill()` | Perform aggregation with column value(s). |
+| | | `at()` | Perform aggregation for entries passing the selection(s). |

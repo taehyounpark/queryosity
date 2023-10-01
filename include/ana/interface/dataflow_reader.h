@@ -31,6 +31,10 @@ public:
     return read_impl<Vals...>(names, std::index_sequence_for<Vals...>{});
   }
 
+  template <typename Val> auto read(const std::string &name) {
+    return this->read_column<Val>(name);
+  }
+
 protected:
   dataflow *m_df;
   std::unique_ptr<dataset::input<DS>> m_ds;

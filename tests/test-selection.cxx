@@ -9,9 +9,7 @@
 #include "ana/json.h"
 #include "ana/sumw.h"
 
-template <typename T> using dataflow = ana::dataflow<T>;
-using cut = ana::selection::cut;
-using weight = ana::selection::weight;
+using dataflow = ana::dataflow;
 
 TEST_CASE("correctness & consistency of selections") {
 
@@ -51,11 +49,12 @@ TEST_CASE("correctness & consistency of selections") {
   }
 
   // compute answer with analogical
-  auto df = ana::dataflow(ana::json(random_data));
-  auto category = df.read<std::string>("c");
+  dataflow df;
+  auto [category, w] =
+      df.open<ana::json>(random_data).read<std::string, float>({"c", "w"});
 
   auto raw_entries = df.filter("raw")(df.constant(true));
-  auto weighted_entries = df.weight("weight")(df.read<int>("w"));
+  auto weighted_entries = df.weight("weight")(w);
 
   auto cut_a =
       weighted_entries.filter("a")(category == df.constant<std::string>("a"));
