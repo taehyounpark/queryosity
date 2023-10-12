@@ -10,9 +10,10 @@ Computing quantities of interest out of existing column values in an entry may b
   Y --> Z;
   B --> Z;
 ```
-Some desirable properties of the computation graph guaranteed by analogical:
+
+The following properties of the computation graph are guaranteed by the interface:
 
 - No circular loops.
-- The value of a column is computed at most once per-entry, only if needed.
-- Column values are not copied when used as inputs for others.
-    - Only if a conversion is required, the value is copied.
+- Each column value is computed at most once per-entry, only if needed.
+- No column values are copied when used as inputs for definitions.
+    - The value *is* copied if an implicit conversion is required.

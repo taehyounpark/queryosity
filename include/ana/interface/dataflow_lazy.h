@@ -122,7 +122,6 @@ CHECK_FOR_SUBSCRIPT_OP()
  * @details Lazy nodes represent the final operation to be performed in a
  * dataset, pending its processing. It can be provided to other dataflow
  * operations as inputs.
- * @tparam T Input dataset type
  * @tparam U Action to be performed lazily
  */
 template <typename U>
@@ -134,13 +133,7 @@ public:
 public:
   using operation_type = U;
 
-  // template <typename... Args>
-  // using delayed_selection_applicator_t =
-  //     decltype(std::declval<dataflow>().template filter(
-  //         std::declval<std::string>(), std::declval<Args>()...));
-
 public:
-  // friends with the main dataflow graph & any other lazy nodes
   friend class dataflow;
   template <typename> friend class lazy;
 

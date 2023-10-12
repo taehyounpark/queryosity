@@ -1,3 +1,5 @@
+![Counting](./counting.png)
+
 A `aggregation` defines an action that:
 
 - Executes at a particular selection, i.e. only if the cut has passed.

@@ -6,7 +6,7 @@ A[Column] --> B([Selection]);
 B --> C[(Aggregation)];
 ```
 
-An operation falls into one of three categories, each associated with a set of methods:
+An operation falls into one of three categories associated with a set of applicable methods:
 
 <style>
 table th:first-of-type {
@@ -27,7 +27,7 @@ table th:nth-of-type(4) {
 | :------------ | :------------------------------------ | :------------ | :------------------------------------ |
 | `column` | Access or evaluate a quantity | `read()` | Read the value of a column. |
 | | | `define()` | Evaluate a column value per-entry. |
-| `selection` | A boolean/floating-point decision | `filter()` | Apply a selection. | 
+| `selection` | A boolean/floating-point decision | `filter()` | Apply a cut. | 
 | | | `weight()` | Apply a statistical significance. |
 | | | `channel()` | Same as filter, but remember its "path". |
 | `aggregation` | Perform an action and output a result | `book()` | Book the creation of a result. |

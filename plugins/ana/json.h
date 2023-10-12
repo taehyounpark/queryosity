@@ -11,7 +11,6 @@ public:
 
 public:
   json(const nlohmann::json &data);
-  // template <typename Arg> json(Arg &&arg);
   ~json() = default;
 
   ana::dataset::partition allocate();
@@ -56,11 +55,6 @@ ana::dataset::partition ana::json::allocate() {
   }
   return parts;
 }
-
-// std::unique_ptr<ana::dataset::row>
-// ana::json::read(const ana::dataset::range &part) const {
-//   return std::make_unique<ana::dataset::row>();
-// }
 
 template <typename Val>
 std::unique_ptr<ana::json::column<Val>>

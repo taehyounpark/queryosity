@@ -14,40 +14,24 @@ nav:
       - Dataflow: features/dataflow/dataflow.md 
       - Columns: 
         - Computation graph: features/column/computation.md
-        - Creating columns: features/column/column.md
+        - Computing columns: features/column/column.md
       - Selections: 
-        - Cuts and weights: features/selection/filter.md
-        - Branches in cutflow: features/selection/channel.md
-        - Joining selections: features/selection/join.md
+        - Cutflow: features/selection/cutflow.md
+        - Applying selections: features/selection/selection.md
       - Aggregations: 
-        - Creating aggregations: features/aggregation/book.md
-        - Filling columns: features/aggregation/fill.md
-        - Booking selections: features/aggregation/at.md
-        - Accessing results: features/aggregation/result.md
+        - Counting experiment: features/aggregation/experiment.md
+        - Booking aggregations: features/aggregation/aggregation.md
       - Sensitivity analysis: 
-        - Applying variations: features/sensitivity/vary.md
-        - Accessing variations: features/sensitivity/variation.md
+        - Systematic variations: features/sensitivity/variation.md
+        - Varying an analysis: features/sensitivity/vary.md
       - Lazy actions: features/lazy.md
       - Implicit multithreading: features/multithread.md
   - Demos:
     - Higgs boson: demo/hww/notebook.md
   - API:
     - dataflow:
-      - Constructor: api/dataflow/ctor.md
-      - read: api/dataflow/read.md
-      - constant: api/dataflow/constant.md
-      - define: api/dataflow/define.md
-      - filter: api/dataflow/filter.md
-      - channel: api/dataflow/channel.md
-      - book: api/dataflow/book.md
-    - lazy:
-      - filter: api/lazy/filter.md
-      - channel: api/lazy/channel.md
-      - evaluate: api/lazy/evaluate.md
-      - apply: api/lazy/apply.md
-    - delayed:
-      - fill: api/lazy/fill.md
-      - at: api/lazy/at.md
+      - dataflow: api/dataflow/dataflow.md
+      - open: api/dataflow/open.md
 
 theme:
   name: 'material'
@@ -65,6 +49,17 @@ theme:
     - navigation.footer
     - toc.follow
     - content.tabs.link
+
+# plugins:
+#   - mkdoxy:
+#       projects:
+#         analogical: # name of project must be alphanumeric + numbers (without spaces)
+#           src-dirs: include/ana/interface # path to source code (support multiple paths separated by space) => INPUT
+#           full-doc: True # if you want to generate full documentation
+#           doxy-cfg: # standard doxygen configuration (key: value)
+#             FILE_PATTERNS: "*.cpp *.h*" # specify file patterns to filter out
+#             RECURSIVE: True # recursive search in source directories
+#       save-api: docs/.mkdoxy
 
 markdown_extensions:
   - admonition

@@ -48,10 +48,17 @@ public:
   static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 public:
+  dataflow();
+  ~dataflow() = default;
+
+  template <typename Key> dataflow(Key kwarg);
+  template <typename Key1, typename Key2> dataflow(Key1 kwarg, Key2 kwarg2);
+  template <typename Key1, typename Key2, typename Key3>
+  dataflow(Key1 kwarg, Key2 kwarg2, Key 3 kwarg);
+
   dataflow(multithread::configuration mtcfg = multithread::disable(),
            sample::weight wgt = sample::weight(1.0),
            dataset::head nrows = dataset::head(-1));
-  virtual ~dataflow() = default;
 
   dataflow(dataflow const &) = delete;
   dataflow &operator=(dataflow const &) = delete;
@@ -59,7 +66,7 @@ public:
   dataflow(dataflow &&) = default;
   dataflow &operator=(dataflow &&) = default;
 
-  template <typename DS, typename... Args> reader<DS> open(Args &&...arsg);
+  template <typename DS, typename... Args> reader<DS> open(Args &&...args);
 
   /**
    * @brief Read a column from the dataset.
