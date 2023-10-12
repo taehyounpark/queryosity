@@ -20,7 +20,7 @@ public:
                                   const std::string &name) const;
 
 protected:
-  nlohmann::json m_data;
+  nlohmann::json const &m_data;
 };
 
 template <typename T> class json::column : public ana::dataset::column<T> {
