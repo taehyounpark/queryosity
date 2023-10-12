@@ -51,14 +51,11 @@ public:
   dataflow();
   ~dataflow() = default;
 
-  template <typename Key> dataflow(Key kwarg);
-  template <typename Key1, typename Key2> dataflow(Key1 kwarg, Key2 kwarg2);
-  template <typename Key1, typename Key2, typename Key3>
-  dataflow(Key1 kwarg, Key2 kwarg2, Key 3 kwarg);
-
-  dataflow(multithread::configuration mtcfg = multithread::disable(),
-           sample::weight wgt = sample::weight(1.0),
-           dataset::head nrows = dataset::head(-1));
+  template <typename KWArg> dataflow(KWArg kwarg);
+  template <typename KWArg1, typename KWArg2>
+  dataflow(KWArg1 kwarg1, KWArg2 kwarg2);
+  template <typename KWArg1, typename KWArg2, typename KWArg3>
+  dataflow(KWArg1 kwarg1, KWArg2 kwarg2, KWArg3 kwarg3);
 
   dataflow(dataflow const &) = delete;
   dataflow &operator=(dataflow const &) = delete;
@@ -136,6 +133,8 @@ public:
   auto book(Args &&...args) -> delayed<aggregation::booker<Cnt>>;
 
 protected:
+  template <typename KWArg> void accept_kwarg(KWArg kwarg);
+
   void analyze();
   void reset();
 
@@ -213,12 +212,47 @@ template <typename T> using operation_t = typename T::nominal_type;
 #include "dataflow_lazy.h"
 #include "dataflow_reader.h"
 
-inline ana::dataflow::dataflow(ana::multithread::configuration mtcfg,
-                               ana::sample::weight wgt,
-                               ana::dataset::head nrows)
-
-    : m_mtcfg(mtcfg), m_nrows(nrows.value), m_weight(wgt.value),
+inline ana::dataflow::dataflow()
+    : m_mtcfg(ana::multithread::disable()), m_nrows(-1), m_weight(1.0),
       m_analyzed(false) {}
+
+template <typename KWArg> ana::dataflow::dataflow(KWArg kwarg) : dataflow() {
+  this->accept_kwarg<KWArg>(kwarg);
+}
+
+template <typename KWArg1, typename KWArg2>
+ana::dataflow::dataflow(KWArg1 kwarg1, KWArg2 kwarg2) : dataflow() {
+  static_assert(!std::is_same_v<KWArg1, KWArg2>, "repeated keyword arguments.");
+  this->accept_kwarg<KWArg1>(kwarg1);
+  this->accept_kwarg<KWArg2>(kwarg2);
+}
+
+template <typename KWArg> void ana::dataflow::accept_kwarg(KWArg kwarg) {
+  constexpr bool is_mt = std::is_same_v<KWArg, ana::multithread::configuration>;
+  constexpr bool is_weight = std::is_same_v<KWArg, ana::sample::weight>;
+  constexpr bool is_nrows = std::is_same_v<KWArg, ana::dataset::head>;
+  if constexpr (is_mt) {
+    this->m_mtcfg = kwarg;
+  } else if (is_weight) {
+    this->m_weight = kwarg.value;
+  } else if (is_nrows) {
+    this->m_nrows = kwarg.value;
+  } else {
+    static_assert(is_mt || is_weight || is_nrows,
+                  "unrecognized keyword argument");
+  }
+}
+
+template <typename KWArg1, typename KWArg2, typename KWArg3>
+ana::dataflow::dataflow(KWArg1 kwarg1, KWArg2 kwarg2, KWArg3 kwarg3)
+    : dataflow() {
+  static_assert(!std::is_same_v<KWArg1, KWArg2>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<KWArg1, KWArg3>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<KWArg2, KWArg3>, "repeated keyword arguments.");
+  this->accept_kwarg<KWArg1>(kwarg1);
+  this->accept_kwarg<KWArg2>(kwarg2);
+  this->accept_kwarg<KWArg3>(kwarg3);
+}
 
 template <typename DS, typename... Args>
 ana::dataflow::reader<DS> ana::dataflow::open(Args &&...args) {
