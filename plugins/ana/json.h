@@ -48,12 +48,7 @@ ana::json::column<T>::column(nlohmann::json const &data,
     : m_data(data), m_name(name) {}
 
 ana::dataset::partition ana::json::allocate() {
-  ana::dataset::partition parts;
-  auto nentries = m_data.size();
-  for (unsigned int i = 0; i < nentries; ++i) {
-    parts.add_part(i, i, i + 1);
-  }
-  return parts;
+  return ana::dataset::partition(m_data.size());
 }
 
 template <typename Val>

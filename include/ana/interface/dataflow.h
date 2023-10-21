@@ -284,7 +284,7 @@ ana::dataflow::reader<DS> ana::dataflow::open(Args &&...args) {
   // each slot takes a part
   for (unsigned int ipart = 0; ipart < m_partition.size(); ++ipart) {
     this->m_parts.add_slot(
-        std::make_unique<dataset::range>(this->m_partition.get_part(ipart)));
+        std::make_unique<dataset::range>(this->m_partition[ipart]));
   }
 
   // open dataset reader and processor for each thread

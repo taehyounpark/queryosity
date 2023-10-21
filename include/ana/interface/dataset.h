@@ -59,18 +59,14 @@ struct partition {
   static range sum_parts(const std::vector<range> &parts);
 
   partition() : fixed(false) {}
+  partition(unsigned long long nentries,
+            unsigned long long max_entries_per_slot = 1);
   ~partition() = default;
 
-  /**
-   * @brief Add a range to the partition.
-   * @details The added range must satisfy that the `end` of the previous range
-   * (if it exists) is equal to the incoming `begin`. Otherwise, the partition
-   * is considered to be in an invalid state, and `truncate()` and `merge()`
-   * operations respectively will fail assertions in place.
-   */
-  void add_part(size_t islot, unsigned long long begin, unsigned long long end);
+  void emplace_back(size_t islot, unsigned long long begin,
+                    unsigned long long end);
 
-  range get_part(size_t irange) const;
+  range const &operator[](size_t irange) const;
   range total() const;
 
   size_t size() const;
@@ -110,14 +106,6 @@ static constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 
 #include "column.h"
 #include "dataset_player.h"
-
-// template <typename T, typename... Args>
-// T inline ana::dataset::open(Args &&...args) {
-//   static_assert(std::is_convertible_v<T, Args &&...>,
-//                 "dataset cannot be constructed with argument types.");
-//   auto ds = T(std::forward<Args>(args)...);
-//   return input<T>{std::move(ds), std::move(ds.allocate()), ds.normalize()};
-// }
 
 inline ana::dataset::range::range(size_t slot, unsigned long long begin,
                                   unsigned long long end)
@@ -161,14 +149,29 @@ ana::dataset::partition::sum_parts(const std::vector<range> &parts) {
   return std::accumulate(std::next(parts.begin()), parts.end(), parts.front());
 }
 
-inline void ana::dataset::partition::add_part(size_t islot,
-                                              unsigned long long begin,
-                                              unsigned long long end) {
-  this->parts.push_back(range(islot, begin, end));
+ana::dataset::partition::partition(unsigned long long nentries,
+                                   unsigned long long max_entries_per_slot)
+    : fixed(false) {
+  auto remaining = nentries;
+  unsigned long long begin = 0;
+  unsigned int islot = 0;
+  while (remaining) {
+    auto slot_entries = std::min(remaining, max_entries_per_slot);
+    auto end = begin + slot_entries;
+    this->emplace_back(islot++, begin, end);
+    begin += slot_entries;
+    remaining -= slot_entries;
+  }
 }
 
-inline ana::dataset::range
-ana::dataset::partition::get_part(size_t islot) const {
+inline void ana::dataset::partition::emplace_back(size_t islot,
+                                                  unsigned long long begin,
+                                                  unsigned long long end) {
+  this->parts.emplace_back(islot, begin, end);
+}
+
+inline ana::dataset::range const &
+ana::dataset::partition::operator[](size_t islot) const {
   return this->parts[islot];
 }
 

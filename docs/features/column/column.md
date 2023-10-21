@@ -62,7 +62,7 @@ Consider the following JSON data:
     ana::dataset::partition parts;
     auto nentries = m_data.size();
     for (unsigned int i = 0; i < nentries; ++i) {
-    parts.add_part(i, i, i + 1);
+    parts.emplace_back(i, i, i + 1);
     }
     return parts;
     }
