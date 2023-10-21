@@ -34,9 +34,9 @@ public:
 
 #include "dataset_player.h"
 
-void ana::dataset::source::initialize() {}
+inline void ana::dataset::source::initialize() {}
 
-void ana::dataset::source::finalize() {}
+inline void ana::dataset::source::finalize() {}
 
 template <typename DS> inline double ana::dataset::input<DS>::normalize() {
   return 1.0;

@@ -149,8 +149,8 @@ ana::dataset::partition::sum_parts(const std::vector<range> &parts) {
   return std::accumulate(std::next(parts.begin()), parts.end(), parts.front());
 }
 
-ana::dataset::partition::partition(unsigned long long nentries,
-                                   unsigned long long max_entries_per_slot)
+inline ana::dataset::partition::partition(
+    unsigned long long nentries, unsigned long long max_entries_per_slot)
     : fixed(false) {
   auto remaining = nentries;
   unsigned long long begin = 0;

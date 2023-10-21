@@ -21,7 +21,7 @@ public:
   using nominal_type = U;
 
 public:
-  friend class low;
+  template <typename> friend class delayed;
   template <typename> friend class systematic;
 
 public:
