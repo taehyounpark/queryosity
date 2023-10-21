@@ -1,4 +1,4 @@
-# The DataFlow object
+# The `dataflow` object
 
 The dataflow object can be instantiated by:
 
@@ -6,22 +6,22 @@ The dataflow object can be instantiated by:
 using dataflow = ana::dataflow;
 dataflow df;
 ```
-There are several "keyword" arguments that can be supplied to configure its processing:
+There are several "keyword" arguments (can be provided in any order) available to configure the dataset processing:
 
 | Keyword | Argument | Description |
 | :--- | :--- | :--- |
-| `multithread::enable(nthreads)` | `nthreads` | Enable multithreading. |
-| `multithread::disable()` | | Disable multithreading. |
-| `dataset::head(nrows)` | `nrows` | Only process the first number of rows. |
-| `sample::weight(scale)` | `scale` | Global scale applied to all weights. |
+| `ana::multithread::enable(nthreads)` | `nthreads` | Enable multithreading. |
+| `ana::multithread::disable()` | | Disable multithreading. |
+| `ana::dataset::head(nrows)` | `nrows` | Only process the first number of rows. |
+| `ana::sample::weight(scale)` | `scale` | Global scaling applied to all weights. |
 
 !!! example
 
-    Below is a dataflow object that processes the first 100 entries of a dataset with 2 concurrent threads, and applies a global weight of 0.123 to all entries.
+    A dataflow object that processes the first 100 entries of a dataset with 4 concurrent threads, and applies a global weight of 0.123 to all entries.
 
     ```cpp
     namespace multithread = ana::multithread;
     namespace dataset = ana::dataset;
     namespace sample = ana::sample;
-    dataflow df(multithread::enable(2), dataset::head(100), sample::weight(0.123));
+    dataflow df(multithread::enable(4), dataset::head(100), sample::weight(0.123));
     ```

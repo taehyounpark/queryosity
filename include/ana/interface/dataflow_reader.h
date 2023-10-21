@@ -7,9 +7,8 @@ namespace ana {
 template <typename DS> class dataflow::reader {
 
 public:
-  reader(dataflow &df, std::unique_ptr<DS> ds);
-
-  template <typename... Args> void open(Args &&...args);
+  reader(dataflow &df, DS &ds);
+  ~reader() = default;
 
   template <typename Val> auto read_column(const std::string &name) {
     // Simulating reading of column
@@ -19,8 +18,8 @@ public:
   }
 
   template <typename... Vals, size_t... Is>
-  auto read_impl(const std::array<std::string, sizeof...(Vals)> &names,
-                 std::index_sequence<Is...>) {
+  auto read_columns(const std::array<std::string, sizeof...(Vals)> &names,
+                    std::index_sequence<Is...>) {
     return std::make_tuple(
         read_column<typename std::tuple_element_t<Is, std::tuple<Vals...>>>(
             names[Is])...);
@@ -28,7 +27,7 @@ public:
 
   template <typename... Vals>
   auto read(const std::array<std::string, sizeof...(Vals)> &names) {
-    return read_impl<Vals...>(names, std::index_sequence_for<Vals...>{});
+    return read_columns<Vals...>(names, std::index_sequence_for<Vals...>{});
   }
 
   template <typename Val> auto read(const std::string &name) {
@@ -37,17 +36,11 @@ public:
 
 protected:
   dataflow *m_df;
-  std::unique_ptr<dataset::input<DS>> m_ds;
+  dataset::input<DS> *m_ds;
 };
 
 } // namespace ana
 
 template <typename DS>
-ana::dataflow::reader<DS>::reader(ana::dataflow &df, std::unique_ptr<DS> ds)
-    : m_df(&df), m_ds(std::move(ds)) {}
-
-template <typename DS>
-template <typename... Args>
-void ana::dataflow::reader<DS>::open(Args &&...args) {
-  m_ds = std::make_unique<DS>(std::forward<Args>(args)...);
-}
+ana::dataflow::reader<DS>::reader(ana::dataflow &df, DS &ds)
+    : m_df(&df), m_ds(&ds) {}

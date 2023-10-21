@@ -196,8 +196,10 @@ protected:
   dataset::partition m_partition;
   double m_norm;
 
+  std::unique_ptr<dataset::source> m_source;
+
   lockstep::node<dataset::range> m_parts;
-  lockstep::node<dataset::row> m_rows;
+  lockstep::node<dataset::player> m_players;
   lockstep::node<dataset::processor> m_processors;
 
   std::vector<std::unique_ptr<operation>> m_operations;
@@ -214,7 +216,7 @@ template <typename T> using operation_t = typename T::nominal_type;
 
 inline ana::dataflow::dataflow()
     : m_mtcfg(ana::multithread::disable()), m_nrows(-1), m_weight(1.0),
-      m_analyzed(false) {}
+      m_source(nullptr), m_analyzed(false) {}
 
 template <typename KWArg> ana::dataflow::dataflow(KWArg kwarg) : dataflow() {
   this->accept_kwarg<KWArg>(kwarg);
@@ -256,7 +258,14 @@ ana::dataflow::dataflow(KWArg1 kwarg1, KWArg2 kwarg2, KWArg3 kwarg3)
 
 template <typename DS, typename... Args>
 ana::dataflow::reader<DS> ana::dataflow::open(Args &&...args) {
-  auto ds = std::make_unique<DS>(std::forward<Args>(args)...);
+
+  if (m_source) {
+    std::runtime_error("opening multiple datasets is not yet supported.");
+  }
+
+  auto source = std::make_unique<DS>(std::forward<Args>(args)...);
+  auto ds = source.get();
+  m_source = std::move(source);
 
   // 1. allocate the dataset partition
   this->m_partition = ds->allocate();
@@ -280,13 +289,13 @@ ana::dataflow::reader<DS> ana::dataflow::open(Args &&...args) {
 
   // open dataset reader and processor for each thread
   // slot for each partition range
-  this->m_rows = lockstep::invoke_node(
-      [&ds](dataset::range &part) { return ds->open_rows(part); },
+  this->m_players = lockstep::invoke_node(
+      [ds](dataset::range &part) { return ds->open_player(part); },
       this->m_parts.get_view());
   this->m_processors = lockstep::node<dataset::processor>(
       m_parts.concurrency(), this->m_weight / this->m_norm);
 
-  return reader<DS>(*this, std::move(ds));
+  return reader<DS>(*this, *ds);
 }
 
 template <typename DS, typename Val>
@@ -518,18 +527,22 @@ inline void ana::dataflow::analyze() {
   if (m_analyzed)
     return;
 
+  // ignore future analyze() requests until reset() is called
+  m_analyzed = true;
+
+  m_source->initialize();
+
   this->m_processors.run_slots(
       this->m_mtcfg,
-      [](dataset::processor &proc, dataset::row &rdr,
-         const dataset::range &part) { proc.process(rdr, part); },
-      this->m_rows.get_view(), this->m_parts.get_view());
+      [](dataset::processor &proc, dataset::player &plyr,
+         const dataset::range &part) { proc.process(plyr, part); },
+      this->m_players.get_view(), this->m_parts.get_view());
+
+  m_source->finalize();
 
   // clear aggregations so they are not run more than once
   this->m_processors.call_all_slots(
       [](dataset::processor &proc) { proc.clear_aggregations(); });
-
-  // ignore future analyze() requests until reset() is called
-  m_analyzed = true;
 }
 
 inline void ana::dataflow::reset() { m_analyzed = false; }

@@ -5,29 +5,28 @@
 #include <unordered_map>
 
 #include "ana/analogical.h"
-
-#include "ana/table.h"
+#include "ana/json.h"
 #include "ana/vecx.h"
 
-template <typename T> using dataflow = ana::dataflow<T>;
-using multithread = ana::multithread;
+#include <nlohmann/json.hpp>
 
-using cut = ana::selection::cut;
-using weight = ana::selection::weight;
+namespace multithread = ana::multithread;
+using dataflow = ana::dataflow;
 
-std::vector<int> get_correct_answer(const table_data_t &random_data) {
+std::vector<int> get_correct_answer(const nlohmann::json &random_data) {
   std::vector<int> correct_answer;
   for (unsigned int i = 0; i < random_data.size(); ++i) {
-    auto x = std::get<int>(random_data.at(i).at("value"));
+    auto x = random_data.at(i).at("value").template get<int>();
     correct_answer.push_back(x);
   }
   return correct_answer;
 }
 
-std::vector<int> get_analogical_answer(const table_data_t &random_data,
+std::vector<int> get_analogical_answer(const nlohmann::json &random_data,
                                        int ncores) {
-  auto df = ana::dataflow<table>(random_data, multithread::enable(ncores));
-  auto entry_value = df.read<int>("value");
+  dataflow df(multithread::enable(ncores));
+  auto ds = df.open<ana::json>(random_data);
+  auto entry_value = ds.read<int>("value");
   auto all_entries = df.filter("all")(df.constant(true));
   auto answer = df.book<vecx<int>>().fill(entry_value).at(all_entries);
   return answer.result();
@@ -36,14 +35,14 @@ std::vector<int> get_analogical_answer(const table_data_t &random_data,
 TEST_CASE("multithreading consistency") {
 
   // generate random data
-  table_data_t random_data;
+  nlohmann::json random_data;
   std::random_device rd;
   std::mt19937 gen(rd());
   unsigned int nentries = 100;
   std::uniform_int_distribution<int> random_value(0, nentries);
   for (unsigned int i = 0; i < nentries; ++i) {
     auto x = random_value(gen);
-    random_data.emplace_back(table_row_t{{"index", i}, {"value", x}});
+    random_data.emplace_back(nlohmann::json{{"index", i}, {"value", x}});
   }
 
   // get answers

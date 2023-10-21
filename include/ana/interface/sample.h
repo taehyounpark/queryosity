@@ -3,8 +3,8 @@
 #include <iostream>
 #include <memory>
 
+#include "dataset_player.h"
 #include "dataset_processor.h"
-#include "dataset_row.h"
 #include "multithread.h"
 
 namespace ana {

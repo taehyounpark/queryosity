@@ -4,13 +4,9 @@
 
 A selection can be applied by providing a "path" string and a column that correspond to the decision:
 ```{ .cpp .annotate }
-auto decision = ds.read<bool>("cut");
-auto cut_applied = df.filter("cut")(decision);
+auto decision = ds.read<bool>("decision");
+auto cut_applied = df.filter("cut_on_decision")(decision);
 ```
-
-!!! note "Column names and selection paths"
-
-    The overlap in naming of a dataset column versus a selection path that occurs above is inconsequential. In general, one only has to ensure that the identifiers are unique within each operation type. Even so, the interface never forbids the user from using non-unique identifiers, except for when [bookkeeping multiple selections](../aggregation/result.md).
 
 Alternatively, one can apply a weight as:
 ```{ .cpp .annotate }
@@ -27,23 +23,23 @@ auto cut_and_weighted = cut_applied.weight("weight")(w);
     ```
     will be applied for each entry.
 
-Also, The selection can optionally receive an expression as an argument:
-
+Any valid column can enter as an argument; alternatively, an expression can be provided as an optional argument:
 === "This is equivalent..."
     ```cpp
-    auto two = df.constant(2);
-    auto weighted_even_events = cut_and_weighted.filter("even")(entry_index % two);
+    auto entry_number = ds.read<unsigned int>("entry_number");
+    auto even_entries = df.filter("even")(entry_number % df.constant(2));
     ```
 === "To this."
     ```cpp
-    auto even_entries = df.filter("even",[](unsigned int index){
-      return index % 2;
+    auto entry_number = ds.read<unsigned int>("entry_number");
+    auto even_entries = df.filter("even",[](unsigned long long number){
+      return number % 2;
       })(entry_index);
     ```
 
 ## Example cutflow
 
-A non-trivial cutflow such as the one shown in the previous section (and even much more complicated ones) can straightforwardly be expressed as the following:
+The example cutflow from the previous section can be expressed as the following:
 ```{ .cpp .annotate }
 
 auto cut_inclusive = df.filter("inclusive")(inclusive);

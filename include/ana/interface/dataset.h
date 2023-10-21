@@ -16,7 +16,7 @@ namespace dataset {
 
 template <typename T> class input;
 
-class row;
+class player;
 
 template <typename T> class column;
 
@@ -91,7 +91,7 @@ struct head {
 } // namespace dataset
 
 template <typename T>
-using open_rows_t = typename decltype(std::declval<T const &>().open_rows(
+using open_player_t = typename decltype(std::declval<T const &>().open_player(
     std::declval<const ana::dataset::range &>()))::element_type;
 
 template <typename T, typename Val>
@@ -109,7 +109,7 @@ static constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 } // namespace ana
 
 #include "column.h"
-#include "dataset_row.h"
+#include "dataset_player.h"
 
 // template <typename T, typename... Args>
 // T inline ana::dataset::open(Args &&...args) {

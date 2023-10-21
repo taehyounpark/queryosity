@@ -13,7 +13,7 @@ public:
   json(const nlohmann::json &data);
   ~json() = default;
 
-  ana::dataset::partition allocate();
+  virtual ana::dataset::partition allocate() override;
 
   template <typename T>
   std::unique_ptr<column<T>> read(const ana::dataset::range &part,

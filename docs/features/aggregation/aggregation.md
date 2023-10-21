@@ -52,6 +52,8 @@ Similar in spirit to filling columns, an aggregation can be booked at multiple s
               .at(a, b, c);
     ```
 
+## Booking from selections
+
 ## Accessing the result(s)
 
 The result of any single aggregation can be triggered by:
