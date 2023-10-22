@@ -12,8 +12,8 @@ There are several "keyword" arguments (can be provided in any order) available t
 | :--- | :--- | :--- |
 | `ana::multithread::enable(nthreads)` | `nthreads` | Enable multithreading. |
 | `ana::multithread::disable()` | | Disable multithreading. |
-| `ana::dataset::head(nrows)` | `nrows` | Only process the first number of rows. |
-| `ana::sample::weight(scale)` | `scale` | Global scaling applied to all weights. |
+| `ana::dataset::head(nrows)` | `nrows` | Process only the first row(s) in the dataset. |
+| `ana::sample::weight(scale)` | `scale` | Apply a global scale to all weights. |
 
 !!! example
 

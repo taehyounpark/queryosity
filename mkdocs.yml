@@ -13,13 +13,13 @@ nav:
       - Basic concepts: features/basic.md
       - Dataflow: features/dataflow/dataflow.md 
       - Columns: 
-        - Computation graph: features/column/computation.md
+        - The "computation graph": features/column/computation.md
         - Computing columns: features/column/column.md
       - Selections: 
-        - Cutflow: features/selection/cutflow.md
+        - The "cutflow": features/selection/cutflow.md
         - Applying selections: features/selection/selection.md
       - Aggregations: 
-        - Counting experiment: features/aggregation/experiment.md
+        - The "counting experiment": features/aggregation/experiment.md
         - Booking aggregations: features/aggregation/aggregation.md
       - Sensitivity analysis: 
         - Systematic variations: features/sensitivity/variation.md
