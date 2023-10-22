@@ -103,6 +103,14 @@ public:
   auto channel(const std::string &name, Args &&...arguments)
       -> delayed_varied_selection_applicator_t<Args...>;
 
+  template <typename Agg, typename V = Act,
+            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  auto book(Agg &&agg);
+
+  template <typename... Aggs, typename V = Act,
+            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  auto book(Aggs &&...aggs);
+
   template <typename V = Act,
             std::enable_if_t<ana::is_column_v<V> ||
                                  ana::aggregation::template has_output_v<V>,
@@ -221,6 +229,20 @@ auto ana::dataflow::lazy<Act>::varied::channel(const std::string &name,
                                      name, std::forward<Args>(arguments)...));
   }
   return syst;
+}
+
+template <typename Act>
+template <typename Agg, typename V,
+          std::enable_if_t<ana::is_selection_v<V>, bool>>
+auto ana::dataflow::lazy<Act>::varied::book(Agg &&agg) {
+  return agg.book(*this);
+}
+
+template <typename Act>
+template <typename... Aggs, typename V,
+          std::enable_if_t<ana::is_selection_v<V>, bool>>
+auto ana::dataflow::lazy<Act>::varied::book(Aggs &&...aggs) {
+  return std::make_tuple((aggs.book(*this), ...));
 }
 
 template <typename Act>

@@ -71,12 +71,14 @@ TEST_CASE("correctness & consistency of selections") {
   auto cut_a2 = weighted_entries.filter("a2")(cut_ab && cut_a);
   auto cut_b2 = weighted_entries.filter("b2")(cut_ab && cut_b);
 
-  auto sumw_a = df.book<sumw>().at(cut_a);
-  auto sumw_one = df.book<sumw>().at(cut_a, cut_b, cut_c);
-  auto sumw_two = df.book<sumw>().at(cut_ab, cut_bc);
-  auto sumw_three = df.book<sumw>().at(cut_none, cut_abc);
+  // auto sumw_a = df.book<sumw>().at(cut_a);
+  auto sumw_a = cut_a.book(df.agg<sumw>());
 
-  auto sumw_one2 = df.book<sumw>().at(cut_a2, cut_b2);
+  auto sumw_one = df.agg<sumw>().book(cut_a, cut_b, cut_c);
+  auto sumw_two = df.agg<sumw>().book(cut_ab, cut_bc);
+  auto sumw_three = df.agg<sumw>().book(cut_none, cut_abc);
+
+  auto sumw_one2 = df.agg<sumw>().book(cut_a2, cut_b2);
 
   SUBCASE("booking consistency") {
     CHECK(sumw_one["a"].result() == sumw_a.result());

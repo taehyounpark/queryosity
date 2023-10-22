@@ -28,7 +28,7 @@ std::vector<int> get_analogical_answer(const nlohmann::json &random_data,
   auto ds = df.open<ana::json>(random_data);
   auto entry_value = ds.read<int>("value");
   auto all_entries = df.filter("all")(df.constant(true));
-  auto answer = df.book<vecx<int>>().fill(entry_value).at(all_entries);
+  auto answer = df.agg<vecx<int>>().fill(entry_value).book(all_entries);
   return answer.result();
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <map>
+
 #include "dataflow.h"
 
 namespace ana {
@@ -32,6 +34,21 @@ public:
 
   template <typename Val> auto read(const std::string &name) {
     return this->read_column<Val>(name);
+  }
+
+  template <typename Val>
+  auto read(const std::string &nomimal_column_name,
+            std::map<std::string, std::string> const &varied_columns) {
+
+    using varied_type =
+        typename dataflow::template lazy<read_column_t<DS, Val>>::varied;
+
+    auto syst = varied_type(this->read_column<Val>(nomimal_column_name));
+    for (const auto &[variation_name, varied_column_name] : varied_columns) {
+      syst.set_variation(variation_name,
+                         this->read_column<Val>(varied_column_name));
+    }
+    return syst;
   }
 
 protected:

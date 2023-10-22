@@ -130,7 +130,7 @@ public:
    * and booked at selection(s).
    */
   template <typename Cnt, typename... Args>
-  auto book(Args &&...args) -> delayed<aggregation::booker<Cnt>>;
+  auto agg(Args &&...args) -> delayed<aggregation::booker<Cnt>>;
 
 protected:
   template <typename KWArg> void accept_kwarg(KWArg kwarg);
@@ -399,7 +399,7 @@ auto ana::dataflow::channel(const std::string &name, F callable)
 }
 
 template <typename Cnt, typename... Args>
-auto ana::dataflow::book(Args &&...args) -> delayed<aggregation::booker<Cnt>> {
+auto ana::dataflow::agg(Args &&...args) -> delayed<aggregation::booker<Cnt>> {
   return delayed<aggregation::booker<Cnt>>(
       *this, this->m_processors.get_lockstep_node(
                  [&args...](dataset::processor &proc) {

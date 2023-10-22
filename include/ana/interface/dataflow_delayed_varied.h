@@ -56,13 +56,13 @@ public:
   template <
       typename Node, typename V = Bld,
       std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
-  auto at(Node const &selection) ->
+  auto book(Node const &selection) ->
       typename lazy<aggregation::booked_t<V>>::varied;
 
   template <
       typename... Nodes, typename V = Bld,
       std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
-  auto at(Nodes const &...selections) -> typename delayed<
+  auto book(Nodes const &...selections) -> typename delayed<
       aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
 
   template <typename... Args>
@@ -190,13 +190,13 @@ auto ana::dataflow::delayed<Bld>::varied::fill(Nodes const &...columns)
 template <typename Bld>
 template <typename Node, typename V,
           std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
-auto ana::dataflow::delayed<Bld>::varied::at(Node const &selection) ->
+auto ana::dataflow::delayed<Bld>::varied::book(Node const &selection) ->
     typename lazy<aggregation::booked_t<V>>::varied {
   using varied_type = typename lazy<aggregation::booked_t<V>>::varied;
-  auto syst = varied_type(this->nominal().at(selection.nominal()));
+  auto syst = varied_type(this->nominal().book(selection.nominal()));
   for (auto const &var_name : list_all_variation_names(*this, selection)) {
     syst.set_variation(var_name,
-                       variation(var_name).at(selection.variation(var_name)));
+                       variation(var_name).book(selection.variation(var_name)));
   }
   return syst;
 }
@@ -204,15 +204,15 @@ auto ana::dataflow::delayed<Bld>::varied::at(Node const &selection) ->
 template <typename Bld>
 template <typename... Nodes, typename V,
           std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
-auto ana::dataflow::delayed<Bld>::varied::at(Nodes const &...selections) ->
+auto ana::dataflow::delayed<Bld>::varied::book(Nodes const &...selections) ->
     typename delayed<
         aggregation::bookkeeper<aggregation::booked_t<V>>>::varied {
   using varied_type = typename delayed<
       aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
-  auto syst = varied_type(this->nominal().at(selections.nominal()...));
+  auto syst = varied_type(this->nominal().book(selections.nominal()...));
   for (auto const &var_name : list_all_variation_names(*this, selections...)) {
     syst.set_variation(
-        var_name, variation(var_name).at(selections.variation(var_name)...));
+        var_name, variation(var_name).book(selections.variation(var_name)...));
   }
   return syst;
 }

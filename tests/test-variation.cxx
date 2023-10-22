@@ -13,8 +13,7 @@
 
 namespace multithread = ana::multithread;
 namespace sample = ana::sample;
-template <typename T> using dataflow = ana::dataflow<T>;
-using cut = ana::selection::cut;
+using dataflow = ana::dataflow;
 
 // generate random data
 nlohmann::json generate_random_data(unsigned int nentries = 100) {
@@ -56,14 +55,15 @@ double get_correct_answer(const nlohmann::json &random_data) {
 
 double get_analogical_answer(const nlohmann::json &random_data) {
   // auto data = ana::json(random_data);
-  auto df = ana::dataflow(ana::json(random_data));
-  auto x = df.read<double>("x_nom").vary("vary_x", "x_var");
-  auto weighted = df.weight("weight")(
-      df.read<unsigned int>("w_nom").vary("vary_w", "w_var"));
+  ana::dataflow df;
+  auto ds = df.open<ana::json>(random_data);
+  auto x = ds.read<double>("x_nom", {{"vary_x", "x_var"}});
+  auto w = ds.read<unsigned int>("w_nom", {{"vary_w", "w_var"}});
+  auto weighted = df.weight("weight")(w);
   auto answer =
-      df.book<ana::hist::hist<double>>(ana::hist::axis::regular(20, 0.0, 200))
+      df.agg<ana::hist::hist<double>>(ana::hist::axis::regular(20, 0.0, 200))
           .fill(x)
-          .at(weighted);
+          .book(weighted);
   return boost::histogram::algorithm::sum(*answer.nominal().result());
 }
 

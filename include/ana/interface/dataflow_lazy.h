@@ -181,6 +181,9 @@ public:
   template <typename... Args>
   auto channel(const std::string &name, Args &&...args) const;
 
+  template <typename Agg> auto book(Agg &&agg) const;
+  template <typename... Aggs> auto book(Aggs &&...aggs) const;
+
   template <typename V = U, std::enable_if_t<is_selection_v<V>, bool> = false>
   std::string path() const {
     return this->get_model_value(
@@ -304,7 +307,7 @@ auto ana::dataflow::lazy<Act>::weight(const std::string &name,
         *this, name, std::forward<Args>(args)...);
   } else {
     static_assert(std::is_base_of_v<selection, Act>,
-                  "filter must be called from a selection");
+                  "weight must be called from a selection");
   }
 }
 
@@ -319,6 +322,22 @@ auto ana::dataflow::lazy<Act>::channel(const std::string &name,
     static_assert(std::is_base_of_v<selection, Act>,
                   "channel must be called from a selection");
   }
+}
+
+template <typename Act>
+template <typename Agg>
+auto ana::dataflow::lazy<Act>::book(Agg &&agg) const {
+  static_assert(std::is_base_of_v<selection, Act>,
+                "book must be called from a selection");
+  return agg.book(*this);
+}
+
+template <typename Act>
+template <typename... Aggs>
+auto ana::dataflow::lazy<Act>::book(Aggs &&...aggs) const {
+  static_assert(std::is_base_of_v<selection, Act>,
+                "book must be called from a selection");
+  return std::make_tuple((aggs.book(*this), ...));
 }
 
 template <typename Act>

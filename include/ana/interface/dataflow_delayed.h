@@ -149,7 +149,7 @@ public:
    * @param selection Selection to be counted.
    * @return The aggregation booked at the selection.
    */
-  template <typename Node> auto at(Node &&selection) const {
+  template <typename Node> auto book(Node &&selection) const {
     return this->select_aggregation(std::forward<Node>(selection));
   }
 
@@ -179,12 +179,7 @@ public:
     return syst;
   }
 
-  /**
-   * @brief Book multiple aggregations, one at each selection.
-   * @param selections The selections.
-   * @return The aggregations booked at selections.
-   */
-  template <typename... Nodes> auto at(Nodes &&...nodes) const {
+  template <typename... Nodes> auto book(Nodes &&...nodes) const {
     static_assert(aggregation::template is_booker_v<Bld>,
                   "not a aggregation (booker)");
     return this->select_aggregations(std::forward<Nodes>(nodes)...);
