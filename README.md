@@ -20,10 +20,10 @@ Its key features include:
 
 ## Design goals
 
-- **Clear interface.** Higher-level languages have a myriad of libraries available to do intuitive and efficient data analysis. The syntax here aims to achieve a similar level of abstraction in its own way.
-- **Interface-only.** No implementation of a data formats or aggregation output is provided out-of-the-box. Instead, the interface allows defining operations with arbitrary inputs, execution, and outputs as needed.
-- **Sensitivity analysis.** Often times, changes to an analysis need to be explored for sensitivity analysis. How many times has this required the dataset to be re-processed? With built-in handling of systematic variations, changes can their impacts retrieved all together.
-- **Computational efficiency.** All operations within the dataset processing is performed at most once per-entry, only when needed. All systematic variations are processed at once. The dataset processing is multithreaded for thread-safe plugins.
+- **Clear interface.** Higher-level languages have an abundance of available libraries to do intuitive and efficient data analysis. An interface with a similar level of abstraction with modern C++ syntax.
+- **Customizable plugins.** Arbitrary operations with custom input(s), execution, and output(s) receive first-class treatment. From non-trivial datasets to complex computations and aggregations, there is an ABC available for implementation.
+- **Sensitivity analysis.** With built-in handling of systematic variations, changes in operations can be processed *once* to retrieve all results under nominal and varied scenarios simultaneously.
+- **Computational efficiency.** Operations within the dataset processing are performed at most once per-entry and only when needed. If enabled, the processing is multithreaded.
 
 ## Documentation
 
@@ -31,8 +31,6 @@ Its key features include:
 
 
 ## Installation
-
-Requirements: Unix OS, C++17
 
 ### [Single-header](https://raw.githubusercontent.com/taehyounpark/analogical/master/analogical.h)
 ```cpp

@@ -1,4 +1,4 @@
-## Reading from dataset
+## Read from dataset
 
 Consider the following JSON data:
 ```json
@@ -84,7 +84,7 @@ Consider the following JSON data:
 It can be opened by a dataflow:
 ```{ .cpp .annotate } 
 #include <nlohmann/json.hpp>
-#include "analogical"
+#include "analogical.h"
 
 using dataflow = ana::dataflow;
 
@@ -109,7 +109,7 @@ auto [a, b, c] = df.open<ana::json>(data)\
 1.    Note the initializer braces around the column names.
 
 !!! info "Arbitrary column types"
-    The interface is agnostic (ignorant, to be more precise) to the underlying column data types.
+    The interface is completely agnostic to the underlying column data types.
     As long the `dataset::column` of a given arbitrary type is properly implemented, it can be used.
     Even in the "worst" case, explicit template specialization can be used to cherry-pick how to read a specific data type.
     ```cpp
@@ -122,7 +122,7 @@ auto [a, b, c] = df.open<ana::json>(data)\
     ```cpp
     auto x = ds.read<CustomData>("x");  // success!
     ```
-## Computing from dataflow
+## Compute quantities
 
 ### Simple expressions
 

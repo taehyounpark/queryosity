@@ -30,6 +30,6 @@ table th:nth-of-type(4) {
 | `selection` | A boolean/floating-point decision | `filter()` | Apply a cut. | 
 | | | `weight()` | Apply a statistical significance. |
 | | | `channel()` | Same as filter, but remember its "path". |
-| `aggregation` | Perform an action and output a result | `book()` | Book the creation of a result. |
-| | | `fill()` | Perform aggregation with column value(s). |
-| | | `at()` | Perform aggregation for entries passing the selection(s). |
+| `aggregation` | Perform an action and output a result | `agg()` | Create an aggregation. |
+| | | `fill()` | Fill with column value(s) of the entry. |
+| | | `book()` | Book execution for entries passing the selection(s). |

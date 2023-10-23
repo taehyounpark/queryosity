@@ -63,7 +63,7 @@ template <typename T> T const &ana::dataset::column<T>::value() const {
 template <typename T>
 void ana::dataset::column<T>::execute(const ana::dataset::range &part,
                                       unsigned long long entry) {
-  this->m_entry = entry;
   this->m_part = &part;
+  this->m_entry = entry;
   this->m_updated = false;
 }
