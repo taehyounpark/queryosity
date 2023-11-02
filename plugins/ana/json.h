@@ -2,32 +2,30 @@
 
 #include "ana/analogical.h"
 
-namespace ana {
-
-class json : public ana::dataset::input<json> {
+class Json : public ana::dataset::input<Json> {
 
 public:
-  template <typename T> class column;
+  template <typename T> class Entry;
 
 public:
-  json(const nlohmann::json &data);
-  ~json() = default;
+  Json(const nlohmann::json &data);
+  ~Json() = default;
 
   virtual ana::dataset::partition allocate() override;
 
   template <typename T>
-  std::unique_ptr<column<T>> read(const ana::dataset::range &part,
-                                  const std::string &name) const;
+  std::unique_ptr<Entry<T>> read(const ana::dataset::range &part,
+                                 const std::string &name) const;
 
 protected:
-  nlohmann::json const &m_data;
+  nlohmann::json const m_data;
 };
 
-template <typename T> class json::column : public ana::dataset::column<T> {
+template <typename T> class Json::Entry : public ana::dataset::column<T> {
 
 public:
-  column(const nlohmann::json &data, const std::string &name);
-  ~column() = default;
+  Entry(const nlohmann::json &data, const std::string &name);
+  ~Entry() = default;
 
   virtual const T &read(const ana::dataset::range &part,
                         unsigned long long entry) const override;
@@ -35,31 +33,28 @@ public:
 protected:
   mutable T m_value;
   const nlohmann::json &m_data;
-  const std::string m_name;
+  const std::string m_key;
 };
 
-} // namespace ana
-
-ana::json::json(nlohmann::json const &data) : m_data(data) {}
+Json::Json(nlohmann::json const &data) : m_data(data) {}
 
 template <typename T>
-ana::json::column<T>::column(nlohmann::json const &data,
-                             const std::string &name)
-    : m_data(data), m_name(name) {}
+Json::Entry<T>::Entry(nlohmann::json const &data, const std::string &name)
+    : m_data(data), m_key(name) {}
 
-ana::dataset::partition ana::json::allocate() {
+ana::dataset::partition Json::allocate() {
   return ana::dataset::partition(m_data.size());
 }
 
 template <typename Val>
-std::unique_ptr<ana::json::column<Val>>
-ana::json::read(const ana::dataset::range &, const std::string &name) const {
-  return std::make_unique<column<Val>>(this->m_data, name);
+std::unique_ptr<Json::Entry<Val>> Json::read(const ana::dataset::range &,
+                                             const std::string &name) const {
+  return std::make_unique<Entry<Val>>(this->m_data, name);
 }
 
 template <typename T>
-const T &ana::json::column<T>::read(const ana::dataset::range &,
-                                    unsigned long long entry) const {
-  m_value = this->m_data[entry][m_name].template get<T>();
+const T &Json::Entry<T>::read(const ana::dataset::range &,
+                              unsigned long long entry) const {
+  m_value = this->m_data[entry][m_key].template get<T>();
   return m_value;
 }

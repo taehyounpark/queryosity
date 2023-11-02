@@ -6,8 +6,8 @@
 
 #include "ana/analogical.h"
 
-#include "ana/json.h"
-#include "ana/sumw.h"
+#include "ana/Json.h"
+#include "ana/SumOfWeights.h"
 
 using dataflow = ana::dataflow;
 
@@ -51,7 +51,7 @@ TEST_CASE("correctness & consistency of selections") {
   // compute answer with analogical
   dataflow df;
   auto [category, w] =
-      df.open<ana::json>(random_data).read<std::string, float>({"c", "w"});
+      df.open<Json>(random_data).read<std::string, float>({"c", "w"});
 
   auto raw_entries = df.filter("raw")(df.constant(true));
   auto weighted_entries = df.weight("weight")(w);
@@ -71,14 +71,14 @@ TEST_CASE("correctness & consistency of selections") {
   auto cut_a2 = weighted_entries.filter("a2")(cut_ab && cut_a);
   auto cut_b2 = weighted_entries.filter("b2")(cut_ab && cut_b);
 
-  // auto sumw_a = df.book<sumw>().at(cut_a);
-  auto sumw_a = cut_a.book(df.agg<sumw>());
+  // auto sumw_a = df.book<SumOfWeights>().at(cut_a);
+  auto sumw_a = cut_a.book(df.agg<SumOfWeights>());
 
-  auto sumw_one = df.agg<sumw>().book(cut_a, cut_b, cut_c);
-  auto sumw_two = df.agg<sumw>().book(cut_ab, cut_bc);
-  auto sumw_three = df.agg<sumw>().book(cut_none, cut_abc);
+  auto sumw_one = df.agg<SumOfWeights>().book(cut_a, cut_b, cut_c);
+  auto sumw_two = df.agg<SumOfWeights>().book(cut_ab, cut_bc);
+  auto sumw_three = df.agg<SumOfWeights>().book(cut_none, cut_abc);
 
-  auto sumw_one2 = df.agg<sumw>().book(cut_a2, cut_b2);
+  auto sumw_one2 = df.agg<SumOfWeights>().book(cut_a2, cut_b2);
 
   SUBCASE("booking consistency") {
     CHECK(sumw_one["a"].result() == sumw_a.result());

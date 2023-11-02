@@ -8,11 +8,11 @@
 
 namespace {
 
-class sumw : public ana::aggregation::output<double> {
+class SumOfWeights : public ana::aggregation::output<double> {
 
 public:
-  sumw() = default;
-  ~sumw() = default;
+  SumOfWeights() = default;
+  ~SumOfWeights() = default;
 
   virtual void count(double w) override;
   virtual double result() const override;
@@ -24,10 +24,10 @@ protected:
 
 } // namespace
 
-void sumw::count(double w) { m_result += w; }
+void SumOfWeights::count(double w) { m_result += w; }
 
-double sumw::result() const { return m_result; }
+double SumOfWeights::result() const { return m_result; }
 
-double sumw::merge(std::vector<double> results) const {
+double SumOfWeights::merge(std::vector<double> results) const {
   return std::accumulate(results.begin(), results.end(), 0.0);
 }

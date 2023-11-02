@@ -21,9 +21,13 @@ The following tasks will be performed:
 ## Nominal
 
 ```cpp title="Setup"
-// This specific TTree has no sub-clusters available for concurrent processing
-ana::multithread::disable(); 
-auto df = ana::dataflow<Tree>({"hww.root"}, "mini");
+
+using dataflow = ana::dataflow;
+auto df = dataflow();
+
+auto tree_files = std::vector<std::string>{"hww.root"};
+auto tree_name = "mini";
+auto ds = df.open<Tree>(tree_files, tree_name);
 ```
 ```cpp title="Read out columns"
 // std::vector-like containers types with useful array operations
@@ -32,47 +36,56 @@ using VecF = ROOT::RVec<float>;
 using VecD = ROOT::RVec<float>;
 
 // event weights
-auto mc_weight = data.read<float>("mcWeight");
-auto el_sf = data.read<float>("scaleFactor_ELE");
-auto mu_sf = df.read<float>("scaleFactor_MUON");
+auto mc_weight = ds.read<float>("mcWeight");
+
+// scale factors
+auto [el_sf, mu_sf] = ds.read<float,float>({"scaleFactor_ELE","scaleFactor_MUON"});
 
 // lepton quantities
-auto lep_pt_MeV = df.read<VecF>("lep_pt");
-auto lep_eta = df.read<VecF>("lep_eta");
-auto lep_phi = df.read<VecF>("lep_phi");
-auto lep_E_MeV = df.read<VecF>("lep_E");
-auto lep_Q = df.read<VecF>("lep_charge");
-auto lep_type = df.read<VecUI>("lep_type");
+auto [
+  lep_pt_MeV,
+  lep_eta,
+  lep_phi,
+  lep_E_MeV,
+  lep_Q,
+  lep_type
+  ] = ds.read<
+    VecF,
+    VecF,
+    VecF,
+    VecF,
+    VecF,
+    VecUI>({
+      "lep_pt",
+      "lep_eta",
+      "lep_phi",
+      "lep_E",
+      "lep_charge",
+      "lep_type"
+      });
 
 // MET quantities
-auto met_MeV = df.read<float>("met_et");
-auto met_phi = df.read<float>("met_phi");
+auto [met_MeV, met_phi] = ds.read<float,float>({"met_et","met_phi"});
 ```
-
 ```cpp title="Convert from MeV to GeV"
 auto MeV = ana.constant(1000.0);
 auto lep_pt = lep_pt_MeV / MeV;
 auto lep_E = lep_pt_MeV / MeV;
 auto met = met_MeV / MeV;
 ```
-```cpp title="Select leptons within detector acceptance"
+```cpp title="Select leptons within acceptance"
 auto lep_eta_max = df.constant(2.4);
 auto lep_pt_sel = lep_pt[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 ```
 ```cpp title="Compute dilepton+MET transverse momentum"
+auto p4l1 = df.define<NthP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
+auto p4l2 = df.define<NthP4>(1)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
+
+auto p4ll = p4l1+p4l2;
+
 using P4 = TLorentzVector;
-
-// first- & second-leading lepton four-momenta
-auto l1p4 = df.define<NthP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
-auto l2p4 = df.define<NthP4>(1)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
-
-// dilepton four-momentum
-auto p4ll = l1p4+l2p4;
-
-// dilepton invariant mass
 auto mll = df.define([](const P4& p4){return p4.M();})(p4ll);
 
-// dilepton+MET(=higgs) transverse momentum
 auto pth = df.define(
   [](const P4& p4, float q, float q_phi) {
     TVector2 p2; p2.SetMagPhi(p4.Pt(), p4.Phi());
@@ -81,13 +94,12 @@ auto pth = df.define(
   })(p4ll, met, met_phi);
 ```
 ```cpp title="Apply selections"
-using weight = ana::selection::weight;
 
 auto n_lep_sel = df.define([](VecF const& lep){return lep.size();})(lep_pt_sel);
 auto n_lep_req = df.constant<unsigned int>(2);
 
 // apply event weight and require exactly two leptons
-auto cut_2l = df.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
+auto cut_2l = df.weight("weight")(mc_weight * el_sf * mu_sf)\
                 .filter("2l")(n_lep_sel == n_lep_req);
 
 // opposite-sign
@@ -129,7 +141,7 @@ delete out_file;
 
 ```cpp title="Vary columns"
 // use a different scale factor (electron vs. pileup...? purely for illustration)
-auto el_sf = df.read<float>("scaleFactor_ELE").vary("sf_var","scaleFactor_PILEUP");
+auto el_sf = ds.read<float>("scaleFactor_ELE").vary("sf_var","scaleFactor_PILEUP");
 
 // change the energy scale by +/-2%
 auto Escale = df.define([](VecD E){return E;}).vary("lp4_up",[](VecD E){return E*1.02;}).vary("lp4_dn",[](VecD E){return E*0.98;});
@@ -137,15 +149,15 @@ auto lep_pt_sel = Escale(lep_pt)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_m
 auto lep_E_sel = Escale(lep_E)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
 ```
 ```cpp title="Everything else is the same..."
-auto l1p4 = df.define<NthP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
-auto l2p4 = df.define<NthP4>(1)(lep_pt, lep_eta, lep_phi, lep_E);
-l1p4.has_variation("lp4_up");  // true
-l1p4.has_variation("sf_var");  // false
+auto p4l1 = df.define<NthP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
+auto p4l2 = df.define<NthP4>(1)(lep_pt, lep_eta, lep_phi, lep_E);
+p4l1.has_variation("lp4_up");  // true
+p4l1.has_variation("sf_var");  // false
 
 // ...
 
-auto cut_2l = df.filter<weight>("weight")(mc_weight * el_sf * mu_sf)\
-                 .filter("2l")(n_lep_sel == n_lep_req);
+auto cut_2l = df.weight("weight")(mc_weight * el_sf * mu_sf)\
+                .filter("2l")(n_lep_sel == n_lep_req);
 cut_2l.has_variation("lp4_up");  // true
 cut_2l.has_variation("sf_var");  // true
 

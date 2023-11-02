@@ -7,8 +7,9 @@ repo_name: taehyounpark/analogical
 nav:
   - Home:
     - Welcome: index.md
-    - Installation: home/installation.md
     - Design goals: home/design.md
+    - Installation: home/installation.md
+    - Quickstart: home/quickstart.md
   - Features:
       - Basic concepts: features/basic.md
       - Dataflow: features/dataflow/dataflow.md 
@@ -27,7 +28,7 @@ nav:
       - Lazy actions: features/lazy.md
       - Implicit multithreading: features/multithread.md
   - Demos:
-    - Higgs boson: demo/hww/notebook.md
+    - Higgs WW: demo/hww/notebook.md
   - API:
     - dataflow:
       - dataflow: api/dataflow/dataflow.md

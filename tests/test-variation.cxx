@@ -1,15 +1,14 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include <boost/histogram.hpp>
 #include <nlohmann/json.hpp>
 #include <random>
 #include <unordered_map>
 
 #include "ana/analogical.h"
 
-#include "ana/hist.h"
-#include "ana/json.h"
+#include "ana/Json.h"
+#include "ana/WeightedSum.h"
 
 namespace multithread = ana::multithread;
 namespace sample = ana::sample;
@@ -37,43 +36,43 @@ nlohmann::json generate_random_data(unsigned int nentries = 100) {
   return random_data;
 }
 
-double get_correct_answer(const nlohmann::json &random_data) {
-  double wsumx_xnom = 0;
+std::vector<double> get_correct_result(const nlohmann::json &random_data) {
+  double wsumx_nom = 0;
   double wsumx_xvar = 0;
-  unsigned long long sumw = 0.0;
+  double wsumx_wvar = 0;
   for (unsigned int i = 0; i < random_data.size(); ++i) {
     auto x_nom = random_data[i]["x_nom"].template get<double>();
     auto x_var = random_data[i]["x_var"].template get<double>();
     auto w_nom = random_data[i]["w_nom"].template get<unsigned int>();
     auto w_var = random_data[i]["w_var"].template get<unsigned int>();
-    wsumx_xnom += x_nom * w_nom;
+    wsumx_nom += x_nom * w_nom;
     wsumx_xvar += x_var * w_nom;
-    sumw += w_nom;
+    wsumx_wvar += x_nom * w_var;
   }
-  return sumw;
+  return std::vector<double>{wsumx_nom, wsumx_xvar, wsumx_wvar};
 }
 
-double get_analogical_answer(const nlohmann::json &random_data) {
-  // auto data = ana::json(random_data);
+std::vector<double> get_analogical_result(const nlohmann::json &random_data) {
   ana::dataflow df;
-  auto ds = df.open<ana::json>(random_data);
+  auto ds = df.open<Json>(random_data);
   auto x = ds.read<double>("x_nom", {{"vary_x", "x_var"}});
   auto w = ds.read<unsigned int>("w_nom", {{"vary_w", "w_var"}});
-  auto weighted = df.weight("weight")(w);
-  auto answer =
-      df.agg<ana::hist::hist<double>>(ana::hist::axis::regular(20, 0.0, 200))
-          .fill(x)
-          .book(weighted);
-  return boost::histogram::algorithm::sum(*answer.nominal().result());
+  auto wsumx = df.agg<WeightedSum>().fill(x).book(df.weight("weight")(w));
+  auto wsumx_nom = wsumx.nominal().result();
+  auto wsumx_xvar = wsumx["vary_x"].result();
+  auto wsumx_wvar = wsumx["vary_w"].result();
+  return std::vector<double>{wsumx_nom, wsumx_xvar, wsumx_wvar};
 }
 
-TEST_CASE("compute weighted average") {
+TEST_CASE("compute weighted sum") {
 
   // get answers
   auto random_data = generate_random_data(1000);
-  auto correct_answer = get_correct_answer(random_data);
-  auto analogical_answer = get_analogical_answer(random_data);
+  auto correct_result = get_correct_result(random_data);
+  auto analogical_result = get_analogical_result(random_data);
 
   // compare answers
-  CHECK(analogical_answer == correct_answer);
+  CHECK(analogical_result[0] == correct_result[0]);
+  CHECK(analogical_result[1] == correct_result[1]);
+  CHECK(analogical_result[2] == correct_result[2]);
 }

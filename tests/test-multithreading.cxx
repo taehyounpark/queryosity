@@ -5,31 +5,32 @@
 #include <unordered_map>
 
 #include "ana/analogical.h"
-#include "ana/json.h"
-#include "ana/vecx.h"
 
 #include <nlohmann/json.hpp>
+
+#include "ana/Columnar.h"
+#include "ana/Json.h"
 
 namespace multithread = ana::multithread;
 using dataflow = ana::dataflow;
 
-std::vector<int> get_correct_answer(const nlohmann::json &random_data) {
-  std::vector<int> correct_answer;
+std::vector<int> get_correct_result(const nlohmann::json &random_data) {
+  std::vector<int> correct_result;
   for (unsigned int i = 0; i < random_data.size(); ++i) {
     auto x = random_data.at(i).at("value").template get<int>();
-    correct_answer.push_back(x);
+    correct_result.push_back(x);
   }
-  return correct_answer;
+  return correct_result;
 }
 
-std::vector<int> get_analogical_answer(const nlohmann::json &random_data,
+std::vector<int> get_analogical_result(const nlohmann::json &random_data,
                                        int ncores) {
   dataflow df(multithread::enable(ncores));
-  auto ds = df.open<ana::json>(random_data);
+  auto ds = df.open<Json>(random_data);
   auto entry_value = ds.read<int>("value");
   auto all_entries = df.filter("all")(df.constant(true));
-  auto answer = df.agg<vecx<int>>().fill(entry_value).book(all_entries);
-  return answer.result();
+  auto result = df.agg<Columnar<int>>().fill(entry_value).book(all_entries);
+  return result.result();
 }
 
 TEST_CASE("multithreading consistency") {
@@ -45,23 +46,23 @@ TEST_CASE("multithreading consistency") {
     random_data.emplace_back(nlohmann::json{{"index", i}, {"value", x}});
   }
 
-  // get answers
-  auto correct_answer = get_correct_answer(random_data);
-  auto analogical_answer1 = get_analogical_answer(random_data, 1);
-  auto analogical_answer2 = get_analogical_answer(random_data, 2);
-  auto analogical_answer3 = get_analogical_answer(random_data, 3);
-  auto analogical_answer4 = get_analogical_answer(random_data, 4);
-  auto analogical_answer5 = get_analogical_answer(random_data, 5);
+  // get results
+  auto correct_result = get_correct_result(random_data);
+  auto analogical_result1 = get_analogical_result(random_data, 1);
+  auto analogical_result2 = get_analogical_result(random_data, 2);
+  auto analogical_result3 = get_analogical_result(random_data, 3);
+  auto analogical_result4 = get_analogical_result(random_data, 4);
+  auto analogical_result5 = get_analogical_result(random_data, 5);
 
-  // compare answers
+  // compare results
   SUBCASE("single-threaded result correctness") {
-    CHECK(analogical_answer1 == correct_answer);
+    CHECK(analogical_result1 == correct_result);
   }
 
   SUBCASE("multithreaded results consistency") {
-    CHECK(analogical_answer1 == analogical_answer2);
-    CHECK(analogical_answer1 == analogical_answer3);
-    CHECK(analogical_answer1 == analogical_answer4);
-    CHECK(analogical_answer1 == analogical_answer5);
+    CHECK(analogical_result1 == analogical_result2);
+    CHECK(analogical_result1 == analogical_result3);
+    CHECK(analogical_result1 == analogical_result4);
+    CHECK(analogical_result1 == analogical_result5);
   }
 }
