@@ -56,13 +56,9 @@ std::vector<double> get_correct_result(const nlohmann::json &random_data) {
 std::vector<double> get_analogical_result(const nlohmann::json &random_data) {
   ana::dataflow df;
   auto ds = df.open<Json>(random_data);
-  auto [x_nom, x_var, w_nom, w_var] =
-      ds.read<double, double, unsigned int, unsigned int>(
-          {"x_nom", "x_var", "w_nom", "w_var"});
-  auto x = df.vary(systematic::nominal(x_nom),
-                   systematic::variation("vary_x", x_var));
-  auto w = df.vary(systematic::nominal(w_nom),
-                   systematic::variation("vary_w", w_var));
+  auto [x_nom, w_nom] = ds.read<double, unsigned int>({"x_nom", "w_nom"});
+  auto x = ds.vary(x_nom, {"vary_x", "x_var"});
+  auto w = ds.vary(w_nom, systematic::variation("vary_w", "w_var"));
   auto wsumx = df.agg<WeightedSum>().fill(x).book(df.weight("weight")(w));
   auto wsumx_nom = wsumx.nominal().result();
   auto wsumx_xvar = wsumx["vary_x"].result();

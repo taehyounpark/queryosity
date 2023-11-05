@@ -10,7 +10,8 @@ namespace ana {
 template <typename Val> class column::constant : public term<Val> {
 
 public:
-  constant(const Val &val);
+  constant(Val const &val);
+  template <typename... Args> constant(Args &&...args);
   virtual ~constant() = default;
 
   const Val &value() const override;
@@ -22,7 +23,12 @@ protected:
 } // namespace ana
 
 template <typename Val>
-ana::column::constant<Val>::constant(const Val &val) : m_value(val) {}
+ana::column::constant<Val>::constant(Val const &val) : m_value(val) {}
+
+template <typename Val>
+template <typename... Args>
+ana::column::constant<Val>::constant(Args &&...args)
+    : m_value(std::forward<Args>(args)...) {}
 
 template <typename Val> const Val &ana::column::constant<Val>::value() const {
   return m_value;

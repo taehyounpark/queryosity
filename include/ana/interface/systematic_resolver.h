@@ -14,7 +14,7 @@ class dataflow;
 
 namespace systematic {
 
-template <typename U> class lookup {
+template <typename U> class resolver {
 
 public:
   using nominal_type = U;
@@ -22,11 +22,11 @@ public:
 public:
   template <typename> friend class lazy;
   template <typename> friend class delayed;
-  template <typename> friend class lookup;
+  template <typename> friend class resolver;
 
 public:
-  lookup(dataflow &df);
-  virtual ~lookup() = default;
+  resolver(dataflow &df);
+  virtual ~resolver() = default;
 
 public:
   virtual void set_variation(const std::string &var_name, U &&nom) = 0;
@@ -46,4 +46,4 @@ protected:
 } // namespace ana
 
 template <typename U>
-ana::systematic::lookup<U>::lookup(dataflow &df) : m_df(&df) {}
+ana::systematic::resolver<U>::resolver(dataflow &df) : m_df(&df) {}

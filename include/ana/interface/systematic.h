@@ -12,11 +12,9 @@ namespace ana {
 
 namespace systematic {
 
-template <typename Node> class nominal;
+template <typename Node> class resolver;
 
 template <typename... Args> class variation;
-
-template <typename Node> class lookup;
 
 template <typename... Nodes>
 auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;

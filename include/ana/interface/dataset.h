@@ -18,6 +18,8 @@ template <typename T> class input;
 
 class player;
 
+template <typename T> class reader;
+
 template <typename T> class column;
 
 /**

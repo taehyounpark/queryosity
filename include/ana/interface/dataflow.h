@@ -26,8 +26,6 @@ template <typename U> class delayed;
 class dataflow {
 
 public:
-  template <typename DS> class reader;
-
   template <typename> friend class lazy;
   template <typename> friend class delayed;
 
@@ -46,7 +44,8 @@ public:
   dataflow(dataflow &&) = default;
   dataflow &operator=(dataflow &&) = default;
 
-  template <typename DS, typename... Args> reader<DS> open(Args &&...args);
+  template <typename DS, typename... Args>
+  dataset::reader<DS> open(Args &&...args);
 
   /**
    * @brief Read a column from the dataset.
@@ -65,7 +64,9 @@ public:
    * @return The `lazy` defined constant.
    */
   template <typename Val>
-  auto constant(const Val &value) -> lazy<column::constant<Val>>;
+  auto constant(Val const &val) -> lazy<column::constant<Val>>;
+  template <typename Val, typename... Args>
+  auto constant(Args &&...args) -> lazy<column::constant<Val>>;
 
   /**
    * @brief Define a custom definition or representation.
@@ -106,10 +107,13 @@ public:
   template <typename Cnt, typename... Args>
   auto agg(Args &&...args) -> delayed<aggregation::booker<Cnt>>;
 
-  // template <typename V, typename... Vars,
-  //           std::enable_if_t<ana::is_column_v<V>, bool> = false>
-  // auto vary(systematic::nominal<V> const &nom,
-  //           systematic::variation<Vars> const &...vars);
+  template <typename Val, typename... Vars>
+  auto vary(lazy<column::template constant<Val>> const &nom,
+            Vars const &...vars);
+
+  template <typename Col, typename... Vars>
+  auto vary(delayed<column::template evaluator<Col>> &&nom,
+            Vars const &...vars);
 
 protected:
   template <typename Kwd> void accept_kwd(Kwd const &kwd);
@@ -143,6 +147,14 @@ protected:
   template <typename Sel>
   auto channel(lazy<selection> const &prev, const std::string &name);
 
+  template <typename Col, typename Eval, typename... Args>
+  void vary_evaluator(Eval &syst, const std::string &name,
+                      std::tuple<Args...> args);
+
+  template <typename Val, typename Lazy, typename... Args>
+  void vary_constant(Lazy &syst, const std::string &name,
+                     std::tuple<Args...> args);
+
   void add_operation(lockstep::node<operation> act);
   void add_operation(std::unique_ptr<operation> act);
 
@@ -168,13 +180,12 @@ template <typename T> using operation_t = typename T::nominal_type;
 
 } // namespace ana
 
-#include "dataflow_reader.h"
+#include "dataset_reader.h"
 #include "delayed.h"
 #include "lazy.h"
 #include "lazy_varied.h"
 
-#include "systematic_lookup.h"
-#include "systematic_nominal.h"
+#include "systematic_resolver.h"
 #include "systematic_variation.h"
 
 inline ana::dataflow::dataflow()
@@ -219,7 +230,7 @@ ana::dataflow::dataflow(Kwd1 kwd1, Kwd2 kwd2, Kwd3 kwd3) : dataflow() {
 }
 
 template <typename DS, typename... Args>
-ana::dataflow::reader<DS> ana::dataflow::open(Args &&...args) {
+ana::dataset::reader<DS> ana::dataflow::open(Args &&...args) {
 
   if (m_source) {
     std::runtime_error("opening multiple datasets is not yet supported.");
@@ -257,7 +268,7 @@ ana::dataflow::reader<DS> ana::dataflow::open(Args &&...args) {
   this->m_processors = lockstep::node<dataset::processor>(
       m_parts.concurrency(), this->m_weight / this->m_norm);
 
-  return reader<DS>(*this, *ds);
+  return dataset::reader<DS>(*this, *ds);
 }
 
 template <typename DS, typename Val>
@@ -274,11 +285,23 @@ auto ana::dataflow::read(dataset::input<DS> &ds, const std::string &name)
 }
 
 template <typename Val>
-auto ana::dataflow::constant(const Val &val)
+auto ana::dataflow::constant(Val const &val)
     -> lazy<ana::column::constant<Val>> {
-  auto act = this->m_processors.get_lockstep_node(
-      [val = val](dataset::processor &proc) {
+  auto act =
+      this->m_processors.get_lockstep_node([&val](dataset::processor &proc) {
         return proc.template constant<Val>(val);
+      });
+  auto lzy = lazy<column::constant<Val>>(*this, act);
+  this->add_operation(std::move(act));
+  return lzy;
+}
+
+template <typename Val, typename... Args>
+auto ana::dataflow::constant(Args &&...args)
+    -> lazy<ana::column::constant<Val>> {
+  auto act =
+      this->m_processors.get_lockstep_node([args...](dataset::processor &proc) {
+        return proc.template constant<Val>(std::forward<Args>(args)...);
       });
   auto lzy = lazy<column::constant<Val>>(*this, act);
   this->add_operation(std::move(act));
@@ -506,20 +529,38 @@ inline void ana::dataflow::analyze() {
 
 inline void ana::dataflow::reset() { m_analyzed = false; }
 
-// template <typename V, typename... Args,
-//           std::enable_if_t<ana::is_column_v<V>, bool>>
-// auto ana::dataflow::vary(systematic::nominal<V> const &nom,
-//                          systematic::variation<Args...> const &var) {
-// using target_value_t = cell_value_t<V>;
-// using target_column_t = ana::term<target_value_t>;
-// typename lazy<target_column_t>::varied syst(
-//     nom.get().template to<target_value_t>());
-// (syst.set_variation(vars.name(), vars.get().template to<target_value_t>()),
-//  ...);
-// return syst;
+template <typename Val, typename... Vars>
+auto ana::dataflow::vary(lazy<column::template constant<Val>> const &nom,
+                         Vars const &...vars) {
+  typename lazy<column::template constant<Val>>::varied syst(nom);
+  ((this->vary_constant<Val>(syst, vars.name(), vars.args())), ...);
+  return syst;
+}
 
-//   if constexpr(column::template is_reader_v<> )
-// }
+template <typename Val, typename Lazy, typename... Args>
+void ana::dataflow::vary_constant(Lazy &syst, const std::string &name,
+                                  std::tuple<Args...> args) {
+  auto var = std::apply(
+      [this](Args... args) { return this->constant<Val>(args...); }, args);
+  syst.set_variation(name, std::move(var));
+}
+
+template <typename Col, typename... Vars>
+auto ana::dataflow::vary(delayed<column::template evaluator<Col>> &&nom,
+                         Vars const &...vars) {
+  typename delayed<column::template evaluator<Col>>::varied syst(
+      std::move(nom));
+  ((this->vary_evaluator<Col>(syst, vars.name(), vars.args())), ...);
+  return syst;
+}
+
+template <typename Col, typename Eval, typename... Args>
+void ana::dataflow::vary_evaluator(Eval &syst, const std::string &name,
+                                   std::tuple<Args...> args) {
+  auto var = std::apply(
+      [this](Args... args) { return this->define<Col>(args...); }, args);
+  syst.set_variation(name, std::move(var));
+}
 
 inline void ana::dataflow::add_operation(lockstep::node<operation> operation) {
   m_operations.emplace_back(std::move(operation.m_model));

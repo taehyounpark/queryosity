@@ -35,17 +35,13 @@ int main() {
   auto data = json::parse(data_file);
 
   ana::dataflow df;
-  auto ds = df.open<Json>(data);
+  auto ds = ds.open<Json>(data);
 
-  auto [x_nom, x_scale, x_smear] =
-      ds.read<double, double, double>({"x_nom", "x_scale", "x_smear"});
-  auto [w_nom, w_var] = ds.read<double, double>({"w_nom", "w_toy"});
-
-  auto x = df.vary(systematic::nominal(x_nom),
-                   systematic::variation("scale", x_scale),
-                   systematic::variation("smear", x_smear));
+  auto x = ds.vary(ds.read<double>("x_nom"),
+                   systematic::variation("scale", "x_scale"),
+                   systematic::variation("smear", "x_smear"));
   auto w =
-      df.vary(systematic::nominal(w_nom), systematic::variation("toy", w_var));
+      df.vary(ds.read<double>("w_nom"), systematic::variation("toy", "w_toy"));
 
   auto weight = df.weight("weight")(w);
 

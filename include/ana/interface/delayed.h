@@ -3,7 +3,7 @@
 #include "dataflow.h"
 #include "lazy.h"
 #include "lazy_varied.h"
-#include "systematic_lookup.h"
+#include "systematic_resolver.h"
 
 namespace ana {
 
@@ -36,7 +36,7 @@ static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
  * @tparam U Action for which a lazy one will be created.
  */
 template <typename Bld>
-class delayed : public systematic::lookup<delayed<Bld>>,
+class delayed : public systematic::resolver<delayed<Bld>>,
                 public lockstep::node<Bld> {
 
 public:
@@ -44,14 +44,14 @@ public:
 
 public:
   delayed(dataflow &dataflow, lockstep::node<Bld> &&operation)
-      : systematic::lookup<delayed<Bld>>::lookup(dataflow),
+      : systematic::resolver<delayed<Bld>>::resolver(dataflow),
         lockstep::node<Bld>::node(std::move(operation)) {}
 
   virtual ~delayed() = default;
 
   template <typename V>
   delayed(delayed<V> &&other)
-      : systematic::lookup<delayed<Bld>>::lookup(*other.m_df),
+      : systematic::resolver<delayed<Bld>>::resolver(*other.m_df),
         lockstep::node<Bld>::node(std::move(other)) {}
 
   template <typename V> delayed &operator=(delayed<V> &&other) {

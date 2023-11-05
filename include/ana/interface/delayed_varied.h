@@ -12,7 +12,7 @@ namespace ana {
  * accessed by `nominal()`, and a systematic variation by `["variation name"]`.
  */
 template <typename Bld>
-class delayed<Bld>::varied : public systematic::lookup<delayed<Bld>> {
+class delayed<Bld>::varied : public systematic::resolver<delayed<Bld>> {
 
 public:
   varied(delayed<Bld> &&nom);
@@ -87,7 +87,7 @@ protected:
 
 template <typename Bld>
 ana::delayed<Bld>::varied::varied(delayed<Bld> &&nom)
-    : systematic::lookup<delayed<Bld>>::lookup(*nom.m_df),
+    : systematic::resolver<delayed<Bld>>::resolver(*nom.m_df),
       m_nominal(std::move(nom)) {}
 
 template <typename Bld>

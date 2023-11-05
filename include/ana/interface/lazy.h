@@ -7,7 +7,7 @@
 #include <type_traits>
 
 #include "dataflow.h"
-#include "systematic_lookup.h"
+#include "systematic_resolver.h"
 
 #define CHECK_FOR_BINARY_OP(op_name, op_symbol)                                \
   struct has_no_##op_name {};                                                  \
@@ -25,7 +25,7 @@
 
 #define DEFINE_LAZY_BINARY_OP(op_name, op_symbol)                              \
   template <                                                                   \
-      typename Arg, typename V = U,                                            \
+      typename Arg, typename V = Action,                                       \
       std::enable_if_t<ana::is_column_v<V> &&                                  \
                            ana::is_column_v<typename Arg::operation_type> &&   \
                            op_check::has_##op_name##_v<                        \
@@ -54,7 +54,7 @@
   static constexpr bool has_##op_name##_v = has_##op_name<T>::value;
 
 #define DEFINE_LAZY_UNARY_OP(op_name, op_symbol)                               \
-  template <typename V = U,                                                    \
+  template <typename V = Action,                                               \
             std::enable_if_t<ana::is_column_v<V> &&                            \
                                  op_check::has_##op_name##_v<cell_value_t<V>>, \
                              bool> = false>                                    \
@@ -82,7 +82,7 @@
 
 #define DEFINE_LAZY_SUBSCRIPT_OP()                                             \
   template <                                                                   \
-      typename Arg, typename V = U,                                            \
+      typename Arg, typename V = Action,                                       \
       std::enable_if_t<is_column_v<V> &&                                       \
                            op_check::has_subscript_v<                          \
                                cell_value_t<V>,                                \
@@ -117,39 +117,33 @@ CHECK_FOR_BINARY_OP(logical_or, ||)
 CHECK_FOR_SUBSCRIPT_OP()
 } // namespace op_check
 
-template <typename U>
-class lazy : public systematic::lookup<lazy<U>>, public lockstep::view<U> {
+template <typename Action>
+class lazy : public systematic::resolver<lazy<Action>>,
+             public lockstep::view<Action> {
 
 public:
   class varied;
 
 public:
-  using operation_type = U;
+  using operation_type = Action;
 
 public:
   friend class dataflow;
   template <typename> friend class lazy;
 
 public:
-  lazy(dataflow &dataflow, const lockstep::view<U> &operation)
-      : systematic::lookup<lazy<U>>::lookup(dataflow),
-        lockstep::view<U>::view(operation) {}
-  lazy(dataflow &dataflow, const lockstep::node<U> &operation)
-      : systematic::lookup<lazy<U>>::lookup(dataflow),
-        lockstep::view<U>::view(operation) {}
+  lazy(dataflow &dataflow, const lockstep::view<Action> &operation)
+      : systematic::resolver<lazy<Action>>::resolver(dataflow),
+        lockstep::view<Action>::view(operation) {}
+  lazy(dataflow &dataflow, const lockstep::node<Action> &operation)
+      : systematic::resolver<lazy<Action>>::resolver(dataflow),
+        lockstep::view<Action>::view(operation) {}
 
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;
 
-  template <typename V>
-  lazy(lazy<V> const &derived)
-      : systematic::lookup<lazy<U>>(*derived.m_df), lockstep::view<U>(derived) {
-  }
-  template <typename V> lazy &operator=(lazy<V> const &derived) {
-    lockstep::view<U>::operator=(derived);
-    this->m_df = derived.m_df;
-    return *this;
-  }
+  template <typename Derived> lazy(lazy<Derived> const &derived);
+  template <typename Derived> lazy &operator=(lazy<Derived> const &derived);
 
   virtual ~lazy() = default;
 
@@ -173,13 +167,14 @@ public:
   template <typename Agg> auto book(Agg &&agg) const;
   template <typename... Aggs> auto book(Aggs &&...aggs) const;
 
-  template <typename V = U, std::enable_if_t<is_selection_v<V>, bool> = false>
+  template <typename V = Action,
+            std::enable_if_t<is_selection_v<V>, bool> = false>
   std::string path() const {
     return this->get_model_value(
         [](const selection &me) { return me.get_path(); });
   }
 
-  template <typename V = U,
+  template <typename V = Action,
             std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
                 false>
   auto result() const;
@@ -187,7 +182,7 @@ public:
    * @brief Shorthand for `result` of aggregation.
    * @return `Result` the result of the implemented aggregation.
    */
-  template <typename V = U,
+  template <typename V = Action,
             std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
                 false>
   auto operator->() const -> decltype(std::declval<V>().get_result()) {
@@ -211,7 +206,7 @@ public:
   DEFINE_LAZY_BINARY_OP(less_than_or_equal_to, <=)
 
 protected:
-  template <typename V = U,
+  template <typename V = Action,
             std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
                 false>
   void merge_results() const;
@@ -223,118 +218,117 @@ protected:
 #include "delayed.h"
 #include "lazy_varied.h"
 
-// template <typename Act>
-// template <typename Derived>
-// ana::lazy<Act>::lazy(lazy<Derived> const& derived) :
-//   ana::lockstep<Act>::view(derived)
-// {
-//   this->m_df = derived.m_df;
-// }
+template <typename Action>
+template <typename Derived>
+ana::lazy<Action>::lazy(lazy<Derived> const &derived)
+    : ana::systematic::resolver<lazy<Action>>(*derived.m_df),
+      ana::lockstep::view<Action>(derived) {
+  this->m_df = derived.m_df;
+}
 
-// template <typename Act>
-// template <typename Derived>
-// ana::lazy<Act>& ana::lazy<Act>::operator=(lazy<Derived>
-// const& derived)
-// {
-//   typename lockstep::template view<Act>::operator=(derived);
-//   this->m_df = derived.m_df;
-//   return *this;
-// }
+template <typename Action>
+template <typename Derived>
+ana::lazy<Action> &ana::lazy<Action>::operator=(lazy<Derived> const &derived) {
+  lockstep::view<Action>::operator=(derived);
+  this->m_df = derived.m_df;
+  return *this;
+}
 
-template <typename Act>
-void ana::lazy<Act>::set_variation(const std::string &, lazy &&) {
+template <typename Action>
+void ana::lazy<Action>::set_variation(const std::string &, lazy &&) {
   // should never be called
   throw std::logic_error("cannot set variation to a lazy operation");
 }
 
-template <typename Act> auto ana::lazy<Act>::nominal() const -> lazy const & {
+template <typename Action>
+auto ana::lazy<Action>::nominal() const -> lazy const & {
   // this is nominal
   return *this;
 }
 
-template <typename Act>
-auto ana::lazy<Act>::variation(const std::string &) const -> lazy const & {
+template <typename Action>
+auto ana::lazy<Action>::variation(const std::string &) const -> lazy const & {
   // propagation of variations must occur "transparently"
   return *this;
 }
 
-template <typename Act>
-std::set<std::string> ana::lazy<Act>::list_variation_names() const {
+template <typename Action>
+std::set<std::string> ana::lazy<Action>::list_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
 
-template <typename Act>
-bool ana::lazy<Act>::has_variation(const std::string &) const {
+template <typename Action>
+bool ana::lazy<Action>::has_variation(const std::string &) const {
   // always false
   return false;
 }
 
-template <typename Act>
+template <typename Action>
 template <typename... Args>
-auto ana::lazy<Act>::filter(const std::string &name, Args &&...args) const {
-  if constexpr (std::is_base_of_v<selection, Act>) {
+auto ana::lazy<Action>::filter(const std::string &name, Args &&...args) const {
+  if constexpr (std::is_base_of_v<selection, Action>) {
     return this->m_df->template select<selection::cut>(
         *this, name, std::forward<Args>(args)...);
   } else {
-    static_assert(std::is_base_of_v<selection, Act>,
+    static_assert(std::is_base_of_v<selection, Action>,
                   "filter must be called from a selection");
   }
 }
 
-template <typename Act>
+template <typename Action>
 template <typename... Args>
-auto ana::lazy<Act>::weight(const std::string &name, Args &&...args) const {
-  if constexpr (std::is_base_of_v<selection, Act>) {
+auto ana::lazy<Action>::weight(const std::string &name, Args &&...args) const {
+  if constexpr (std::is_base_of_v<selection, Action>) {
     return this->m_df->template select<selection::weight>(
         *this, name, std::forward<Args>(args)...);
   } else {
-    static_assert(std::is_base_of_v<selection, Act>,
+    static_assert(std::is_base_of_v<selection, Action>,
                   "weight must be called from a selection");
   }
 }
 
-template <typename Act>
+template <typename Action>
 template <typename... Args>
-auto ana::lazy<Act>::channel(const std::string &name, Args &&...args) const {
-  if constexpr (std::is_base_of_v<selection, Act>) {
+auto ana::lazy<Action>::channel(const std::string &name, Args &&...args) const {
+  if constexpr (std::is_base_of_v<selection, Action>) {
     return this->m_df->template channel<selection::weight>(
         *this, name, std::forward<Args>(args)...);
   } else {
-    static_assert(std::is_base_of_v<selection, Act>,
+    static_assert(std::is_base_of_v<selection, Action>,
                   "channel must be called from a selection");
   }
 }
 
-template <typename Act>
+template <typename Action>
 template <typename Agg>
-auto ana::lazy<Act>::book(Agg &&agg) const {
-  static_assert(std::is_base_of_v<selection, Act>,
+auto ana::lazy<Action>::book(Agg &&agg) const {
+  static_assert(std::is_base_of_v<selection, Action>,
                 "book must be called from a selection");
   return agg.book(*this);
 }
 
-template <typename Act>
+template <typename Action>
 template <typename... Aggs>
-auto ana::lazy<Act>::book(Aggs &&...aggs) const {
-  static_assert(std::is_base_of_v<selection, Act>,
+auto ana::lazy<Action>::book(Aggs &&...aggs) const {
+  static_assert(std::is_base_of_v<selection, Action>,
                 "book must be called from a selection");
   return std::make_tuple((aggs.book(*this), ...));
 }
 
-template <typename Act>
+template <typename Action>
 template <typename V,
           std::enable_if_t<ana::aggregation::template has_output_v<V>, bool>>
-auto ana::lazy<Act>::result() const {
+auto ana::lazy<Action>::result() const {
   this->m_df->analyze();
   this->merge_results();
   return this->get_model()->get_result();
 }
 
-template <typename Act>
+template <typename Action>
 template <typename V,
           std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> e>
-void ana::lazy<Act>::merge_results() const {
+void ana::lazy<Action>::merge_results() const {
   auto model = this->get_model();
   if (!model->is_merged()) {
     std::vector<std::decay_t<decltype(model->get_result())>> results;

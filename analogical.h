@@ -3749,7 +3749,7 @@ auto ana::delayed<Bld>::vary(const std::string &var_name, Args &&...args) ->
 
 namespace ana {
 
-template <typename DS> class dataflow::reader {
+template <typename DS> class dataset::reader {
 
 public:
   reader(dataflow &df, DS &ds);
@@ -3801,7 +3801,7 @@ protected:
 } // namespace ana
 
 template <typename DS>
-ana::dataflow::reader<DS>::reader(ana::dataflow &df, DS &ds)
+ana::dataset::reader<DS>::reader(ana::dataflow &df, DS &ds)
     : m_df(&df), m_ds(&ds) {}
 
 inline ana::dataflow::dataflow()
@@ -3847,7 +3847,7 @@ ana::dataflow::dataflow(KWArg1 kwarg1, KWArg2 kwarg2, KWArg3 kwarg3)
 }
 
 template <typename DS, typename... Args>
-ana::dataflow::reader<DS> ana::dataflow::open(Args &&...args) {
+ana::dataset::reader<DS> ana::dataflow::open(Args &&...args) {
 
   if (m_source) {
     std::runtime_error("opening multiple datasets is not yet supported.");

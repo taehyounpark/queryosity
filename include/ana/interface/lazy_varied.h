@@ -6,7 +6,7 @@
 #include <utility>
 
 #include "lazy.h"
-#include "systematic_lookup.h"
+#include "systematic_resolver.h"
 
 #define DECLARE_LAZY_VARIED_BINARY_OP(op_symbol)                               \
   template <typename Arg>                                                      \
@@ -65,7 +65,7 @@ namespace ana {
  * analyzer that propagate through the rest of the analysis.
  */
 template <typename Act>
-class lazy<Act>::varied : public systematic::lookup<lazy<Act>> {
+class lazy<Act>::varied : public systematic::resolver<lazy<Act>> {
 
 public:
   using operation_type = typename lazy<Act>::operation_type;
@@ -144,7 +144,7 @@ protected:
 
 template <typename Act>
 ana::lazy<Act>::varied::varied(lazy<Act> const &nom)
-    : systematic::lookup<lazy<Act>>::lookup(*nom.m_df), m_nom(nom) {}
+    : systematic::resolver<lazy<Act>>::resolver(*nom.m_df), m_nom(nom) {}
 
 template <typename Act>
 void ana::lazy<Act>::varied::set_variation(const std::string &var_name,
