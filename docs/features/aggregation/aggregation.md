@@ -79,12 +79,13 @@ auto [hx_a, hxy_a] = sel_a.book(hx, hxy);
 The result of any single aggregation can be triggered by:
 ```cpp
 auto hist = df.agg<Histogram<float>>(100,0,100).fill(column).book(selection);
-auto hist_result = hist.result();
+auto hist_result = hist.result();  // std::shared_ptr to boost::histogram object
 ```
 
-De-referencing the aggregation automatically triggers its result:
+The aggregation behaves as a pointer to its result, which is automatically triggered:
 ```cpp
-hist->at(0);  // first bin content
+hist->at(0);  // equivalent to hist.result()->at(0);
+(*hist).at(0);  // equivalent to above
 ```
 
 !!! note
