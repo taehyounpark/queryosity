@@ -34,7 +34,7 @@ protected:
 
 template <typename... Cols>
 template <typename... Axes>
-Histogram<Cols...>::hist(Axes &&...axes) {
+Histogram<Cols...>::Histogram(Axes &&...axes) {
   m_hist = std::make_shared<Histogram_t>(std::move(
       boost::histogram::make_weighted_histogram(std::forward<Axes>(axes)...)));
 }

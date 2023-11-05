@@ -3,6 +3,7 @@
 #include <map>
 
 #include "dataflow.h"
+#include "lazy.h"
 
 namespace ana {
 
@@ -40,8 +41,7 @@ public:
   auto read(const std::string &nomimal_column_name,
             std::map<std::string, std::string> const &varied_columns) {
 
-    using varied_type =
-        typename dataflow::template lazy<read_column_t<DS, Val>>::varied;
+    using varied_type = typename lazy<read_column_t<DS, Val>>::varied;
 
     auto syst = varied_type(this->read_column<Val>(nomimal_column_name));
     for (const auto &[variation_name, varied_column_name] : varied_columns) {

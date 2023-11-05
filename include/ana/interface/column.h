@@ -297,14 +297,14 @@ const Base &ana::cell<Base>::interface_of<Impl>::value() const {
 
 template <typename To, typename From>
 std::unique_ptr<ana::cell<To>> ana::cell_as(const cell<From> &from) {
-  if constexpr (std::is_same_v<From, To> || std::is_base_of_v<From, To>) {
+  if constexpr (std::is_same_v<From, To> || std::is_base_of_v<To, From>) {
     return std::make_unique<
         typename ana::cell<To>::template interface_of<From>>(from);
   } else if constexpr (std::is_convertible_v<From, To>) {
     return std::make_unique<
         typename ana::cell<To>::template conversion_of<From>>(from);
   } else {
-    static_assert(std::is_same_v<From, To> || std::is_base_of_v<From, To> ||
+    static_assert(std::is_same_v<From, To> || std::is_base_of_v<To, From> ||
                       std::is_convertible_v<From, To>,
                   "incompatible value types");
   }

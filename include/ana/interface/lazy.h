@@ -7,7 +7,7 @@
 #include <type_traits>
 
 #include "dataflow.h"
-#include "dataflow_systematic.h"
+#include "systematic_lookup.h"
 
 #define CHECK_FOR_BINARY_OP(op_name, op_symbol)                                \
   struct has_no_##op_name {};                                                  \
@@ -117,15 +117,8 @@ CHECK_FOR_BINARY_OP(logical_or, ||)
 CHECK_FOR_SUBSCRIPT_OP()
 } // namespace op_check
 
-/**
- * @brief Node representing a operation to be performed in an analysis.
- * @details Lazy nodes represent the final operation to be performed in a
- * dataset, pending its processing. It can be provided to other dataflow
- * operations as inputs.
- * @tparam U Action to be performed lazily
- */
 template <typename U>
-class dataflow::lazy : public systematic<lazy<U>>, public lockstep::view<U> {
+class lazy : public systematic::lookup<lazy<U>>, public lockstep::view<U> {
 
 public:
   class varied;
@@ -139,14 +132,24 @@ public:
 
 public:
   lazy(dataflow &dataflow, const lockstep::view<U> &operation)
-      : systematic<lazy<U>>::systematic(dataflow),
+      : systematic::lookup<lazy<U>>::lookup(dataflow),
         lockstep::view<U>::view(operation) {}
   lazy(dataflow &dataflow, const lockstep::node<U> &operation)
-      : systematic<lazy<U>>::systematic(dataflow),
+      : systematic::lookup<lazy<U>>::lookup(dataflow),
         lockstep::view<U>::view(operation) {}
 
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;
+
+  template <typename V>
+  lazy(lazy<V> const &derived)
+      : systematic::lookup<lazy<U>>(*derived.m_df), lockstep::view<U>(derived) {
+  }
+  template <typename V> lazy &operator=(lazy<V> const &derived) {
+    lockstep::view<U>::operator=(derived);
+    this->m_df = derived.m_df;
+    return *this;
+  }
 
   virtual ~lazy() = default;
 
@@ -157,20 +160,6 @@ public:
 
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
-
-  /**
-   * @brief Apply a systematic variation to a `reader` or `constant` column.
-   * @param var_name Name of the systematic variation.
-   * @param args... Alternate column name (`reader`) or value (`constant`).
-   * @return Varied column.
-   * @details Creates a `varied` operation whose `.nominal()` is the original
-   * lazy one, and `variation(var_name)` is the newly-constructed one.
-   */
-  template <typename... Args, typename V = U,
-            std::enable_if_t<column::template is_reader_v<V> ||
-                                 column::template is_constant_v<V>,
-                             bool> = false>
-  auto vary(const std::string &var_name, Args &&...args) -> varied;
 
   template <typename... Args>
   auto filter(const std::string &name, Args &&...args) const;
@@ -190,28 +179,17 @@ public:
         [](const selection &me) { return me.get_path(); });
   }
 
-  /**
-   * @brief Retrieve the result of a aggregation.
-   * @details Triggers processing of the dataset if that the result is not
-   * already available.
-   * @return The result of the implemented aggregation.
-   */
-  template <
-      typename V = U,
-      std::enable_if_t<aggregation::template has_output_v<V>, bool> = false>
-  auto result() const -> decltype(std::declval<V>().get_result()) {
-    this->m_df->analyze();
-    this->merge_results();
-    return this->get_model()->get_result();
-  }
-
+  template <typename V = U,
+            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
+                false>
+  auto result() const;
   /**
    * @brief Shorthand for `result` of aggregation.
    * @return `Result` the result of the implemented aggregation.
    */
-  template <
-      typename V = U,
-      std::enable_if_t<aggregation::template has_output_v<V>, bool> = false>
+  template <typename V = U,
+            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
+                false>
   auto operator->() const -> decltype(std::declval<V>().get_result()) {
     return this->result();
   }
@@ -233,62 +211,68 @@ public:
   DEFINE_LAZY_BINARY_OP(less_than_or_equal_to, <=)
 
 protected:
-  template <
-      typename V = U,
-      std::enable_if_t<aggregation::template has_output_v<V>, bool> = false>
-  void merge_results() const {
-    auto model = this->get_model();
-    if (!model->is_merged()) {
-      std::vector<std::decay_t<decltype(model->get_result())>> results;
-      results.reserve(this->concurrency());
-      for (size_t islot = 0; islot < this->concurrency(); ++islot) {
-        results.push_back(this->get_slot(islot)->get_result());
-      }
-      model->merge_results(results);
-    }
-  }
+  template <typename V = U,
+            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
+                false>
+  void merge_results() const;
 };
 
 } // namespace ana
 
 #include "column.h"
-#include "dataflow_lazy_varied.h"
+#include "delayed.h"
+#include "lazy_varied.h"
+
+// template <typename Act>
+// template <typename Derived>
+// ana::lazy<Act>::lazy(lazy<Derived> const& derived) :
+//   ana::lockstep<Act>::view(derived)
+// {
+//   this->m_df = derived.m_df;
+// }
+
+// template <typename Act>
+// template <typename Derived>
+// ana::lazy<Act>& ana::lazy<Act>::operator=(lazy<Derived>
+// const& derived)
+// {
+//   typename lockstep::template view<Act>::operator=(derived);
+//   this->m_df = derived.m_df;
+//   return *this;
+// }
 
 template <typename Act>
-void ana::dataflow::lazy<Act>::set_variation(const std::string &, lazy &&) {
+void ana::lazy<Act>::set_variation(const std::string &, lazy &&) {
   // should never be called
   throw std::logic_error("cannot set variation to a lazy operation");
 }
 
-template <typename Act>
-auto ana::dataflow::lazy<Act>::nominal() const -> lazy const & {
+template <typename Act> auto ana::lazy<Act>::nominal() const -> lazy const & {
   // this is nominal
   return *this;
 }
 
 template <typename Act>
-auto ana::dataflow::lazy<Act>::variation(const std::string &) const
-    -> lazy const & {
+auto ana::lazy<Act>::variation(const std::string &) const -> lazy const & {
   // propagation of variations must occur "transparently"
   return *this;
 }
 
 template <typename Act>
-std::set<std::string> ana::dataflow::lazy<Act>::list_variation_names() const {
+std::set<std::string> ana::lazy<Act>::list_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
 
 template <typename Act>
-bool ana::dataflow::lazy<Act>::has_variation(const std::string &) const {
+bool ana::lazy<Act>::has_variation(const std::string &) const {
   // always false
   return false;
 }
 
 template <typename Act>
 template <typename... Args>
-auto ana::dataflow::lazy<Act>::filter(const std::string &name,
-                                      Args &&...args) const {
+auto ana::lazy<Act>::filter(const std::string &name, Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template select<selection::cut>(
         *this, name, std::forward<Args>(args)...);
@@ -300,8 +284,7 @@ auto ana::dataflow::lazy<Act>::filter(const std::string &name,
 
 template <typename Act>
 template <typename... Args>
-auto ana::dataflow::lazy<Act>::weight(const std::string &name,
-                                      Args &&...args) const {
+auto ana::lazy<Act>::weight(const std::string &name, Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template select<selection::weight>(
         *this, name, std::forward<Args>(args)...);
@@ -313,8 +296,7 @@ auto ana::dataflow::lazy<Act>::weight(const std::string &name,
 
 template <typename Act>
 template <typename... Args>
-auto ana::dataflow::lazy<Act>::channel(const std::string &name,
-                                       Args &&...args) const {
+auto ana::lazy<Act>::channel(const std::string &name, Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Act>) {
     return this->m_df->template channel<selection::weight>(
         *this, name, std::forward<Args>(args)...);
@@ -326,7 +308,7 @@ auto ana::dataflow::lazy<Act>::channel(const std::string &name,
 
 template <typename Act>
 template <typename Agg>
-auto ana::dataflow::lazy<Act>::book(Agg &&agg) const {
+auto ana::lazy<Act>::book(Agg &&agg) const {
   static_assert(std::is_base_of_v<selection, Act>,
                 "book must be called from a selection");
   return agg.book(*this);
@@ -334,25 +316,32 @@ auto ana::dataflow::lazy<Act>::book(Agg &&agg) const {
 
 template <typename Act>
 template <typename... Aggs>
-auto ana::dataflow::lazy<Act>::book(Aggs &&...aggs) const {
+auto ana::lazy<Act>::book(Aggs &&...aggs) const {
   static_assert(std::is_base_of_v<selection, Act>,
                 "book must be called from a selection");
   return std::make_tuple((aggs.book(*this), ...));
 }
 
 template <typename Act>
-template <typename... Args, typename V,
-          std::enable_if_t<ana::column::template is_reader_v<V> ||
-                               ana::column::template is_constant_v<V>,
-                           bool>>
-auto ana::dataflow::lazy<Act>::vary(const std::string &var_name, Args &&...args)
-    -> varied {
-  // create a lazy varied with the this as nominal
-  auto syst = varied(std::move(*this));
-  // set variation of the column according to new constructor arguments
-  syst.set_variation(
-      var_name,
-      this->m_df->vary_column(syst.nominal(), std::forward<Args>(args)...));
-  // done
-  return syst;
+template <typename V,
+          std::enable_if_t<ana::aggregation::template has_output_v<V>, bool>>
+auto ana::lazy<Act>::result() const {
+  this->m_df->analyze();
+  this->merge_results();
+  return this->get_model()->get_result();
+}
+
+template <typename Act>
+template <typename V,
+          std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> e>
+void ana::lazy<Act>::merge_results() const {
+  auto model = this->get_model();
+  if (!model->is_merged()) {
+    std::vector<std::decay_t<decltype(model->get_result())>> results;
+    results.reserve(this->concurrency());
+    for (size_t islot = 0; islot < this->concurrency(); ++islot) {
+      results.push_back(this->get_slot(islot)->get_result());
+    }
+    model->merge_results(results);
+  }
 }

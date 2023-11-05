@@ -164,7 +164,9 @@ protected:
 template <typename T> class lockstep::view : public lockstep::slotted<T> {
 
 public:
+  friend class ana::dataflow;
   template <typename> friend class node;
+  template <typename> friend class view;
 
 public:
   view() = default;
@@ -383,6 +385,31 @@ ana::lockstep::view<T>::operator=(const ana::lockstep::node<U> &derived) {
   this->m_slots.reserve(derived.concurrency());
   for (size_t i = 0; i < derived.concurrency(); ++i) {
     this->m_slots.push_back(derived.m_slots[i].get());
+  }
+  return *this;
+}
+
+template <typename T>
+template <typename U>
+ana::lockstep::view<T>::view(const ana::lockstep::view<U> &derived) {
+  static_assert(std::is_base_of_v<T, U>, "incompatible slot types");
+  this->m_model = derived.m_model;
+  this->m_slots.clear();
+  this->m_slots.reserve(derived.concurrency());
+  for (size_t i = 0; i < derived.concurrency(); ++i) {
+    this->m_slots.push_back(derived.m_slots[i]);
+  }
+}
+
+template <typename T>
+template <typename U>
+ana::lockstep::view<T> &
+ana::lockstep::view<T>::operator=(const ana::lockstep::view<U> &derived) {
+  this->m_model = derived.m_model;
+  this->m_slots.clear();
+  this->m_slots.reserve(derived.concurrency());
+  for (size_t i = 0; i < derived.concurrency(); ++i) {
+    this->m_slots.push_back(derived.m_slots[i]);
   }
   return *this;
 }

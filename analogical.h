@@ -10,23 +10,48 @@
 
 namespace ana {
 
-template <typename T> class dataflow;
+class dataflow;
 
-struct multithread {
+namespace multithread {
 
-public:
-  static inline int s_suggestion = 0;
-  static void enable(int suggestion = -1);
-  static void disable();
-  static bool status();
-  static unsigned int concurrency();
+struct configuration {
+  bool enabled;
+  unsigned int concurrency;
 };
+
+configuration enable(int suggestion = -1);
+configuration disable();
+
+}; // namespace multithread
 
 namespace lockstep {
 
 template <typename T> class slotted;
 template <typename T> class node;
 template <typename T> class view;
+
+unsigned int check_concurrency();
+
+template <typename T, typename... Args>
+unsigned int check_concurrency(T const &first, Args const &...args);
+
+template <typename Fn, typename... Args>
+auto check_value(Fn const &fn, view<Args> const &...args)
+    -> std::invoke_result_t<Fn, Args &...>;
+
+template <typename Fn, typename... Args>
+auto invoke_node(Fn const &fn, view<Args> const &...args) -> lockstep::node<
+    typename std::invoke_result_t<Fn, Args &...>::element_type>;
+
+template <typename Fn, typename... Args>
+auto invoke_view(Fn const &fn, view<Args> const &...args) -> lockstep::view<
+    std::remove_pointer_t<typename std::invoke_result_t<Fn, Args &...>>>;
+
+template <typename Fn, typename... Args>
+auto run_parallel(multithread::configuration const &mtcfg, Fn const &fn,
+                  view<Args> const &...args)
+    -> lockstep::view<
+        std::remove_pointer_t<typename std::invoke_result_t<Fn, Args &...>>>;
 
 } // namespace lockstep
 
@@ -41,13 +66,15 @@ public:
 template <typename T> class lockstep::node : public lockstep::slotted<T> {
 
 public:
+  friend class ana::dataflow;
   template <typename> friend class node;
   template <typename> friend class view;
-  template <typename> friend class ana::dataflow;
 
 public:
   node() = default;
   ~node() = default;
+
+  template <typename... Args> node(size_t n, Args &&...args);
 
   node(const node &) = delete;
   node &operator=(const node &) = delete;
@@ -62,11 +89,13 @@ public:
   void add_slot(std::unique_ptr<T> slot);
   void clear_slots();
 
+  void reserve(size_t n) { this->m_slots.reserve(n); }
+
   virtual T *get_model() const override;
   virtual T *get_slot(size_t i) const override;
   virtual size_t concurrency() const override;
 
-  operator view<T>() const;
+  view<T> get_view() const;
 
   /**
    * @brief Get the result of calling method(s) on the model.
@@ -124,7 +153,8 @@ public:
    * (as it is meant to represent the "merged" instance of all slots).
    */
   template <typename Fn, typename... Args>
-  void run_slots(Fn const &fn, view<Args> const &...args) const;
+  void run_slots(multithread::configuration const &mtcfg, Fn const &fn,
+                 view<Args> const &...args) const;
 
 protected:
   std::unique_ptr<T> m_model;
@@ -148,6 +178,12 @@ public:
   template <typename U> view(const node<U> &derived);
   template <typename U> view &operator=(const node<U> &derived);
 
+  void set_model(T *model) { this->m_model = model; }
+  void add_slot(T *slot) { this->m_slots.push_back(slot); };
+
+  void reserve(size_t n) { this->m_slots.reserve(n); }
+  void clear_slots();
+
   virtual T *get_model() const override;
   virtual T *get_slot(size_t i) const override;
   virtual size_t concurrency() const override;
@@ -163,19 +199,29 @@ protected:
 
 } // namespace ana
 
-inline void ana::multithread::enable(int suggestion) {
-  s_suggestion = suggestion;
+inline ana::multithread::configuration
+ana::multithread::enable(int suggestion) {
+  return suggestion ? multithread::disable()
+                    : configuration{
+                          true, suggestion < 0
+                                    ? std::thread::hardware_concurrency()
+                                    : std::min<unsigned int>(
+                                          std::thread::hardware_concurrency(),
+                                          suggestion)};
 }
 
-inline void ana::multithread::disable() { s_suggestion = 0; }
-
-inline bool ana::multithread::status() {
-  return s_suggestion == 0 ? false : true;
+inline ana::multithread::configuration ana::multithread::disable() {
+  return configuration{false, 1};
 }
 
-inline unsigned int nthreads {
-  return std::max<unsigned int>(
-      1, s_suggestion < 0 ? std::thread::hardware_concurrency() : s_suggestion);
+template <typename T>
+template <typename... Args>
+ana::lockstep::node<T>::node(size_t concurrency, Args &&...args) {
+  this->set_model(std::make_unique<T>(std::forward<Args>(args)...));
+  this->reserve(concurrency);
+  for (unsigned int islot = 0; islot < concurrency; ++islot) {
+    this->add_slot(std::make_unique<T>(std::forward<Args>(args)...));
+  }
 }
 
 template <typename T>
@@ -192,7 +238,7 @@ ana::lockstep::node<T>::node(node<U> &&derived) {
 template <typename T>
 template <typename U>
 ana::lockstep::node<T> &ana::lockstep::node<T>::operator=(node<U> &&derived) {
-  this->m_model = derived.m_model;
+  this->m_model = std::move(derived.m_model);
   this->m_slots.clear();
   for (size_t i = 0; i < derived.concurrency(); ++i) {
     this->m_slots.emplace_back(std::move(derived.m_slots[i]));
@@ -226,7 +272,8 @@ template <typename T> size_t ana::lockstep::node<T>::concurrency() const {
   return this->m_slots.size();
 }
 
-template <typename T> ana::lockstep::node<T>::operator view<T>() const {
+template <typename T>
+ana::lockstep::view<T> ana::lockstep::node<T>::get_view() const {
   return view<T>(static_cast<lockstep::node<T> const &>(*this));
 }
 
@@ -292,12 +339,13 @@ void ana::lockstep::node<T>::call_all_slots(Fn const &fn,
 
 template <typename T>
 template <typename Fn, typename... Args>
-void ana::lockstep::node<T>::run_slots(Fn const &fn,
-                                       view<Args> const &...args) const {
+void ana::lockstep::node<T>::run_slots(
+    ana::multithread::configuration const &mtcfg, Fn const &fn,
+    view<Args> const &...args) const {
   assert(((concurrency() == args.concurrency()) && ...));
 
   // multi-lockstep
-  if (multithread::status()) {
+  if (mtcfg.enabled) {
     std::vector<std::thread> pool;
     for (size_t islot = 0; islot < this->concurrency(); ++islot) {
       pool.emplace_back(fn, std::ref(*this->get_slot(islot)),
@@ -320,6 +368,7 @@ ana::lockstep::view<T>::view(const ana::lockstep::node<U> &derived) {
   static_assert(std::is_base_of_v<T, U>, "incompatible slot types");
   this->m_model = derived.m_model.get();
   this->m_slots.clear();
+  this->m_slots.reserve(derived.concurrency());
   for (size_t i = 0; i < derived.concurrency(); ++i) {
     this->m_slots.push_back(derived.m_slots[i].get());
   }
@@ -331,6 +380,7 @@ ana::lockstep::view<T> &
 ana::lockstep::view<T>::operator=(const ana::lockstep::node<U> &derived) {
   this->m_model = derived.m_model.get();
   this->m_slots.clear();
+  this->m_slots.reserve(derived.concurrency());
   for (size_t i = 0; i < derived.concurrency(); ++i) {
     this->m_slots.push_back(derived.m_slots[i].get());
   }
@@ -362,110 +412,68 @@ auto ana::lockstep::view<T>::get_model_value(Fn const &fn,
   return result;
 }
 
-#include <cassert>
-#include <iostream>
-#include <iterator>
-#include <memory>
-#include <numeric>
-#include <string>
-#include <vector>
+inline unsigned int ana::lockstep::check_concurrency() { return 0; }
 
-namespace ana {
+template <typename T, typename... Args>
+inline unsigned int ana::lockstep::check_concurrency(T const &first,
+                                                     Args const &...args) {
+  assert(((first.concurrency() == args.concurrency()) && ...));
+  return first.concurrency();
+}
 
-namespace dataset {
+template <typename Fn, typename... Args>
+inline auto ana::lockstep::check_value(Fn const &fn, view<Args> const &...args)
+    -> std::invoke_result_t<Fn, Args &...> {
+  auto concurrency = check_concurrency(args...);
+  // result at each slot must match the model
+  auto result = fn(std::cref(*args.get_model())...);
+  for (size_t i = 0; i < concurrency; ++i) {
+    assert(result == fn(std::cref(*args.get_slot(i))...));
+  }
+  return result;
+}
 
-template <typename T> class input;
+template <typename Fn, typename... Args>
+inline auto ana::lockstep::invoke_node(Fn const &fn, view<Args> const &...args)
+    -> lockstep::node<
+        typename std::invoke_result_t<Fn, Args &...>::element_type> {
+  auto concurrency = check_concurrency(args...);
+  typename lockstep::node<
+      typename std::invoke_result_t<Fn, Args &...>::element_type>
+      invoked;
+  invoked.set_model(std::move(fn(*args.get_model()...)));
+  invoked.reserve(concurrency);
+  for (size_t i = 0; i < concurrency; ++i) {
+    invoked.add_slot(std::move((fn(*args.get_slot(i)...))));
+  }
+  return invoked;
+}
 
-template <typename T> class reader;
-
-/**
- * @brief Range of a dataset to process by one thread slot.
- */
-struct range {
-  range(size_t slot, unsigned long long begin, unsigned long long end);
-  ~range() = default;
-
-  range operator+(const range &next);
-  range &operator+=(const range &next);
-
-  unsigned long long entries() const;
-
-  /**
-   * @brief Thread index that the processed range belongs to.
-   */
-  size_t slot;
-  /**
-   * @brief The first entry in the range
-   */
-  unsigned long long begin;
-  /**
-   * @brief The last entry+1 in the range
-   */
-  unsigned long long end;
-};
-
-/**
- * @brief Partition of a dataset.
- * @details A partition contains one or more ranges of the datset in sequential
- * order of their entries. They can dynamically truncated and merged according
- * to the maximum limit of entries of the dataset and multithreading
- * configuration as specified by the analyzer.
- */
-struct partition {
-  static std::vector<std::vector<dataset::range>>
-  group_parts(const std::vector<range> &parts, size_t n);
-  static range sum_parts(const std::vector<range> &parts);
-
-  partition() : fixed(false) {}
-  ~partition() = default;
-
-  /**
-   * @brief Add a range to the partition.
-   * @details The added range must satisfy that the `end` of the previous range
-   * (if it exists) is equal to the incoming `begin`. Otherwise, the partition
-   * is considered to be in an invalid state, and `truncate()` and `merge()`
-   * operations respectively will fail assertions in place.
-   */
-  void add_part(size_t islot, unsigned long long begin, unsigned long long end);
-
-  range get_part(size_t irange) const;
-  range total() const;
-
-  size_t size() const;
-
-  void truncate(long long max_entries = -1);
-
-  void merge(size_t max_parts);
-
-  bool fixed;
-  std::vector<range> parts;
-};
-
-} // namespace dataset
-
-template <typename T>
-using open_player_t = typename decltype(std::declval<T const &>().open_player(
-    std::declval<const ana::dataset::range &>()))::element_type;
-
-template <typename T, typename Val>
-using read_column_t =
-    typename decltype(std::declval<T const &>().template read_column<Val>(
-        std::declval<dataset::range const &>(),
-        std::declval<std::string const &>()))::element_type;
-
-template <typename T> struct is_unique_ptr : std::false_type {};
-template <typename T>
-struct is_unique_ptr<std::unique_ptr<T>> : std::true_type {};
-template <typename T>
-static constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
-
-} // namespace ana
+template <typename Fn, typename... Args>
+inline auto ana::lockstep::invoke_view(Fn const &fn, view<Args> const &...args)
+    -> typename lockstep::view<
+        std::remove_pointer_t<typename std::invoke_result_t<Fn, Args &...>>> {
+  auto concurrency = check_concurrency(args...);
+  typename lockstep::view<
+      std::remove_pointer_t<typename std::invoke_result_t<Fn, Args &...>>>
+      invoked;
+  invoked.set_model(fn(*args.get_model()...));
+  invoked.reserve(concurrency);
+  for (size_t i = 0; i < concurrency; ++i) {
+    invoked.add_slot(fn(*args.get_slot(i)...));
+  }
+  return invoked;
+}
 
 #include <functional>
 #include <memory>
 #include <type_traits>
 
 namespace ana {
+
+namespace dataset {
+struct range;
+}
 
 /**
  * @class operation
@@ -477,28 +485,33 @@ public:
   operation() = default;
   virtual ~operation() = default;
 
-  virtual void initialize(const dataset::range &part) = 0;
-  virtual void execute(const dataset::range &part,
+  virtual void initialize(const ana::dataset::range &part) = 0;
+  virtual void execute(const ana::dataset::range &part,
                        unsigned long long entry) = 0;
-  virtual void finalize(const dataset::range &part) = 0;
+  virtual void finalize(const ana::dataset::range &part) = 0;
 };
 
 } // namespace ana
 
 namespace ana {
 
-template <typename T> struct is_callable {
-  using yes = bool;
-  using no = int;
-  template <typename C> static yes check_callable(decltype(&C::operator()));
-  template <typename C> static no check_callable(...);
-  enum { value = sizeof(check_callable<T>(0)) == sizeof(yes) };
+namespace dataset {
+template <typename T> class column;
+}
+
+namespace detail {
+
+// traits to check if a type is callable but not a std::function
+template <typename T, typename = void> struct is_callable : std::false_type {};
+
+template <typename T>
+struct is_callable<T, std::void_t<decltype(&T::operator())>> : std::true_type {
 };
 
-/**
- * @brief Determine whether a type is callable, i.e. has a valid `operator()`.
- */
-template <typename T> constexpr bool is_callable_v = is_callable<T>::value;
+template <typename Ret, typename... Args>
+struct is_callable<std::function<Ret(Args...)>> : std::false_type {};
+
+} // namespace detail
 
 class column;
 
@@ -507,9 +520,7 @@ template <typename T> constexpr bool is_column_v = std::is_base_of_v<column, T>;
 class column : public operation {
 
 public:
-  template <typename T> class computation;
-
-  template <typename T> class reader;
+  class computation;
 
   template <typename T> class constant;
 
@@ -530,7 +541,7 @@ public:
 public:
   template <typename T>
   static constexpr std::true_type
-  check_reader(typename column::reader<T> const &);
+  check_reader(typename dataset::column<T> const &);
   static constexpr std::false_type check_reader(...);
 
   template <typename T>
@@ -559,21 +570,28 @@ public:
 
   template <typename T, typename = void> struct evaluator_traits;
   template <typename T>
-  struct evaluator_traits<T, typename std::enable_if_t<ana::is_column_v<T>>> {
-    using evaluator_type = typename ana::column::template evaluator<T>;
+  struct evaluator_traits<T, typename std::enable_if_t<is_column_v<T>>> {
+    using evaluator_type = typename column::template evaluator<T>;
   };
 
-  template <typename F> struct equation_traits {
+  // traits class to deduce equation type for a callable
+  template <typename F, typename = void> struct equation_traits;
+
+  // for callables that aren't std::function
+  template <typename F>
+  struct equation_traits<F, std::enable_if_t<detail::is_callable<F>::value>> {
     using equation_type = typename equation_traits<decltype(std::function{
         std::declval<F>()})>::equation_type;
   };
 
+  // specialization for std::function
   template <typename Ret, typename... Args>
   struct equation_traits<std::function<Ret(Args...)>> {
     using equation_type =
-        typename column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
+        column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
   };
 
+  // alias template for convenience
   template <typename F>
   using equation_t = typename equation_traits<F>::equation_type;
 
@@ -818,56 +836,176 @@ namespace ana {
 
 namespace dataset {
 
-template <typename T> class reader {
+struct range;
 
-private:
-  reader() = default;
-  ~reader() = default;
-  friend T;
+/**
+ * @brief Abstract base class to read values of existing columns in an input
+ * dataset.
+ * @tparam T column data type.
+ */
+template <typename T> class column : public ana::term<T> {
 
 public:
-  // read a column of a data type with given name
-  template <typename Val>
-  decltype(auto) read_column(const range &part, const std::string &name) const;
+  column();
+  virtual ~column() = default;
 
-  void start_part(const range &part);
-  void read_entry(const range &part, unsigned long long entry);
-  void finish_part(const range &part);
+  /**
+   * @brief Read the value of the column at current entry.
+   * @return Column value
+   */
+  virtual T const &read(const range &part, unsigned long long entry) const = 0;
+
+  /**
+   * @brief Get the value of the column at current entry.
+   * @return Column value
+   */
+  virtual T const &value() const override;
+
+  virtual void execute(const range &part,
+                       unsigned long long entry) final override;
+
+protected:
+  mutable T const *m_addr;
+  mutable bool m_updated;
+
+  const range *m_part;
+  unsigned long long m_entry;
 };
 
 } // namespace dataset
 
 } // namespace ana
 
+#include <cassert>
+#include <iostream>
+#include <iterator>
+#include <memory>
+#include <numeric>
+#include <string>
+#include <vector>
+
+namespace ana {
+
+namespace dataset {
+
+template <typename T> class input;
+
+class player;
+
+template <typename T> class column;
+
+/**
+ * @brief Range of a dataset to process by one thread slot.
+ */
+struct range {
+  range(size_t slot, unsigned long long begin, unsigned long long end);
+  ~range() = default;
+
+  range operator+(const range &next);
+  range &operator+=(const range &next);
+
+  unsigned long long entries() const;
+
+  /**
+   * @brief Thread index that the processed range belongs to.
+   */
+  size_t slot;
+  /**
+   * @brief The first entry in the range
+   */
+  unsigned long long begin;
+  /**
+   * @brief The last entry+1 in the range
+   */
+  unsigned long long end;
+};
+
+/**
+ * @brief Partition of a dataset.
+ * @details A partition contains one or more ranges of the datset in sequential
+ * order of their entries. They can dynamically truncated and merged according
+ * to the maximum limit of entries of the dataset and multithreading
+ * configuration as specified by the analyzer.
+ */
+struct partition {
+  static std::vector<std::vector<range>>
+  group_parts(const std::vector<range> &parts, size_t n);
+  static range sum_parts(const std::vector<range> &parts);
+
+  partition() : fixed(false) {}
+  partition(unsigned long long nentries,
+            unsigned long long max_entries_per_slot = 1);
+  ~partition() = default;
+
+  void emplace_back(size_t islot, unsigned long long begin,
+                    unsigned long long end);
+
+  range const &operator[](size_t irange) const;
+  range total() const;
+
+  size_t size() const;
+
+  void truncate(long long max_entries = -1);
+
+  void merge(size_t max_parts);
+
+  bool fixed;
+  std::vector<range> parts;
+};
+
+struct head {
+  head(long long value) : value(value) {}
+  long long value;
+};
+
+} // namespace dataset
+
 template <typename T>
-template <typename Val>
-decltype(auto)
-ana::dataset::player<T>::read_column(const range &part,
-                                     const std::string &name) const {
+using open_player_t = typename decltype(std::declval<T const &>().open_player(
+    std::declval<const ana::dataset::range &>()))::element_type;
 
-  using result_type =
-      decltype(static_cast<const T *>(this)->template read<Val>(part, name));
-  static_assert(is_unique_ptr_v<result_type>,
-                "must be a std::unique_ptr of ana::column::reader<T>");
+template <typename T, typename Val>
+using read_column_t =
+    typename decltype(std::declval<T>().template read_column<Val>(
+        std::declval<dataset::range const &>(),
+        std::declval<std::string const &>()))::element_type;
 
-  return static_cast<const T *>(this)->template read<Val>(part, name);
-}
-
+template <typename T> struct is_unique_ptr : std::false_type {};
 template <typename T>
-void ana::dataset::player<T>::start_part(const ana::dataset::range &part) {
-  static_cast<T *>(this)->start(part);
-}
-
+struct is_unique_ptr<std::unique_ptr<T>> : std::true_type {};
 template <typename T>
-void ana::dataset::player<T>::read_entry(const ana::dataset::range &part,
-                                         unsigned long long entry) {
-  static_cast<T *>(this)->next(part, entry);
-}
+static constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
 
-template <typename T>
-void ana::dataset::player<T>::finish_part(const ana::dataset::range &part) {
-  static_cast<T *>(this)->finish(part);
-}
+} // namespace ana
+
+namespace ana {
+
+namespace dataset {
+
+struct range;
+
+class player : public operation {
+
+public:
+  player() = default;
+  virtual ~player() = default;
+
+public:
+  virtual void initialize(const range &) override;
+  virtual void execute(const range &, unsigned long long) override;
+  virtual void finalize(const range &) override;
+};
+
+} // namespace dataset
+
+} // namespace ana
+
+inline void ana::dataset::player::initialize(const ana::dataset::range &) {}
+
+inline void ana::dataset::player::execute(const ana::dataset::range &,
+                                          unsigned long long) {}
+
+inline void ana::dataset::player::finalize(const ana::dataset::range &) {}
 
 inline ana::dataset::range::range(size_t slot, unsigned long long begin,
                                   unsigned long long end)
@@ -911,14 +1049,29 @@ ana::dataset::partition::sum_parts(const std::vector<range> &parts) {
   return std::accumulate(std::next(parts.begin()), parts.end(), parts.front());
 }
 
-inline void ana::dataset::partition::add_part(size_t islot,
-                                              unsigned long long begin,
-                                              unsigned long long end) {
-  this->parts.push_back(range(islot, begin, end));
+inline ana::dataset::partition::partition(
+    unsigned long long nentries, unsigned long long max_entries_per_slot)
+    : fixed(false) {
+  auto remaining = nentries;
+  unsigned long long begin = 0;
+  unsigned int islot = 0;
+  while (remaining) {
+    auto slot_entries = std::min(remaining, max_entries_per_slot);
+    auto end = begin + slot_entries;
+    this->emplace_back(islot++, begin, end);
+    begin += slot_entries;
+    remaining -= slot_entries;
+  }
 }
 
-inline ana::dataset::range
-ana::dataset::partition::get_part(size_t islot) const {
+inline void ana::dataset::partition::emplace_back(size_t islot,
+                                                  unsigned long long begin,
+                                                  unsigned long long end) {
+  this->parts.emplace_back(islot, begin, end);
+}
+
+inline ana::dataset::range const &
+ana::dataset::partition::operator[](size_t islot) const {
   return this->parts[islot];
 }
 
@@ -960,132 +1113,101 @@ inline void ana::dataset::partition::truncate(long long max_entries) {
   }
 }
 
+template <typename T>
+ana::dataset::column<T>::column()
+    : m_addr(nullptr), m_updated(false), m_part(nullptr), m_entry(0) {}
+
+template <typename T> T const &ana::dataset::column<T>::value() const {
+  if (!this->m_updated) {
+    m_addr = &(this->read(*this->m_part, m_entry));
+    m_updated = true;
+  }
+  return *m_addr;
+}
+
+template <typename T>
+void ana::dataset::column<T>::execute(const ana::dataset::range &part,
+                                      unsigned long long entry) {
+  this->m_part = &part;
+  this->m_entry = entry;
+  this->m_updated = false;
+}
+
 namespace ana {
 namespace dataset {
 
-/**
- * @brief
- * @tparam T Input dataset type (CRTP: see above)
- * @details This class uses the [Curiously Recurring Template Parameter
- * (CRPT)](https://en.cppreference.com/w/cpp/language/crtp). A proper
- * implementation should be written as follows:
- * ```cpp
- * #include "ana/analogical.h"
- * class DataFormat : public ana::dataset::dataset<DataFormat> {};
- * ```
- */
-template <typename T> class input {
+class source {
+public:
+  virtual ~source() = default;
+  virtual void initialize();
+  virtual void finalize();
+};
 
-private:
-  input() = default;
-  ~input() = default;
-  friend T;
+template <typename DS> class input : public source {
 
 public:
-  partition allocate_partition();
-  double normalize_scale();
-  decltype(auto) open_player(const range &part) const;
+  virtual ~input() = default;
 
-  /**
-   * @brief Allocate partition for multithreading.
-   * @details This step **must** be implemented by the analyzer.
-   * It is performed to scan the dataset and determine any partitioning of the
-   * dataset as specfieid by the analyzer. Each range in the partition as
-   * allocated by this function will be processed concurrently as allowed by
-   * `ana::multithread::enable()`, provided that the implemented input reader
-   * can access each dataset range from the dataset in a thread-safe manner.
-   * This method is non-\a const to allow altering the logical state of the
-   * dataset input itself, e.g. check file paths and filter out invalid/missing
-   * files.
-   */
-  partition allocate();
+  decltype(auto) open_player(const range &part);
+  std::unique_ptr<ana::dataset::player> open(const ana::dataset::range &part);
 
-  /**
-   * @brief Normalize the dataset.
-   * @details This step can be optionally done to determine a global
-   * normalization factor applied to all selection in the analysis. By default,
-   * normalization is not applied, i.e. is equal to 1. This method is non-\a
-   * const to allow altering the logical state of the dataset input itself, e.g.
-   * check file paths and filter out invalid/missing files.
-   */
-  double normalize();
+  template <typename Val>
+  decltype(auto) read_column(const ana::dataset::range &part,
+                             const std::string &name);
 
-  /**
-   * @details Open the dataset reader used to iterate over entries of the
-   * dataset.
-   * @return The input reader.
-   * @details **Important**: the return type is required to be a
-   * `std::unique_ptr` of a valid `dataset::player` implementation as required
-   * for use in a `ana::concurrent` container. This method is \a const as it is
-   * to be performed N times for each thread, and each subsequent call should
-   * not alter the logical state of this class.
-   */
-  decltype(auto) read(const range &part) const;
-
-  void start_dataset();
-  void finish_dataset();
-
-  void start();
-  void finish();
+  virtual partition allocate() = 0;
+  virtual double normalize();
 };
 
 } // namespace dataset
 
 } // namespace ana
 
-template <typename T>
-ana::dataset::partition ana::dataset::input<T>::allocate_partition() {
-  return this->allocate();
-}
+inline void ana::dataset::source::initialize() {}
 
-template <typename T>
-ana::dataset::partition ana::dataset::input<T>::allocate() {
-  return static_cast<T *>(this)->allocate();
-}
+inline void ana::dataset::source::finalize() {}
 
-template <typename T> double ana::dataset::input<T>::normalize_scale() {
-  return static_cast<T *>(this)->normalize();
-}
-
-template <typename T> inline double ana::dataset::input<T>::normalize() {
+template <typename DS> inline double ana::dataset::input<DS>::normalize() {
   return 1.0;
 }
 
-template <typename T> void ana::dataset::input<T>::start_dataset() {
-  static_cast<T *>(this)->start();
-}
-
-template <typename T> void ana::dataset::input<T>::finish_dataset() {
-  static_cast<T *>(this)->finish();
-}
-
-template <typename T> void ana::dataset::input<T>::start() {
-  // nothing to do (yet)
-}
-
-template <typename T> void ana::dataset::input<T>::finish() {
-  // nothing to do (yet)
-}
-
-template <typename T>
+template <typename DS>
 decltype(auto)
-ana::dataset::input<T>::open_player(const ana::dataset::range &part) const {
+ana::dataset::input<DS>::open_player(const ana::dataset::range &part) {
 
-  using result_type = decltype(static_cast<const T *>(this)->read(part));
+  using result_type = decltype(static_cast<DS *>(this)->open(part));
   static_assert(is_unique_ptr_v<result_type>,
-                "not a std::unique_ptr of ana::dataset::player<T>");
+                "method must return a std::unique_ptr");
 
-  using reader_type = typename result_type::element_type;
-  static_assert(std::is_base_of_v<dataset::player<reader_type>, reader_type>,
-                "not an implementation of ana::dataset::player<T>");
+  using player_type = typename result_type::element_type;
+  static_assert(std::is_base_of_v<player, player_type>,
+                "must be an implementation of dataest player");
 
-  return this->read(part);
+  return static_cast<DS *>(this)->open(part);
 }
 
-template <typename T>
+template <typename DS>
+template <typename Val>
 decltype(auto)
-ana::dataset::input<T>::read(const ana::dataset::range &part) const {
-  return static_cast<const T *>(this)->read(part);
+ana::dataset::input<DS>::read_column(const ana::dataset::range &part,
+                                     const std::string &name) {
+
+  // using result_type =
+  //     decltype(static_cast<DS *>(this)->template read<Val>(part, name));
+  // static_assert(is_unique_ptr_v<result_type>,
+  //               "method must return a std::unique_ptr");
+
+  // using column_type = typename result_type::element_type;
+  // static_assert(std::is_base_of_v<column<Val>, column_type>,
+  //               "must be an implementation of dataset column");
+
+  return static_cast<DS *>(this)->template read<Val>(part, name);
+}
+
+template <typename DS>
+std::unique_ptr<ana::dataset::player>
+ana::dataset::input<DS>::open(const ana::dataset::range &) {
+  return std::make_unique<ana::dataset::player>();
 }
 
 #include <memory>
@@ -1217,64 +1339,6 @@ Ret ana::column::definition<Ret(Vals...)>::calculate() const {
   return std::apply(
       [this](const variable<Vals> &...args) { return this->evaluate(args...); },
       m_arguments);
-}
-
-namespace ana {
-
-/**
- * @brief Abstract base class to read values of existing columns in an input
- * dataset.
- * @tparam T column data type.
- */
-template <typename T> class column::reader : public term<T> {
-public:
-  reader();
-  virtual ~reader() = default;
-
-  /**
-   * @brief Read the value of the column at current entry.
-   * @return Column value
-   */
-  virtual T const &read(const dataset::range &part,
-                        unsigned long long entry) const = 0;
-
-  /**
-   * @brief Get the value of the column at current entry.
-   * @return Column value
-   */
-  virtual T const &value() const override;
-
-  virtual void execute(const dataset::range &part,
-                       unsigned long long entry) final override;
-
-protected:
-  mutable T const *m_addr;
-  mutable bool m_updated;
-
-  const dataset::range *m_part;
-  unsigned long long m_current;
-};
-
-} // namespace ana
-
-template <typename T>
-ana::column::reader<T>::reader()
-    : m_addr(nullptr), m_updated(false), m_part(nullptr), m_current(0) {}
-
-template <typename T> T const &ana::column::reader<T>::value() const {
-  if (!this->m_updated) {
-    m_addr = &(this->read(*this->m_part, m_current));
-    m_updated = true;
-  }
-  return *m_addr;
-}
-
-template <typename T>
-void ana::column::reader<T>::execute(const ana::dataset::range &part,
-                                     unsigned long long entry) {
-  m_current = entry;
-  m_part = &part;
-  m_updated = false;
 }
 
 #include <functional>
@@ -1812,7 +1876,7 @@ public:
 
 public:
   template <typename Sel, typename F>
-  auto filter(selection const *prev, const std::string &name,
+  auto select(selection const *prev, const std::string &name,
               F expression) const
       -> std::unique_ptr<applicator<column::template equation_t<F>>>;
 
@@ -1973,7 +2037,7 @@ inline double ana::selection::weight::get_weight() const {
 }
 
 template <typename Sel, typename F>
-auto ana::selection::cutflow::filter(selection const *prev,
+auto ana::selection::cutflow::select(selection const *prev,
                                      const std::string &name,
                                      F expression) const
     -> std::unique_ptr<applicator<column::template equation_t<F>>> {
@@ -2145,12 +2209,13 @@ protected:
 
 protected:
   std::vector<aggregation *> m_aggregations;
-  const double m_norm;
+  const double m_scale;
 };
 
 } // namespace ana
 
-inline ana::aggregation::experiment::experiment(double norm) : m_norm(norm) {}
+inline ana::aggregation::experiment::experiment(double scale)
+    : m_scale(scale) {}
 
 inline void
 ana::aggregation::experiment::add_aggregation(ana::aggregation &cnt) {
@@ -2173,7 +2238,7 @@ auto ana::aggregation::experiment::select_aggregation(booker<Cnt> const &bkr,
                                                       const selection &sel)
     -> std::unique_ptr<Cnt> {
   auto cnt = bkr.select_aggregation(sel);
-  cnt->apply_scale(m_norm);
+  cnt->apply_scale(m_scale);
   this->add_aggregation(*cnt);
   return cnt;
 }
@@ -2207,15 +2272,16 @@ namespace ana {
  * It keeps a raw pointer of each, only if their operation needs to be called
  * for each dataset entry (e.g. constant values are not stored).
  */
-template <typename T> class column::computation {
+class column::computation {
 
 public:
-  computation(const dataset::range &part, dataset::player<T> &reader);
+  computation() = default;
   virtual ~computation() = default;
 
 public:
-  template <typename Val>
-  auto read(const std::string &name) -> std::unique_ptr<read_column_t<T, Val>>;
+  template <typename DS, typename Val>
+  auto read(dataset::input<DS> &ds, const dataset::range &part,
+            const std::string &name) -> std::unique_ptr<read_column_t<DS, Val>>;
 
   template <typename Val>
   auto constant(Val const &val) -> std::unique_ptr<column::constant<Val>>;
@@ -2236,8 +2302,6 @@ protected:
   void add_column(column &column);
 
 protected:
-  const dataset::range m_part;
-  dataset::player<T> *m_reader;
   std::vector<column *> m_columns;
 };
 
@@ -2311,62 +2375,50 @@ ana::column::evaluator<T>::evaluate_column(cell<Vals> const &...columns) const {
   return defn;
 }
 
-template <typename T>
-ana::column::computation<T>::computation(const ana::dataset::range &part,
-                                         dataset::player<T> &reader)
-    : m_part(part), m_reader(&reader) {}
-
-template <typename T>
-template <typename Val>
-auto ana::column::computation<T>::read(const std::string &name)
-    -> std::unique_ptr<read_column_t<T, Val>> {
-  using read_column_type = decltype(m_reader->template read_column<Val>(
-      std::declval<const dataset::range &>(),
-      std::declval<const std::string &>()));
-  static_assert(is_unique_ptr_v<read_column_type>,
-                "dataset must open a std::unique_ptr of its column reader");
-  auto rdr = m_reader->template read_column<Val>(m_part, name);
+template <typename DS, typename Val>
+auto ana::column::computation::read(dataset::input<DS> &ds,
+                                    const ana::dataset::range &part,
+                                    const std::string &name)
+    -> std::unique_ptr<read_column_t<DS, Val>> {
+  auto rdr = ds.template read_column<Val>(part, name);
   this->add_column(*rdr);
   return rdr;
 }
 
-template <typename T>
 template <typename Val>
-auto ana::column::computation<T>::constant(Val const &val)
+auto ana::column::computation::constant(Val const &val)
     -> std::unique_ptr<ana::column::constant<Val>> {
   return std::make_unique<typename column::constant<Val>>(val);
 }
 
-template <typename T>
 template <typename Def, typename... Args>
-auto ana::column::computation<T>::define(Args const &...args) const
+auto ana::column::computation::define(Args const &...args) const
     -> std::unique_ptr<ana::column::template evaluator_t<Def>> {
   return std::make_unique<evaluator<Def>>(args...);
 }
 
-template <typename T>
 template <typename F>
-auto ana::column::computation<T>::define(F expression) const
+auto ana::column::computation::define(F expression) const
     -> std::unique_ptr<ana::column::template evaluator_t<F>> {
   return std::make_unique<evaluator<ana::column::template equation_t<F>>>(
       expression);
 }
 
-template <typename T>
 template <typename Def, typename... Cols>
-auto ana::column::computation<T>::evaluate_column(column::evaluator<Def> &calc,
-                                                  Cols const &...columns)
+auto ana::column::computation::evaluate_column(column::evaluator<Def> &calc,
+                                               Cols const &...columns)
     -> std::unique_ptr<Def> {
   auto defn = calc.evaluate_column(columns...);
-  // only if the evaluated column is a definition
-  if constexpr (column::template is_definition_v<Def>) {
-    this->add_column(*defn);
-  }
+  // only if the evaluated column is not a representation, which does not need
+  // to executed
+  // ... but it still needs to be initialized and finalized!
+  // if constexpr (!column::template is_representation_v<Def>) {
+  this->add_column(*defn);
+  // }
   return defn;
 }
 
-template <typename T>
-void ana::column::computation<T>::add_column(column &column) {
+inline void ana::column::computation::add_column(column &column) {
   m_columns.push_back(&column);
 }
 
@@ -2374,39 +2426,29 @@ namespace ana {
 
 namespace dataset {
 
-template <typename T>
-class processor : public operation,
-                  public column::computation<T>,
+class processor : public ana::column::computation,
                   public aggregation::experiment {
 
 public:
-  processor(const dataset::range &part, dataset::player<T> &reader,
-            double scale);
+  processor(double scale);
   virtual ~processor() = default;
 
 public:
-  virtual void initialize(const dataset::range &part) override;
-  virtual void execute(const dataset::range &part,
-                       unsigned long long entry) override;
-  virtual void finalize(const dataset::range &part) override;
-
-  void process();
+  void process(player &player, range const &part);
 };
 
 } // namespace dataset
 
 } // namespace ana
 
-template <typename T>
-ana::dataset::processor<T>::processor(const ana::dataset::range &part,
-                                      dataset::player<T> &reader, double scale)
-    : operation(), column::computation<T>(part, reader),
-      aggregation::experiment(scale) {}
+inline ana::dataset::processor::processor(double scale)
+    : aggregation::experiment(scale) {}
 
-template <typename T>
-void ana::dataset::processor<T>::initialize(const ana::dataset::range &part) {
-  this->m_reader->start_part(this->m_part);
+inline void ana::dataset::processor::process(ana::dataset::player &plyr,
+                                             ana::dataset::range const &part) {
 
+  // initialize
+  plyr.initialize(part);
   for (auto const &col : this->m_columns) {
     col->initialize(part);
   }
@@ -2416,177 +2458,54 @@ void ana::dataset::processor<T>::initialize(const ana::dataset::range &part) {
   for (auto const &cnt : this->m_aggregations) {
     cnt->initialize(part);
   }
-}
 
-template <typename T>
-void ana::dataset::processor<T>::execute(const ana::dataset::range &part,
-                                         unsigned long long entry) {
-  this->m_reader->read_entry(part, entry);
-  for (auto const &col : this->m_columns) {
-    col->execute(part, entry);
+  // execute
+  for (unsigned long long entry = part.begin; entry < part.end; ++entry) {
+    plyr.execute(part, entry);
+    for (auto const &col : this->m_columns) {
+      col->execute(part, entry);
+    }
+    for (auto const &sel : this->m_selections) {
+      sel->execute(part, entry);
+    }
+    for (auto const &cnt : this->m_aggregations) {
+      cnt->execute(part, entry);
+    }
   }
-  for (auto const &sel : this->m_selections) {
-    sel->execute(part, entry);
-  }
+
+  // finalize (in reverse order)
   for (auto const &cnt : this->m_aggregations) {
-    cnt->execute(part, entry);
-  }
-}
-
-template <typename T>
-void ana::dataset::processor<T>::finalize(const ana::dataset::range &part) {
-  for (auto const &col : this->m_columns) {
-    col->finalize(part);
+    cnt->finalize(part);
   }
   for (auto const &sel : this->m_selections) {
     sel->finalize(part);
   }
-  for (auto const &cnt : this->m_aggregations) {
-    cnt->finalize(part);
+  for (auto const &col : this->m_columns) {
+    col->finalize(part);
   }
-  this->m_reader->finish_part(this->m_part);
-}
-
-template <typename T> void ana::dataset::processor<T>::process() {
-  // start processing
-  this->initialize(this->m_part);
-
-  // processing
-  for (unsigned long long entry = this->m_part.begin; entry < this->m_part.end;
-       ++entry) {
-    this->execute(this->m_part, entry);
-  }
-
-  // finish processing
-  this->finalize(this->m_part);
+  plyr.finalize(part);
 }
 
 namespace ana {
 
-template <typename T> class sample {
+namespace sample {
 
-public:
-  using dataset_player_type = open_player_t<T>;
-  using dataset_processor_type =
-      typename dataset::processor<dataset_player_type>;
-
-public:
-  sample();
-  virtual ~sample() = default;
-
-  sample(sample const &) = delete;
-  sample &operator=(sample const &) = delete;
-
-  sample(sample &&) = default;
-  sample &operator=(sample &&) = default;
-
-  void limit_entries(long long max_entries = -1);
-  void scale_weights(double scale);
-  unsigned long long get_processed_entries() const;
-  double get_normalized_scale() const;
-
-protected:
-  template <typename... Args> void prepare(Args &&...args);
-  void initialize();
-
-protected:
-  std::unique_ptr<T> m_dataset;
-  bool m_initialized;
-
-  long long m_max_entries;
-  double m_scale;
-
-  dataset::partition m_partition;
-  lockstep::node<dataset_player_type> m_readers;
-  lockstep::node<dataset_processor_type> m_processors;
+struct weight {
+  weight(double value) : value(value) {}
+  double value;
 };
+
+} // namespace sample
 
 } // namespace ana
 
-template <typename T>
-ana::sample<T>::sample()
-    : m_dataset(nullptr), m_initialized(false), m_max_entries(-1),
-      m_scale(1.0) {}
-
-template <typename T>
-template <typename... Args>
-void ana::sample<T>::prepare(Args &&...args) {
-  if (m_dataset)
-    throw std::logic_error("dataset already prepared");
-  m_dataset = std::make_unique<T>(std::forward<Args>(args)...);
-}
-
-template <typename T>
-void ana::sample<T>::limit_entries(long long max_entries) {
-  if (m_initialized)
-    throw std::logic_error("sample already initialized");
-  m_max_entries = max_entries;
-}
-
-template <typename T> void ana::sample<T>::scale_weights(double scale) {
-  if (m_initialized)
-    throw std::logic_error("sample already initialized");
-  m_scale *= scale;
-}
-
-template <typename T> void ana::sample<T>::initialize() {
-  // can never be initialized twice
-  if (m_initialized)
-    return;
-
-  // dataset must exist
-  if (!m_dataset)
-    throw std::runtime_error("no sample dataset opened");
-
-  // 1. allocate the dataset partition
-  m_partition = m_dataset->allocate_partition();
-  // 2. truncate entries to limit
-  m_partition.truncate(m_max_entries);
-  // 3. merge parts to concurrency limit
-  m_partition.merge(nthreads);
-
-  // calculate a normalization factor
-  // scale the sample by its inverse
-  m_scale /= m_dataset->normalize_scale();
-
-  // open dataset reader and processor for each thread
-  // model reprents whole dataset
-  auto part = m_partition.total();
-  auto rdr = m_dataset->open_player(part);
-  auto proc = std::make_unique<dataset_processor_type>(part, *rdr, m_scale);
-  m_readers.set_model(std::move(rdr));
-  m_processors.set_model(std::move(proc));
-  // slot for each partition range
-  m_readers.clear_slots();
-  m_processors.clear_slots();
-  for (unsigned int islot = 0; islot < m_partition.size(); ++islot) {
-    auto part = m_partition.get_part(islot);
-    auto rdr = m_dataset->open_player(part);
-    auto proc = std::make_unique<dataset_processor_type>(part, *rdr, m_scale);
-    m_readers.add_slot(std::move(rdr));
-    m_processors.add_slot(std::move(proc));
-  }
-
-  // sample is initialized
-  m_initialized = true;
-}
-
-template <typename T>
-unsigned long long ana::sample<T>::get_processed_entries() const {
-  this->initialize();
-  return m_partition.total().entries();
-}
-
-template <typename T> double ana::sample<T>::get_normalized_scale() const {
-  this->initialize();
-  return m_scale;
-}
-
 namespace ana {
 
-template <typename T> class dataflow : public sample<T> {
+class dataflow {
 
 public:
+  template <typename DS> class reader;
+
   template <typename U> class systematic;
 
   template <typename U> class delayed;
@@ -2594,16 +2513,11 @@ public:
   template <typename U> class lazy;
 
 public:
-  using dataset_player_type = typename sample<T>::dataset_player_type;
-  using dataset_processor_type = typename sample<T>::dataset_processor_type;
-
   template <typename U>
-  static constexpr std::true_type
-  check_lazy(typename dataflow<T>::template lazy<U> const &);
+  static constexpr std::true_type check_lazy(lazy<U> const &);
   static constexpr std::false_type check_lazy(...);
   template <typename U>
-  static constexpr std::true_type
-  check_delayed(typename dataflow<T>::template delayed<U> const &);
+  static constexpr std::true_type check_delayed(delayed<U> const &);
   static constexpr std::false_type check_delayed(...);
 
   template <typename V>
@@ -2618,17 +2532,14 @@ public:
   static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 public:
-  virtual ~dataflow() = default;
+  dataflow();
+  ~dataflow() = default;
 
-  template <typename... Args> dataflow(Args &&...args);
-
-  template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<
-                                U, std::string, std::vector<std::string>>>>
-  dataflow(const std::string &key, const std::vector<std::string> &file_paths);
-
-  template <typename U = T, typename = std::enable_if_t<std::is_constructible_v<
-                                U, std::vector<std::string>, std::string>>>
-  dataflow(const std::vector<std::string> &file_paths, const std::string &key);
+  template <typename KWArg> dataflow(KWArg kwarg);
+  template <typename KWArg1, typename KWArg2>
+  dataflow(KWArg1 kwarg1, KWArg2 kwarg2);
+  template <typename KWArg1, typename KWArg2, typename KWArg3>
+  dataflow(KWArg1 kwarg1, KWArg2 kwarg2, KWArg3 kwarg3);
 
   dataflow(dataflow const &) = delete;
   dataflow &operator=(dataflow const &) = delete;
@@ -2636,15 +2547,17 @@ public:
   dataflow(dataflow &&) = default;
   dataflow &operator=(dataflow &&) = default;
 
+  template <typename DS, typename... Args> reader<DS> open(Args &&...args);
+
   /**
    * @brief Read a column from the dataset.
    * @tparam Val Column data type.
    * @param name Column name.
    * @return The `lazy` read column.
    */
-  template <typename Val>
-  auto read(const std::string &name)
-      -> lazy<read_column_t<open_player_t<T>, Val>>;
+  template <typename DS, typename Val>
+  auto read(dataset::input<DS> &ds, const std::string &name)
+      -> lazy<read_column_t<DS, Val>>;
 
   /**
    * @brief Define a constant.
@@ -2662,8 +2575,7 @@ public:
    * @return The `lazy` definition "evaluator" to be evaluated with input
    * columns.
    */
-  template <typename Def, typename... Args>
-  auto define(Args &&...args) -> delayed<column::template evaluator_t<Def>>;
+  template <typename Def, typename... Args> auto define(Args &&...args);
 
   /**
    * @brief Define an equation.
@@ -2672,19 +2584,22 @@ public:
    * expression.
    * @return The `lazy` equation "evaluator" to be evaluated with input columns.
    */
-  template <typename F>
-  auto define(F callable) -> delayed<column::template evaluator_t<F>>;
+  template <typename F> auto define(F const &callable);
 
   auto filter(const std::string &name);
-  template <typename Sel> auto filter(const std::string &name);
+  auto weight(const std::string &name);
+
   template <typename F> auto filter(const std::string &name, F callable);
-  template <typename Sel, typename F>
-  auto filter(const std::string &name, F callable)
+  template <typename F>
+  auto weight(const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
 
   auto channel(const std::string &name);
-  template <typename Sel> auto channel(const std::string &name);
   template <typename F> auto channel(const std::string &name, F callable);
+
+  template <typename Sel, typename F>
+  auto select(const std::string &name, F callable)
+      -> delayed<selection::template custom_applicator_t<F>>;
   template <typename Sel, typename F>
   auto channel(const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
@@ -2697,10 +2612,11 @@ public:
    * and booked at selection(s).
    */
   template <typename Cnt, typename... Args>
-  auto book(Args &&...args) -> delayed<aggregation::booker<Cnt>>;
+  auto agg(Args &&...args) -> delayed<aggregation::booker<Cnt>>;
 
 protected:
-  dataflow();
+  template <typename KWArg> void accept_kwarg(KWArg kwarg);
+
   void analyze();
   void reset();
 
@@ -2719,9 +2635,9 @@ protected:
       -> delayed<aggregation::bookkeeper<Cnt>>;
 
   template <typename Sel>
-  auto filter(lazy<selection> const &prev, const std::string &name);
+  auto select(lazy<selection> const &prev, const std::string &name);
   template <typename Sel, typename F>
-  auto filter(lazy<selection> const &prev, const std::string &name, F callable)
+  auto select(lazy<selection> const &prev, const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
 
   template <typename Sel, typename F>
@@ -2731,25 +2647,23 @@ protected:
   auto channel(lazy<selection> const &prev, const std::string &name);
 
   // recreate a lazy node as a variation under new arguments
-  template <typename V, std::enable_if_t<ana::column::template is_reader_v<V>,
-                                         bool> = false>
+  template <typename V,
+            std::enable_if_t<column::template is_reader_v<V>, bool> = false>
   auto vary_column(lazy<V> const &nom, const std::string &colname) -> lazy<V>;
 
-  template <
-      typename Val, typename V,
-      std::enable_if_t<ana::column::template is_constant_v<V>, bool> = false>
+  template <typename Val, typename V,
+            std::enable_if_t<column::template is_constant_v<V>, bool> = false>
   auto vary_column(lazy<V> const &nom, Val const &val) -> lazy<V>;
 
   template <typename... Args, typename V,
-            std::enable_if_t<ana::column::template is_definition_v<V> &&
-                                 !ana::column::template is_equation_v<V>,
+            std::enable_if_t<column::template is_definition_v<V> &&
+                                 !column::template is_equation_v<V>,
                              bool> = false>
   auto vary_evaluator(delayed<column::evaluator<V>> const &nom, Args &&...args)
       -> delayed<column::evaluator<V>>;
 
-  template <
-      typename F, typename V,
-      std::enable_if_t<ana::column::template is_equation_v<V>, bool> = false>
+  template <typename F, typename V,
+            std::enable_if_t<column::template is_equation_v<V>, bool> = false>
   auto vary_evaluator(delayed<column::evaluator<V>> const &nom, F callable)
       -> delayed<column::evaluator<V>>;
 
@@ -2757,11 +2671,23 @@ protected:
   void add_operation(std::unique_ptr<operation> act);
 
 protected:
-  bool m_analyzed;
+  multithread::configuration m_mtcfg;
+  long long m_nrows;
+  double m_weight;
+
+  dataset::partition m_partition;
+  double m_norm;
+
+  std::unique_ptr<dataset::source> m_source;
+
+  lockstep::node<dataset::range> m_parts;
+  lockstep::node<dataset::player> m_players;
+  lockstep::node<dataset::processor> m_processors;
+
   std::vector<std::unique_ptr<operation>> m_operations;
+  bool m_analyzed;
 };
 
-template <typename T> using dataflow_t = typename T::dataflow_type;
 template <typename T> using operation_t = typename T::nominal_type;
 
 } // namespace ana
@@ -2785,19 +2711,17 @@ namespace ana {
  * interface/dataflow_systematic.h
  * @brief Systematic of a dataflow operation.
  */
-template <typename T> template <typename U> class dataflow<T>::systematic {
+template <typename U> class dataflow::systematic {
 
 public:
-  using dataflow_type = dataflow<T>;
-  using dataset_type = T;
   using nominal_type = U;
 
 public:
-  friend class dataflow<T>;
+  template <typename> friend class delayed;
   template <typename> friend class systematic;
 
 public:
-  systematic(dataflow<T> &dataflow);
+  systematic(dataflow &df);
 
   virtual ~systematic() = default;
 
@@ -2811,13 +2735,16 @@ public:
   virtual std::set<std::string> list_variation_names() const = 0;
 
 protected:
-  dataflow<T> *m_df;
+  dataflow *m_df;
 };
 
 template <typename... Nodes>
 auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 } // namespace ana
+
+template <typename U>
+ana::dataflow::systematic<U>::systematic(dataflow &df) : m_df(&df) {}
 
 template <typename... Nodes>
 auto ana::list_all_variation_names(Nodes const &...nodes)
@@ -2940,36 +2867,26 @@ CHECK_FOR_SUBSCRIPT_OP()
  * @details Lazy nodes represent the final operation to be performed in a
  * dataset, pending its processing. It can be provided to other dataflow
  * operations as inputs.
- * @tparam T Input dataset type
  * @tparam U Action to be performed lazily
  */
-template <typename T>
 template <typename U>
-class dataflow<T>::lazy : public systematic<lazy<U>>, public lockstep::view<U> {
+class dataflow::lazy : public systematic<lazy<U>>, public lockstep::view<U> {
 
 public:
   class varied;
 
 public:
-  using dataflow_type = typename systematic<lazy<U>>::dataflow_type;
-  using dataset_type = typename systematic<lazy<U>>::dataset_type;
   using operation_type = U;
 
-  template <typename Sel, typename... Args>
-  using delayed_selection_applicator_t =
-      decltype(std::declval<dataflow<T>>().template filter<Sel>(
-          std::declval<std::string>(), std::declval<Args>()...));
-
 public:
-  // friends with the main dataflow graph & any other lazy nodes
-  friend class dataflow<T>;
+  friend class dataflow;
   template <typename> friend class lazy;
 
 public:
-  lazy(dataflow<T> &dataflow, const lockstep::view<U> &operation)
+  lazy(dataflow &dataflow, const lockstep::view<U> &operation)
       : systematic<lazy<U>>::systematic(dataflow),
         lockstep::view<U>::view(operation) {}
-  lazy(dataflow<T> &dataflow, const lockstep::node<U> &operation)
+  lazy(dataflow &dataflow, const lockstep::node<U> &operation)
       : systematic<lazy<U>>::systematic(dataflow),
         lockstep::view<U>::view(operation) {}
 
@@ -2995,21 +2912,24 @@ public:
    * lazy one, and `variation(var_name)` is the newly-constructed one.
    */
   template <typename... Args, typename V = U,
-            std::enable_if_t<ana::column::template is_reader_v<V> ||
-                                 ana::column::template is_constant_v<V>,
+            std::enable_if_t<column::template is_reader_v<V> ||
+                                 column::template is_constant_v<V>,
                              bool> = false>
   auto vary(const std::string &var_name, Args &&...args) -> varied;
 
-  template <typename Sel, typename... Args>
-  auto filter(const std::string &name, Args &&...args) const
-      -> delayed_selection_applicator_t<Sel, Args...>;
+  template <typename... Args>
+  auto filter(const std::string &name, Args &&...args) const;
 
-  template <typename Sel, typename... Args>
-  auto channel(const std::string &name, Args &&...args) const
-      -> delayed_selection_applicator_t<Sel, Args...>;
+  template <typename... Args>
+  auto weight(const std::string &name, Args &&...args) const;
 
-  template <typename V = U,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  template <typename... Args>
+  auto channel(const std::string &name, Args &&...args) const;
+
+  template <typename Agg> auto book(Agg &&agg) const;
+  template <typename... Aggs> auto book(Aggs &&...aggs) const;
+
+  template <typename V = U, std::enable_if_t<is_selection_v<V>, bool> = false>
   std::string path() const {
     return this->get_model_value(
         [](const selection &me) { return me.get_path(); });
@@ -3021,9 +2941,9 @@ public:
    * already available.
    * @return The result of the implemented aggregation.
    */
-  template <typename V = U,
-            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
-                false>
+  template <
+      typename V = U,
+      std::enable_if_t<aggregation::template has_output_v<V>, bool> = false>
   auto result() const -> decltype(std::declval<V>().get_result()) {
     this->m_df->analyze();
     this->merge_results();
@@ -3034,9 +2954,9 @@ public:
    * @brief Shorthand for `result` of aggregation.
    * @return `Result` the result of the implemented aggregation.
    */
-  template <typename V = U,
-            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
-                false>
+  template <
+      typename V = U,
+      std::enable_if_t<aggregation::template has_output_v<V>, bool> = false>
   auto operator->() const -> decltype(std::declval<V>().get_result()) {
     return this->result();
   }
@@ -3058,9 +2978,9 @@ public:
   DEFINE_LAZY_BINARY_OP(less_than_or_equal_to, <=)
 
 protected:
-  template <typename V = U,
-            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
-                false>
+  template <
+      typename V = U,
+      std::enable_if_t<aggregation::template has_output_v<V>, bool> = false>
   void merge_results() const {
     auto model = this->get_model();
     if (!model->is_merged()) {
@@ -3087,11 +3007,10 @@ protected:
       typename decltype(std::declval<lazy<Act>>().operator op_symbol(          \
           std::forward<Arg>(b).nominal()))::operation_type>::varied;
 #define DEFINE_LAZY_VARIED_BINARY_OP(op_symbol)                                \
-  template <typename T>                                                        \
   template <typename Act>                                                      \
   template <typename Arg>                                                      \
-  auto ana::dataflow<T>::lazy<Act>::varied::operator op_symbol(Arg &&b)        \
-      const->typename lazy<                                                    \
+  auto ana::dataflow::lazy<Act>::varied::operator op_symbol(Arg &&b) const->   \
+      typename lazy<                                                           \
           typename decltype(std::declval<lazy<Act>>().operator op_symbol(      \
               std::forward<Arg>(b).nominal()))::operation_type>::varied {      \
     auto syst = typename lazy<                                                 \
@@ -3114,10 +3033,9 @@ protected:
       typename decltype(std::declval<lazy<V>>().                               \
                         operator op_symbol())::operation_type>::varied;
 #define DEFINE_LAZY_VARIED_UNARY_OP(op_name, op_symbol)                        \
-  template <typename T>                                                        \
   template <typename Act>                                                      \
   template <typename V, std::enable_if_t<ana::is_column_v<V>, bool>>           \
-  auto ana::dataflow<T>::lazy<Act>::varied::operator op_symbol() const->       \
+  auto ana::dataflow::lazy<Act>::varied::operator op_symbol() const->          \
       typename lazy<                                                           \
           typename decltype(std::declval<lazy<V>>().                           \
                             operator op_symbol())::operation_type>::varied {   \
@@ -3140,18 +3058,15 @@ namespace ana {
  * that it contains multiple variations of the operation as dictated by the
  * analyzer that propagate through the rest of the analysis.
  */
-template <typename T>
 template <typename Act>
-class dataflow<T>::lazy<Act>::varied : public systematic<lazy<Act>> {
+class dataflow::lazy<Act>::varied : public systematic<lazy<Act>> {
 
 public:
-  using dataflow_type = typename lazy<Act>::dataflow_type;
-  using dataset_type = typename lazy<Act>::dataset_type;
   using operation_type = typename lazy<Act>::operation_type;
 
-  template <typename Sel, typename... Args>
+  template <typename... Args>
   using delayed_varied_selection_applicator_t =
-      typename decltype(std::declval<dataflow<T>>().template filter<Sel>(
+      typename decltype(std::declval<dataflow>().filter(
           std::declval<std::string>(), std::declval<Args>()...))::varied;
 
 public:
@@ -3166,27 +3081,28 @@ public:
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
 
-  template <typename Sel, typename... Args, typename V = Act,
+  template <typename... Args, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto filter(const std::string &name, Args &&...arguments)
-      -> delayed_varied_selection_applicator_t<Sel, Args...>;
+      -> delayed_varied_selection_applicator_t<Args...>;
 
-  template <typename Sel, typename... Args, typename V = Act,
+  template <typename... Args, typename V = Act,
+            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  auto weight(const std::string &name, Args &&...arguments)
+      -> delayed_varied_selection_applicator_t<Args...>;
+
+  template <typename... Args, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto channel(const std::string &name, Args &&...arguments)
-      -> delayed_varied_selection_applicator_t<Sel, Args...>;
+      -> delayed_varied_selection_applicator_t<Args...>;
 
-  template <typename Node, typename V = Act,
+  template <typename Agg, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator||(const Node &b) const -> typename lazy<selection>::varied;
+  auto book(Agg &&agg);
 
-  template <typename Node, typename V = Act,
+  template <typename... Aggs, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator&&(const Node &b) const -> typename lazy<selection>::varied;
-
-  template <typename Node, typename V = Act,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto operator*(const Node &b) const -> typename lazy<selection>::varied;
+  auto book(Aggs &&...aggs);
 
   template <typename V = Act,
             std::enable_if_t<ana::is_column_v<V> ||
@@ -3218,136 +3134,114 @@ protected:
 
 } // namespace ana
 
-template <typename T>
 template <typename Act>
-ana::dataflow<T>::lazy<Act>::varied::varied(lazy<Act> const &nom)
+ana::dataflow::lazy<Act>::varied::varied(lazy<Act> const &nom)
     : systematic<lazy<Act>>::systematic(*nom.m_df), m_nom(nom) {}
 
-template <typename T>
 template <typename Act>
-void ana::dataflow<T>::lazy<Act>::varied::set_variation(
+void ana::dataflow::lazy<Act>::varied::set_variation(
     const std::string &var_name, lazy &&var) {
   m_var_map.insert(std::make_pair(var_name, std::move(var)));
   m_var_names.insert(var_name);
 }
 
-template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::varied::nominal() const -> lazy const & {
+auto ana::dataflow::lazy<Act>::varied::nominal() const -> lazy const & {
   return m_nom;
 }
 
-template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::varied::variation(
+auto ana::dataflow::lazy<Act>::varied::variation(
     const std::string &var_name) const -> lazy const & {
   return (this->has_variation(var_name) ? m_var_map.at(var_name) : m_nom);
 }
 
-template <typename T>
 template <typename Act>
-bool ana::dataflow<T>::lazy<Act>::varied::has_variation(
+bool ana::dataflow::lazy<Act>::varied::has_variation(
     const std::string &var_name) const {
   return m_var_map.find(var_name) != m_var_map.end();
 }
 
-template <typename T>
 template <typename Act>
 std::set<std::string>
-ana::dataflow<T>::lazy<Act>::varied::list_variation_names() const {
+ana::dataflow::lazy<Act>::varied::list_variation_names() const {
   return m_var_names;
 }
 
-template <typename T>
 template <typename Act>
-template <typename Sel, typename... Args, typename V,
+template <typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::dataflow<T>::lazy<Act>::varied::filter(const std::string &name,
-                                                 Args &&...arguments)
-    -> delayed_varied_selection_applicator_t<Sel, Args...> {
+auto ana::dataflow::lazy<Act>::varied::filter(const std::string &name,
+                                              Args &&...arguments)
+    -> delayed_varied_selection_applicator_t<Args...> {
 
-  using varied_type = delayed_varied_selection_applicator_t<Sel, Args...>;
+  using varied_type = delayed_varied_selection_applicator_t<Args...>;
 
-  auto syst = varied_type(this->nominal().template filter<Sel>(
-      name, std::forward<Args>(arguments)...));
+  auto syst = varied_type(
+      this->nominal().filter(name, std::forward<Args>(arguments)...));
 
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name, this->variation(var_name).template filter<Sel>(
+    syst.set_variation(var_name, this->variation(var_name).filter(
                                      name, std::forward<Args>(arguments)...));
   }
   return syst;
 }
 
-template <typename T>
 template <typename Act>
-template <typename Sel, typename... Args, typename V,
+template <typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::dataflow<T>::lazy<Act>::varied::channel(const std::string &name,
-                                                  Args &&...arguments)
-    -> delayed_varied_selection_applicator_t<Sel, Args...> {
-  using varied_type = delayed_varied_selection_applicator_t<Sel, Args...>;
-  auto syst = varied_type(this->nominal().template channel<Sel>(
-      name, std::forward<Args>(arguments)...));
+auto ana::dataflow::lazy<Act>::varied::weight(const std::string &name,
+                                              Args &&...arguments)
+    -> delayed_varied_selection_applicator_t<Args...> {
+
+  using varied_type = delayed_varied_selection_applicator_t<Args...>;
+
+  auto syst = varied_type(
+      this->nominal().weight(name, std::forward<Args>(arguments)...));
+
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name,
-                       this->variation(var_name).template channel<Sel>(
-                           name, std::forward<Args>(arguments)...));
+    syst.set_variation(var_name, this->variation(var_name).weight(
+                                     name, std::forward<Args>(arguments)...));
   }
   return syst;
 }
 
-template <typename T>
 template <typename Act>
-template <typename Node, typename V,
+template <typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::dataflow<T>::lazy<Act>::varied::operator&&(const Node &b) const ->
-    typename lazy<selection>::varied {
-  using varied_type = typename lazy<selection>::varied;
-  auto syst = varied_type(this->nominal().operator&&(b.nominal()));
-  for (auto const &var_name : list_all_variation_names(*this, b)) {
-    syst.set_variation(
-        var_name, this->variation(var_name).operator&&(b.variation(var_name)));
+auto ana::dataflow::lazy<Act>::varied::channel(const std::string &name,
+                                               Args &&...arguments)
+    -> delayed_varied_selection_applicator_t<Args...> {
+  using varied_type = delayed_varied_selection_applicator_t<Args...>;
+  auto syst = varied_type(
+      this->nominal().channel(name, std::forward<Args>(arguments)...));
+  for (auto const &var_name : this->list_variation_names()) {
+    syst.set_variation(var_name, this->variation(var_name).channel(
+                                     name, std::forward<Args>(arguments)...));
   }
   return syst;
 }
 
-template <typename T>
 template <typename Act>
-template <typename Node, typename V,
+template <typename Agg, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::dataflow<T>::lazy<Act>::varied::operator*(const Node &b) const ->
-    typename lazy<selection>::varied {
-  using varied_type = typename lazy<selection>::varied;
-  auto syst = varied_type(this->nominal().operator*(b.nominal()));
-  for (auto const &var_name : list_all_variation_names(*this, b)) {
-    syst.set_variation(
-        var_name, this->variation(var_name).operator*(b.variation(var_name)));
-  }
-  return syst;
+auto ana::dataflow::lazy<Act>::varied::book(Agg &&agg) {
+  return agg.book(*this);
 }
 
-template <typename T>
 template <typename Act>
-template <typename Node, typename V,
+template <typename... Aggs, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::dataflow<T>::lazy<Act>::varied::operator||(const Node &b) const ->
-    typename lazy<selection>::varied {
-  using varied_type = typename lazy<selection>::varied;
-  auto syst = varied_type(this->nominal().operator||(b.nominal()));
-  for (auto const &var_name : list_all_variation_names(*this, b)) {
-    syst.set_variation(
-        var_name, this->variation(var_name).operator||(b.variation(var_name)));
-  }
-  return syst;
+auto ana::dataflow::lazy<Act>::varied::book(Aggs &&...aggs) {
+  return std::make_tuple((aggs.book(*this), ...));
 }
 
-template <typename DS>
 template <typename Act>
 template <typename V,
           std::enable_if_t<ana::is_column_v<V> ||
                                ana::aggregation::template has_output_v<V>,
                            bool>>
-auto ana::dataflow<DS>::lazy<Act>::varied::operator[](
+auto ana::dataflow::lazy<Act>::varied::operator[](
     const std::string &var_name) const -> lazy<V> {
   if (!this->has_variation(var_name)) {
     throw std::out_of_range("variation does not exist");
@@ -3371,81 +3265,99 @@ DEFINE_LAZY_VARIED_BINARY_OP(&&)
 DEFINE_LAZY_VARIED_BINARY_OP(||)
 DEFINE_LAZY_VARIED_BINARY_OP([])
 
-template <typename T>
 template <typename Act>
-void ana::dataflow<T>::lazy<Act>::set_variation(const std::string &, lazy &&) {
+void ana::dataflow::lazy<Act>::set_variation(const std::string &, lazy &&) {
   // should never be called
   throw std::logic_error("cannot set variation to a lazy operation");
 }
 
-template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::nominal() const -> lazy const & {
+auto ana::dataflow::lazy<Act>::nominal() const -> lazy const & {
   // this is nominal
   return *this;
 }
 
-template <typename T>
 template <typename Act>
-auto ana::dataflow<T>::lazy<Act>::variation(const std::string &) const
+auto ana::dataflow::lazy<Act>::variation(const std::string &) const
     -> lazy const & {
   // propagation of variations must occur "transparently"
   return *this;
 }
 
-template <typename T>
 template <typename Act>
-std::set<std::string>
-ana::dataflow<T>::lazy<Act>::list_variation_names() const {
+std::set<std::string> ana::dataflow::lazy<Act>::list_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
 
-template <typename T>
 template <typename Act>
-bool ana::dataflow<T>::lazy<Act>::has_variation(const std::string &) const {
+bool ana::dataflow::lazy<Act>::has_variation(const std::string &) const {
   // always false
   return false;
 }
 
-template <typename T>
 template <typename Act>
-template <typename Sel, typename... Args>
-auto ana::dataflow<T>::lazy<Act>::filter(const std::string &name,
-                                         Args &&...args) const
-    -> delayed_selection_applicator_t<Sel, Args...> {
+template <typename... Args>
+auto ana::dataflow::lazy<Act>::filter(const std::string &name,
+                                      Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Act>) {
-    return this->m_df->template filter<Sel>(*this, name,
-                                            std::forward<Args>(args)...);
+    return this->m_df->template select<selection::cut>(
+        *this, name, std::forward<Args>(args)...);
   } else {
     static_assert(std::is_base_of_v<selection, Act>,
                   "filter must be called from a selection");
   }
 }
 
-template <typename T>
 template <typename Act>
-template <typename Sel, typename... Args>
-auto ana::dataflow<T>::lazy<Act>::channel(const std::string &name,
-                                          Args &&...args) const
-    -> delayed_selection_applicator_t<Sel, Args...> {
+template <typename... Args>
+auto ana::dataflow::lazy<Act>::weight(const std::string &name,
+                                      Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Act>) {
-    return this->m_df->template channel<Sel>(*this, name,
-                                             std::forward<Args>(args)...);
+    return this->m_df->template select<selection::weight>(
+        *this, name, std::forward<Args>(args)...);
+  } else {
+    static_assert(std::is_base_of_v<selection, Act>,
+                  "weight must be called from a selection");
+  }
+}
+
+template <typename Act>
+template <typename... Args>
+auto ana::dataflow::lazy<Act>::channel(const std::string &name,
+                                       Args &&...args) const {
+  if constexpr (std::is_base_of_v<selection, Act>) {
+    return this->m_df->template channel<selection::weight>(
+        *this, name, std::forward<Args>(args)...);
   } else {
     static_assert(std::is_base_of_v<selection, Act>,
                   "channel must be called from a selection");
   }
 }
 
-template <typename T>
+template <typename Act>
+template <typename Agg>
+auto ana::dataflow::lazy<Act>::book(Agg &&agg) const {
+  static_assert(std::is_base_of_v<selection, Act>,
+                "book must be called from a selection");
+  return agg.book(*this);
+}
+
+template <typename Act>
+template <typename... Aggs>
+auto ana::dataflow::lazy<Act>::book(Aggs &&...aggs) const {
+  static_assert(std::is_base_of_v<selection, Act>,
+                "book must be called from a selection");
+  return std::make_tuple((aggs.book(*this), ...));
+}
+
 template <typename Act>
 template <typename... Args, typename V,
           std::enable_if_t<ana::column::template is_reader_v<V> ||
                                ana::column::template is_constant_v<V>,
                            bool>>
-auto ana::dataflow<T>::lazy<Act>::vary(const std::string &var_name,
-                                       Args &&...args) -> varied {
+auto ana::dataflow::lazy<Act>::vary(const std::string &var_name, Args &&...args)
+    -> varied {
   // create a lazy varied with the this as nominal
   auto syst = varied(std::move(*this));
   // set variation of the column according to new constructor arguments
@@ -3466,16 +3378,14 @@ namespace ana {
  * @tparam T Input dataset type.
  * @tparam U Action for which a lazy one will be created.
  */
-template <typename DS>
 template <typename Bld>
-class dataflow<DS>::delayed : public systematic<delayed<Bld>>,
-                              public lockstep::node<Bld> {
+class delayed : public systematic<delayed<Bld>>, public lockstep::node<Bld> {
 
 public:
   class varied;
 
 public:
-  delayed(dataflow<DS> &dataflow, lockstep::node<Bld> &&operation)
+  delayed(dataflow &dataflow, lockstep::node<Bld> &&operation)
       : systematic<delayed<Bld>>::systematic(dataflow),
         lockstep::node<Bld>::node(std::move(operation)) {}
 
@@ -3536,10 +3446,9 @@ public:
   }
 
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                ana::column::template is_evaluator_v<V> &&
-                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
-                bool> = false>
+            std::enable_if_t<ana::column::template is_evaluator_v<V> &&
+                                 ana::has_no_variation_v<Nodes...>,
+                             bool> = false>
   auto evaluate_column(Nodes const &...columns) const
       -> lazy<column::template evaluated_t<V>> {
     // nominal
@@ -3547,10 +3456,9 @@ public:
   }
 
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                ana::column::template is_evaluator_v<V> &&
-                    ana::dataflow<DS>::template has_variation_v<Nodes...>,
-                bool> = false>
+            std::enable_if_t<ana::column::template is_evaluator_v<V> &&
+                                 ana::has_variation_v<Nodes...>,
+                             bool> = false>
   auto evaluate_column(Nodes const &...columns) const ->
       typename lazy<column::template evaluated_t<V>>::varied {
 
@@ -3601,13 +3509,13 @@ public:
    * @param selection Selection to be counted.
    * @return The aggregation booked at the selection.
    */
-  template <typename Node> auto at(Node &&selection) const {
+  template <typename Node> auto book(Node &&selection) const {
     return this->select_aggregation(std::forward<Node>(selection));
   }
 
   template <typename Node, typename V = Bld,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
-                                 ana::dataflow<DS>::template is_nominal_v<Node>,
+                                 ana::is_nominal_v<Node>,
                              bool> = false>
   auto select_aggregation(Node const &sel) const
       -> lazy<aggregation::booked_t<V>> {
@@ -3617,7 +3525,7 @@ public:
 
   template <typename Node, typename V = Bld,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
-                                 ana::dataflow<DS>::template is_varied_v<Node>,
+                                 ana::is_varied_v<Node>,
                              bool> = false>
   auto select_aggregation(Node const &sel) const ->
       typename lazy<aggregation::booked_t<V>>::varied {
@@ -3631,22 +3539,16 @@ public:
     return syst;
   }
 
-  /**
-   * @brief Book multiple aggregations, one at each selection.
-   * @param selections The selections.
-   * @return The aggregations booked at selections.
-   */
-  template <typename... Nodes> auto at(Nodes &&...nodes) const {
+  template <typename... Nodes> auto book(Nodes &&...nodes) const {
     static_assert(aggregation::template is_booker_v<Bld>,
                   "not a aggregation (booker)");
     return this->select_aggregations(std::forward<Nodes>(nodes)...);
   }
 
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                ana::aggregation::template is_booker_v<V> &&
-                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
-                bool> = false>
+            std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
+                                 ana::has_no_variation_v<Nodes...>,
+                             bool> = false>
   auto select_aggregations(Nodes const &...sels) const
       -> delayed<aggregation::bookkeeper<aggregation::booked_t<V>>> {
     // nominal
@@ -3718,10 +3620,11 @@ protected:
   auto get_aggregation(const std::string &selection_path) const
       -> lazy<aggregation::booked_t<V>> {
     return lazy<aggregation::booked_t<V>>(
-        *this->m_df,
-        this->get_lockstep_view([selection_path = selection_path](V &bkpr) {
-          return bkpr.get_aggregation(selection_path);
-        }));
+        *this->m_df, lockstep::invoke_view(
+                         [selection_path = selection_path](V &bkpr) {
+                           return bkpr.get_aggregation(selection_path);
+                         },
+                         this->get_view()));
   }
 
   template <typename... Args, typename V = Bld,
@@ -3742,19 +3645,18 @@ protected:
   }
 
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                ana::aggregation::template is_booker_v<V> &&
-                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
-                bool> = false>
+            std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
+                                 ana::has_no_variation_v<Nodes...>,
+                             bool> = false>
   auto fill_aggregation(Nodes const &...columns) const -> delayed<V> {
     // nominal
     return delayed<V>(
         *this->m_df,
-        this->get_lockstep_node(
+        lockstep::invoke_node(
             [](V &fillable, typename Nodes::operation_type &...cols) {
               return fillable.book_fill(cols...);
             },
-            columns...));
+            this->get_view(), columns...));
   }
 
   template <typename... Nodes, typename V = Bld,
@@ -3771,20 +3673,18 @@ protected:
   }
 
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                selection::template is_applicator_v<V> &&
-                    ana::dataflow<DS>::template has_no_variation_v<Nodes...>,
-                bool> = false>
+            std::enable_if_t<selection::template is_applicator_v<V> &&
+                                 ana::has_no_variation_v<Nodes...>,
+                             bool> = false>
   auto apply_selection(Nodes const &...columns) const -> lazy<selection> {
     // nominal
     return this->m_df->apply_selection(*this, columns...);
   }
 
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<
-                selection::template is_applicator_v<V> &&
-                    ana::dataflow<DS>::template has_variation_v<Nodes...>,
-                bool> = false>
+            std::enable_if_t<selection::template is_applicator_v<V> &&
+                                 ana::has_variation_v<Nodes...>,
+                             bool> = false>
   auto apply_selection(Nodes const &...columns) const ->
       typename lazy<selection>::varied {
     // variations
@@ -3802,50 +3702,41 @@ protected:
 
 } // namespace ana
 
-template <typename DS>
 template <typename Bld>
-void ana::dataflow<DS>::delayed<Bld>::set_variation(const std::string &,
-                                                    delayed<Bld> &&) {
+void ana::delayed<Bld>::set_variation(const std::string &, delayed<Bld> &&) {
   // should never be called
   throw std::logic_error("cannot set variation to a lazy operation");
 }
 
-template <typename DS>
 template <typename Bld>
-auto ana::dataflow<DS>::delayed<Bld>::nominal() const -> delayed const & {
+auto ana::delayed<Bld>::nominal() const -> delayed const & {
   // this is nominal
   return *this;
 }
 
-template <typename DS>
 template <typename Bld>
-auto ana::dataflow<DS>::delayed<Bld>::variation(const std::string &) const
+auto ana::delayed<Bld>::variation(const std::string &) const
     -> delayed const & {
   // propagation of variations must occur "transparently"
   return *this;
 }
 
-template <typename DS>
 template <typename Bld>
-std::set<std::string>
-ana::dataflow<DS>::delayed<Bld>::list_variation_names() const {
+std::set<std::string> ana::delayed<Bld>::list_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
 
-template <typename DS>
 template <typename Bld>
-bool ana::dataflow<DS>::delayed<Bld>::has_variation(const std::string &) const {
+bool ana::delayed<Bld>::has_variation(const std::string &) const {
   // always false
   return false;
 }
 
-template <typename DS>
 template <typename Bld>
 template <typename... Args, typename V,
           std::enable_if_t<ana::column::template is_evaluator_v<V>, bool>>
-auto ana::dataflow<DS>::delayed<Bld>::vary(const std::string &var_name,
-                                           Args &&...args) ->
+auto ana::delayed<Bld>::vary(const std::string &var_name, Args &&...args) ->
     typename delayed<V>::varied {
   auto syst = varied(std::move(*this));
   syst.set_variation(var_name,
@@ -3854,55 +3745,167 @@ auto ana::dataflow<DS>::delayed<Bld>::vary(const std::string &var_name,
   return syst;
 }
 
-template <typename T>
-template <typename U>
-ana::dataflow<T>::systematic<U>::systematic(dataflow<T> &df) : m_df(&df) {}
+#include <map>
 
-template <typename T> ana::dataflow<T>::dataflow() : m_analyzed(false) {}
+namespace ana {
 
-template <typename T>
-template <typename... Args>
-ana::dataflow<T>::dataflow(Args &&...args) : dataflow<T>::dataflow() {
-  this->prepare(std::forward<Args>(args)...);
+template <typename DS> class dataflow::reader {
+
+public:
+  reader(dataflow &df, DS &ds);
+  ~reader() = default;
+
+  template <typename Val> auto read_column(const std::string &name) {
+    // Simulating reading of column
+    // std::cout << "Reading " << name << " as type " << typeid(Val).name() <<
+    // "\n"; return Val(); // return dummy value
+    return m_df->read<DS, Val>(*m_ds, name);
+  }
+
+  template <typename... Vals, size_t... Is>
+  auto read_columns(const std::array<std::string, sizeof...(Vals)> &names,
+                    std::index_sequence<Is...>) {
+    return std::make_tuple(
+        read_column<typename std::tuple_element_t<Is, std::tuple<Vals...>>>(
+            names[Is])...);
+  }
+
+  template <typename... Vals>
+  auto read(const std::array<std::string, sizeof...(Vals)> &names) {
+    return read_columns<Vals...>(names, std::index_sequence_for<Vals...>{});
+  }
+
+  template <typename Val> auto read(const std::string &name) {
+    return this->read_column<Val>(name);
+  }
+
+  template <typename Val>
+  auto read(const std::string &nomimal_column_name,
+            std::map<std::string, std::string> const &varied_columns) {
+
+    using varied_type = typename lazy<read_column_t<DS, Val>>::varied;
+
+    auto syst = varied_type(this->read_column<Val>(nomimal_column_name));
+    for (const auto &[variation_name, varied_column_name] : varied_columns) {
+      syst.set_variation(variation_name,
+                         this->read_column<Val>(varied_column_name));
+    }
+    return syst;
+  }
+
+protected:
+  dataflow *m_df;
+  dataset::input<DS> *m_ds;
+};
+
+} // namespace ana
+
+template <typename DS>
+ana::dataflow::reader<DS>::reader(ana::dataflow &df, DS &ds)
+    : m_df(&df), m_ds(&ds) {}
+
+inline ana::dataflow::dataflow()
+    : m_mtcfg(ana::multithread::disable()), m_nrows(-1), m_weight(1.0),
+      m_source(nullptr), m_analyzed(false) {}
+
+template <typename KWArg> ana::dataflow::dataflow(KWArg kwarg) : dataflow() {
+  this->accept_kwarg<KWArg>(kwarg);
 }
 
-template <typename T>
-template <typename U, typename>
-ana::dataflow<T>::dataflow(const std::string &key,
-                           const std::vector<std::string> &file_paths)
-    : dataflow<T>::dataflow() {
-  this->prepare(key, file_paths);
+template <typename KWArg1, typename KWArg2>
+ana::dataflow::dataflow(KWArg1 kwarg1, KWArg2 kwarg2) : dataflow() {
+  static_assert(!std::is_same_v<KWArg1, KWArg2>, "repeated keyword arguments.");
+  this->accept_kwarg<KWArg1>(kwarg1);
+  this->accept_kwarg<KWArg2>(kwarg2);
 }
 
-template <typename T>
-template <typename U, typename>
-ana::dataflow<T>::dataflow(const std::vector<std::string> &file_paths,
-                           const std::string &key)
-    : dataflow<T>::dataflow() {
-  this->prepare(file_paths, key);
+template <typename KWArg> void ana::dataflow::accept_kwarg(KWArg kwarg) {
+  constexpr bool is_mt = std::is_same_v<KWArg, ana::multithread::configuration>;
+  constexpr bool is_weight = std::is_same_v<KWArg, ana::sample::weight>;
+  constexpr bool is_nrows = std::is_same_v<KWArg, ana::dataset::head>;
+  if constexpr (is_mt) {
+    this->m_mtcfg = kwarg;
+  } else if (is_weight) {
+    this->m_weight = kwarg.value;
+  } else if (is_nrows) {
+    this->m_nrows = kwarg.value;
+  } else {
+    static_assert(is_mt || is_weight || is_nrows,
+                  "unrecognized keyword argument");
+  }
 }
 
-template <typename T>
-template <typename Val>
-auto ana::dataflow<T>::read(const std::string &name)
-    -> lazy<read_column_t<open_player_t<T>, Val>> {
-  this->initialize();
+template <typename KWArg1, typename KWArg2, typename KWArg3>
+ana::dataflow::dataflow(KWArg1 kwarg1, KWArg2 kwarg2, KWArg3 kwarg3)
+    : dataflow() {
+  static_assert(!std::is_same_v<KWArg1, KWArg2>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<KWArg1, KWArg3>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<KWArg2, KWArg3>, "repeated keyword arguments.");
+  this->accept_kwarg<KWArg1>(kwarg1);
+  this->accept_kwarg<KWArg2>(kwarg2);
+  this->accept_kwarg<KWArg3>(kwarg3);
+}
+
+template <typename DS, typename... Args>
+ana::dataflow::reader<DS> ana::dataflow::open(Args &&...args) {
+
+  if (m_source) {
+    std::runtime_error("opening multiple datasets is not yet supported.");
+  }
+
+  auto source = std::make_unique<DS>(std::forward<Args>(args)...);
+  auto ds = source.get();
+  m_source = std::move(source);
+
+  // 1. allocate the dataset partition
+  this->m_partition = ds->allocate();
+  // 2. truncate entries to limit
+  this->m_partition.truncate(this->m_nrows);
+  // 3. merge parts to concurrency limit
+  this->m_partition.merge(this->m_mtcfg.concurrency);
+  // 4. normalize scale
+  this->m_norm = ds->normalize();
+
+  // put partition into slots
+  this->m_parts.clear_slots();
+  // model reprents whole dataset
+  this->m_parts.set_model(
+      std::make_unique<dataset::range>(this->m_partition.total()));
+  // each slot takes a part
+  for (unsigned int ipart = 0; ipart < m_partition.size(); ++ipart) {
+    this->m_parts.add_slot(
+        std::make_unique<dataset::range>(this->m_partition[ipart]));
+  }
+
+  // open dataset reader and processor for each thread
+  // slot for each partition range
+  this->m_players = lockstep::invoke_node(
+      [ds](dataset::range &part) { return ds->open_player(part); },
+      this->m_parts.get_view());
+  this->m_processors = lockstep::node<dataset::processor>(
+      m_parts.concurrency(), this->m_weight / this->m_norm);
+
+  return reader<DS>(*this, *ds);
+}
+
+template <typename DS, typename Val>
+auto ana::dataflow::read(dataset::input<DS> &ds, const std::string &name)
+    -> lazy<read_column_t<DS, Val>> {
   auto act = this->m_processors.get_lockstep_node(
-      [name = name](dataset_processor_type &proc) {
-        return proc.template read<Val>(name);
-      });
-  auto lzy = lazy<read_column_t<open_player_t<T>, Val>>(*this, act);
+      [name, &ds](dataset::processor &proc, dataset::range &part) {
+        return proc.template read<DS, Val>(std::ref(ds), part, name);
+      },
+      this->m_parts.get_view());
+  auto lzy = lazy<read_column_t<DS, Val>>(*this, act);
   this->add_operation(std::move(act));
   return lzy;
 }
 
-template <typename T>
 template <typename Val>
-auto ana::dataflow<T>::constant(const Val &val)
+auto ana::dataflow::constant(const Val &val)
     -> lazy<ana::column::constant<Val>> {
-  this->initialize();
   auto act = this->m_processors.get_lockstep_node(
-      [val = val](dataset_processor_type &proc) {
+      [val = val](dataset::processor &proc) {
         return proc.template constant<Val>(val);
       });
   auto lzy = lazy<column::constant<Val>>(*this, act);
@@ -3910,204 +3913,174 @@ auto ana::dataflow<T>::constant(const Val &val)
   return lzy;
 }
 
-template <typename T>
 template <typename Def, typename... Args>
-auto ana::dataflow<T>::define(Args &&...args)
-    -> delayed<ana::column::template evaluator_t<Def>> {
-  this->initialize();
+auto ana::dataflow::define(Args &&...args) {
   return delayed<ana::column::template evaluator_t<Def>>(
       *this,
       this->m_processors.get_lockstep_node(
-          [&args...](dataset_processor_type &proc) {
+          [&args...](dataset::processor &proc) {
             return proc.template define<Def>(std::forward<Args>(args)...);
           }));
 }
 
-template <typename T>
-template <typename F>
-auto ana::dataflow<T>::define(F callable)
-    -> delayed<column::template evaluator_t<F>> {
-  this->initialize();
+template <typename F> auto ana::dataflow::define(F const &callable) {
   return delayed<ana::column::template evaluator_t<F>>(
       *this, this->m_processors.get_lockstep_node(
-                 [callable = callable](dataset_processor_type &proc) {
+                 [callable = callable](dataset::processor &proc) {
                    return proc.template define(callable);
                  }));
 }
 
-template <typename T> auto ana::dataflow<T>::filter(const std::string &name) {
+inline auto ana::dataflow::filter(const std::string &name) {
   auto callable = [](double x) { return x; };
-  return this->template filter<selection::cut, decltype(callable)>(name,
+  return this->template select<selection::cut, decltype(callable)>(name,
                                                                    callable);
 }
 
-template <typename T>
-template <typename Sel>
-auto ana::dataflow<T>::filter(const std::string &name) {
+inline auto ana::dataflow::weight(const std::string &name) {
   auto callable = [](double x) { return x; };
-  return this->template filter<Sel, decltype(callable)>(name, callable);
+  return this->template select<selection::weight, decltype(callable)>(name,
+                                                                      callable);
 }
 
-template <typename T>
-template <typename F>
-auto ana::dataflow<T>::filter(const std::string &name, F callable) {
-  return this->template filter<selection::cut, F>(name, callable);
-}
-
-template <typename T>
-template <typename Sel, typename F>
-auto ana::dataflow<T>::filter(const std::string &name, F callable)
-    -> delayed<selection::template custom_applicator_t<F>> {
-  this->initialize();
-  return delayed<selection::template custom_applicator_t<F>>(
-      *this,
-      this->m_processors.get_lockstep_node(
-          [name = name, callable = callable](dataset_processor_type &proc) {
-            return proc.template filter<Sel>(nullptr, name, callable);
-          }));
-}
-
-template <typename T> auto ana::dataflow<T>::channel(const std::string &name) {
+inline auto ana::dataflow::channel(const std::string &name) {
   auto callable = [](double x) { return x; };
   return this->template channel<selection::cut, decltype(callable)>(name,
                                                                     callable);
 }
 
-template <typename T>
-template <typename Sel>
-auto ana::dataflow<T>::channel(const std::string &name) {
-  auto callable = [](double x) { return x; };
-  return this->template channel<Sel, decltype(callable)>(name, callable);
+template <typename F>
+auto ana::dataflow::filter(const std::string &name, F callable) {
+  return this->template select<selection::cut, F>(name, callable);
 }
 
-template <typename T>
 template <typename F>
-auto ana::dataflow<T>::channel(const std::string &name, F callable) {
+auto ana::dataflow::weight(const std::string &name, F callable)
+    -> delayed<selection::template custom_applicator_t<F>> {
+  return this->template select<selection::weight, F>(name, callable);
+}
+
+template <typename F>
+auto ana::dataflow::channel(const std::string &name, F callable) {
   return this->template channel<selection::cut, F>(name, callable);
 }
 
-template <typename T>
 template <typename Sel, typename F>
-auto ana::dataflow<T>::channel(const std::string &name, F callable)
+auto ana::dataflow::select(const std::string &name, F callable)
     -> delayed<selection::template custom_applicator_t<F>> {
-  this->initialize();
   return delayed<selection::template custom_applicator_t<F>>(
-      *this,
-      this->m_processors.get_lockstep_node(
-          [name = name, callable = callable](dataset_processor_type &proc) {
-            return proc.template channel<Sel>(nullptr, name, callable);
-          }));
+      *this, this->m_processors.get_lockstep_node(
+                 [name = name, callable = callable](dataset::processor &proc) {
+                   return proc.template select<Sel>(nullptr, name, callable);
+                 }));
 }
 
-template <typename T>
+template <typename Sel, typename F>
+auto ana::dataflow::channel(const std::string &name, F callable)
+    -> delayed<selection::template custom_applicator_t<F>> {
+  return delayed<selection::template custom_applicator_t<F>>(
+      *this, this->m_processors.get_lockstep_node(
+                 [name = name, callable = callable](dataset::processor &proc) {
+                   return proc.template channel<Sel>(nullptr, name, callable);
+                 }));
+}
+
 template <typename Cnt, typename... Args>
-auto ana::dataflow<T>::book(Args &&...args)
-    -> delayed<aggregation::booker<Cnt>> {
+auto ana::dataflow::agg(Args &&...args) -> delayed<aggregation::booker<Cnt>> {
   return delayed<aggregation::booker<Cnt>>(
       *this, this->m_processors.get_lockstep_node(
-                 [&args...](dataset_processor_type &proc) {
+                 [&args...](dataset::processor &proc) {
                    return proc.template book<Cnt>(std::forward<Args>(args)...);
                  }));
 }
 
-template <typename T>
 template <typename Sel>
-auto ana::dataflow<T>::filter(lazy<selection> const &prev,
-                              const std::string &name) {
+auto ana::dataflow::select(lazy<selection> const &prev,
+                           const std::string &name) {
   auto callable = [](double x) { return x; };
-  return this->template filter<Sel, decltype(callable)>(prev, name, callable);
+  return this->template select<Sel, decltype(callable)>(prev, name, callable);
 }
 
-template <typename T>
 template <typename Sel>
-auto ana::dataflow<T>::channel(lazy<selection> const &prev,
-                               const std::string &name) {
+auto ana::dataflow::channel(lazy<selection> const &prev,
+                            const std::string &name) {
   auto callable = [](double x) { return x; };
   return this->template channel<Sel, decltype(callable)>(prev, name, callable);
 }
 
-template <typename T>
 template <typename Sel, typename F>
-auto ana::dataflow<T>::filter(lazy<selection> const &prev,
-                              const std::string &name, F callable)
+auto ana::dataflow::select(lazy<selection> const &prev, const std::string &name,
+                           F callable)
     -> delayed<selection::template custom_applicator_t<F>> {
-  this->initialize();
   return delayed<selection::template custom_applicator_t<F>>(
       *this, this->m_processors.get_lockstep_node(
-                 [name = name, callable = callable](
-                     dataset_processor_type &proc, selection const &prev) {
-                   return proc.template filter<Sel>(&prev, name, callable);
+                 [name = name, callable = callable](dataset::processor &proc,
+                                                    selection const &prev) {
+                   return proc.template select<Sel>(&prev, name, callable);
                  },
                  prev));
 }
 
-template <typename T>
 template <typename Sel, typename F>
-auto ana::dataflow<T>::channel(lazy<selection> const &prev,
-                               const std::string &name, F callable)
+auto ana::dataflow::channel(lazy<selection> const &prev,
+                            const std::string &name, F callable)
     -> delayed<selection::template custom_applicator_t<F>> {
-  this->initialize();
   return delayed<selection::template custom_applicator_t<F>>(
       *this, this->m_processors.get_lockstep_node(
-                 [name = name, callable = callable](
-                     dataset_processor_type &proc, selection const &prev) {
+                 [name = name, callable = callable](dataset::processor &proc,
+                                                    selection const &prev) {
                    return proc.template channel<Sel>(&prev, name, callable);
                  },
                  prev));
 }
 
-template <typename T>
 template <typename Def, typename... Cols>
-auto ana::dataflow<T>::evaluate_column(
-    delayed<column::evaluator<Def>> const &calc, lazy<Cols> const &...columns)
-    -> lazy<Def> {
+auto ana::dataflow::evaluate_column(delayed<column::evaluator<Def>> const &calc,
+                                    lazy<Cols> const &...columns) -> lazy<Def> {
   auto act = this->m_processors.get_lockstep_node(
-      [](dataset_processor_type &proc, column::evaluator<Def> &calc,
+      [](dataset::processor &proc, column::evaluator<Def> &calc,
          Cols const &...cols) {
         return proc.template evaluate_column(calc, cols...);
       },
-      lockstep::view<column::evaluator<Def>>(calc), columns...);
+      calc.get_view(), columns...);
   auto lzy = lazy<Def>(*this, act);
   this->add_operation(std::move(act));
   return lzy;
 }
 
-template <typename T>
 template <typename Eqn, typename... Cols>
-auto ana::dataflow<T>::apply_selection(
+auto ana::dataflow::apply_selection(
     delayed<selection::applicator<Eqn>> const &calc,
     lazy<Cols> const &...columns) -> lazy<selection> {
   auto act = this->m_processors.get_lockstep_node(
-      [](dataset_processor_type &proc, selection::applicator<Eqn> &calc,
+      [](dataset::processor &proc, selection::applicator<Eqn> &calc,
          Cols &...cols) {
         return proc.template apply_selection(calc, cols...);
       },
-      lockstep::view<selection::applicator<Eqn>>(calc), columns...);
+      calc.get_view(), columns...);
   auto lzy = lazy<selection>(*this, act);
   this->add_operation(std::move(act));
   return lzy;
 }
 
-template <typename T>
 template <typename Cnt>
-auto ana::dataflow<T>::select_aggregation(
+auto ana::dataflow::select_aggregation(
     delayed<aggregation::booker<Cnt>> const &bkr, lazy<selection> const &sel)
     -> lazy<Cnt> {
   // any time a new aggregation is booked, means the dataflow must run: so reset
   // its status
   this->reset();
   auto act = this->m_processors.get_lockstep_node(
-      [](dataset_processor_type &proc, aggregation::booker<Cnt> &bkr,
+      [](dataset::processor &proc, aggregation::booker<Cnt> &bkr,
          const selection &sel) { return proc.select_aggregation(bkr, sel); },
-      lockstep::view<aggregation::booker<Cnt>>(bkr), sel);
+      bkr.get_view(), sel);
   auto lzy = lazy<Cnt>(*this, act);
   this->add_operation(std::move(act));
   return lzy;
 }
 
-template <typename T>
 template <typename Cnt, typename... Sels>
-auto ana::dataflow<T>::select_aggregations(
+auto ana::dataflow::select_aggregations(
     delayed<aggregation::booker<Cnt>> const &bkr, lazy<Sels> const &...sels)
     -> delayed<aggregation::bookkeeper<Cnt>> {
   // any time a new aggregation is booked, means the dataflow must run: so reset
@@ -4117,8 +4090,8 @@ auto ana::dataflow<T>::select_aggregations(
   using delayed_bookkeeper_type = delayed<aggregation::bookkeeper<Cnt>>;
   auto bkpr = delayed_bookkeeper_type(
       *this, this->m_processors.get_lockstep_node(
-                 [this](dataset_processor_type &proc,
-                        aggregation::booker<Cnt> &bkr, Sels const &...sels) {
+                 [this](dataset::processor &proc, aggregation::booker<Cnt> &bkr,
+                        Sels const &...sels) {
                    // get bookkeeper and aggregations
                    auto bkpr_and_cntrs = proc.select_aggregations(bkr, sels...);
 
@@ -4130,13 +4103,13 @@ auto ana::dataflow<T>::select_aggregations(
                    // take the bookkeeper
                    return std::move(bkpr_and_cntrs.first);
                  },
-                 lockstep::view<aggregation::booker<Cnt>>(bkr), sels...));
+                 bkr.get_view(), sels...));
   //  lockstep::node<aggregation::booker<Cnt>>(bkr), sels...));
 
   return bkpr;
 }
 
-template <typename T> void ana::dataflow<T>::analyze() {
+inline void ana::dataflow::analyze() {
   // do not analyze if already done
   if (m_analyzed)
     return;
@@ -4144,67 +4117,62 @@ template <typename T> void ana::dataflow<T>::analyze() {
   // ignore future analyze() requests until reset() is called
   m_analyzed = true;
 
-  this->m_dataset->start_dataset();
+  m_source->initialize();
 
-  // multithread (if enabled)
   this->m_processors.run_slots(
-      [](dataset_processor_type &proc) { proc.process(); });
+      this->m_mtcfg,
+      [](dataset::processor &proc, dataset::player &plyr,
+         const dataset::range &part) { proc.process(plyr, part); },
+      this->m_players.get_view(), this->m_parts.get_view());
 
-  this->m_dataset->finish_dataset();
+  m_source->finalize();
 
-  // clear aggregations in aggregation::experiment
-  // if they are not, they will be repeated in future runs
+  // clear aggregations so they are not run more than once
   this->m_processors.call_all_slots(
-      [](dataset_processor_type &proc) { proc.clear_aggregations(); });
+      [](dataset::processor &proc) { proc.clear_aggregations(); });
 }
 
-template <typename T> void ana::dataflow<T>::reset() { m_analyzed = false; }
+inline void ana::dataflow::reset() { m_analyzed = false; }
 
-template <typename T>
 template <typename V,
           std::enable_if_t<ana::column::template is_reader_v<V>, bool>>
-auto ana::dataflow<T>::vary_column(lazy<V> const &, const std::string &colname)
+auto ana::dataflow::vary_column(lazy<V> const &, const std::string &colname)
     -> lazy<V> {
   return this->read<cell_value_t<std::decay_t<V>>>(colname);
 }
 
-template <typename T>
 template <typename Val, typename V,
           std::enable_if_t<ana::column::template is_constant_v<V>, bool>>
-auto ana::dataflow<T>::vary_column(lazy<V> const &, Val const &val) -> lazy<V> {
+auto ana::dataflow::vary_column(lazy<V> const &, Val const &val) -> lazy<V> {
   return this->constant<Val>(val);
 }
 
-template <typename T>
 template <typename... Args, typename V,
           std::enable_if_t<ana::column::template is_definition_v<V> &&
                                !ana::column::template is_equation_v<V>,
                            bool>>
-auto ana::dataflow<T>::vary_evaluator(delayed<column::evaluator<V>> const &,
-                                      Args &&...args)
+auto ana::dataflow::vary_evaluator(delayed<column::evaluator<V>> const &,
+                                   Args &&...args)
     -> delayed<column::evaluator<V>> {
   return this->define<V>(std::forward<Args>(args)...);
 }
 
-template <typename T>
 template <typename F, typename V,
           std::enable_if_t<ana::column::template is_equation_v<V>, bool>>
-auto ana::dataflow<T>::vary_evaluator(delayed<column::evaluator<V>> const &,
-                                      F callable)
+auto ana::dataflow::vary_evaluator(delayed<column::evaluator<V>> const &,
+                                   F callable)
     -> delayed<column::evaluator<V>> {
   return this->define(typename V::function_type(callable));
 }
 
-template <typename T>
-void ana::dataflow<T>::add_operation(lockstep::node<operation> operation) {
+inline void ana::dataflow::add_operation(lockstep::node<operation> operation) {
   m_operations.emplace_back(std::move(operation.m_model));
   for (unsigned int i = 0; i < operation.concurrency(); ++i) {
     m_operations.emplace_back(std::move(operation.m_slots[i]));
   }
 }
 
-template <typename T>
-void ana::dataflow<T>::add_operation(std::unique_ptr<operation> operation) {
+inline void ana::dataflow::add_operation(std::unique_ptr<operation> operation) {
   m_operations.emplace_back(std::move(operation));
 }
 
@@ -4217,9 +4185,8 @@ namespace ana {
  * ones for which the operation is applied. The nominal delayed operation can be
  * accessed by `nominal()`, and a systematic variation by `["variation name"]`.
  */
-template <typename T>
 template <typename Bld>
-class dataflow<T>::delayed<Bld>::varied : public systematic<delayed<Bld>> {
+class delayed<Bld>::varied : public systematic<delayed<Bld>> {
 
 public:
   varied(delayed<Bld> &&nom);
@@ -4246,8 +4213,8 @@ public:
   template <
       typename... Args, typename V = Bld,
       std::enable_if_t<ana::column::template is_evaluator_v<V>, bool> = false>
-  auto evaluate(Args &&...args) -> typename ana::dataflow<T>::template lazy<
-      column::template evaluated_t<V>>::varied;
+  auto evaluate(Args &&...args) ->
+      typename ana::lazy<column::template evaluated_t<V>>::varied;
 
   template <typename... Nodes, typename V = Bld,
             std::enable_if_t<ana::selection::template is_applicator_v<V>,
@@ -4262,13 +4229,13 @@ public:
   template <
       typename Node, typename V = Bld,
       std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
-  auto at(Node const &selection) ->
+  auto book(Node const &selection) ->
       typename lazy<aggregation::booked_t<V>>::varied;
 
   template <
       typename... Nodes, typename V = Bld,
       std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
-  auto at(Nodes const &...selections) -> typename delayed<
+  auto book(Nodes const &...selections) -> typename delayed<
       aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
 
   template <typename... Args>
@@ -4293,70 +4260,59 @@ protected:
 
 } // namespace ana
 
-template <typename T>
 template <typename Bld>
-ana::dataflow<T>::delayed<Bld>::varied::varied(delayed<Bld> &&nom)
+ana::delayed<Bld>::varied::varied(delayed<Bld> &&nom)
     : systematic<delayed<Bld>>::systematic(*nom.m_df),
       m_nominal(std::move(nom)) {}
 
-template <typename T>
 template <typename Bld>
-void ana::dataflow<T>::delayed<Bld>::varied::set_variation(
-    const std::string &var_name, delayed &&var) {
+void ana::delayed<Bld>::varied::set_variation(const std::string &var_name,
+                                              delayed &&var) {
   m_variation_map.insert(std::move(std::make_pair(var_name, std::move(var))));
   m_variation_names.insert(var_name);
 }
 
-template <typename T>
 template <typename Bld>
-auto ana::dataflow<T>::delayed<Bld>::varied::nominal() const
-    -> delayed const & {
+auto ana::delayed<Bld>::varied::nominal() const -> delayed const & {
   return m_nominal;
 }
 
-template <typename T>
 template <typename Bld>
-auto ana::dataflow<T>::delayed<Bld>::varied::variation(
-    const std::string &var_name) const -> delayed const & {
+auto ana::delayed<Bld>::varied::variation(const std::string &var_name) const
+    -> delayed const & {
   return (this->has_variation(var_name) ? m_variation_map.at(var_name)
                                         : m_nominal);
 }
 
-template <typename T>
 template <typename Bld>
-bool ana::dataflow<T>::delayed<Bld>::varied::has_variation(
+bool ana::delayed<Bld>::varied::has_variation(
     const std::string &var_name) const {
   return m_variation_map.find(var_name) != m_variation_map.end();
 }
 
-template <typename T>
 template <typename Bld>
-std::set<std::string>
-ana::dataflow<T>::delayed<Bld>::varied::list_variation_names() const {
+std::set<std::string> ana::delayed<Bld>::varied::list_variation_names() const {
   return m_variation_names;
 }
 
-template <typename T>
 template <typename Bld>
 template <typename V,
           std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>, bool>>
-auto ana::dataflow<T>::delayed<Bld>::varied::operator[](
-    const std::string &var_name) const -> delayed<V> const & {
+auto ana::delayed<Bld>::varied::operator[](const std::string &var_name) const
+    -> delayed<V> const & {
   if (!this->has_variation(var_name)) {
     throw std::out_of_range("variation does not exist");
   }
   return this->variation(var_name);
 }
 
-template <typename T>
 template <typename Bld>
 template <typename... Args, typename V,
           std::enable_if_t<ana::column::template is_evaluator_v<V>, bool>>
-auto ana::dataflow<T>::delayed<Bld>::varied::evaluate(Args &&...args) ->
-    typename ana::dataflow<T>::template lazy<
-        column::template evaluated_t<V>>::varied {
-  using varied_type = typename ana::dataflow<T>::template lazy<
-      column::template evaluated_t<V>>::varied;
+auto ana::delayed<Bld>::varied::evaluate(Args &&...args) ->
+    typename ana::lazy<column::template evaluated_t<V>>::varied {
+  using varied_type =
+      typename ana::lazy<column::template evaluated_t<V>>::varied;
   auto syst = varied_type(
       this->nominal().evaluate(std::forward<Args>(args).nominal()...));
   for (auto const &var_name :
@@ -4368,11 +4324,10 @@ auto ana::dataflow<T>::delayed<Bld>::varied::evaluate(Args &&...args) ->
   return syst;
 }
 
-template <typename T>
 template <typename Bld>
 template <typename... Nodes, typename V,
           std::enable_if_t<ana::selection::template is_applicator_v<V>, bool>>
-auto ana::dataflow<T>::delayed<Bld>::varied::apply(Nodes const &...columns) ->
+auto ana::delayed<Bld>::varied::apply(Nodes const &...columns) ->
     typename lazy<selection>::varied {
 
   using varied_type = typename lazy<selection>::varied;
@@ -4386,12 +4341,10 @@ auto ana::dataflow<T>::delayed<Bld>::varied::apply(Nodes const &...columns) ->
   return syst;
 }
 
-template <typename T>
 template <typename Bld>
 template <typename... Nodes, typename V,
           std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
-auto ana::dataflow<T>::delayed<Bld>::varied::fill(Nodes const &...columns)
-    -> varied {
+auto ana::delayed<Bld>::varied::fill(Nodes const &...columns) -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
   for (auto const &var_name : list_all_variation_names(*this, columns...)) {
     syst.set_variation(var_name, std::move(variation(var_name).fill(
@@ -4400,44 +4353,41 @@ auto ana::dataflow<T>::delayed<Bld>::varied::fill(Nodes const &...columns)
   return syst;
 }
 
-template <typename T>
 template <typename Bld>
 template <typename Node, typename V,
           std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
-auto ana::dataflow<T>::delayed<Bld>::varied::at(Node const &selection) ->
+auto ana::delayed<Bld>::varied::book(Node const &selection) ->
     typename lazy<aggregation::booked_t<V>>::varied {
   using varied_type = typename lazy<aggregation::booked_t<V>>::varied;
-  auto syst = varied_type(this->nominal().at(selection.nominal()));
+  auto syst = varied_type(this->nominal().book(selection.nominal()));
   for (auto const &var_name : list_all_variation_names(*this, selection)) {
     syst.set_variation(var_name,
-                       variation(var_name).at(selection.variation(var_name)));
+                       variation(var_name).book(selection.variation(var_name)));
   }
   return syst;
 }
 
-template <typename T>
 template <typename Bld>
 template <typename... Nodes, typename V,
           std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
-auto ana::dataflow<T>::delayed<Bld>::varied::at(Nodes const &...selections) ->
+auto ana::delayed<Bld>::varied::book(Nodes const &...selections) ->
     typename delayed<
         aggregation::bookkeeper<aggregation::booked_t<V>>>::varied {
   using varied_type = typename delayed<
       aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
-  auto syst = varied_type(this->nominal().at(selections.nominal()...));
+  auto syst = varied_type(this->nominal().book(selections.nominal()...));
   for (auto const &var_name : list_all_variation_names(*this, selections...)) {
     syst.set_variation(
-        var_name, variation(var_name).at(selections.variation(var_name)...));
+        var_name, variation(var_name).book(selections.variation(var_name)...));
   }
   return syst;
 }
 
-template <typename T>
 template <typename Bld>
 template <typename... Args, typename V,
           std::enable_if_t<ana::column::template is_evaluator_v<V>, bool>>
-auto ana::dataflow<T>::delayed<Bld>::varied::vary(const std::string &var_name,
-                                                  Args &&...args) -> varied {
+auto ana::delayed<Bld>::varied::vary(const std::string &var_name,
+                                     Args &&...args) -> varied {
   auto syst = varied(std::move(*this));
   syst.set_variation(var_name,
                      std::move(syst.m_df->vary_evaluator(
@@ -4445,10 +4395,9 @@ auto ana::dataflow<T>::delayed<Bld>::varied::vary(const std::string &var_name,
   return syst;
 }
 
-template <typename T>
 template <typename Bld>
 template <typename... Args>
-auto ana::dataflow<T>::delayed<Bld>::varied::operator()(Args &&...args) ->
+auto ana::delayed<Bld>::varied::operator()(Args &&...args) ->
     typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
         std::forward<Args>(args).nominal()...))::operation_type>::varied {
 
@@ -4501,26 +4450,29 @@ namespace ana {
 
 namespace output {
 
-template <typename Sum, typename Node, typename Dest, typename... Args>
-void dump(Node const &node, Dest &&dest, Args &&...args);
+template <typename Summary, typename Bookkeeper, typename Destination,
+          typename... Args>
+void dump(Bookkeeper const &node, Destination &&dest, Args &&...args);
 
 }
 
 } // namespace ana
 
-template <typename Sum, typename Node, typename Dest, typename... Args>
-void ana::output::dump(Node const &node, Dest &&dest, Args &&...args) {
+template <typename Summary, typename Bookkeeper, typename Destination,
+          typename... Args>
+void ana::output::dump(Bookkeeper const &node, Destination &&dest,
+                       Args &&...args) {
   // instantiate summary
-  Sum summary(std::forward<Args>(args)...);
+  Summary summary(std::forward<Args>(args)...);
 
   // get selection paths
   auto selection_paths = node.nominal().get_model_value(
-      [](typename Node::nominal_type const &node) {
+      [](typename Bookkeeper::nominal_type const &node) {
         return node.list_selection_paths();
       });
 
   // record all results
-  if constexpr (dataflow::template is_nominal_v<Node>) {
+  if constexpr (is_nominal_v<Bookkeeper>) {
     // if node is nominal-only
     for (auto const &selection_path : selection_paths) {
       summary.record(selection_path, node[selection_path].result());
@@ -4538,5 +4490,5 @@ void ana::output::dump(Node const &node, Dest &&dest, Args &&...args) {
     }
   }
   // dump all results to destination
-  summary.output(std::forward<Dest>(dest));
+  summary.output(std::forward<Destination>(dest));
 }

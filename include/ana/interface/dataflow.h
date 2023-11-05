@@ -6,6 +6,7 @@
 #include <set>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "multithread.h"
@@ -14,48 +15,30 @@
 #include "aggregation.h"
 #include "column.h"
 #include "selection.h"
+#include "systematic.h"
 
 namespace ana {
+
+template <typename T> class lazy;
+
+template <typename U> class delayed;
 
 class dataflow {
 
 public:
   template <typename DS> class reader;
 
-  template <typename U> class systematic;
-
-  template <typename U> class delayed;
-
-  template <typename U> class lazy;
-
-public:
-  template <typename U>
-  static constexpr std::true_type check_lazy(lazy<U> const &);
-  static constexpr std::false_type check_lazy(...);
-  template <typename U>
-  static constexpr std::true_type check_delayed(delayed<U> const &);
-  static constexpr std::false_type check_delayed(...);
-
-  template <typename V>
-  static constexpr bool is_nominal_v =
-      (decltype(check_lazy(std::declval<V>()))::value ||
-       decltype(check_delayed(std::declval<V>()))::value);
-  template <typename V> static constexpr bool is_varied_v = !is_nominal_v<V>;
-
-  template <typename... Args>
-  static constexpr bool has_no_variation_v = (is_nominal_v<Args> && ...);
-  template <typename... Args>
-  static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
+  template <typename> friend class lazy;
+  template <typename> friend class delayed;
 
 public:
   dataflow();
   ~dataflow() = default;
 
-  template <typename KWArg> dataflow(KWArg kwarg);
-  template <typename KWArg1, typename KWArg2>
-  dataflow(KWArg1 kwarg1, KWArg2 kwarg2);
-  template <typename KWArg1, typename KWArg2, typename KWArg3>
-  dataflow(KWArg1 kwarg1, KWArg2 kwarg2, KWArg3 kwarg3);
+  template <typename Kwd> dataflow(Kwd kwd);
+  template <typename Kwd1, typename Kwd2> dataflow(Kwd1 kwd1, Kwd2 kwd2);
+  template <typename Kwd1, typename Kwd2, typename Kwd3>
+  dataflow(Kwd1 kwd1, Kwd2 kwd2, Kwd3 kwd3);
 
   dataflow(dataflow const &) = delete;
   dataflow &operator=(dataflow const &) = delete;
@@ -91,8 +74,7 @@ public:
    * @return The `lazy` definition "evaluator" to be evaluated with input
    * columns.
    */
-  template <typename Def, typename... Args>
-  auto define(Args &&...args) -> delayed<column::template evaluator_t<Def>>;
+  template <typename Def, typename... Args> auto define(Args &&...args);
 
   /**
    * @brief Define an equation.
@@ -101,8 +83,7 @@ public:
    * expression.
    * @return The `lazy` equation "evaluator" to be evaluated with input columns.
    */
-  template <typename F>
-  auto define(F callable) -> delayed<column::template evaluator_t<F>>;
+  template <typename F> auto define(F const &callable);
 
   auto filter(const std::string &name);
   auto weight(const std::string &name);
@@ -122,18 +103,16 @@ public:
   auto channel(const std::string &name, F callable)
       -> delayed<selection::template custom_applicator_t<F>>;
 
-  /**
-   * @brief Book a aggregation
-   * @tparam Cnt Any full user-implementation of `aggregation`.
-   * @param args Constructor arguments for the **Cnt**.
-   * @return The `lazy` aggregation "booker" to be filled with input column(s)
-   * and booked at selection(s).
-   */
   template <typename Cnt, typename... Args>
   auto agg(Args &&...args) -> delayed<aggregation::booker<Cnt>>;
 
+  // template <typename V, typename... Vars,
+  //           std::enable_if_t<ana::is_column_v<V>, bool> = false>
+  // auto vary(systematic::nominal<V> const &nom,
+  //           systematic::variation<Vars> const &...vars);
+
 protected:
-  template <typename KWArg> void accept_kwarg(KWArg kwarg);
+  template <typename Kwd> void accept_kwd(Kwd const &kwd);
 
   void analyze();
   void reset();
@@ -164,27 +143,6 @@ protected:
   template <typename Sel>
   auto channel(lazy<selection> const &prev, const std::string &name);
 
-  // recreate a lazy node as a variation under new arguments
-  template <typename V,
-            std::enable_if_t<column::template is_reader_v<V>, bool> = false>
-  auto vary_column(lazy<V> const &nom, const std::string &colname) -> lazy<V>;
-
-  template <typename Val, typename V,
-            std::enable_if_t<column::template is_constant_v<V>, bool> = false>
-  auto vary_column(lazy<V> const &nom, Val const &val) -> lazy<V>;
-
-  template <typename... Args, typename V,
-            std::enable_if_t<column::template is_definition_v<V> &&
-                                 !column::template is_equation_v<V>,
-                             bool> = false>
-  auto vary_evaluator(delayed<column::evaluator<V>> const &nom, Args &&...args)
-      -> delayed<column::evaluator<V>>;
-
-  template <typename F, typename V,
-            std::enable_if_t<column::template is_equation_v<V>, bool> = false>
-  auto vary_evaluator(delayed<column::evaluator<V>> const &nom, F callable)
-      -> delayed<column::evaluator<V>>;
-
   void add_operation(lockstep::node<operation> act);
   void add_operation(std::unique_ptr<operation> act);
 
@@ -210,50 +168,54 @@ template <typename T> using operation_t = typename T::nominal_type;
 
 } // namespace ana
 
-#include "dataflow_delayed.h"
-#include "dataflow_lazy.h"
 #include "dataflow_reader.h"
+#include "delayed.h"
+#include "lazy.h"
+#include "lazy_varied.h"
+
+#include "systematic_lookup.h"
+#include "systematic_nominal.h"
+#include "systematic_variation.h"
 
 inline ana::dataflow::dataflow()
     : m_mtcfg(ana::multithread::disable()), m_nrows(-1), m_weight(1.0),
       m_source(nullptr), m_analyzed(false) {}
 
-template <typename KWArg> ana::dataflow::dataflow(KWArg kwarg) : dataflow() {
-  this->accept_kwarg<KWArg>(kwarg);
+template <typename Kwd> ana::dataflow::dataflow(Kwd kwd) : dataflow() {
+  this->accept_kwd<Kwd>(kwd);
 }
 
-template <typename KWArg1, typename KWArg2>
-ana::dataflow::dataflow(KWArg1 kwarg1, KWArg2 kwarg2) : dataflow() {
-  static_assert(!std::is_same_v<KWArg1, KWArg2>, "repeated keyword arguments.");
-  this->accept_kwarg<KWArg1>(kwarg1);
-  this->accept_kwarg<KWArg2>(kwarg2);
+template <typename Kwd1, typename Kwd2>
+ana::dataflow::dataflow(Kwd1 kwd1, Kwd2 kwd2) : dataflow() {
+  static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
+  this->accept_kwd<Kwd1>(kwd1);
+  this->accept_kwd<Kwd2>(kwd2);
 }
 
-template <typename KWArg> void ana::dataflow::accept_kwarg(KWArg kwarg) {
-  constexpr bool is_mt = std::is_same_v<KWArg, ana::multithread::configuration>;
-  constexpr bool is_weight = std::is_same_v<KWArg, ana::sample::weight>;
-  constexpr bool is_nrows = std::is_same_v<KWArg, ana::dataset::head>;
+template <typename Kwd> void ana::dataflow::accept_kwd(Kwd const &kwd) {
+  constexpr bool is_mt = std::is_same_v<Kwd, multithread::configuration>;
+  constexpr bool is_weight = std::is_same_v<Kwd, sample::weight>;
+  constexpr bool is_nrows = std::is_same_v<Kwd, dataset::head>;
   if constexpr (is_mt) {
-    this->m_mtcfg = kwarg;
+    this->m_mtcfg = kwd;
   } else if (is_weight) {
-    this->m_weight = kwarg.value;
+    this->m_weight = kwd.value;
   } else if (is_nrows) {
-    this->m_nrows = kwarg.value;
+    this->m_nrows = kwd.value;
   } else {
     static_assert(is_mt || is_weight || is_nrows,
                   "unrecognized keyword argument");
   }
 }
 
-template <typename KWArg1, typename KWArg2, typename KWArg3>
-ana::dataflow::dataflow(KWArg1 kwarg1, KWArg2 kwarg2, KWArg3 kwarg3)
-    : dataflow() {
-  static_assert(!std::is_same_v<KWArg1, KWArg2>, "repeated keyword arguments.");
-  static_assert(!std::is_same_v<KWArg1, KWArg3>, "repeated keyword arguments.");
-  static_assert(!std::is_same_v<KWArg2, KWArg3>, "repeated keyword arguments.");
-  this->accept_kwarg<KWArg1>(kwarg1);
-  this->accept_kwarg<KWArg2>(kwarg2);
-  this->accept_kwarg<KWArg3>(kwarg3);
+template <typename Kwd1, typename Kwd2, typename Kwd3>
+ana::dataflow::dataflow(Kwd1 kwd1, Kwd2 kwd2, Kwd3 kwd3) : dataflow() {
+  static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<Kwd1, Kwd3>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<Kwd2, Kwd3>, "repeated keyword arguments.");
+  this->accept_kwd<Kwd1>(kwd1);
+  this->accept_kwd<Kwd2>(kwd2);
+  this->accept_kwd<Kwd3>(kwd3);
 }
 
 template <typename DS, typename... Args>
@@ -324,8 +286,7 @@ auto ana::dataflow::constant(const Val &val)
 }
 
 template <typename Def, typename... Args>
-auto ana::dataflow::define(Args &&...args)
-    -> delayed<ana::column::template evaluator_t<Def>> {
+auto ana::dataflow::define(Args &&...args) {
   return delayed<ana::column::template evaluator_t<Def>>(
       *this,
       this->m_processors.get_lockstep_node(
@@ -334,9 +295,7 @@ auto ana::dataflow::define(Args &&...args)
           }));
 }
 
-template <typename F>
-auto ana::dataflow::define(F callable)
-    -> delayed<column::template evaluator_t<F>> {
+template <typename F> auto ana::dataflow::define(F const &callable) {
   return delayed<ana::column::template evaluator_t<F>>(
       *this, this->m_processors.get_lockstep_node(
                  [callable = callable](dataset::processor &proc) {
@@ -547,36 +506,20 @@ inline void ana::dataflow::analyze() {
 
 inline void ana::dataflow::reset() { m_analyzed = false; }
 
-template <typename V,
-          std::enable_if_t<ana::column::template is_reader_v<V>, bool>>
-auto ana::dataflow::vary_column(lazy<V> const &, const std::string &colname)
-    -> lazy<V> {
-  return this->read<cell_value_t<std::decay_t<V>>>(colname);
-}
+// template <typename V, typename... Args,
+//           std::enable_if_t<ana::is_column_v<V>, bool>>
+// auto ana::dataflow::vary(systematic::nominal<V> const &nom,
+//                          systematic::variation<Args...> const &var) {
+// using target_value_t = cell_value_t<V>;
+// using target_column_t = ana::term<target_value_t>;
+// typename lazy<target_column_t>::varied syst(
+//     nom.get().template to<target_value_t>());
+// (syst.set_variation(vars.name(), vars.get().template to<target_value_t>()),
+//  ...);
+// return syst;
 
-template <typename Val, typename V,
-          std::enable_if_t<ana::column::template is_constant_v<V>, bool>>
-auto ana::dataflow::vary_column(lazy<V> const &, Val const &val) -> lazy<V> {
-  return this->constant<Val>(val);
-}
-
-template <typename... Args, typename V,
-          std::enable_if_t<ana::column::template is_definition_v<V> &&
-                               !ana::column::template is_equation_v<V>,
-                           bool>>
-auto ana::dataflow::vary_evaluator(delayed<column::evaluator<V>> const &,
-                                   Args &&...args)
-    -> delayed<column::evaluator<V>> {
-  return this->define<V>(std::forward<Args>(args)...);
-}
-
-template <typename F, typename V,
-          std::enable_if_t<ana::column::template is_equation_v<V>, bool>>
-auto ana::dataflow::vary_evaluator(delayed<column::evaluator<V>> const &,
-                                   F callable)
-    -> delayed<column::evaluator<V>> {
-  return this->define(typename V::function_type(callable));
-}
+//   if constexpr(column::template is_reader_v<> )
+// }
 
 inline void ana::dataflow::add_operation(lockstep::node<operation> operation) {
   m_operations.emplace_back(std::move(operation.m_model));

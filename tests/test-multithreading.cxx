@@ -29,8 +29,9 @@ std::vector<int> get_analogical_result(const nlohmann::json &random_data,
   auto ds = df.open<Json>(random_data);
   auto entry_value = ds.read<int>("value");
   auto all_entries = df.filter("all")(df.constant(true));
-  auto result = df.agg<Columnar<int>>().fill(entry_value).book(all_entries);
-  return result.result();
+  auto columnar = df.agg<Columnar<int>>();
+  columnar = columnar.fill(entry_value);
+  return columnar.book(all_entries).result();
 }
 
 TEST_CASE("multithreading consistency") {

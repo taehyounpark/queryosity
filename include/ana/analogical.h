@@ -12,10 +12,11 @@
 #include "interface/aggregation_output.h"
 
 #include "interface/dataflow.h"
-#include "interface/dataflow_delayed.h"
-#include "interface/dataflow_delayed_varied.h"
-#include "interface/dataflow_lazy.h"
-#include "interface/dataflow_lazy_varied.h"
+
+#include "interface/delayed.h"
+#include "interface/delayed_varied.h"
+#include "interface/lazy.h"
+#include "interface/lazy_varied.h"
 
 #include "interface/aggregation_summary.h"
 #include "interface/output_dump.h"

@@ -89,12 +89,7 @@ auto ana::column::computation::evaluate_column(column::evaluator<Def> &calc,
                                                Cols const &...columns)
     -> std::unique_ptr<Def> {
   auto defn = calc.evaluate_column(columns...);
-  // only if the evaluated column is not a representation, which does not need
-  // to executed
-  // ... but it still needs to be initialized and finalized!
-  // if constexpr (!column::template is_representation_v<Def>) {
   this->add_column(*defn);
-  // }
   return defn;
 }
 

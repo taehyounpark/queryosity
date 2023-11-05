@@ -13,14 +13,13 @@
 namespace multithread = ana::multithread;
 namespace sample = ana::sample;
 using dataflow = ana::dataflow;
-namespace systematic = ana::systematic;
 
 // generate random data
 nlohmann::json generate_random_data(unsigned int nentries = 100) {
   nlohmann::json random_data;
   std::random_device rd;
   std::mt19937 gen(rd());
-  std::uniform_real_distribution<double> random_signal(0, 100);
+  std::uniform_real_distribution<double> random_signal(100, 10);
   std::normal_distribution<double> random_variation(1.05, 0.1);
   std::poisson_distribution<unsigned int> random_weight(1);
   for (unsigned int i = 0; i < nentries; ++i) {
@@ -56,13 +55,8 @@ std::vector<double> get_correct_result(const nlohmann::json &random_data) {
 std::vector<double> get_analogical_result(const nlohmann::json &random_data) {
   ana::dataflow df;
   auto ds = df.open<Json>(random_data);
-  auto [x_nom, x_var, w_nom, w_var] =
-      ds.read<double, double, unsigned int, unsigned int>(
-          {"x_nom", "x_var", "w_nom", "w_var"});
-  auto x = df.vary(systematic::nominal(x_nom),
-                   systematic::variation("vary_x", x_var));
-  auto w = df.vary(systematic::nominal(w_nom),
-                   systematic::variation("vary_w", w_var));
+  auto x = ds.read<double>("x_nom", {{"vary_x", "x_var"}});
+  auto w = ds.read<unsigned int>("w_nom", {{"vary_w", "w_var"}});
   auto wsumx = df.agg<WeightedSum>().fill(x).book(df.weight("weight")(w));
   auto wsumx_nom = wsumx.nominal().result();
   auto wsumx_xvar = wsumx["vary_x"].result();

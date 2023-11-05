@@ -89,15 +89,4 @@ TEST_CASE("correctness & consistency of selections") {
     CHECK(sumw_one["b"].result() == correct_sumw_b);
     CHECK(sumw_one["c"].result() == correct_sumw_c);
   }
-
-  // SUBCASE("commposite filters") {
-  //   CHECK(sumw_two["ab"].result() == correct_sumw_a + correct_sumw_b);
-  //   CHECK(sumw_two["bc"].result() == correct_sumw_b + correct_sumw_c);
-  //   CHECK(sumw_three["abc"].result() ==
-  //         correct_sumw_a + correct_sumw_b + correct_sumw_c);
-
-  //   CHECK(sumw_one2["a2"].result() == correct_sumw_a);
-  //   CHECK(sumw_one2["b2"].result() == correct_sumw_b);
-  //   CHECK(sumw_three["none"].result() == 0);
-  // }
 }
