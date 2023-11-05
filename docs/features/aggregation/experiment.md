@@ -1,10 +1,14 @@
-![Counting](./counting.png)
-
 A `aggregation` defines an action that:
 
-- Executes at a particular selection, i.e. only if the cut has passed.
-    -  (Optional) Takes into account the weight.
-- (Optional) Populate the aggregation output with a given set of column values.
-- Outputs a result after the full dataset has been traversed.
+- Executes an arbitrary action (as implemented) under a particular selection, i.e. only if the cut has passed.
+    -  (Optional) Takes into account the selection weight.
+- (Optional) Populates the aggregation result based on values of input columns per-entry.
+- Outputs the result once the full dataset has been traversed.
 
-The action and output is implemented by the analyzer.
+In particular, given a definition of the concrete aggregation and input columns, it can be booked under multiple selections at a time.
+
+![agg_book_sels](../../assets/agg_book_sels.png)
+
+Similarly, from a single selection, it is possible to book multiple different results:
+
+![sel_book_aggs](../../assets/sel_book_aggs.png)
