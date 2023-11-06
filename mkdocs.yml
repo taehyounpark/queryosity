@@ -14,7 +14,7 @@ nav:
       - Basic concepts: features/basic.md
       - Dataflow: features/dataflow/dataflow.md 
       - Columns: 
-        - Computation graph": features/column/computation.md
+        - Computation graph: features/column/computation.md
         - Computing columns: features/column/column.md
       - Selections: 
         - Cutflow: features/selection/cutflow.md

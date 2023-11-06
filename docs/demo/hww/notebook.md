@@ -33,7 +33,7 @@ auto ds = df.open<Tree>(tree_files, tree_name);
 // std::vector-like containers types with useful array operations
 using VecUI = ROOT::RVec<unsigned int>;
 using VecF = ROOT::RVec<float>;
-using VecD = ROOT::RVec<float>;
+using VecD = ROOT::RVec<double>;
 
 // event weights
 auto mc_weight = ds.read<float>("mcWeight");

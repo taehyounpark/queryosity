@@ -163,6 +163,57 @@ auto number_of_numbers = df.define([](std::vector<float> const& vec){
 Complex computations can be fully specified by implementing a `definition`. 
 
 ```cpp
+// shift & smear a quantity be a (relative) gaussian convolution
+class GaussianConvolution : public ana::column::definition<double(double)>
+{
+  GaussianConvolution(double mu = 1.0, double sigma = 0.0) : m_mu(mu), m_sigma(sigma) {}
+  virtual ~GaussianConvolution() = default;
+
+  void setResponse(double mu, double sigma) { m_mu = mu; m_sigma = sigma; }
+
+  virtual double evaluate(observable<double> x) {
+    return x.value() * response;
+  }
+
+protected:
+  double m_mu;
+  double m_sigma;
+};
+
+```
+
+This can also be used via the `dataflow::define()` method, with two ways in which individual instances can be configured at run-time:
+
+1. Constructor arguments.
+2. Custom methods on instantiated objects.
+
+In this example, the two ways can be used to achieve the same thing
+
+=== "Constructor"
+    ```cpp
+    // (1)
+    auto x_conv = df.define<GaussianConvolution>(1.2, 0.2)(x);
+    ```
+=== "Instance direct-access"
+    ```cpp
+    auto x_conv = df.define<GaussianConvolution>()(x);
+    std::for_each( x_conv.begin(), x_conv.end(), [](GaussianConvolution* column){ column->setResponse(1.1, 0.1); });
+    ```
+
+!!! info
+    An `observable` is wrapped around each input argument of `column::definition::evaluate()` for two reasons:
+
+    1. Its `value()` is evaluated and stored at most once per-entry, and accessed without copying.
+    2. If `value()` is not called, the argument column is *not evaluated*, i.e. needless computation can be avoided.
+
+A column definition works with arbitrary set of input and output value types. Here is another example that defines a ROOT `ROOT::Math::PtEtaPhiMVector` out of the i-th element of 4 `RVec<double>`s:
+
+```cpp
+#include <ROOT/RVec.hxx>
+#include "TLorentzVector.h"
+
+using VecD = ROOT::RVec<double>;
+using P4 = ROOT::Math::PtEtaPhiMVector;
 
 class NthP4 : public ana::column::definition<P4(VecD, VecD, VecD, VecD)>
 {
@@ -178,48 +229,18 @@ public:
 protected:
   const unsigned int m_index;
 };
+
+// ...
+
+auto df = dataflow();
+auto ds = dataflow.open<Tree>( {"hww.root"}, "mini" );
+
+auto [jet_pts, jet_etas, jet_phis, jet_ms] = ds.read<VecD,VecD,VecD,VecD>({"jet_pts", "jet_etas", "jet_phis", "jet_ms"});
+
+auto p4j1 = df.define<NthP4>(0)(jet_pts, eta_etas, jet_phis, jet_ms);
+auto p4j2 = df.define<NthP4>(1)(jet_pts, eta_etas, jet_phis, jet_ms);
+
 ```
-!!! info
-    An `observable` is wrapped around each column value as arguments to the column definition for two purposes:
-
-    1. It returns column values as `const&`.
-    2. If its `value()` is not called, the argument column is *not evaluated*, i.e. needless computation can be avoided!
-
-### (Advanced) Direct instance access
-
-Custom column definitions can be "configured" in two ways:
-
-1. Constructor arguments
-2. Custom methods on instantiated objects.
-
-```cpp
-class GaussianConvolution : public ana::column::definition<double(double)>
-{
-  GaussianConvolution(double mu, double sigma) : m_mu(mu), m_sigma(sigma) {}
-  virtual ~GaussianConvolution() = default;
-
-  void setResponse(double mu, double sigma) { m_mu = mu; m_sigma = sigma; }
-
-  virtual double evaluate(observable<double> x) {
-    return x.value() * response;
-  }
-
-protected:
-  double m_mu;
-  double m_sigma;
-};
-
-// (1)
-auto x_conv = df.define<GaussianConvolution>(1.2, 0.2)(x);
-
-// (2)
-std::for_each( x_conv.begin(), x_conv.end(), [](GaussianConvolution* column){ column->setResponse(1.1, 0.1); });
-```
-
-!!! warning
-
-    
-
 
 ### (Advanced) Representations
 
