@@ -102,7 +102,7 @@ auto c = ds.read<std::string>("c");
 ```
 Alternatively, multiple columns can be read out in a single line:
 ```{ .cpp .annotate }
-auto [a, b, c] = df.open<ana::json>(data)\
+auto [a, b, c] = df.open<ana::json>(data)
                    .read<int,double,string>({"a","b","c"}); // (1)
 ```
 
@@ -192,7 +192,7 @@ In this example, the two ways can be used to achieve the same thing
 === "Constructor"
     ```cpp
     // (1)
-    auto x_conv = df.define<GaussianConvolution>(1.2, 0.2)(x);
+    auto x_conv = df.define<GaussianConvolution>(1.1, 0.1)(x);
     ```
 === "Instance direct-access"
     ```cpp

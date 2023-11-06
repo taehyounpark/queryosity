@@ -178,10 +178,7 @@ public:
             std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
                 false>
   auto result() const;
-  /**
-   * @brief Shorthand for `result` of aggregation.
-   * @return `Result` the result of the implemented aggregation.
-   */
+
   template <typename V = Action,
             std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
                 false>

@@ -52,14 +52,14 @@ An aggregation can be booked at (multiple) selection(s):
 
 === "One selection"
     ```cpp
-    hx_c = df.agg<Histogram<float>>(LinearAxis(100,0,100))\
-             .fill(x)\
+    hx_c = df.agg<Histogram<float>>(LinearAxis(100,0,100))
+             .fill(x)
              .book(c);
     ```
 === "Multiple selections"
     ```cpp
-    hxs = df.agg<Histogram<float>>(LinearAxis(100,0,100))\
-              .fill(x)\
+    hxs = df.agg<Histogram<float>>(LinearAxis(100,0,100))
+              .fill(x)
               .book(a, b, c);
     ```
 
@@ -76,16 +76,16 @@ auto [hx_a, hxy_a] = sel_a.book(hx, hxy);
 
 ## Access result(s)
 
-The result of any single aggregation can be triggered by:
+The result of any single aggregation can be obtained as:
 ```cpp
 auto hist = df.agg<Histogram<float>>(100,0,100).fill(column).book(selection);
 auto hist_result = hist.result();  // std::shared_ptr to boost::histogram object
 ```
+Which triggers the execution of all lazy actions in the dataflow object over the dataset.
 
 The aggregation behaves as a pointer to its result, which is automatically triggered:
 ```cpp
 hist->at(0);  // equivalent to hist.result()->at(0);
-(*hist).at(0);  // equivalent to above
 ```
 
 !!! note

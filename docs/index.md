@@ -15,8 +15,6 @@ _**Ana**lysis **Logic** **A**bstraction **L**ayer_
 
 `analogical` is a C++ library for dataset transformation.
 
-Its key features include:
-
 - "Dataflow" interface.
 - Lazy execution.
 - Multithreaded processing.
