@@ -1,6 +1,7 @@
 .vscode/
+.mkdoxy/
 build/
 site/
-docs/mkdoxy/
+
 
 *.DS_Store

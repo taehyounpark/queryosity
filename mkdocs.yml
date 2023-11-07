@@ -3,7 +3,6 @@ site_name: Coherent data analysis in C++
 repo_url: https://github.com/taehyounpark/analogical
 repo_name: taehyounpark/analogical
 
-
 nav:
   - Home:
     - Welcome: index.md
@@ -30,7 +29,7 @@ nav:
   - Demos:
     - Higgs WW: demo/hww/notebook.md
   - API:
-    - 'delayed': mkdoxy/analogical/analogical/classana_1_1delayed.md
+    - 'delayed': analogical/classana_1_1delayed.md
 
 theme:
   name: 'material'
@@ -58,7 +57,7 @@ plugins:
           doxy-cfg: # standard doxygen configuration (key: value)
             FILE_PATTERNS: "*dataflow*.h lazy*.h delayed*.h*" # specify file patterns to filter out
             RECURSIVE: True # recursive search in source directories
-      save-api: docs/mkdoxy
+      save-api: .mkdoxy
 
 markdown_extensions:
   - admonition
