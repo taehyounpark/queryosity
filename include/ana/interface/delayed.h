@@ -28,35 +28,33 @@ template <typename... Args>
 static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 /**
- * @brief Node representing a operation to be performed in an analysis.
- * @details A delayed operation is not yet fully-specified to be considered
- * lazy, as they require existing lazy operations as inputs to create a lazy one
- * of itself.
- * @tparam T Input dataset type.
- * @tparam U Action for which a lazy one will be created.
+ * @brief A node that instantiates a lazy action.
+ * @details A delayed node requires additional inputs to instantiate a lazy
+ * action.
+ * @tparam Bkr Booker that instantiates a lazy action.
  */
-template <typename Bld>
-class delayed : public systematic::resolver<delayed<Bld>>,
-                public lockstep::node<Bld> {
+template <typename Bkr>
+class delayed : public systematic::resolver<delayed<Bkr>>,
+                public lockstep::node<Bkr> {
 
 public:
   class varied;
 
 public:
-  delayed(dataflow &dataflow, lockstep::node<Bld> &&operation)
-      : systematic::resolver<delayed<Bld>>::resolver(dataflow),
-        lockstep::node<Bld>::node(std::move(operation)) {}
+  delayed(dataflow &dataflow, lockstep::node<Bkr> &&operation)
+      : systematic::resolver<delayed<Bkr>>::resolver(dataflow),
+        lockstep::node<Bkr>::node(std::move(operation)) {}
 
   virtual ~delayed() = default;
 
   template <typename V>
   delayed(delayed<V> &&other)
-      : systematic::resolver<delayed<Bld>>::resolver(*other.m_df),
-        lockstep::node<Bld>::node(std::move(other)) {}
+      : systematic::resolver<delayed<Bkr>>::resolver(*other.m_df),
+        lockstep::node<Bkr>::node(std::move(other)) {}
 
   template <typename V> delayed &operator=(delayed<V> &&other) {
     this->m_df = other.m_df;
-    lockstep::node<Bld>::operator=(std::move(other));
+    lockstep::node<Bkr>::operator=(std::move(other));
     return *this;
   }
 
@@ -69,20 +67,13 @@ public:
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
 
-  // template <
-  //     typename... Args, typename V = Bld,
-  //     std::enable_if_t<ana::column::template is_evaluator_v<V>, bool> =
-  //     false>
-  // auto vary(const std::string &var_name, Args &&...args) ->
-  //     typename delayed<V>::varied;
-
   /**
    * @brief Evaluate the column out of existing ones.
    * @param columns Input columns.
    * @return Evaluated column.
    */
   template <
-      typename... Nodes, typename V = Bld,
+      typename... Nodes, typename V = Bkr,
       std::enable_if_t<ana::column::template is_evaluator_v<V>, bool> = false>
   auto evaluate(Nodes &&...columns) const
       -> decltype(std::declval<delayed<V>>().evaluate_column(
@@ -90,17 +81,107 @@ public:
     return this->evaluate_column(std::forward<Nodes>(columns)...);
   }
 
-  template <typename... Nodes, typename V = Bld,
+  /**
+   * @brief Apply the selection's expression based on input columns.
+   * @param columns Input columns.
+   * @return Applied selection.
+   */
+  template <typename... Nodes, typename V = Bkr,
+            std::enable_if_t<ana::selection::template is_applicator_v<V>,
+                             bool> = false>
+  auto apply(Nodes &&...columns) const
+      -> decltype(std::declval<delayed<V>>().apply_selection(
+          std::forward<Nodes>(columns)...)) {
+    return this->apply_selection(std::forward<Nodes>(columns)...);
+  }
+
+  /**
+   * @brief Fill the aggregation with input columns.
+   * @param columns Input columns
+   * @return The aggregation filled with input columns.
+   */
+  template <
+      typename... Nodes, typename V = Bkr,
+      std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
+  auto fill(Nodes &&...columns) const
+      -> decltype(std::declval<delayed<V>>().fill_aggregation(
+          std::declval<Nodes>()...)) {
+    return this->fill_aggregation(std::forward<Nodes>(columns)...);
+  }
+
+  /**
+   * @brief Book the aggregation at a selection.
+   * @param selection Selection to be counted.
+   * @return The aggregation booked at the selection.
+   */
+  template <typename Node> auto book(Node &&selection) const {
+    return this->select_aggregation(std::forward<Node>(selection));
+  }
+
+  template <typename... Nodes> auto book(Nodes &&...nodes) const {
+    static_assert(aggregation::template is_booker_v<Bkr>,
+                  "not a aggregation (booker)");
+    return this->select_aggregations(std::forward<Nodes>(nodes)...);
+  }
+
+  /**
+   * @return The list of booked selection paths.
+   */
+  template <typename V = Bkr,
+            std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
+                             bool> = false>
+  auto list_selection_paths() const -> std::set<std::string> {
+    return this->get_model_value(
+        [](Bkr const &bkpr) { return bkpr.list_selection_paths(); });
+  }
+
+  /**
+   * @brief Shorthand for `evaluate()` and `apply()`
+   * for column and selection respectively.
+   * @param columns The input columns.
+   * @return The evaluated/applied column/selection.
+   */
+  template <typename... Args, typename V = Bkr,
+            std::enable_if_t<column::template is_evaluator_v<V> ||
+                                 selection::template is_applicator_v<V>,
+                             bool> = false>
+  auto operator()(Args &&...columns) const
+      -> decltype(std::declval<delayed<V>>().evaluate_or_apply(
+          std::forward<Args>(std::declval<Args &&>())...)) {
+    return this->evaluate_or_apply(std::forward<Args>(columns)...);
+  }
+
+  /**
+   * @brief Access a aggregation booked at a selection path.
+   * @param selection_path The selection path.
+   * @return The aggregation.
+   */
+  template <
+      typename... Args, typename V = Bkr,
+      std::enable_if_t<aggregation::template is_bookkeeper_v<V>, bool> = false>
+  auto operator[](const std::string &selection_path) const
+      -> lazy<aggregation::booked_t<V>> {
+    return this->get_aggregation(selection_path);
+  }
+
+protected:
+  /**
+   * @brief Evaluate a column definition out of nominal input columns
+   */
+  template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<ana::column::template is_evaluator_v<V> &&
                                  ana::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto evaluate_column(Nodes const &...columns) const
       -> lazy<column::template evaluated_t<V>> {
-    // nominal
     return this->m_df->evaluate_column(*this, columns...);
   }
 
-  template <typename... Nodes, typename V = Bld,
+  /**
+   * @brief Evaluate a column definition out of at least one varied input
+   * columns
+   */
+  template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<ana::column::template is_evaluator_v<V> &&
                                  ana::has_variation_v<Nodes...>,
                              bool> = false>
@@ -122,43 +203,9 @@ public:
   }
 
   /**
-   * @brief Apply the selection's expression based on input columns.
-   * @param columns Input columns.
-   * @return Applied selection.
+   * @brief Book an aggregation at a nominal selection
    */
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<ana::selection::template is_applicator_v<V>,
-                             bool> = false>
-  auto apply(Nodes &&...columns) const
-      -> decltype(std::declval<delayed<V>>().apply_selection(
-          std::forward<Nodes>(columns)...)) {
-    return this->apply_selection(std::forward<Nodes>(columns)...);
-  }
-
-  /**
-   * @brief Fill the aggregation with input columns.
-   * @param columns Input columns
-   * @return The aggregation filled with input columns.
-   */
-  template <
-      typename... Nodes, typename V = Bld,
-      std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
-  auto fill(Nodes &&...columns) const
-      -> decltype(std::declval<delayed<V>>().fill_aggregation(
-          std::declval<Nodes>()...)) {
-    return this->fill_aggregation(std::forward<Nodes>(columns)...);
-  }
-
-  /**
-   * @brief Book the aggregation at a selection.
-   * @param selection Selection to be counted.
-   * @return The aggregation booked at the selection.
-   */
-  template <typename Node> auto book(Node &&selection) const {
-    return this->select_aggregation(std::forward<Node>(selection));
-  }
-
-  template <typename Node, typename V = Bld,
+  template <typename Node, typename V = Bkr,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  ana::is_nominal_v<Node>,
                              bool> = false>
@@ -168,7 +215,10 @@ public:
     return this->m_df->select_aggregation(*this, sel);
   }
 
-  template <typename Node, typename V = Bld,
+  /**
+   * @brief Book an aggregation at a varied selection
+   */
+  template <typename Node, typename V = Bkr,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  ana::is_varied_v<Node>,
                              bool> = false>
@@ -184,13 +234,7 @@ public:
     return syst;
   }
 
-  template <typename... Nodes> auto book(Nodes &&...nodes) const {
-    static_assert(aggregation::template is_booker_v<Bld>,
-                  "not a aggregation (booker)");
-    return this->select_aggregations(std::forward<Nodes>(nodes)...);
-  }
-
-  template <typename... Nodes, typename V = Bld,
+  template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  ana::has_no_variation_v<Nodes...>,
                              bool> = false>
@@ -200,7 +244,7 @@ public:
     return this->m_df->select_aggregations(*this, sels...);
   }
 
-  template <typename... Nodes, typename V = Bld,
+  template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
@@ -218,48 +262,7 @@ public:
     return syst;
   }
 
-  /**
-   * @return The list of booked selection paths.
-   */
-  template <typename V = Bld,
-            std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
-                             bool> = false>
-  auto list_selection_paths() const -> std::set<std::string> {
-    return this->get_model_value(
-        [](Bld const &bkpr) { return bkpr.list_selection_paths(); });
-  }
-
-  /**
-   * @brief Shorthand for `evaluate()` and `apply()`
-   * for column and selection respectively.
-   * @param columns The input columns.
-   * @return The evaluated/applied column/selection.
-   */
-  template <typename... Args, typename V = Bld,
-            std::enable_if_t<column::template is_evaluator_v<V> ||
-                                 selection::template is_applicator_v<V>,
-                             bool> = false>
-  auto operator()(Args &&...columns) const
-      -> decltype(std::declval<delayed<V>>().evaluate_or_apply(
-          std::forward<Args>(std::declval<Args &&>())...)) {
-    return this->evaluate_or_apply(std::forward<Args>(columns)...);
-  }
-
-  /**
-   * @brief Access a aggregation booked at a selection path.
-   * @param selection_path The selection path.
-   * @return The aggregation.
-   */
-  template <
-      typename... Args, typename V = Bld,
-      std::enable_if_t<aggregation::template is_bookkeeper_v<V>, bool> = false>
-  auto operator[](const std::string &selection_path) const
-      -> lazy<aggregation::booked_t<V>> {
-    return this->get_aggregation(selection_path);
-  }
-
-protected:
-  template <typename V = Bld,
+  template <typename V = Bkr,
             std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
                              bool> = false>
   auto get_aggregation(const std::string &selection_path) const
@@ -272,7 +275,7 @@ protected:
                          this->get_view()));
   }
 
-  template <typename... Args, typename V = Bld,
+  template <typename... Args, typename V = Bkr,
             std::enable_if_t<column::template is_evaluator_v<V>, bool> = false>
   auto evaluate_or_apply(Args &&...columns) const
       -> decltype(std::declval<delayed<V>>().evaluate(
@@ -281,7 +284,7 @@ protected:
   }
 
   template <
-      typename... Args, typename V = Bld,
+      typename... Args, typename V = Bkr,
       std::enable_if_t<selection::template is_applicator_v<V>, bool> = false>
   auto evaluate_or_apply(Args &&...columns) const
       -> decltype(std::declval<delayed<V>>().apply(
@@ -289,7 +292,7 @@ protected:
     return this->apply(std::forward<Args>(columns)...);
   }
 
-  template <typename... Nodes, typename V = Bld,
+  template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  ana::has_no_variation_v<Nodes...>,
                              bool> = false>
@@ -304,7 +307,7 @@ protected:
             this->get_view(), columns...));
   }
 
-  template <typename... Nodes, typename V = Bld,
+  template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
@@ -317,7 +320,7 @@ protected:
     return syst;
   }
 
-  template <typename... Nodes, typename V = Bld,
+  template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<selection::template is_applicator_v<V> &&
                                  ana::has_no_variation_v<Nodes...>,
                              bool> = false>
@@ -326,7 +329,7 @@ protected:
     return this->m_df->apply_selection(*this, columns...);
   }
 
-  template <typename... Nodes, typename V = Bld,
+  template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<selection::template is_applicator_v<V> &&
                                  ana::has_variation_v<Nodes...>,
                              bool> = false>
@@ -347,46 +350,33 @@ protected:
 
 } // namespace ana
 
-template <typename Bld>
-void ana::delayed<Bld>::set_variation(const std::string &, delayed<Bld> &&) {
+template <typename Bkr>
+void ana::delayed<Bkr>::set_variation(const std::string &, delayed<Bkr> &&) {
   // should never be called
   throw std::logic_error("cannot set variation to a lazy operation");
 }
 
-template <typename Bld>
-auto ana::delayed<Bld>::nominal() const -> delayed const & {
+template <typename Bkr>
+auto ana::delayed<Bkr>::nominal() const -> delayed const & {
   // this is nominal
   return *this;
 }
 
-template <typename Bld>
-auto ana::delayed<Bld>::variation(const std::string &) const
+template <typename Bkr>
+auto ana::delayed<Bkr>::variation(const std::string &) const
     -> delayed const & {
   // propagation of variations must occur "transparently"
   return *this;
 }
 
-template <typename Bld>
-std::set<std::string> ana::delayed<Bld>::list_variation_names() const {
+template <typename Bkr>
+std::set<std::string> ana::delayed<Bkr>::list_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
 
-template <typename Bld>
-bool ana::delayed<Bld>::has_variation(const std::string &) const {
+template <typename Bkr>
+bool ana::delayed<Bkr>::has_variation(const std::string &) const {
   // always false
   return false;
 }
-
-// template <typename Bld>
-// template <typename... Args, typename V,
-//           std::enable_if_t<ana::column::template is_evaluator_v<V>, bool>>
-// auto ana::delayed<Bld>::vary(const std::string &var_name,
-//                                        Args &&...args) ->
-//     typename delayed<V>::varied {
-//   auto syst = varied(std::move(*this));
-//   syst.set_variation(var_name,
-//                      std::move(syst.m_df->vary_evaluator(
-//                          syst.nominal(), std::forward<Args>(args)...)));
-//   return syst;
-// }

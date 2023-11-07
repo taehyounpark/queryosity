@@ -30,9 +30,7 @@ nav:
   - Demos:
     - Higgs WW: demo/hww/notebook.md
   - API:
-    - dataflow:
-      - dataflow: api/dataflow/dataflow.md
-      - open: api/dataflow/open.md
+    - 'delayed': mkdoxy/analogical/analogical/classana_1_1delayed.md
 
 theme:
   name: 'material'
@@ -51,16 +49,16 @@ theme:
     - toc.follow
     - content.tabs.link
 
-# plugins:
-#   - mkdoxy:
-#       projects:
-#         analogical: # name of project must be alphanumeric + numbers (without spaces)
-#           src-dirs: include/ana/interface # path to source code (support multiple paths separated by space) => INPUT
-#           full-doc: True # if you want to generate full documentation
-#           doxy-cfg: # standard doxygen configuration (key: value)
-#             FILE_PATTERNS: "*.cpp *.h*" # specify file patterns to filter out
-#             RECURSIVE: True # recursive search in source directories
-#       save-api: docs/.mkdoxy
+plugins:
+  - mkdoxy:
+      projects:
+        analogical: # name of project must be alphanumeric + numbers (without spaces)
+          src-dirs: include/ana/interface # path to source code (support multiple paths separated by space) => INPUT
+          full-doc: True # if you want to generate full documentation
+          doxy-cfg: # standard doxygen configuration (key: value)
+            FILE_PATTERNS: "*dataflow*.h lazy*.h delayed*.h*" # specify file patterns to filter out
+            RECURSIVE: True # recursive search in source directories
+      save-api: docs/mkdoxy
 
 markdown_extensions:
   - admonition
