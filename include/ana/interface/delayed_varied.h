@@ -5,11 +5,10 @@
 namespace ana {
 
 /**
- * @brief Varied version of a delayed operation.
- * @details A delayed varied operation can be considered to be functionally
- * equivalent to a delayed operation, except that it contains multipled delayed
- * ones for which the operation is applied. The nominal delayed operation can be
- * accessed by `nominal()`, and a systematic variation by `["variation name"]`.
+ * @brief Varied version of a delayed node.
+ * @details A delayed varied operation is functionally equivalent to a delayed
+ * node, except that it contains multiple nodes corresponding to nominal and
+ * systematic variations.
  */
 template <typename Bld>
 class delayed<Bld>::varied : public systematic::resolver<delayed<Bld>> {
@@ -42,31 +41,50 @@ public:
                              bool> = false>
   auto apply(Nodes const &...columns) -> typename lazy<selection>::varied;
 
+  /**
+   * @brief Fill aggregation logic with input columns.
+   */
   template <
       typename... Nodes, typename V = Bld,
       std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
   auto fill(Nodes const &...columns) -> varied;
 
+  /**
+   * @brief Book the aggregation logic at a selection.
+   * @param selection Lazy(varied) selection node to book aggregation
+   * at.
+   */
   template <
       typename Node, typename V = Bld,
       std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
   auto book(Node const &selection) ->
       typename lazy<aggregation::booked_t<V>>::varied;
 
+  /**
+   * @brief Book the aggregation logic at multiple selections.
+   * @param selection Lazy selection nodes to book aggregations at.
+   * @return Lazy aggregation node.
+   */
   template <
       typename... Nodes, typename V = Bld,
       std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
   auto book(Nodes const &...selections) -> typename delayed<
       aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
 
+  /**
+   * @brief Evaluate/apply the column definition/selection with input columns.
+   * @param args... Lazy input column nodes
+   * @return Lazy column definition node
+   */
   template <typename... Args>
   auto operator()(Args &&...args) ->
       typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
           std::forward<Args>(args).nominal()...))::operation_type>::varied;
 
   /**
-   * @brief Access the delayed operation of a specific systematic variation.
-   * @param var_name The name of the systematic variation.
+   * @brief Access the delayed node of a specific systematic variation.
+   * @param var_name Name of the systematic variation.
+   * @return Delayed node corresponding to systematic variation.
    */
   template <typename V = Bld,
             std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
