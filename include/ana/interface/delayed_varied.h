@@ -42,7 +42,9 @@ public:
   auto apply(Nodes const &...columns) -> typename lazy<selection>::varied;
 
   /**
-   * @brief Fill aggregation logic with input columns.
+   * @brief Fill the aggregation with input columns.
+   * @param columns... Input columns to fill the aggregation with.
+   * @return A new delayed aggregation node with input columns filled.
    */
   template <
       typename... Nodes, typename V = Bld,
@@ -51,8 +53,8 @@ public:
 
   /**
    * @brief Book the aggregation logic at a selection.
-   * @param selection Lazy(varied) selection node to book aggregation
-   * at.
+   * @param selection Lazy selection to book aggregation at.
+   * @return Lazy aggregation booked at selection.
    */
   template <
       typename Node, typename V = Bld,
@@ -62,8 +64,8 @@ public:
 
   /**
    * @brief Book the aggregation logic at multiple selections.
-   * @param selection Lazy selection nodes to book aggregations at.
-   * @return Lazy aggregation node.
+   * @param selection Lazy selection to book aggregations at.
+   * @return Delayed aggregation containing booked lazy aggregations.
    */
   template <
       typename... Nodes, typename V = Bld,
@@ -73,8 +75,8 @@ public:
 
   /**
    * @brief Evaluate/apply the column definition/selection with input columns.
-   * @param args... Lazy input column nodes
-   * @return Lazy column definition node
+   * @param args... Lazy input columns
+   * @return Lazy column definition
    */
   template <typename... Args>
   auto operator()(Args &&...args) ->
@@ -82,7 +84,7 @@ public:
           std::forward<Args>(args).nominal()...))::operation_type>::varied;
 
   /**
-   * @brief Access the delayed node of a specific systematic variation.
+   * @brief Access the delayed of a specific systematic variation.
    * @param var_name Name of the systematic variation.
    * @return Delayed node corresponding to systematic variation.
    */
