@@ -30,6 +30,7 @@ nav:
     - Higgs WW: demo/hww/notebook.md
   - API:
     - 'delayed': analogical/classana_1_1delayed.md
+    - 'delayed::varied': analogical/classana_1_1delayed_1_1varied.md
 
 theme:
   name: 'material'
