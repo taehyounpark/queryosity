@@ -170,8 +170,8 @@ public:
   template <typename V = Action,
             std::enable_if_t<is_selection_v<V>, bool> = false>
   std::string path() const {
-    return this->get_model_value(
-        [](const selection &me) { return me.get_path(); });
+    return lockstep::get_value(
+        [](const selection &me) { return me.get_path(); }, std::cref(*this));
   }
 
   template <typename V = Action,

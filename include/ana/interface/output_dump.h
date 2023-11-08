@@ -24,10 +24,11 @@ void ana::output::dump(Bookkeeper const &node, Destination &&dest,
   Summary summary(std::forward<Args>(args)...);
 
   // get selection paths
-  auto selection_paths = node.nominal().get_model_value(
+  auto selection_paths = lockstep::get_value(
       [](typename Bookkeeper::nominal_type const &node) {
         return node.list_selection_paths();
-      });
+      },
+      node.nominal());
 
   // record all results
   if constexpr (is_nominal_v<Bookkeeper>) {

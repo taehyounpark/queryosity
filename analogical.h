@@ -40,11 +40,11 @@ auto check_value(Fn const &fn, view<Args> const &...args)
     -> std::invoke_result_t<Fn, Args &...>;
 
 template <typename Fn, typename... Args>
-auto invoke_node(Fn const &fn, view<Args> const &...args) -> lockstep::node<
+auto get_node(Fn const &fn, view<Args> const &...args) -> lockstep::node<
     typename std::invoke_result_t<Fn, Args &...>::element_type>;
 
 template <typename Fn, typename... Args>
-auto invoke_view(Fn const &fn, view<Args> const &...args) -> lockstep::view<
+auto get_view(Fn const &fn, view<Args> const &...args) -> lockstep::view<
     std::remove_pointer_t<typename std::invoke_result_t<Fn, Args &...>>>;
 
 template <typename Fn, typename... Args>
@@ -434,7 +434,7 @@ inline auto ana::lockstep::check_value(Fn const &fn, view<Args> const &...args)
 }
 
 template <typename Fn, typename... Args>
-inline auto ana::lockstep::invoke_node(Fn const &fn, view<Args> const &...args)
+inline auto ana::lockstep::get_node(Fn const &fn, view<Args> const &...args)
     -> lockstep::node<
         typename std::invoke_result_t<Fn, Args &...>::element_type> {
   auto concurrency = check_concurrency(args...);
@@ -450,8 +450,8 @@ inline auto ana::lockstep::invoke_node(Fn const &fn, view<Args> const &...args)
 }
 
 template <typename Fn, typename... Args>
-inline auto ana::lockstep::invoke_view(Fn const &fn, view<Args> const &...args)
-    -> typename lockstep::view<
+inline auto ana::lockstep::get_view(Fn const &fn, view<Args> const &...args) ->
+    typename lockstep::view<
         std::remove_pointer_t<typename std::invoke_result_t<Fn, Args &...>>> {
   auto concurrency = check_concurrency(args...);
   typename lockstep::view<
@@ -3620,7 +3620,7 @@ protected:
   auto get_aggregation(const std::string &selection_path) const
       -> lazy<aggregation::booked_t<V>> {
     return lazy<aggregation::booked_t<V>>(
-        *this->m_df, lockstep::invoke_view(
+        *this->m_df, lockstep::get_view(
                          [selection_path = selection_path](V &bkpr) {
                            return bkpr.get_aggregation(selection_path);
                          },
@@ -3652,7 +3652,7 @@ protected:
     // nominal
     return delayed<V>(
         *this->m_df,
-        lockstep::invoke_node(
+        lockstep::get_node(
             [](V &fillable, typename Nodes::operation_type &...cols) {
               return fillable.book_fill(cols...);
             },
@@ -3879,7 +3879,7 @@ ana::dataset::reader<DS> ana::dataflow::open(Args &&...args) {
 
   // open dataset reader and processor for each thread
   // slot for each partition range
-  this->m_players = lockstep::invoke_node(
+  this->m_players = lockstep::get_node(
       [ds](dataset::range &part) { return ds->open_player(part); },
       this->m_parts.get_view());
   this->m_processors = lockstep::node<dataset::processor>(

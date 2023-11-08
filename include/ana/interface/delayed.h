@@ -131,8 +131,9 @@ public:
             std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
                              bool> = false>
   auto list_selection_paths() const -> std::set<std::string> {
-    return this->get_model_value(
-        [](Bkr const &bkpr) { return bkpr.list_selection_paths(); });
+    return lockstep::get_value(
+        [](Bkr const &bkpr) { return bkpr.list_selection_paths(); },
+        std::cref(*this));
   }
 
   /**
@@ -268,7 +269,7 @@ protected:
   auto get_aggregation(const std::string &selection_path) const
       -> lazy<aggregation::booked_t<V>> {
     return lazy<aggregation::booked_t<V>>(
-        *this->m_df, lockstep::invoke_view(
+        *this->m_df, lockstep::get_view(
                          [selection_path = selection_path](V &bkpr) {
                            return bkpr.get_aggregation(selection_path);
                          },
@@ -300,7 +301,7 @@ protected:
     // nominal
     return delayed<V>(
         *this->m_df,
-        lockstep::invoke_node(
+        lockstep::get_node(
             [](V &fillable, typename Nodes::operation_type &...cols) {
               return fillable.book_fill(cols...);
             },
