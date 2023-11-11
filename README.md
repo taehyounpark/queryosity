@@ -9,7 +9,7 @@ _**Ana**lysis **Logic** **A**bstraction **L**ayer_
 `analogical` is a C++ library for performing dataset transformations.
 
 <p align="center">
-	<strong> <a href="https://marzer.github.io/tomlplusplus/">See full documentation</a></strong>
+	<strong> <a href="https://taehyounpark.github.io/analogical/">See full documentation</a></strong>
 </p>
 
 
