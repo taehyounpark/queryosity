@@ -1,7 +1,5 @@
 To perform a sensitivity analysis means to determine how variations in the input of a system affect its output.
 
-## Systematic variation
-
 A **systematic variation** constitutes a __change in a column value that affects the outcome of selections and aggregations__.
 Processing these them within a single dataflow object offers the following benefits over applying them independently:
 
@@ -17,7 +15,7 @@ Any column can be varied with an alternate constructor of the same type, which t
 | `equation` | Callable expression + input columns |
 | `definition`/`representation` | Constructor arguments + input columns + direct-access |
 
-## Propagation of variations
+# Propagation of variations
 
 Nominal and varied operations are automatically carried forward during an analysis, meaning:
 

@@ -1,10 +1,9 @@
 ## Create
 
-Aggregations are defined analogous as for custom column definitions, i.e. by providing its concrete type+constructor arguments:
+Aggregations are defined analogous as for custom column definitions, i.e. by providing its concrete type and constructor arguments:
 ```cpp
 auto hist = df.agg<Histogram<float>>(LinearAxis(100,0,100));
 ```
-
 
 ## Fill
 
@@ -25,8 +24,7 @@ An aggregation can be `fill()`ed as many times as needed:
 ```cpp title="Filling a histogram twice per-entry"
 auto hist_xy = df.agg<Histogram<float>>("x_and_y",100,0,100).fill(x).fill(y);
 ```
-
-!!! warning "Make sure to get the returned booker"
+<!-- !!! warning "Make sure to get the returned booker"
 
     Reminder: each (chained) method returns a new node with the lazy action booked.
     In other words, make sure to obtain and use the returned aggregation for the columns to be actually filled!
@@ -43,8 +41,7 @@ auto hist_xy = df.agg<Histogram<float>>("x_and_y",100,0,100).fill(x).fill(y);
     auto hbins = df.agg<Histogram<float>>(LinearAxis(100,0,100));
     auto hx = hbins.fill(x);
     auto hy = hbins.fill(y);
-    ```
-
+    ``` -->
 
 ## Book
 
@@ -52,27 +49,31 @@ An aggregation can be booked at (multiple) selection(s):
 
 === "One selection"
     ```cpp
-    hx_c = df.agg<Histogram<float>>(LinearAxis(100,0,100))
-             .fill(x)
-             .book(c);
+    hx = df.agg<Histogram<float>>(LinearAxis(100,0,100)).fill(x);
+
+    hx_a = hx.book(sel_a);
     ```
 === "Multiple selections"
     ```cpp
-    hxs = df.agg<Histogram<float>>(LinearAxis(100,0,100))
-              .fill(x)
-              .book(a, b, c);
+    hx = df.agg<Histogram<float>>(LinearAxis(100,0,100)).fill(x);
+    hx_abc = hx.book(a, b, c);
+    hx_a = hx_abc["a"];
     ```
-
-### From a selection
 
 When multiple aggregations are booked from a selection, they must be individually unpacked since aggregations can be of different types:
 
-```cpp
-auto hx = df.agg<Histogram<float>>("x",axis::regular(10,0,10));
-auto hxy = df.agg<Histogram<float,float>>("xy",axis::regular(10,0,10),axis::regular(10,0,10));
+=== "One aggregation"
+    ```cpp
+    auto hx = df.agg<Histogram<float>>("x",LinearAxis(10,0,10));
 
-auto [hx_a, hxy_a] = sel_a.book(hx, hxy);
-```
+    auto hx_a = sel_a.book(hx);
+    ```
+=== "Multiple aggregations"
+    ```cpp
+    auto hx = df.agg<Histogram<float>>("x",LinearAxis(10,0,10));
+    auto hxy = df.agg<Histogram<float,float>>("xy",LinearAxis(10,0,10),LinearAxis(10,0,10));
+    auto [hx_a, hxy_a] = sel_a.book(hx, hxy);
+    ```
 
 ## Access result(s)
 
@@ -88,5 +89,5 @@ The aggregation behaves as a pointer to its result, which is automatically trigg
 hist->at(0);  // equivalent to hist.result()->at(0);
 ```
 
-!!! note
-    Calling the result of any one aggregation triggers the dataset processing of *all*.
+!!! info
+    Calling the result of any one aggregation triggers the dataset processing of *all* booked up to that point.
