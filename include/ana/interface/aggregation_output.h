@@ -6,8 +6,8 @@ namespace ana {
 
 /**
  * @brief Minimal aggregation with an output result.
- * @details This ABC should be used for counting operations that do not require
- * any input columns, e.g. a cutflow of selections.
+ * @details This ABC should be used for operations that do not require any input
+ * columns.
  */
 template <typename T> class aggregation::output : public aggregation {
 
@@ -39,7 +39,7 @@ public:
    * @param weight The value of the weight at booked selection for the passed
    * entry.
    */
-  using aggregation::count;
+  using aggregation::aggregate;
 
   virtual void finalize(const dataset::range &) final override;
 

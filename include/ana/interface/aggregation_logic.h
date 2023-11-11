@@ -29,7 +29,7 @@ public:
    * set of input columns as provided then.
    */
   virtual void fill(ana::observable<Obs>... observables, double w) = 0;
-  virtual void count(double w) final override;
+  virtual void aggregate(double w) final override;
 
   template <typename... Vals> void enter_columns(term<Vals> const &...cols);
 
@@ -51,7 +51,7 @@ void ana::aggregation::logic<T(Obs...)>::enter_columns(
 }
 
 template <typename T, typename... Obs>
-void ana::aggregation::logic<T(Obs...)>::count(double w) {
+void ana::aggregation::logic<T(Obs...)>::aggregate(double w) {
   for (unsigned int ifill = 0; ifill < m_fills.size(); ++ifill) {
     std::apply(
         [this, w](const variable<Obs> &...obs) { this->fill(obs..., w); },

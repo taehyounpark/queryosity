@@ -14,7 +14,7 @@ public:
   SumOfWeights() = default;
   ~SumOfWeights() = default;
 
-  virtual void count(double w) override;
+  virtual void aggregate(double w) override;
   virtual double result() const override;
   virtual double merge(std::vector<double> results) const override;
 
@@ -24,7 +24,7 @@ protected:
 
 } // namespace
 
-void SumOfWeights::count(double w) { m_result += w; }
+void SumOfWeights::aggregate(double w) { m_result += w; }
 
 double SumOfWeights::result() const { return m_result; }
 
