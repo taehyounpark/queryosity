@@ -14,8 +14,11 @@
 
 #include "aggregation.h"
 #include "column.h"
+#include "dataset.h"
 #include "selection.h"
 #include "systematic.h"
+
+#include "dataset_partition.h"
 
 namespace ana {
 
@@ -26,17 +29,29 @@ template <typename U> class delayed;
 class dataflow {
 
 public:
+  template <typename> friend class dataset::reader;
   template <typename> friend class lazy;
   template <typename> friend class delayed;
 
 public:
+  /**
+   * @brief Default constructor.
+   */
   dataflow();
   ~dataflow() = default;
 
-  template <typename Kwd> dataflow(Kwd kwd);
-  template <typename Kwd1, typename Kwd2> dataflow(Kwd1 kwd1, Kwd2 kwd2);
+  /**
+   * @brief Constructor with one keyword argument.
+   * @tparam Kwd Keyword argument type.
+   * @details A keyword argument can be:
+   *  - @p ana::sample::weight(float)
+   *  - @p ana::dataset::first(unsigned int)
+   *  - @p ana::multithread::enable(unsigned int)
+   */
+  template <typename Kwd> dataflow(Kwd kwarg);
+  template <typename Kwd1, typename Kwd2> dataflow(Kwd1 kwarg1, Kwd2 kwarg2);
   template <typename Kwd1, typename Kwd2, typename Kwd3>
-  dataflow(Kwd1 kwd1, Kwd2 kwd2, Kwd3 kwd3);
+  dataflow(Kwd1 kwarg1, Kwd2 kwarg2, Kwd3 kwarg3);
 
   dataflow(dataflow const &) = delete;
   dataflow &operator=(dataflow const &) = delete;
@@ -44,18 +59,14 @@ public:
   dataflow(dataflow &&) = default;
   dataflow &operator=(dataflow &&) = default;
 
-  template <typename DS, typename... Args>
-  dataset::reader<DS> open(Args &&...args);
-
   /**
-   * @brief Read a column from the dataset.
-   * @tparam Val Column data type.
-   * @param name Column name.
-   * @return The `lazy` read column.
+   * @brief Open a dataset input.
+   * @tparam DS Dataset input.
+   * @tparam Args... Dataset input constructor arguments
+   * @return Dataset reader
    */
-  template <typename DS, typename Val>
-  auto read(dataset::input<DS> &ds, const std::string &name)
-      -> lazy<read_column_t<DS, Val>>;
+  template <typename DS, typename... Args>
+  auto open(Args &&...args) -> dataset::reader<DS>;
 
   /**
    * @brief Define a constant.
@@ -116,10 +127,14 @@ public:
             Vars const &...vars);
 
 protected:
-  template <typename Kwd> void accept_kwd(Kwd const &kwd);
+  template <typename Kwd> void accept_kwarg(Kwd const &kwarg);
 
   void analyze();
   void reset();
+
+  template <typename DS, typename Val>
+  auto read(dataset::input<DS> &ds, const std::string &name)
+      -> lazy<read_column_t<DS, Val>>;
 
   template <typename Def, typename... Cols>
   auto evaluate_column(delayed<column::evaluator<Def>> const &calc,
@@ -180,10 +195,12 @@ template <typename T> using operation_t = typename T::nominal_type;
 
 } // namespace ana
 
-#include "dataset_reader.h"
 #include "delayed.h"
 #include "lazy.h"
 #include "lazy_varied.h"
+
+#include "dataset_range.h"
+#include "dataset_reader.h"
 
 #include "systematic_resolver.h"
 #include "systematic_variation.h"
@@ -192,27 +209,27 @@ inline ana::dataflow::dataflow()
     : m_mtcfg(ana::multithread::disable()), m_nrows(-1), m_weight(1.0),
       m_source(nullptr), m_analyzed(false) {}
 
-template <typename Kwd> ana::dataflow::dataflow(Kwd kwd) : dataflow() {
-  this->accept_kwd<Kwd>(kwd);
+template <typename Kwd> ana::dataflow::dataflow(Kwd kwarg) : dataflow() {
+  this->accept_kwarg<Kwd>(kwarg);
 }
 
 template <typename Kwd1, typename Kwd2>
-ana::dataflow::dataflow(Kwd1 kwd1, Kwd2 kwd2) : dataflow() {
+ana::dataflow::dataflow(Kwd1 kwarg1, Kwd2 kwarg2) : dataflow() {
   static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
-  this->accept_kwd<Kwd1>(kwd1);
-  this->accept_kwd<Kwd2>(kwd2);
+  this->accept_kwarg<Kwd1>(kwarg1);
+  this->accept_kwarg<Kwd2>(kwarg2);
 }
 
-template <typename Kwd> void ana::dataflow::accept_kwd(Kwd const &kwd) {
+template <typename Kwd> void ana::dataflow::accept_kwarg(Kwd const &kwarg) {
   constexpr bool is_mt = std::is_same_v<Kwd, multithread::configuration>;
   constexpr bool is_weight = std::is_same_v<Kwd, sample::weight>;
-  constexpr bool is_nrows = std::is_same_v<Kwd, dataset::head>;
+  constexpr bool is_nrows = std::is_same_v<Kwd, dataset::first>;
   if constexpr (is_mt) {
-    this->m_mtcfg = kwd;
+    this->m_mtcfg = kwarg;
   } else if (is_weight) {
-    this->m_weight = kwd.value;
+    this->m_weight = kwarg.value;
   } else if (is_nrows) {
-    this->m_nrows = kwd.value;
+    this->m_nrows = kwarg.nrows;
   } else {
     static_assert(is_mt || is_weight || is_nrows,
                   "unrecognized keyword argument");
@@ -220,17 +237,17 @@ template <typename Kwd> void ana::dataflow::accept_kwd(Kwd const &kwd) {
 }
 
 template <typename Kwd1, typename Kwd2, typename Kwd3>
-ana::dataflow::dataflow(Kwd1 kwd1, Kwd2 kwd2, Kwd3 kwd3) : dataflow() {
+ana::dataflow::dataflow(Kwd1 kwarg1, Kwd2 kwarg2, Kwd3 kwarg3) : dataflow() {
   static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
   static_assert(!std::is_same_v<Kwd1, Kwd3>, "repeated keyword arguments.");
   static_assert(!std::is_same_v<Kwd2, Kwd3>, "repeated keyword arguments.");
-  this->accept_kwd<Kwd1>(kwd1);
-  this->accept_kwd<Kwd2>(kwd2);
-  this->accept_kwd<Kwd3>(kwd3);
+  this->accept_kwarg<Kwd1>(kwarg1);
+  this->accept_kwarg<Kwd2>(kwarg2);
+  this->accept_kwarg<Kwd3>(kwarg3);
 }
 
 template <typename DS, typename... Args>
-ana::dataset::reader<DS> ana::dataflow::open(Args &&...args) {
+auto ana::dataflow::open(Args &&...args) -> ana::dataset::reader<DS> {
 
   if (m_source) {
     std::runtime_error("opening multiple datasets is not yet supported.");

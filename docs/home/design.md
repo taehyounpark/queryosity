@@ -1,10 +1,11 @@
-## Promises
+# Design goals
 
-- **Clear interface.** Specify operations with a clear, high-level abstraction interface using modern C++ syntax.
-- **Customizable plugins.** Operations with arbitrary inputs, execution, and outputs receive first-class treatment: from custom datasets and columns to complex aggregations, there is a customizable ABC.
-- **Sensitivity analysis.** With built-in handling of systematic variations, changes to an operation are automatically propagated and all results under the original and varied scenarios are obtained simultaneously.
-- **Computational efficiency.** Dataset operations are (1) multithreaded, and (2) performed for an entry only if needed.
+- **Clear interface.** Use a clear high-level abstraction layer with modern C++ syntax to specify even the most complex operations.
+- **Customizable operations.** Support for inputs and outputs of any type and arbitrary execution, such as custom dataset formats, column definitions, and aggregation algorithms.
+- **Sensitivity analysis.** Systematic variations of an analysis are automatically propagated and simultaneously processed within one dataset traversal.
+- **Computational efficiency.** Dataset operations are performed for an entry only if needed. Dataset traversal is multithreaded.
 
-## What it is *not* suited for
+# Non-goals
 
-- Columnar analysis. `analogical` is **designed to handle non-trivial/highly-nested data types**; as such, the dataset processing is **inherently row-wise**. If an analysis is more intuitively expressed in terms of array operations, then libraries with an index-based API (and SIMD support) will be better suited (and faster).
+- Columnar analysis. Being **designed to handle arbitrary data types**, the dataset traversal is **inherently row-wise**. If an analysis can be expressed as array operations, then libraries with an index-based API (and SIMD support) will be better-suited (and faster).
+- Best-ever speed. One can expect **overall performance** to be **comparable to other frameworks**; some benchmarks are available [here](https://github.com/iris-hep/adl-benchmarks-index). If there is a (not array-wise) workflow that is significantly lacking in speed, please submit an issue on GitHub.

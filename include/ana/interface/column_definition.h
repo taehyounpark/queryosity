@@ -7,6 +7,11 @@
 
 namespace ana {
 
+/**
+ * @brief Column with user-defined return value type and evaluation
+ * dataset.
+ * @tparam T return value type.
+ */
 template <typename Ret, typename... Vals>
 class column::definition<Ret(Vals...)> : public column::calculation<Ret> {
 

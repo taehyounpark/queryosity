@@ -49,7 +49,7 @@ public:
   virtual void execute(const dataset::range &part,
                        unsigned long long entry) override;
 
-  virtual void count(double w) = 0;
+  virtual void aggregate(double w) = 0;
 
 protected:
   bool m_raw;
@@ -118,6 +118,7 @@ inline void ana::aggregation::initialize(const ana::dataset::range &) {
 
 inline void ana::aggregation::execute(const ana::dataset::range &,
                                       unsigned long long) {
-  if (m_selection->passed_cut())
-    this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
+  if (m_selection->passed_cut()) {
+    this->aggregate(m_raw ? 1.0 : m_scale * m_selection->get_weight());
+  }
 }

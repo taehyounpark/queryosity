@@ -8,7 +8,7 @@ nav:
     - Welcome: index.md
     - Design goals: home/design.md
     - Installation: home/installation.md
-    - Quickstart: home/quickstart.md
+    - At a glance: home/quick.md
   - Features:
       - Basic concepts: features/basic.md
       - Dataflow: features/dataflow/dataflow.md 
@@ -29,14 +29,24 @@ nav:
   - Demos:
     - Higgs WW: demo/hww/notebook.md
   - API:
-    - 'delayed': analogical/classana_1_1delayed.md
-    - 'delayed::varied': analogical/classana_1_1delayed_1_1varied.md
+    - Analysis:
+      - 'dataflow': analogical/classana_1_1dataflow.md
+      - 'lazy': analogical/classana_1_1lazy.md
+      - 'lazy::varied': analogical/classana_1_1lazy_1_1varied.md
+      - 'delayed': analogical/classana_1_1delayed.md
+      - 'delayed::varied': analogical/classana_1_1delayed_1_1varied.md
+    - Implementation:
+      - 'dataset::input': analogical/classana_1_1dataset_1_1input.md
+      - 'dataset::player': analogical/classana_1_1dataset_1_1player.md
+      - 'dataset::column': analogical/classana_1_1dataset_1_1column.md
+      - 'column::definition': analogical/classana_1_1column_1_1definition_3_01_ret_07_vals_8_8_8_08_4.md
+      - 'aggregation::logic': analogical/classana_1_1aggregation_1_1logic_3_01_t_07_obs_8_8_8_08_4.md
 
 theme:
   name: 'material'
   font:
-    text: Roboto
-    code: Roboto Mono
+    text: Inter Tight
+    code: JetBrains Mono
   palette:
     primary: custom
   icon:
@@ -56,7 +66,7 @@ plugins:
           src-dirs: include/ana/interface # path to source code (support multiple paths separated by space) => INPUT
           full-doc: True # if you want to generate full documentation
           doxy-cfg: # standard doxygen configuration (key: value)
-            FILE_PATTERNS: "*dataflow*.h lazy*.h delayed*.h*" # specify file patterns to filter out
+            FILE_PATTERNS: "dataflow.h lazy*.h delayed*.h dataset.h dataset_input.h dataset_player.h dataset_column.h column_definition.h aggregation_logic.h aggregation_logic.h" # specify file patterns to filter out
             RECURSIVE: True # recursive search in source directories
       save-api: .mkdoxy
 

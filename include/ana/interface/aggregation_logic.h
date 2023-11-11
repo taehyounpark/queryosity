@@ -4,9 +4,9 @@
 #include "aggregation_output.h"
 
 namespace ana {
+
 /**
  * @brief Counter output to be filled with columns using arbitrary logic.
- * @tparam T Output result type.
  * @tparam Obs... Input column data types.
  */
 template <typename T, typename... Obs>

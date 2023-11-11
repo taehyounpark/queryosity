@@ -9,8 +9,7 @@ namespace dataset {
 struct range;
 
 /**
- * @brief Abstract base class to read values of existing columns in an input
- * dataset.
+ * @brief Read columns from a dataset.
  * @tparam T column data type.
  */
 template <typename T> class column : public ana::term<T> {
