@@ -15,7 +15,7 @@ public:
   virtual void fill(ana::observable<T>, double) override;
   virtual std::vector<T> result() const override;
   virtual std::vector<T>
-  merge(std::vector<std::vector<T>> results) const override;
+  merge(std::vector<std::vector<T>> const &results) const override;
 
 protected:
   std::vector<T> m_result;
@@ -30,7 +30,8 @@ template <typename T> std::vector<T> Columnar<T>::result() const {
 }
 
 template <typename T>
-std::vector<T> Columnar<T>::merge(std::vector<std::vector<T>> results) const {
+std::vector<T>
+Columnar<T>::merge(std::vector<std::vector<T>> const &results) const {
   std::vector<T> merged;
   for (const auto &result : results) {
     merged.insert(merged.end(), result.begin(), result.end());

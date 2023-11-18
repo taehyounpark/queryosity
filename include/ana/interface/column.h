@@ -160,8 +160,8 @@ public:
   cell() = default;
   virtual ~cell() = default;
 
-  virtual const T &value() const = 0;
-  virtual const T *field() const;
+  virtual T const &value() const = 0;
+  virtual T const *field() const;
 };
 
 //------------------------------------
@@ -172,14 +172,14 @@ template <typename From>
 class cell<To>::conversion_of : public cell<To> {
 
 public:
-  conversion_of(const cell<From> &from);
+  conversion_of(cell<From> const &from);
   virtual ~conversion_of() = default;
 
 public:
   virtual const To &value() const override;
 
 private:
-  const cell<From> *m_from;
+  cell<From> const *m_from;
   mutable To m_conversion_of;
 };
 
@@ -191,14 +191,14 @@ template <typename From>
 class cell<To>::interface_of : public cell<To> {
 
 public:
-  interface_of(const cell<From> &from);
+  interface_of(cell<From> const &from);
   virtual ~interface_of() = default;
 
 public:
   virtual const To &value() const override;
 
 private:
-  const cell<From> *m_impl;
+  cell<From> const *m_impl;
 };
 
 template <typename T> class term : public column, public cell<T> {
@@ -221,38 +221,38 @@ template <typename T> class variable {
 
 public:
   variable() = default;
-  template <typename U> variable(const cell<U> &val);
+  template <typename U> variable(cell<U> const &val);
   virtual ~variable() = default;
 
   variable(variable &&) = default;
   variable &operator=(variable &&) = default;
 
-  const T &value() const;
-  const T *field() const;
+  T const &value() const;
+  T const *field() const;
 
 protected:
-  std::unique_ptr<const cell<T>> m_val;
+  std::unique_ptr<const cell<T>> m_cell;
 };
 
 // easy to move around
 template <typename T> class observable {
 
 public:
-  observable(const variable<T> &obs);
+  observable(variable<T> const &obs);
   virtual ~observable() = default;
 
-  const T &value() const;
-  const T *field() const;
+  T const &value() const;
+  T const *field() const;
 
-  const T &operator*() const;
-  const T *operator->() const;
+  T const &operator*() const;
+  T const *operator->() const;
 
 protected:
   const variable<T> *m_var;
 };
 
 template <typename To, typename From>
-std::unique_ptr<cell<To>> cell_as(const cell<From> &from);
+std::unique_ptr<cell<To>> cell_as(cell<From> const &from);
 
 template <typename T>
 using cell_value_t = std::decay_t<decltype(std::declval<T>().value())>;
@@ -260,21 +260,21 @@ using cell_value_t = std::decay_t<decltype(std::declval<T>().value())>;
 } // namespace ana
 
 template <typename T>
-void ana::term<T>::initialize(const ana::dataset::range &) {}
+void ana::term<T>::initialize(ana::dataset::range const &) {}
 
 template <typename T>
-void ana::term<T>::execute(const ana::dataset::range &, unsigned long long) {}
+void ana::term<T>::execute(ana::dataset::range const &, unsigned long long) {}
 
 template <typename T>
-void ana::term<T>::finalize(const ana::dataset::range &) {}
+void ana::term<T>::finalize(ana::dataset::range const &) {}
 
-template <typename T> const T *ana::cell<T>::field() const {
+template <typename T> T const *ana::cell<T>::field() const {
   return &this->value();
 }
 
 template <typename To>
 template <typename From>
-ana::cell<To>::conversion_of<From>::conversion_of(const cell<From> &from)
+ana::cell<To>::conversion_of<From>::conversion_of(cell<From> const &from)
     : m_from(&from) {}
 
 template <typename To>
@@ -286,7 +286,7 @@ const To &ana::cell<To>::conversion_of<From>::value() const {
 
 template <typename Base>
 template <typename Impl>
-ana::cell<Base>::interface_of<Impl>::interface_of(const cell<Impl> &from)
+ana::cell<Base>::interface_of<Impl>::interface_of(cell<Impl> const &from)
     : m_impl(&from) {}
 
 template <typename Base>
@@ -296,17 +296,16 @@ const Base &ana::cell<Base>::interface_of<Impl>::value() const {
 }
 
 template <typename To, typename From>
-std::unique_ptr<ana::cell<To>> ana::cell_as(const cell<From> &from) {
+std::unique_ptr<ana::cell<To>> ana::cell_as(cell<From> const &from) {
+  static_assert(std::is_same_v<From, To> || std::is_base_of_v<To, From> ||
+                    std::is_convertible_v<From, To>,
+                "incompatible value types");
   if constexpr (std::is_same_v<From, To> || std::is_base_of_v<To, From>) {
     return std::make_unique<
         typename ana::cell<To>::template interface_of<From>>(from);
   } else if constexpr (std::is_convertible_v<From, To>) {
     return std::make_unique<
         typename ana::cell<To>::template conversion_of<From>>(from);
-  } else {
-    static_assert(std::is_same_v<From, To> || std::is_base_of_v<To, From> ||
-                      std::is_convertible_v<From, To>,
-                  "incompatible value types");
   }
 }
 
@@ -316,31 +315,31 @@ std::unique_ptr<ana::cell<To>> ana::cell_as(const cell<From> &from) {
 
 template <typename T>
 template <typename U>
-ana::variable<T>::variable(const cell<U> &val) : m_val(cell_as<T>(val)) {}
+ana::variable<T>::variable(cell<U> const &val) : m_cell(cell_as<T>(val)) {}
 
-template <typename T> const T &ana::variable<T>::value() const {
-  return m_val->value();
+template <typename T> T const &ana::variable<T>::value() const {
+  return m_cell->value();
 }
 
-template <typename T> const T *ana::variable<T>::field() const {
-  return m_val->field();
+template <typename T> T const *ana::variable<T>::field() const {
+  return m_cell->field();
 }
 
 template <typename T>
 ana::observable<T>::observable(const variable<T> &var) : m_var(&var) {}
 
-template <typename T> const T &ana::observable<T>::operator*() const {
+template <typename T> T const &ana::observable<T>::operator*() const {
   return m_var->value();
 }
 
-template <typename T> const T *ana::observable<T>::operator->() const {
+template <typename T> T const *ana::observable<T>::operator->() const {
   return m_var->field();
 }
 
-template <typename T> const T &ana::observable<T>::value() const {
+template <typename T> T const &ana::observable<T>::value() const {
   return m_var->value();
 }
 
-template <typename T> const T *ana::observable<T>::field() const {
+template <typename T> T const *ana::observable<T>::field() const {
   return m_var->field();
 }

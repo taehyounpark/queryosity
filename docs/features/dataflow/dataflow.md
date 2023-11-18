@@ -13,7 +13,7 @@ There are several "keyword" arguments (can be provided in any order) available t
 | `ana::multithread::enable(nthreads)` | `nthreads` | Enable multithreading. |
 | `ana::multithread::disable()` | | Disable multithreading. |
 | `ana::dataset::head(nrows)` | `nrows` | Process only the first row(s) in the dataset. |
-| `ana::sample::weight(scale)` | `scale` | Apply a global scale to all weights. |
+| `ana::dataset::weight(scale)` | `scale` | Apply a global scale to all weights. |
 
 !!! example
 
@@ -23,5 +23,5 @@ There are several "keyword" arguments (can be provided in any order) available t
     namespace multithread = ana::multithread;
     namespace dataset = ana::dataset;
     namespace sample = ana::sample;
-    dataflow df(multithread::enable(4), dataset::head(100), sample::weight(0.123));
+    dataflow df(multithread::enable(4), dataset::head(100), dataset::weight(0.123));
     ```

@@ -1106,7 +1106,7 @@ inline void ana::dataset::partition::truncate(long long max_entries) {
     auto part_end = max_entries >= 0
                         ? std::min(part.begin + max_entries, part.end)
                         : part.end;
-    this->parts.push_back(range(part.slot, part.begin, part_end));
+    this->parts.push_back(range(part.index, part.begin, part_end));
     max_entries -= part_end;
     if (!max_entries)
       break;
@@ -3821,7 +3821,7 @@ ana::dataflow::dataflow(KWArg1 kwarg1, KWArg2 kwarg2) : dataflow() {
 
 template <typename KWArg> void ana::dataflow::accept_kwarg(KWArg kwarg) {
   constexpr bool is_mt = std::is_same_v<KWArg, ana::multithread::configuration>;
-  constexpr bool is_weight = std::is_same_v<KWArg, ana::sample::weight>;
+  constexpr bool is_weight = std::is_same_v<KWArg, ana::dataset::weight>;
   constexpr bool is_nrows = std::is_same_v<KWArg, ana::dataset::head>;
   if constexpr (is_mt) {
     this->m_mtcfg = kwarg;

@@ -7,11 +7,11 @@
 
 namespace ana {
 
-template <typename DS> class dataset::reader {
+template <typename DS> class dataset::opened {
 
 public:
-  reader(dataflow &df, DS &ds);
-  ~reader() = default;
+  opened(dataflow &df, DS &ds);
+  ~opened() = default;
 
   template <typename Val> auto read_column(const std::string &name) {
     return m_df->read<DS, Val>(*m_ds, name);
@@ -53,12 +53,12 @@ protected:
 #include "systematic_variation.h"
 
 template <typename DS>
-ana::dataset::reader<DS>::reader(ana::dataflow &df, DS &ds)
+ana::dataset::opened<DS>::opened(ana::dataflow &df, DS &ds)
     : m_df(&df), m_ds(&ds) {}
 
 template <typename DS>
 template <typename Col>
-auto ana::dataset::reader<DS>::vary(
+auto ana::dataset::opened<DS>::vary(
     lazy<Col> const &nom, systematic::variation<std::string> const &var) {
   using nom_val_t = cell_value_t<Col>;
   typename lazy<Col>::varied varied_column(nom);
@@ -69,7 +69,7 @@ auto ana::dataset::reader<DS>::vary(
 
 template <typename DS>
 template <typename Col, typename... Vars>
-auto ana::dataset::reader<DS>::vary(
+auto ana::dataset::opened<DS>::vary(
     lazy<Col> const &nom, systematic::variation<Vars> const &...vars) {
   using nom_val_t = cell_value_t<Col>;
   typename lazy<Col>::varied varied_column(nom);

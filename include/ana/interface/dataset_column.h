@@ -15,6 +15,9 @@ struct range;
 template <typename T> class column : public ana::term<T> {
 
 public:
+  using const_reference = T const &;
+
+public:
   column();
   virtual ~column() = default;
 
@@ -22,13 +25,14 @@ public:
    * @brief Read the value of the column at current entry.
    * @return Column value
    */
-  virtual T const &read(const range &part, unsigned long long entry) const = 0;
+  virtual const_reference read(const range &part,
+                               unsigned long long entry) const = 0;
 
   /**
    * @brief Get the value of the column at current entry.
    * @return Column value
    */
-  virtual T const &value() const override;
+  virtual const_reference value() const override;
 
   virtual void execute(const range &part,
                        unsigned long long entry) final override;

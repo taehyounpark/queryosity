@@ -16,19 +16,34 @@ namespace dataset {
 
 struct range;
 
+using row = unsigned long long;
+
 struct partition;
 
 template <typename T> class input;
 
-class player;
+template <typename T> class opened;
 
-template <typename T> class reader;
+class player;
 
 template <typename T> class column;
 
-struct first {
-  first(long long nrows) : nrows(nrows) {}
+struct limit {
+  limit(long long nrows) : nrows(nrows) {}
   long long nrows;
+  operator long long() { return nrows; }
+};
+
+struct offset {
+  offset(unsigned long long pos) : pos(pos) {}
+  unsigned long long pos;
+  operator unsigned long long() { return pos; }
+};
+
+struct weight {
+  weight(double value) : value(value) {}
+  double value;
+  operator double() { return value; }
 };
 
 } // namespace dataset

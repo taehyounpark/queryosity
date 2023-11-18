@@ -16,7 +16,7 @@ public:
 
   virtual void aggregate(double w) override;
   virtual double result() const override;
-  virtual double merge(std::vector<double> results) const override;
+  virtual double merge(std::vector<double> const &results) const override;
 
 protected:
   double m_result = 0.0;
@@ -28,6 +28,6 @@ void SumOfWeights::aggregate(double w) { m_result += w; }
 
 double SumOfWeights::result() const { return m_result; }
 
-double SumOfWeights::merge(std::vector<double> results) const {
+double SumOfWeights::merge(std::vector<double> const &results) const {
   return std::accumulate(results.begin(), results.end(), 0.0);
 }

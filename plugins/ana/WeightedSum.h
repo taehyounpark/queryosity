@@ -14,7 +14,7 @@ public:
 
   virtual void fill(ana::observable<double>, double) override;
   virtual double result() const override;
-  virtual double merge(std::vector<double> results) const override;
+  virtual double merge(std::vector<double> const &results) const override;
 
 protected:
   double m_result;
@@ -26,6 +26,6 @@ void WeightedSum::fill(ana::observable<double> x, double w) {
 
 double WeightedSum::result() const { return m_result; }
 
-double WeightedSum::merge(std::vector<double> results) const {
+double WeightedSum::merge(std::vector<double> const &results) const {
   return std::accumulate(results.begin(), results.end(), 0.0);
 }

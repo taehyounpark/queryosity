@@ -10,9 +10,9 @@
 #include "ana/Json.h"
 #include "ana/WeightedSum.h"
 
-namespace multithread = ana::multithread;
-namespace sample = ana::sample;
 using dataflow = ana::dataflow;
+namespace dataset = ana::dataset;
+namespace multithread = ana::multithread;
 namespace systematic = ana::systematic;
 
 // generate random data

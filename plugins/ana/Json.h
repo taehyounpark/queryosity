@@ -11,7 +11,7 @@ public:
   Json(const nlohmann::json &data);
   ~Json() = default;
 
-  virtual ana::dataset::partition allocate() override;
+  virtual ana::dataset::partition parallelize() override;
 
   template <typename T>
   std::unique_ptr<Entry<T>> read(const ana::dataset::range &part,
@@ -42,7 +42,7 @@ template <typename T>
 Json::Entry<T>::Entry(nlohmann::json const &data, const std::string &name)
     : m_data(data), m_key(name) {}
 
-ana::dataset::partition Json::allocate() {
+ana::dataset::partition Json::parallelize() {
   return ana::dataset::partition(m_data.size());
 }
 

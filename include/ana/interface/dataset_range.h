@@ -19,7 +19,7 @@ namespace dataset {
  * @brief Range of a dataset to process by one thread slot.
  */
 struct range {
-  range(size_t slot, unsigned long long begin, unsigned long long end);
+  range(unsigned int slot, unsigned long long begin, unsigned long long end);
   ~range() = default;
 
   range operator+(const range &next);
@@ -28,9 +28,9 @@ struct range {
   unsigned long long entries() const;
 
   /**
-   * @brief Thread index that the processed range belongs to.
+   * @brief Thread slot that the processed range belongs to.
    */
-  size_t slot;
+  unsigned int slot;
   /**
    * @brief The first entry in the range
    */
@@ -45,7 +45,7 @@ struct range {
 
 } // namespace ana
 
-inline ana::dataset::range::range(size_t slot, unsigned long long begin,
+inline ana::dataset::range::range(unsigned int slot, unsigned long long begin,
                                   unsigned long long end)
     : slot(slot), begin(begin), end(end) {}
 

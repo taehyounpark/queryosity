@@ -31,7 +31,7 @@ public:
    * @param results Incoming results.
    * @return The merged result.
    */
-  virtual T merge(std::vector<T> results) const = 0;
+  virtual T merge(std::vector<T> const &results) const = 0;
 
   /**
    * @brief Count an entry for which the booked selection has passed with its
@@ -48,10 +48,8 @@ public:
   T const &operator->() const { return this->get_result(); }
 
   bool is_merged() const;
-  void merge_results(std::vector<T> results);
 
-protected:
-  void set_merged(bool merged = true);
+  void set_merged_result(std::vector<T> const &results);
 
 protected:
   T m_result;
@@ -69,11 +67,6 @@ template <typename T> bool ana::aggregation::output<T>::is_merged() const {
 }
 
 template <typename T>
-void ana::aggregation::output<T>::set_merged(bool merged) {
-  m_merged = merged;
-}
-
-template <typename T>
 void ana::aggregation::output<T>::finalize(const ana::dataset::range &) {
   m_result = this->result();
 }
@@ -83,10 +76,11 @@ template <typename T> T const &ana::aggregation::output<T>::get_result() const {
 }
 
 template <typename T>
-void ana::aggregation::output<T>::merge_results(std::vector<T> results) {
+void ana::aggregation::output<T>::set_merged_result(
+    std::vector<T> const &results) {
   if (!results.size()) {
     throw std::logic_error("merging requires at least one result");
   }
   m_result = this->merge(results);
-  this->set_merged(true);
+  m_merged = true;
 }

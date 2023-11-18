@@ -9,16 +9,15 @@
 #include <utility>
 #include <vector>
 
-#include "multithread.h"
-#include "sample.h"
-
 #include "aggregation.h"
 #include "column.h"
 #include "dataset.h"
+#include "dataset_partition.h"
+#include "dataset_player.h"
+#include "dataset_processor.h"
+#include "multithread.h"
 #include "selection.h"
 #include "systematic.h"
-
-#include "dataset_partition.h"
 
 namespace ana {
 
@@ -29,7 +28,7 @@ template <typename U> class delayed;
 class dataflow {
 
 public:
-  template <typename> friend class dataset::reader;
+  template <typename> friend class dataset::opened;
   template <typename> friend class lazy;
   template <typename> friend class delayed;
 
@@ -44,8 +43,8 @@ public:
    * @brief Constructor with one keyword argument.
    * @tparam Kwd Keyword argument type.
    * @details A keyword argument can be:
-   *  - @p ana::sample::weight(float)
-   *  - @p ana::dataset::first(unsigned int)
+   *  - @p ana::dataset::weight(float)
+   *  - @p ana::dataset::limit(unsigned int)
    *  - @p ana::multithread::enable(unsigned int)
    */
   template <typename Kwd> dataflow(Kwd kwarg);
@@ -63,10 +62,10 @@ public:
    * @brief Open a dataset input.
    * @tparam DS Dataset input.
    * @tparam Args... Dataset input constructor arguments
-   * @return Dataset reader
+   * @return Opened dataset input
    */
   template <typename DS, typename... Args>
-  auto open(Args &&...args) -> dataset::reader<DS>;
+  auto open(Args &&...args) -> dataset::opened<DS>;
 
   /**
    * @brief Define a constant.
@@ -174,9 +173,9 @@ protected:
   void add_operation(std::unique_ptr<operation> act);
 
 protected:
-  multithread::configuration m_mtcfg;
+  multithread::core m_mt;
   long long m_nrows;
-  double m_weight;
+  dataset::weight m_weight;
 
   dataset::partition m_partition;
   double m_norm;
@@ -199,14 +198,14 @@ template <typename T> using operation_t = typename T::nominal_type;
 #include "lazy.h"
 #include "lazy_varied.h"
 
+#include "dataset_opened.h"
 #include "dataset_range.h"
-#include "dataset_reader.h"
 
 #include "systematic_resolver.h"
 #include "systematic_variation.h"
 
 inline ana::dataflow::dataflow()
-    : m_mtcfg(ana::multithread::disable()), m_nrows(-1), m_weight(1.0),
+    : m_mt(ana::multithread::disable()), m_nrows(-1), m_weight(1.0),
       m_source(nullptr), m_analyzed(false) {}
 
 template <typename Kwd> ana::dataflow::dataflow(Kwd kwarg) : dataflow() {
@@ -221,13 +220,13 @@ ana::dataflow::dataflow(Kwd1 kwarg1, Kwd2 kwarg2) : dataflow() {
 }
 
 template <typename Kwd> void ana::dataflow::accept_kwarg(Kwd const &kwarg) {
-  constexpr bool is_mt = std::is_same_v<Kwd, multithread::configuration>;
-  constexpr bool is_weight = std::is_same_v<Kwd, sample::weight>;
-  constexpr bool is_nrows = std::is_same_v<Kwd, dataset::first>;
+  constexpr bool is_mt = std::is_same_v<Kwd, multithread::core>;
+  constexpr bool is_weight = std::is_same_v<Kwd, dataset::weight>;
+  constexpr bool is_nrows = std::is_same_v<Kwd, dataset::limit>;
   if constexpr (is_mt) {
-    this->m_mtcfg = kwarg;
+    this->m_mt = kwarg;
   } else if (is_weight) {
-    this->m_weight = kwarg.value;
+    this->m_weight = kwarg;
   } else if (is_nrows) {
     this->m_nrows = kwarg.nrows;
   } else {
@@ -247,7 +246,7 @@ ana::dataflow::dataflow(Kwd1 kwarg1, Kwd2 kwarg2, Kwd3 kwarg3) : dataflow() {
 }
 
 template <typename DS, typename... Args>
-auto ana::dataflow::open(Args &&...args) -> ana::dataset::reader<DS> {
+auto ana::dataflow::open(Args &&...args) -> ana::dataset::opened<DS> {
 
   if (m_source) {
     std::runtime_error("opening multiple datasets is not yet supported.");
@@ -257,12 +256,12 @@ auto ana::dataflow::open(Args &&...args) -> ana::dataset::reader<DS> {
   auto ds = source.get();
   m_source = std::move(source);
 
-  // 1. allocate the dataset partition
-  this->m_partition = ds->allocate();
+  // 1. parallelize the dataset partition
+  this->m_partition = ds->parallelize();
   // 2. truncate entries to limit
   this->m_partition.truncate(this->m_nrows);
   // 3. merge parts to concurrency limit
-  this->m_partition.merge(this->m_mtcfg.concurrency);
+  this->m_partition.merge(this->m_mt.concurrency);
   // 4. normalize scale
   this->m_norm = ds->normalize();
 
@@ -285,7 +284,7 @@ auto ana::dataflow::open(Args &&...args) -> ana::dataset::reader<DS> {
   this->m_processors = lockstep::node<dataset::processor>(
       m_parts.concurrency(), this->m_weight / this->m_norm);
 
-  return dataset::reader<DS>(*this, *ds);
+  return dataset::opened<DS>(*this, *ds);
 }
 
 template <typename DS, typename Val>
@@ -537,7 +536,7 @@ inline void ana::dataflow::analyze() {
 
   m_source->initialize();
 
-  this->m_mtcfg.run(
+  this->m_mt.run(
       [](dataset::processor *proc, dataset::player *plyr,
          const dataset::range *part) { proc->process(*plyr, *part); },
       this->m_processors, this->m_players, this->m_parts);

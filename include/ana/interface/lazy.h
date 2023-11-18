@@ -333,6 +333,6 @@ void ana::lazy<Action>::merge_results() const {
     for (size_t islot = 0; islot < this->concurrency(); ++islot) {
       results.push_back(this->get_slot(islot)->get_result());
     }
-    model->merge_results(results);
+    model->set_merged_result(results);
   }
 }

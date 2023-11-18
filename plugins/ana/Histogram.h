@@ -25,8 +25,8 @@ public:
 
   virtual void fill(ana::observable<Cols>... columns, double w) override;
   virtual std::shared_ptr<Histogram_t> result() const override;
-  virtual std::shared_ptr<Histogram_t>
-  merge(std::vector<std::shared_ptr<Histogram_t>> results) const override;
+  virtual std::shared_ptr<Histogram_t> merge(
+      std::vector<std::shared_ptr<Histogram_t>> const &results) const override;
 
 protected:
   std::shared_ptr<Histogram_t> m_hist;
@@ -51,7 +51,7 @@ std::shared_ptr<Histogram_t> Histogram<Cols...>::result() const {
 
 template <typename... Cols>
 std::shared_ptr<Histogram_t> Histogram<Cols...>::merge(
-    std::vector<std::shared_ptr<Histogram_t>> results) const {
+    std::vector<std::shared_ptr<Histogram_t>> const &results) const {
   auto sum = std::make_shared<Histogram_t>(*results[0]);
   sum->reset();
   for (const auto &result : results) {

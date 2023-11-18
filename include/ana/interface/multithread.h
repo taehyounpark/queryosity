@@ -14,7 +14,7 @@ class dataflow;
 
 namespace multithread {
 
-struct configuration {
+struct core {
   bool enabled;
   unsigned int concurrency;
   /**
@@ -30,8 +30,8 @@ struct configuration {
   void run(Fn const &fn, Nodes const &...args) const;
 };
 
-configuration enable(int suggestion = -1);
-configuration disable();
+core enable(int suggestion = -1);
+core disable();
 
 }; // namespace multithread
 
@@ -153,19 +153,17 @@ protected:
 
 } // namespace ana
 
-inline ana::multithread::configuration
-ana::multithread::enable(int suggestion) {
+inline ana::multithread::core ana::multithread::enable(int suggestion) {
   return suggestion ? multithread::disable()
-                    : configuration{
-                          true, suggestion < 0
-                                    ? std::thread::hardware_concurrency()
-                                    : std::min<unsigned int>(
-                                          std::thread::hardware_concurrency(),
-                                          suggestion)};
+                    : core{true, suggestion < 0
+                                     ? std::thread::hardware_concurrency()
+                                     : std::min<unsigned int>(
+                                           std::thread::hardware_concurrency(),
+                                           suggestion)};
 }
 
-inline ana::multithread::configuration ana::multithread::disable() {
-  return configuration{false, 1};
+inline ana::multithread::core ana::multithread::disable() {
+  return core{false, 1};
 }
 
 template <typename T>
@@ -238,8 +236,7 @@ void ana::lockstep::node<T>::call_all_slots(Fn const &fn,
 }
 
 template <typename Fn, typename... Nodes>
-void ana::multithread::configuration::run(Fn const &fn,
-                                          Nodes const &...args) const {
+void ana::multithread::core::run(Fn const &fn, Nodes const &...args) const {
   assert(((this->concurrency == args.concurrency()) && ...));
 
   // multi-lockstep

@@ -24,7 +24,7 @@ public:
   decltype(auto) read_column(const ana::dataset::range &part,
                              const std::string &name);
 
-  virtual partition allocate() = 0;
+  virtual partition parallelize() = 0;
   virtual double normalize();
 };
 
