@@ -1,4 +1,4 @@
-An arbitrary analysis structure can be constructed as a directed graph of operations that contains a task be performed for each entry. This is called a `dataflow` object in analogical.
+An arbitrary analysis consists of a directed, acyclic graph of tasks performed for each entry. This is called a `dataflow` object in analogical.
 
 ![dataflow](../assets/dataflow.png)
 
