@@ -71,7 +71,7 @@ TEST_CASE("correctness & consistency of selections") {
   auto cut_a2 = weighted_entries.filter("a2")(cut_ab && cut_a);
   auto cut_b2 = weighted_entries.filter("b2")(cut_ab && cut_b);
 
-  // auto sumw_a = df.book<SumOfWeights>().at(cut_a);
+  // auto sumw_a = df.agg<SumOfWeights>().at(cut_a);
   auto sumw_a = cut_a.book(df.agg<SumOfWeights>());
 
   auto sumw_one = df.agg<SumOfWeights>().book(cut_a, cut_b, cut_c);

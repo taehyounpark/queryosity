@@ -24,7 +24,7 @@ Consider the following JSON data:
     json(const nlohmann::json &data);
     ~json() = default;
 
-    ana::dataset::partition allocate();
+    ana::dataset::partition parallelize();
 
     template <typename T>
     std::unique_ptr<column<T>> read(const ana::dataset::range &part,
@@ -58,7 +58,7 @@ Consider the following JSON data:
                             const std::string &name)
     : m_data(data), m_name(name) {}
 
-    ana::dataset::partition ana::json::allocate() {
+    ana::dataset::partition ana::json::parallelize() {
     ana::dataset::partition parts;
     auto nentries = m_data.size();
     for (unsigned int i = 0; i < nentries; ++i) {

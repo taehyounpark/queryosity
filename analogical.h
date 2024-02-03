@@ -1155,7 +1155,7 @@ public:
   decltype(auto) read_column(const ana::dataset::range &part,
                              const std::string &name);
 
-  virtual partition allocate() = 0;
+  virtual partition parallelize() = 0;
   virtual double normalize();
 };
 
@@ -3858,7 +3858,7 @@ ana::dataset::reader<DS> ana::dataflow::open(Args &&...args) {
   m_source = std::move(source);
 
   // 1. allocate the dataset partition
-  this->m_partition = ds->allocate();
+  this->m_partition = ds->parallelize();
   // 2. truncate entries to limit
   this->m_partition.truncate(this->m_nrows);
   // 3. merge parts to concurrency limit
@@ -3990,7 +3990,7 @@ auto ana::dataflow::agg(Args &&...args) -> delayed<aggregation::booker<Cnt>> {
   return delayed<aggregation::booker<Cnt>>(
       *this, this->m_processors.get_lockstep_node(
                  [&args...](dataset::processor &proc) {
-                   return proc.template book<Cnt>(std::forward<Args>(args)...);
+                   return proc.template agg<Cnt>(std::forward<Args>(args)...);
                  }));
 }
 

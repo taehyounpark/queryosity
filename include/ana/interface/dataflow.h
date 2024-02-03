@@ -407,7 +407,7 @@ auto ana::dataflow::agg(Args &&...args) -> delayed<aggregation::booker<Cnt>> {
   return delayed<aggregation::booker<Cnt>>(
       *this, lockstep::get_node(
                  [&args...](dataset::processor *proc) {
-                   return proc->template book<Cnt>(std::forward<Args>(args)...);
+                   return proc->template agg<Cnt>(std::forward<Args>(args)...);
                  },
                  this->m_processors));
 }

@@ -177,7 +177,7 @@ public:
   template <typename V = Action,
             std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
                 false>
-  auto result() const;
+  auto result() const -> decltype(std::declval<V>().get_result());
 
   template <typename V = Action,
             std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
@@ -316,7 +316,8 @@ auto ana::lazy<Action>::book(Aggs &&...aggs) const {
 template <typename Action>
 template <typename V,
           std::enable_if_t<ana::aggregation::template has_output_v<V>, bool>>
-auto ana::lazy<Action>::result() const {
+auto ana::lazy<Action>::result() const
+    -> decltype(std::declval<V>().get_result()) {
   this->m_df->analyze();
   this->merge_results();
   return this->get_model()->get_result();

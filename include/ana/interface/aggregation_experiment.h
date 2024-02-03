@@ -19,7 +19,7 @@ public:
 
 public:
   template <typename Cnt, typename... Args>
-  std::unique_ptr<booker<Cnt>> book(Args &&...args);
+  std::unique_ptr<booker<Cnt>> agg(Args &&...args);
 
   template <typename Cnt>
   auto select_aggregation(booker<Cnt> const &bkr, const selection &sel)
@@ -56,7 +56,7 @@ inline void ana::aggregation::experiment::clear_aggregations() {
 
 template <typename Cnt, typename... Args>
 std::unique_ptr<ana::aggregation::booker<Cnt>>
-ana::aggregation::experiment::book(Args &&...args) {
+ana::aggregation::experiment::agg(Args &&...args) {
   auto bkr = std::make_unique<booker<Cnt>>(std::forward<Args>(args)...);
   return bkr;
 }
