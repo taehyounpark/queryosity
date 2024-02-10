@@ -12,14 +12,14 @@ struct range;
  * @brief Read columns from a dataset.
  * @tparam T column data type.
  */
-template <typename T> class column : public ana::term<T> {
+template <typename T> class reader : public ana::term<T> {
 
 public:
   using const_reference = T const &;
 
 public:
-  column();
-  virtual ~column() = default;
+  reader();
+  virtual ~reader() = default;
 
   /**
    * @brief Read the value of the column at current entry.
@@ -52,10 +52,10 @@ protected:
 #include "dataset.h"
 
 template <typename T>
-ana::dataset::column<T>::column()
+ana::dataset::reader<T>::reader()
     : m_addr(nullptr), m_updated(false), m_part(nullptr), m_entry(0) {}
 
-template <typename T> T const &ana::dataset::column<T>::value() const {
+template <typename T> T const &ana::dataset::reader<T>::value() const {
   if (!this->m_updated) {
     m_addr = &(this->read(*this->m_part, m_entry));
     m_updated = true;
@@ -64,7 +64,7 @@ template <typename T> T const &ana::dataset::column<T>::value() const {
 }
 
 template <typename T>
-void ana::dataset::column<T>::execute(const ana::dataset::range &part,
+void ana::dataset::reader<T>::execute(const ana::dataset::range &part,
                                       unsigned long long entry) {
   this->m_part = &part;
   this->m_entry = entry;

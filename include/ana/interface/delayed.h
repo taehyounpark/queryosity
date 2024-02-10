@@ -240,27 +240,36 @@ protected:
                                  ana::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto select_aggregations(Nodes const &...sels) const
-      -> delayed<aggregation::bookkeeper<aggregation::booked_t<V>>> {
+      -> std::array<lazy<aggregation::booked_t<V>>, sizeof...(Nodes)> {
     // nominal
-    return this->m_df->select_aggregations(*this, sels...);
+    return std::array<lazy<aggregation::booked_t<V>>, sizeof...(Nodes)>{
+        this->m_df->select_aggregation(*this, sels)...};
   }
 
   template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<ana::aggregation::template is_booker_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
-  auto select_aggregations(Nodes const &...sels) const -> typename delayed<
-      aggregation::bookkeeper<aggregation::booked_t<V>>>::varied {
+  auto select_aggregations(Nodes const &...sels) const
+      -> std::array<typename lazy<aggregation::booked_t<V>>::varied,
+                    sizeof...(Nodes)> {
     // variations
-    using varied_type = typename delayed<
-        aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
-    auto syst =
-        varied_type(this->m_df->select_aggregations(*this, sels.nominal()...));
-    for (auto const &var_name : list_all_variation_names(sels...)) {
-      syst.set_variation(var_name, this->m_df->select_aggregations(
-                                       *this, sels.variation(var_name)...));
-    }
-    return syst;
+    using varied_type = typename lazy<aggregation::booked_t<V>>::varied;
+    using array_of_varied_type =
+        std::array<typename lazy<aggregation::booked_t<V>>::varied,
+                   sizeof...(Nodes)>;
+    auto var_names = list_all_variation_names(sels...);
+    auto select_aggregation_varied =
+        [var_names, this](systematic::resolver<lazy<selection>> const &sel) {
+          auto syst =
+              varied_type(this->m_df->select_aggregation(*this, sel.nominal()));
+          for (auto const &var_name : var_names) {
+            syst.set_variation(var_name, this->m_df->select_aggregation(
+                                             *this, sel.variation(var_name)));
+          }
+          return syst;
+        };
+    return array_of_varied_type{select_aggregation_varied(sels)...};
   }
 
   template <typename V = Bkr,

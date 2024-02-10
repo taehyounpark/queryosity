@@ -7,15 +7,15 @@ import json
 np.random.seed(42)
 
 # Parameters
-higgs_mass = 125.0
-higgs_width = 0.004
-shift_scale = 1.1
-smear_reso = 1.0
+mass = 100.0
+width = 0.5
+offset = 1.1
+resolution = 1.0
 
 nentries = 10000
 
 # Generate random numbers from the Cauchy distribution
-cauchy_dist = cauchy(loc=higgs_mass, scale=higgs_width)
+cauchy_dist = cauchy(loc=mass, scale=width)
 cauchy_samples = cauchy_dist.rvs(nentries)
 
 # Gaussian random numbers for scaling
@@ -25,8 +25,8 @@ gaussian_samples = gaussian_dist.rvs(nentries)
 # Perform the operations as described
 x_true = cauchy_samples
 x_nom = x_true * gaussian_samples
-x_scale = x_nom + 1.0
-x_smear = x_nom + norm(loc=0.0, scale=smear_reso).rvs(nentries)
+x_shift = x_nom + offset
+x_smear = x_nom + norm(loc=0.0, scale=resolution).rvs(nentries)
 
 # Poisson-distributed random numbers for weights
 w_nom = np.ones(nentries)
@@ -37,12 +37,12 @@ data_to_save = [
     {
         "x_true": float(x_val), 
         "x_nom": float(x_nom_val), 
-        "x_scale": float(x_scale_val), 
+        "x_shift": float(x_shift_val), 
         "x_smear": float(x_smear_val),
         "w_nom": int(w_nom_val),
         "w_toy": int(w_toy_val)
     } 
-    for x_val, x_nom_val, x_scale_val, x_smear_val, w_nom_val, w_toy_val in zip(x_true, x_nom, x_scale, x_smear, w_nom, w_toy)
+    for x_val, x_nom_val, x_shift_val, x_smear_val, w_nom_val, w_toy_val in zip(x_true, x_nom, x_shift, x_smear, w_nom, w_toy)
 ]
 
 # Save the data into a JSON file

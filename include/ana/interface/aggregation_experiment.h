@@ -27,8 +27,7 @@ public:
 
   template <typename Cnt, typename... Sels>
   auto select_aggregations(booker<Cnt> const &bkr, Sels const &...sels)
-      -> std::pair<std::unique_ptr<bookkeeper<Cnt>>,
-                   std::vector<std::unique_ptr<Cnt>>>;
+      -> std::array<std::unique_ptr<Cnt>, sizeof...(Sels)>;
 
   void clear_aggregations();
 
@@ -74,14 +73,16 @@ auto ana::aggregation::experiment::select_aggregation(booker<Cnt> const &bkr,
 template <typename Cnt, typename... Sels>
 auto ana::aggregation::experiment::select_aggregations(booker<Cnt> const &bkr,
                                                        Sels const &...sels)
-    -> std::pair<std::unique_ptr<bookkeeper<Cnt>>,
-                 std::vector<std::unique_ptr<Cnt>>> {
+    -> std::array<std::unique_ptr<Cnt>, sizeof...(Sels)> {
+
+  return std::array<std::unique_ptr<Cnt>, sizeof...(Sels)>{
+      this->select_aggregation(bkr, sels)...};
   // get a booker that has all the selections added
-  auto bkpr_and_cntrs = bkr.select_aggregations(sels...);
+  // auto bkpr_and_cntrs = bkr.select_aggregations(sels...);
 
-  for (auto const &cntr : bkpr_and_cntrs.second) {
-    this->add_aggregation(*cntr);
-  }
+  // for (auto const &cntr : bkpr_and_cntrs.second) {
+  //   this->add_aggregation(*cntr);
+  // }
 
-  return std::move(bkpr_and_cntrs);
+  // return std::move(bkpr_and_cntrs);
 }

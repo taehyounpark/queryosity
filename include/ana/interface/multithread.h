@@ -331,9 +331,9 @@ inline auto ana::lockstep::get_value(Fn const &fn, slotted<Args> const &...args)
     -> std::invoke_result_t<Fn, Args *...> {
   auto concurrency = get_concurrency(args...);
   // result at each slot must match the model
-  auto result = fn(std::cref(args.get_model())...);
+  auto result = fn(args.get_model()...);
   for (size_t i = 0; i < concurrency; ++i) {
-    assert(result == fn(std::cref(args.get_slot(i))...));
+    assert(result == fn(args.get_slot(i)...));
   }
   return result;
 }

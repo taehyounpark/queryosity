@@ -17,6 +17,10 @@ public:
     return m_df->read<DS, Val>(*m_ds, name);
   }
 
+  template <typename Val> auto read(const std::string &name) {
+    return this->read_column<Val>(name);
+  }
+
   template <typename... Vals, size_t... Is>
   auto read_columns(const std::array<std::string, sizeof...(Vals)> &names,
                     std::index_sequence<Is...>) {
@@ -27,11 +31,8 @@ public:
 
   template <typename... Vals>
   auto read(const std::array<std::string, sizeof...(Vals)> &names) {
-    return read_columns<Vals...>(names, std::index_sequence_for<Vals...>{});
-  }
-
-  template <typename Val> auto read(const std::string &name) {
-    return this->read_column<Val>(name);
+    return this->read_columns<Vals...>(names,
+                                       std::index_sequence_for<Vals...>{});
   }
 
   template <typename Col>

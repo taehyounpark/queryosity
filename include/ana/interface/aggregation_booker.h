@@ -33,7 +33,8 @@ public:
 
   template <typename... Sels>
   auto select_aggregations(Sels const &...selections) const
-      -> bkpr_and_cnts_type;
+      -> std::array<std::unique_ptr<T>, sizeof...(Sels)>;
+  // -> bkpr_and_cnts_type;
 
 protected:
   std::unique_ptr<T> make_aggregation();
@@ -90,25 +91,31 @@ auto ana::aggregation::booker<T>::select_aggregation(const selection &sel) const
   return cnt;
 }
 
-template <typename T>
-template <typename... Sels>
-auto ana::aggregation::booker<T>::select_aggregations(
-    const Sels &...selections) const -> bkpr_and_cnts_type {
+// template <typename T>
+// template <typename... Sels>
+// auto ana::aggregation::booker<T>::select_aggregations(const Sels
+// &...selections)
+//     const -> std::array<std::unique_ptr<T>, sizeof...(Sels)> {
 
-  // make bookkeeper remember selections and gather aggregations into vector.
-  auto aggregation_bookkeeper = std::make_unique<bookkeeper<T>>();
-  std::vector<std::unique_ptr<T>> booked_aggregations;
-  (std::invoke(
-       [this, bkpr = aggregation_bookkeeper.get(),
-        &cntr_list = booked_aggregations](const selection &sel) {
-         auto cntr = this->select_aggregation(sel);
-         bkpr->bookkeep(*cntr, sel);
-         cntr_list.emplace_back(std::move(cntr));
-       },
-       selections),
-   ...);
+//   return std::array<std::unique_ptr<T>, sizeof...(Sels)>{
+//       this->select_aggregation(sels)...};
 
-  // return a new booker with the selections added
-  return std::make_pair(std::move(aggregation_bookkeeper),
-                        std::move(booked_aggregations));
-}
+/*
+// make bookkeeper remember selections and gather aggregations into vector.
+auto aggregation_bookkeeper = std::make_unique<bookkeeper<T>>();
+std::vector<std::unique_ptr<T>> booked_aggregations;
+(std::invoke(
+   [this, bkpr = aggregation_bookkeeper.get(),
+    &cntr_list = booked_aggregations](const selection &sel) {
+     auto cntr = this->select_aggregation(sel);
+     bkpr->bookkeep(*cntr, sel);
+     cntr_list.emplace_back(std::move(cntr));
+   },
+   selections),
+...);
+
+// return a new booker with the selections added
+return std::make_pair(std::move(aggregation_bookkeeper),
+                    std::move(booked_aggregations));
+                    */
+// }

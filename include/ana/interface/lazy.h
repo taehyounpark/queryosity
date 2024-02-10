@@ -34,8 +34,8 @@
                        bool> = false>                                          \
   auto operator op_symbol(Arg const &arg) const {                              \
     return this->m_df                                                          \
-        ->define([](cell_value_t<V> const &me,                                 \
-                    cell_value_t<typename Arg::operation_type> const &you) {   \
+        ->_equate([](cell_value_t<V> const &me,                                \
+                     cell_value_t<typename Arg::operation_type> const &you) {  \
           return me op_symbol you;                                             \
         })                                                                     \
         .evaluate(*this, arg);                                                 \
@@ -60,7 +60,7 @@
                              bool> = false>                                    \
   auto operator op_symbol() const {                                            \
     return this->m_df                                                          \
-        ->define([](cell_value_t<V> const &me) { return (op_symbol me); })     \
+        ->_equate([](cell_value_t<V> const &me) { return (op_symbol me); })    \
         .evaluate(*this);                                                      \
   }
 
@@ -89,7 +89,7 @@
                                cell_value_t<typename Arg::operation_type>>,    \
                        bool> = false>                                          \
   auto operator[](Arg const &arg) const {                                      \
-    return this->m_df->define(                                                 \
+    return this->m_df->_equate(                                                \
         [](cell_value_t<V> me,                                                 \
            cell_value_t<typename Arg::operation_type> index) {                 \
           return me[index];                                                    \
@@ -169,9 +169,9 @@ public:
 
   template <typename V = Action,
             std::enable_if_t<is_selection_v<V>, bool> = false>
-  std::string path() const {
+  std::string get_path() const {
     return lockstep::get_value(
-        [](const selection &me) { return me.get_path(); }, std::cref(*this));
+        [](const selection *me) { return me->get_path(); }, std::cref(this));
   }
 
   template <typename V = Action,

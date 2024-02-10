@@ -21,7 +21,7 @@ protected:
   nlohmann::json const m_data;
 };
 
-template <typename T> class Json::Entry : public ana::dataset::column<T> {
+template <typename T> class Json::Entry : public ana::dataset::reader<T> {
 
 public:
   Entry(const nlohmann::json &data, const std::string &name);

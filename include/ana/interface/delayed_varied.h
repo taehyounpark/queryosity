@@ -70,8 +70,9 @@ public:
   template <
       typename... Nodes, typename V = Bld,
       std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
-  auto book(Nodes const &...selections) -> typename delayed<
-      aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
+  auto book(Nodes const &...selections)
+      -> std::array<typename lazy<aggregation::booked_t<V>>::varied,
+                    sizeof...(Nodes)>;
 
   /**
    * @brief Evaluate/apply the column definition/selection with input columns.
@@ -82,16 +83,6 @@ public:
   auto operator()(Args &&...args) ->
       typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
           std::forward<Args>(args).nominal()...))::operation_type>::varied;
-
-  /**
-   * @brief Access the delayed of a specific systematic variation.
-   * @param var_name Name of the systematic variation.
-   * @return Delayed node corresponding to systematic variation.
-   */
-  template <typename V = Bld,
-            std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
-                             bool> = false>
-  auto operator[](const std::string &var_name) const -> delayed<V> const &;
 
 protected:
   delayed<Bld> m_nominal;
@@ -138,17 +129,6 @@ bool ana::delayed<Bld>::varied::has_variation(
 template <typename Bld>
 std::set<std::string> ana::delayed<Bld>::varied::list_variation_names() const {
   return m_variation_names;
-}
-
-template <typename Bld>
-template <typename V,
-          std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>, bool>>
-auto ana::delayed<Bld>::varied::operator[](const std::string &var_name) const
-    -> delayed<V> const & {
-  if (!this->has_variation(var_name)) {
-    throw std::out_of_range("variation does not exist");
-  }
-  return this->variation(var_name);
 }
 
 template <typename Bld>
@@ -206,8 +186,8 @@ auto ana::delayed<Bld>::varied::book(Node const &selection) ->
   using varied_type = typename lazy<aggregation::booked_t<V>>::varied;
   auto syst = varied_type(this->nominal().book(selection.nominal()));
   for (auto const &var_name : list_all_variation_names(*this, selection)) {
-    syst.set_variation(var_name,
-                       variation(var_name).book(selection.variation(var_name)));
+    syst.set_variation(var_name, this->variation(var_name).book(
+                                     selection.variation(var_name)));
   }
   return syst;
 }
@@ -215,17 +195,27 @@ auto ana::delayed<Bld>::varied::book(Node const &selection) ->
 template <typename Bld>
 template <typename... Nodes, typename V,
           std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
-auto ana::delayed<Bld>::varied::book(Nodes const &...selections) ->
-    typename delayed<
-        aggregation::bookkeeper<aggregation::booked_t<V>>>::varied {
-  using varied_type = typename delayed<
-      aggregation::bookkeeper<aggregation::booked_t<V>>>::varied;
-  auto syst = varied_type(this->nominal().book(selections.nominal()...));
-  for (auto const &var_name : list_all_variation_names(*this, selections...)) {
-    syst.set_variation(
-        var_name, variation(var_name).book(selections.variation(var_name)...));
-  }
-  return syst;
+auto ana::delayed<Bld>::varied::book(Nodes const &...selections)
+    -> std::array<typename lazy<aggregation::booked_t<V>>::varied,
+                  sizeof...(Nodes)> {
+  // variations
+  using varied_type = typename lazy<aggregation::booked_t<V>>::varied;
+  using array_of_varied_type =
+      std::array<typename lazy<aggregation::booked_t<V>>::varied,
+                 sizeof...(Nodes)>;
+  auto var_names = list_all_variation_names(*this, selections...);
+  auto select_aggregation_varied =
+      [var_names, this](systematic::resolver<lazy<selection>> const &sel) {
+        auto syst = varied_type(
+            this->m_df->select_aggregation(this->nominal(), sel.nominal()));
+        for (auto const &var_name : var_names) {
+          syst.set_variation(var_name, this->m_df->select_aggregation(
+                                           this->variation(var_name),
+                                           sel.variation(var_name)));
+        }
+        return syst;
+      };
+  return array_of_varied_type{select_aggregation_varied(selections)...};
 }
 
 template <typename Bld>

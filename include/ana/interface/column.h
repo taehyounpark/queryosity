@@ -47,6 +47,8 @@ public:
 
   template <typename T> class evaluator;
 
+  template <typename T> class expression;
+
 public:
   column() = default;
   virtual ~column() = default;
@@ -54,7 +56,7 @@ public:
 public:
   template <typename T>
   static constexpr std::true_type
-  check_reader(typename dataset::column<T> const &);
+  check_reader(typename dataset::reader<T> const &);
   static constexpr std::false_type check_reader(...);
 
   template <typename T>

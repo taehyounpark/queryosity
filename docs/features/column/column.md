@@ -34,7 +34,7 @@ Consider the following JSON data:
     nlohmann::json m_data;
     };
 
-    template <typename T> class json::column : public ana::dataset::column<T> {
+    template <typename T> class json::column : public ana::dataset::reader<T> {
 
     public:
     column(const nlohmann::json &data, const std::string &name);
@@ -54,7 +54,7 @@ Consider the following JSON data:
     ana::json::json(nlohmann::json const &data) : m_data(data) {}
 
     template <typename T>
-    ana::json::column<T>::column(nlohmann::json const &data,
+    ana::json::reader<T>::column(nlohmann::json const &data,
                             const std::string &name)
     : m_data(data), m_name(name) {}
 
@@ -68,13 +68,13 @@ Consider the following JSON data:
     }
 
     template <typename Val>
-    std::unique_ptr<ana::json::column<Val>>
+    std::unique_ptr<ana::json::reader<Val>>
     ana::json::read(const ana::dataset::range &, const std::string &name) const {
     return std::make_unique<column<Val>>(this->m_data, name);
     }
 
     template <typename T>
-    const T &ana::json::column<T>::read(const ana::dataset::range &,
+    const T &ana::json::reader<T>::read(const ana::dataset::range &,
                                     unsigned long long entry) const {
     m_value = this->m_data[entry][m_name].template get<T>();
     return m_value;
@@ -114,7 +114,7 @@ auto [a, b, c] = df.open<ana::json>(data)
     Even in the "worst" case, explicit template specialization can be used to cherry-pick how to read a specific data type.
     ```cpp
     template <>
-    class ana::json::column<CustomData> : public ana::dataset::column<CustomData>
+    class ana::json::reader<CustomData> : public ana::dataset::reader<CustomData>
     { 
       virtual ColumnData const& read() const override { /* (implementation) */ }
     };

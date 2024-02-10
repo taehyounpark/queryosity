@@ -28,14 +28,14 @@ public:
             const std::string &name) -> std::unique_ptr<read_column_t<DS, Val>>;
 
   template <typename Val>
-  auto constant(Val const &val) -> std::unique_ptr<column::constant<Val>>;
+  auto assign(Val const &val) -> std::unique_ptr<column::constant<Val>>;
 
   template <typename Def, typename... Args>
   auto define(Args const &...vars) const
       -> std::unique_ptr<ana::column::template evaluator_t<Def>>;
 
   template <typename F>
-  auto define(F expression) const
+  auto equate(F expression) const
       -> std::unique_ptr<ana::column::template evaluator_t<F>>;
 
   template <typename Def, typename... Cols>
@@ -66,7 +66,7 @@ auto ana::column::computation::read(dataset::input<DS> &ds,
 }
 
 template <typename Val>
-auto ana::column::computation::constant(Val const &val)
+auto ana::column::computation::assign(Val const &val)
     -> std::unique_ptr<ana::column::constant<Val>> {
   return std::make_unique<typename column::constant<Val>>(val);
 }
@@ -78,7 +78,7 @@ auto ana::column::computation::define(Args const &...args) const
 }
 
 template <typename F>
-auto ana::column::computation::define(F expression) const
+auto ana::column::computation::equate(F expression) const
     -> std::unique_ptr<ana::column::template evaluator_t<F>> {
   return std::make_unique<evaluator<ana::column::template equation_t<F>>>(
       expression);

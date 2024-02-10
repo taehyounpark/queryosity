@@ -26,7 +26,7 @@ template <typename T> class opened;
 
 class player;
 
-template <typename T> class column;
+template <typename T> class reader;
 
 struct limit {
   limit(long long nrows) : nrows(nrows) {}

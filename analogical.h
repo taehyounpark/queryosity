@@ -541,7 +541,7 @@ public:
 public:
   template <typename T>
   static constexpr std::true_type
-  check_reader(typename dataset::column<T> const &);
+  check_reader(typename dataset::reader<T> const &);
   static constexpr std::false_type check_reader(...);
 
   template <typename T>
@@ -1114,10 +1114,10 @@ inline void ana::dataset::partition::truncate(long long max_entries) {
 }
 
 template <typename T>
-ana::dataset::column<T>::column()
+ana::dataset::reader<T>::column()
     : m_addr(nullptr), m_updated(false), m_part(nullptr), m_entry(0) {}
 
-template <typename T> T const &ana::dataset::column<T>::value() const {
+template <typename T> T const &ana::dataset::reader<T>::value() const {
   if (!this->m_updated) {
     m_addr = &(this->read(*this->m_part, m_entry));
     m_updated = true;
@@ -1126,7 +1126,7 @@ template <typename T> T const &ana::dataset::column<T>::value() const {
 }
 
 template <typename T>
-void ana::dataset::column<T>::execute(const ana::dataset::range &part,
+void ana::dataset::reader<T>::execute(const ana::dataset::range &part,
                                       unsigned long long entry) {
   this->m_part = &part;
   this->m_entry = entry;
