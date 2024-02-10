@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "column.h"
+#include "dataset_source.h"
 
 namespace ana {
 
@@ -24,7 +25,7 @@ public:
 
 public:
   template <typename DS, typename Val>
-  auto read(dataset::input<DS> &ds, const dataset::range &part,
+  auto read(dataset::source<DS> &ds, const dataset::range &part,
             const std::string &name) -> std::unique_ptr<read_column_t<DS, Val>>;
 
   template <typename Val>
@@ -56,7 +57,7 @@ protected:
 #include "column_evaluator.h"
 
 template <typename DS, typename Val>
-auto ana::column::computation::read(dataset::input<DS> &ds,
+auto ana::column::computation::read(dataset::source<DS> &ds,
                                     const ana::dataset::range &part,
                                     const std::string &name)
     -> std::unique_ptr<read_column_t<DS, Val>> {

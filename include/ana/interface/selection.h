@@ -26,20 +26,11 @@ public:
   template <typename T> class applicator;
 
 public:
-  static std::string concatenate_names(std::vector<std::string> const &names,
-                                       std::string delimiter = "/");
-
-public:
-  selection(const selection *presel, bool ch, const std::string &name);
+  selection(const selection *presel);
   virtual ~selection() = default;
 
 public:
-  std::string get_name() const noexcept;
-  std::string get_path() const;
-  std::string get_full_path() const;
-
   bool is_initial() const noexcept;
-  bool is_channel() const noexcept;
   const selection *get_previous() const noexcept;
 
   template <typename T> void set_decision(std::unique_ptr<T> dec);
@@ -55,8 +46,6 @@ public:
 
 private:
   const selection *const m_preselection;
-  const bool m_channel;
-  const std::string m_name;
 
   std::unique_ptr<column> m_decision;
   ana::variable<double> m_variable;
@@ -80,20 +69,8 @@ public:
 #include "aggregation.h"
 #include "column_equation.h"
 
-inline std::string
-ana::selection::concatenate_names(std::vector<std::string> const &names,
-                                  std::string delimiter) {
-  std::string joined;
-  for (auto const &name : names) {
-    joined += name;
-    joined += delimiter;
-  }
-  return joined;
-}
-
-inline ana::selection::selection(const selection *presel, bool ch,
-                                 const std::string &name)
-    : m_preselection(presel), m_channel(ch), m_name(name) {}
+inline ana::selection::selection(const selection *presel)
+    : m_preselection(presel) {}
 
 inline bool ana::selection::is_initial() const noexcept {
   return m_preselection ? false : true;
@@ -103,34 +80,8 @@ inline const ana::selection *ana::selection::get_previous() const noexcept {
   return m_preselection;
 }
 
-inline bool ana::selection::is_channel() const noexcept { return m_channel; }
-
-inline std::string ana::selection::get_name() const noexcept { return m_name; }
-
-inline std::string ana::selection::get_path() const {
-  std::vector<std::string> channels;
-  const selection *presel = this->get_previous();
-  while (presel) {
-    if (presel->is_channel())
-      channels.push_back(presel->get_name());
-    presel = presel->get_previous();
-  }
-  std::reverse(channels.begin(), channels.end());
-  return concatenate_names(channels, "/") + this->get_name();
-}
-
-inline std::string ana::selection::get_full_path() const {
-  std::vector<std::string> presels;
-  const selection *presel = this->get_previous();
-  while (presel) {
-    presels.push_back(presel->get_name());
-    presel = presel->get_previous();
-  }
-  std::reverse(presels.begin(), presels.end());
-  return concatenate_names(presels, "/") + this->get_name();
-}
-
 inline void ana::selection::initialize(const ana::dataset::range &part) {
+  ana::column::calculation<double>::initialize(part);
   m_decision->initialize(part);
 }
 
@@ -141,6 +92,7 @@ inline void ana::selection::execute(const ana::dataset::range &part,
 }
 
 inline void ana::selection::finalize(const ana::dataset::range &part) {
+  ana::column::calculation<double>::finalize(part);
   m_decision->finalize(part);
 }
 

@@ -168,13 +168,6 @@ public:
   template <typename... Aggs> auto book(Aggs &&...aggs) const;
 
   template <typename V = Action,
-            std::enable_if_t<is_selection_v<V>, bool> = false>
-  std::string get_path() const {
-    return lockstep::get_value(
-        [](const selection *me) { return me->get_path(); }, std::cref(this));
-  }
-
-  template <typename V = Action,
             std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
                 false>
   auto result() const -> decltype(std::declval<V>().get_result());

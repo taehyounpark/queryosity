@@ -7,7 +7,7 @@ namespace ana {
 class selection::cut : public selection {
 
 public:
-  cut(const selection *presel, bool ch, const std::string &name);
+  cut(const selection *presel);
   virtual ~cut() = default;
 
 public:
@@ -18,9 +18,7 @@ public:
 
 } // namespace ana
 
-inline ana::selection::cut::cut(const selection *presel, bool ch,
-                                const std::string &name)
-    : selection(presel, ch, name) {}
+inline ana::selection::cut::cut(const selection *presel) : selection(presel) {}
 
 inline double ana::selection::cut::calculate() const {
   return this->m_preselection

@@ -125,18 +125,6 @@ public:
   }
 
   /**
-   * @return The list of booked selection paths.
-   */
-  template <typename V = Bkr,
-            std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
-                             bool> = false>
-  auto list_selection_paths() const -> std::set<std::string> {
-    return lockstep::get_value(
-        [](Bkr const *bkpr) { return bkpr->list_selection_paths(); },
-        std::cref(*this));
-  }
-
-  /**
    * @brief Shorthand for `evaluate()` and `apply()`
    * for column and selection respectively.
    * @param columns The input columns.
@@ -150,19 +138,6 @@ public:
       -> decltype(std::declval<delayed<V>>().evaluate_or_apply(
           std::forward<Args>(std::declval<Args &&>())...)) {
     return this->evaluate_or_apply(std::forward<Args>(columns)...);
-  }
-
-  /**
-   * @brief Access a aggregation booked at a selection path.
-   * @param selection_path The selection path.
-   * @return The aggregation.
-   */
-  template <
-      typename... Args, typename V = Bkr,
-      std::enable_if_t<aggregation::template is_bookkeeper_v<V>, bool> = false>
-  auto operator[](const std::string &selection_path) const
-      -> lazy<aggregation::booked_t<V>> {
-    return this->get_aggregation(selection_path);
   }
 
 protected:
@@ -270,19 +245,6 @@ protected:
           return syst;
         };
     return array_of_varied_type{select_aggregation_varied(sels)...};
-  }
-
-  template <typename V = Bkr,
-            std::enable_if_t<ana::aggregation::template is_bookkeeper_v<V>,
-                             bool> = false>
-  auto get_aggregation(const std::string &selection_path) const
-      -> lazy<aggregation::booked_t<V>> {
-    return lazy<aggregation::booked_t<V>>(
-        *this->m_df, lockstep::get_view(
-                         [selection_path](V *bkpr) {
-                           return bkpr->get_aggregation(selection_path);
-                         },
-                         *this));
   }
 
   template <typename... Args, typename V = Bkr,

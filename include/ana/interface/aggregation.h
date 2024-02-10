@@ -71,10 +71,6 @@ public:
   template <typename T>
   struct is_booker<aggregation::booker<T>> : std::true_type {};
 
-  template <typename T> struct is_bookkeeper : std::false_type {};
-  template <typename T>
-  struct is_bookkeeper<aggregation::bookkeeper<T>> : std::true_type {};
-
   template <typename T>
   static constexpr bool has_output_v =
       decltype(check_implemented(std::declval<T>()))::value;
@@ -84,15 +80,12 @@ public:
       decltype(check_fillable(std::declval<T>()))::value;
 
   template <typename T> static constexpr bool is_booker_v = is_booker<T>::value;
-  template <typename T>
-  static constexpr bool is_bookkeeper_v = is_bookkeeper<T>::value;
 
   template <typename Bkr> using booked_t = typename Bkr::aggregation_type;
 };
 
 } // namespace ana
 
-#include "aggregation_bookkeeper.h"
 #include "column.h"
 #include "selection.h"
 

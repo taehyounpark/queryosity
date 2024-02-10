@@ -14,8 +14,7 @@ public:
   template <typename Fn> applicator(Fn fn);
   ~applicator() = default;
 
-  template <typename Sel>
-  void set_selection(const selection *presel, bool ch, const std::string &name);
+  template <typename Sel> void set_selection(const selection *presel);
 
   template <typename... Vals>
   std::unique_ptr<selection>
@@ -41,15 +40,12 @@ ana::selection::applicator<T>::applicator(Fn fn)
 
 template <typename T>
 template <typename Sel>
-void ana::selection::applicator<T>::set_selection(const selection *presel,
-                                                  bool ch,
-                                                  const std::string &name) {
+void ana::selection::applicator<T>::set_selection(const selection *presel) {
   m_make_unique_selection = std::bind(
-      [](const selection *presel, bool ch,
-         const std::string &name) -> std::unique_ptr<selection> {
-        return std::make_unique<Sel>(presel, ch, name);
+      [](const selection *presel) -> std::unique_ptr<selection> {
+        return std::make_unique<Sel>(presel);
       },
-      presel, ch, name);
+      presel);
 }
 
 template <typename T>

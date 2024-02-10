@@ -15,7 +15,7 @@ Consider the following JSON data:
 
     namespace ana {
 
-    class json : public ana::dataset::input<json> {
+    class json : public ana::dataset::source<json> {
 
     public:
     template <typename T> class column;

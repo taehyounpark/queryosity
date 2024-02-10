@@ -20,13 +20,15 @@ using row = unsigned long long;
 
 struct partition;
 
-template <typename T> class input;
-
-template <typename T> class opened;
+template <typename T> class source;
 
 class player;
 
 template <typename T> class reader;
+
+template <typename T> class opened;
+
+template <typename T> struct input;
 
 struct limit {
   limit(long long nrows) : nrows(nrows) {}

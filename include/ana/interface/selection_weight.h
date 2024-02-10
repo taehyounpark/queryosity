@@ -10,7 +10,7 @@ public:
   class a_times_b;
 
 public:
-  weight(const selection *presel, bool ch, const std::string &name);
+  weight(const selection *presel);
   virtual ~weight() = default;
 
 public:
@@ -21,9 +21,8 @@ public:
 
 } // namespace ana
 
-inline ana::selection::weight::weight(const selection *presel, bool ch,
-                                      const std::string &name)
-    : selection(presel, ch, name) {}
+inline ana::selection::weight::weight(const selection *presel)
+    : selection(presel) {}
 
 inline double ana::selection::weight::calculate() const {
   return this->m_preselection

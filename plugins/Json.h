@@ -2,7 +2,7 @@
 
 #include "ana/analogical.h"
 
-class Json : public ana::dataset::input<Json> {
+class Json : public ana::dataset::source<Json> {
 
 public:
   template <typename T> class Entry;
