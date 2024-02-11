@@ -20,5 +20,3 @@
 
 #include "interface/aggregation_summary.h"
 #include "interface/output_dump.h"
-
-#include "interface/column_definition_2.h"

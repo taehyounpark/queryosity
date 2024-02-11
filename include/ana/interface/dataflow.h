@@ -84,7 +84,7 @@ public:
   template <typename Def, typename... Args> auto _define(Args &&...args);
   template <typename Def> auto _define(column::definition<Def> const &defn);
 
-  template <typename F> auto _equate(F const &callable);
+  template <typename F> auto _equate(F fn);
   template <typename Expr> auto _equate(column::expression<Expr> const &expr);
 
   template <typename Def, typename... Cols>
@@ -122,9 +122,11 @@ public:
   auto vary(lazy<column::template constant<Val>> const &nom,
             Vars const &...vars);
 
-  template <typename Col, typename... Vars>
-  auto vary(delayed<column::template evaluator<Col>> &&nom,
-            Vars const &...vars);
+  template <typename Expr, typename... Vars>
+  auto vary(column::expression<Expr> const &expr, Vars const &...vars);
+
+  template <typename Expr, typename... Vars>
+  auto vary(column::definition<Expr> const &defn, Vars const &...vars);
 
 protected:
   template <typename Kwd> void accept_kwarg(Kwd const &kwarg);
@@ -150,12 +152,8 @@ protected:
                            lazy<Sels> const &...sels)
       -> std::array<lazy<Cnt>, sizeof...(Sels)>;
 
-  template <typename Col, typename Eval, typename... Args>
-  void vary_evaluator(Eval &nom, const std::string &name,
-                      std::tuple<Args...> args);
-
-  template <typename Val, typename Lazy, typename... Args>
-  void vary_constant(Lazy &nom, const std::string &name,
+  template <typename Fn, typename Syst, typename... Args>
+  void vary_equation(Syst &syst, const std::string &name,
                      std::tuple<Args...> args);
 
   void add_operation(lockstep::node<operation> act);
@@ -311,7 +309,7 @@ auto ana::dataflow::define(ana::column::definition<Def> const &defn,
   return this->_define(defn).template evaluate(cols...);
 }
 
-template <typename F> auto ana::dataflow::_equate(F const &callable) {
+template <typename F> auto ana::dataflow::_equate(F callable) {
   return delayed<ana::column::template evaluator_t<F>>(
       *this, lockstep::get_node(
                  [callable](dataset::processor *proc) {
@@ -442,36 +440,38 @@ inline void ana::dataflow::analyze() {
 
 inline void ana::dataflow::reset() { m_analyzed = false; }
 
-template <typename Val, typename... Vars>
-auto ana::dataflow::vary(lazy<column::template constant<Val>> const &nom,
+// template <typename Val, typename... Vars>
+// auto ana::dataflow::vary(lazy<column::template constant<Val>> const &nom,
+//                          Vars const &...vars) {
+//   typename lazy<column::template constant<Val>>::varied syst(nom);
+//   ((this->vary_constant<Val>(syst, vars.name(), vars.args())), ...);
+//   return syst;
+// }
+
+// template <typename Val, typename Lazy, typename... Args>
+// void ana::dataflow::vary_constant(Lazy &syst, const std::string &name,
+//                                   std::tuple<Args...> args) {
+//   auto var = std::apply(
+//       [this](Args... args) { return this->constant<Val>(args...); }, args);
+//   syst.set_variation(name, std::move(var));
+// }
+
+template <typename Expr, typename... Vars>
+auto ana::dataflow::vary(ana::column::expression<Expr> const &expr,
                          Vars const &...vars) {
-  typename lazy<column::template constant<Val>>::varied syst(nom);
-  ((this->vary_constant<Val>(syst, vars.name(), vars.args())), ...);
+  auto nom = this->_equate(expr);
+  using varied_type = typename decltype(nom)::varied;
+  using function_type = typename decltype(expr)::function_type;
+  varied_type syst(std::move(nom));
+  ((this->vary_equation<function_type>(syst, vars.name(), vars.args())), ...);
   return syst;
 }
 
-template <typename Val, typename Lazy, typename... Args>
-void ana::dataflow::vary_constant(Lazy &syst, const std::string &name,
+template <typename Fn, typename Syst, typename... Args>
+void ana::dataflow::vary_equation(Syst &syst, const std::string &name,
                                   std::tuple<Args...> args) {
   auto var = std::apply(
-      [this](Args... args) { return this->constant<Val>(args...); }, args);
-  syst.set_variation(name, std::move(var));
-}
-
-template <typename Col, typename... Vars>
-auto ana::dataflow::vary(delayed<column::template evaluator<Col>> &&nom,
-                         Vars const &...vars) {
-  typename delayed<column::template evaluator<Col>>::varied syst(
-      std::move(nom));
-  ((this->vary_evaluator<Col>(syst, vars.name(), vars.args())), ...);
-  return syst;
-}
-
-template <typename Col, typename Eval, typename... Args>
-void ana::dataflow::vary_evaluator(Eval &syst, const std::string &name,
-                                   std::tuple<Args...> args) {
-  auto var = std::apply(
-      [this](Args... args) { return this->define<Col>(args...); }, args);
+      [this](Args... args) { return this->_equate(Fn(args)...); }, args);
   syst.set_variation(name, std::move(var));
 }
 

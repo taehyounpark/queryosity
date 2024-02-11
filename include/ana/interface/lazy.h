@@ -33,12 +33,13 @@
                                cell_value_t<typename Arg::operation_type>>,    \
                        bool> = false>                                          \
   auto operator op_symbol(Arg const &arg) const {                              \
-    return this->m_df                                                          \
-        ->_equate([](cell_value_t<V> const &me,                                \
-                     cell_value_t<typename Arg::operation_type> const &you) {  \
-          return me op_symbol you;                                             \
-        })                                                                     \
-        .evaluate(*this, arg);                                                 \
+    return this->m_df->define(                                                 \
+        ana::column::expression(                                               \
+            [](cell_value_t<V> const &me,                                      \
+               cell_value_t<typename Arg::operation_type> const &you) {        \
+              return me op_symbol you;                                         \
+            }),                                                                \
+        *this, arg);                                                           \
   }
 
 #define CHECK_FOR_UNARY_OP(op_name, op_symbol)                                 \
@@ -155,14 +156,10 @@ public:
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
 
-  template <typename... Args>
-  auto filter(const std::string &name, Args &&...args) const;
+  template <typename Expr, typename... Args>
+  auto filter(ana::column::expression<Expr> const &expr, Args &&...args) const;
 
-  template <typename... Args>
-  auto weight(const std::string &name, Args &&...args) const;
-
-  template <typename... Args>
-  auto channel(const std::string &name, Args &&...args) const;
+  template <typename... Args> auto weight(Args &&...args) const;
 
   template <typename Agg> auto book(Agg &&agg) const;
   template <typename... Aggs> auto book(Aggs &&...aggs) const;
@@ -255,11 +252,12 @@ bool ana::lazy<Action>::has_variation(const std::string &) const {
 }
 
 template <typename Action>
-template <typename... Args>
-auto ana::lazy<Action>::filter(const std::string &name, Args &&...args) const {
+template <typename Expr, typename... Args>
+auto ana::lazy<Action>::filter(ana::column::expression<Expr> const &expr,
+                               Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Action>) {
-    return this->m_df->template select<selection::cut>(
-        *this, name, std::forward<Args>(args)...);
+    return expr.template _select<selection::cut>(*this->m_df, *this)
+        .template apply(std::forward<Args>(args)...);
   } else {
     static_assert(std::is_base_of_v<selection, Action>,
                   "filter must be called from a selection");
@@ -268,25 +266,13 @@ auto ana::lazy<Action>::filter(const std::string &name, Args &&...args) const {
 
 template <typename Action>
 template <typename... Args>
-auto ana::lazy<Action>::weight(const std::string &name, Args &&...args) const {
+auto ana::lazy<Action>::weight(Args &&...args) const {
   if constexpr (std::is_base_of_v<selection, Action>) {
-    return this->m_df->template select<selection::weight>(
-        *this, name, std::forward<Args>(args)...);
+    return this->m_df->template _select<selection::weight>(
+        *this, std::forward<Args>(args)...);
   } else {
     static_assert(std::is_base_of_v<selection, Action>,
                   "weight must be called from a selection");
-  }
-}
-
-template <typename Action>
-template <typename... Args>
-auto ana::lazy<Action>::channel(const std::string &name, Args &&...args) const {
-  if constexpr (std::is_base_of_v<selection, Action>) {
-    return this->m_df->template channel<selection::weight>(
-        *this, name, std::forward<Args>(args)...);
-  } else {
-    static_assert(std::is_base_of_v<selection, Action>,
-                  "channel must be called from a selection");
   }
 }
 

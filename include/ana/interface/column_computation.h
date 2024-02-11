@@ -35,9 +35,9 @@ public:
   auto define(Args const &...vars) const
       -> std::unique_ptr<ana::column::template evaluator_t<Def>>;
 
-  template <typename F>
-  auto equate(F expression) const
-      -> std::unique_ptr<ana::column::template evaluator_t<F>>;
+  template <typename Ret, typename... Args>
+  auto equate(std::function<Ret(Args...)> fn) const -> std::unique_ptr<
+      ana::column::template evaluator_t<std::function<Ret(Args...)>>>;
 
   template <typename Def, typename... Cols>
   auto evaluate_column(column::evaluator<Def> &calc, Cols const &...columns)
@@ -78,11 +78,12 @@ auto ana::column::computation::define(Args const &...args) const
   return std::make_unique<evaluator<Def>>(args...);
 }
 
-template <typename F>
-auto ana::column::computation::equate(F expression) const
-    -> std::unique_ptr<ana::column::template evaluator_t<F>> {
-  return std::make_unique<evaluator<ana::column::template equation_t<F>>>(
-      expression);
+template <typename Ret, typename... Args>
+auto ana::column::computation::equate(std::function<Ret(Args...)> fn) const
+    -> std::unique_ptr<
+        ana::column::template evaluator_t<std::function<Ret(Args...)>>> {
+  return std::make_unique<
+      ana::column::template evaluator_t<std::function<Ret(Args...)>>>(fn);
 }
 
 template <typename Def, typename... Cols>

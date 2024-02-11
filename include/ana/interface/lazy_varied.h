@@ -70,11 +70,6 @@ class lazy<Act>::varied : public systematic::resolver<lazy<Act>> {
 public:
   using operation_type = typename lazy<Act>::operation_type;
 
-  template <typename... Args>
-  using delayed_varied_selection_applicator_t =
-      typename decltype(std::declval<dataflow>().filter(
-          std::declval<std::string>(), std::declval<Args>()...))::varied;
-
 public:
   varied(lazy<Act> const &nom);
   ~varied() = default;
@@ -87,20 +82,15 @@ public:
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
 
-  template <typename... Args, typename V = Act,
+  template <typename Expr, typename... Args, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto filter(const std::string &name, Args &&...arguments)
-      -> delayed_varied_selection_applicator_t<Args...>;
+  auto filter(column::expression<Expr> const &expr, Args &&...args) ->
+      typename lazy<selection>::varied;
 
-  template <typename... Args, typename V = Act,
+  template <typename Expr, typename... Args, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto weight(const std::string &name, Args &&...arguments)
-      -> delayed_varied_selection_applicator_t<Args...>;
-
-  template <typename... Args, typename V = Act,
-            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto channel(const std::string &name, Args &&...arguments)
-      -> delayed_varied_selection_applicator_t<Args...>;
+  auto weight(column::expression<Expr> const &expr, Args &&...args) ->
+      typename lazy<selection>::varied;
 
   template <typename Agg, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
@@ -175,55 +165,41 @@ std::set<std::string> ana::lazy<Act>::varied::list_variation_names() const {
 }
 
 template <typename Act>
-template <typename... Args, typename V,
+template <typename Expr, typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::lazy<Act>::varied::filter(const std::string &name,
-                                    Args &&...arguments)
-    -> delayed_varied_selection_applicator_t<Args...> {
+auto ana::lazy<Act>::varied::filter(ana::column::expression<Expr> const &expr,
+                                    Args &&...args) ->
+    typename lazy<selection>::varied {
 
-  using varied_type = delayed_varied_selection_applicator_t<Args...>;
+  using varied_type = typename lazy<selection>::varied;
 
   auto syst = varied_type(
-      this->nominal().filter(name, std::forward<Args>(arguments)...));
+      this->nominal().filter(expr, std::forward<Args>(args).nominal()...));
 
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name, this->variation(var_name).filter(
-                                     name, std::forward<Args>(arguments)...));
+    syst.set_variation(
+        var_name, this->variation(var_name).filter(
+                      expr, std::forward<Args>(args).variation(var_name)...));
   }
   return syst;
 }
 
 template <typename Act>
-template <typename... Args, typename V,
+template <typename Expr, typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::lazy<Act>::varied::weight(const std::string &name,
-                                    Args &&...arguments)
-    -> delayed_varied_selection_applicator_t<Args...> {
+auto ana::lazy<Act>::varied::weight(ana::column::expression<Expr> const &expr,
+                                    Args &&...args) ->
+    typename lazy<selection>::varied {
 
-  using varied_type = delayed_varied_selection_applicator_t<Args...>;
+  using varied_type = typename lazy<selection>::varied;
 
   auto syst = varied_type(
-      this->nominal().weight(name, std::forward<Args>(arguments)...));
+      this->nominal().weight(expr, std::forward<Args>(args).nominal()...));
 
   for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name, this->variation(var_name).weight(
-                                     name, std::forward<Args>(arguments)...));
-  }
-  return syst;
-}
-
-template <typename Act>
-template <typename... Args, typename V,
-          std::enable_if_t<ana::is_selection_v<V>, bool>>
-auto ana::lazy<Act>::varied::channel(const std::string &name,
-                                     Args &&...arguments)
-    -> delayed_varied_selection_applicator_t<Args...> {
-  using varied_type = delayed_varied_selection_applicator_t<Args...>;
-  auto syst = varied_type(
-      this->nominal().channel(name, std::forward<Args>(arguments)...));
-  for (auto const &var_name : this->list_variation_names()) {
-    syst.set_variation(var_name, this->variation(var_name).channel(
-                                     name, std::forward<Args>(arguments)...));
+    syst.set_variation(
+        var_name, this->variation(var_name).weight(
+                      expr, std::forward<Args>(args).variation(var_name)...));
   }
   return syst;
 }

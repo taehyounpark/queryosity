@@ -89,15 +89,15 @@ public:
     using evaluator_type = typename column::template evaluator<T>;
   };
 
-  // traits class to deduce equation type for a callable
-  template <typename F, typename = void> struct equation_traits;
+  template <typename F> struct equation_traits;
 
-  // for callables that aren't std::function
-  template <typename F>
-  struct equation_traits<F, std::enable_if_t<detail::is_callable<F>::value>> {
-    using equation_type = typename equation_traits<decltype(std::function{
-        std::declval<F>()})>::equation_type;
-  };
+  // // for callables that aren't std::function
+  // template <typename F>
+  // struct equation_traits<F, std::enable_if_t<detail::is_callable<F>::value>>
+  // {
+  //   using equation_type = typename equation_traits<decltype(std::function{
+  //       std::declval<F>()})>::equation_type;
+  // };
 
   // specialization for std::function
   template <typename Ret, typename... Args>
