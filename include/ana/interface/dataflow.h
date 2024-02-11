@@ -152,9 +152,9 @@ protected:
                            lazy<Sels> const &...sels)
       -> std::array<lazy<Cnt>, sizeof...(Sels)>;
 
-  template <typename Fn, typename Syst, typename... Args>
-  void vary_equation(Syst &syst, const std::string &name,
-                     std::tuple<Args...> args);
+  template <typename Syst, typename Expr>
+  void _vary(Syst &syst, const std::string &name,
+             column::expression<Expr> const &expr);
 
   void add_operation(lockstep::node<operation> act);
   void add_operation(std::unique_ptr<operation> act);
@@ -331,7 +331,9 @@ auto ana::dataflow::define(ana::column::expression<Expr> const &expr,
 
 template <typename Col>
 auto ana::dataflow::filter(lazy<Col> const &col) -> lazy<selection> {
-  return this->_select<selection::cut>([](double x) { return x; }).apply(col);
+  return this
+      ->_select<selection::cut>(std::function([](double x) { return x; }))
+      .apply(col);
 }
 
 template <typename Col>
@@ -461,18 +463,18 @@ auto ana::dataflow::vary(ana::column::expression<Expr> const &expr,
                          Vars const &...vars) {
   auto nom = this->_equate(expr);
   using varied_type = typename decltype(nom)::varied;
-  using function_type = typename decltype(expr)::function_type;
+  using function_type = typename column::expression<Expr>::function_type;
   varied_type syst(std::move(nom));
-  ((this->vary_equation<function_type>(syst, vars.name(), vars.args())), ...);
+  ((this->_vary(syst, vars.name(),
+                column::expression(function_type(std::get<0>(vars.args()))))),
+   ...);
   return syst;
 }
 
-template <typename Fn, typename Syst, typename... Args>
-void ana::dataflow::vary_equation(Syst &syst, const std::string &name,
-                                  std::tuple<Args...> args) {
-  auto var = std::apply(
-      [this](Args... args) { return this->_equate(Fn(args)...); }, args);
-  syst.set_variation(name, std::move(var));
+template <typename Syst, typename Expr>
+void ana::dataflow::_vary(Syst &syst, const std::string &name,
+                          ana::column::expression<Expr> const &expr) {
+  syst.set_variation(name, this->_equate(expr));
 }
 
 inline void ana::dataflow::add_operation(lockstep::node<operation> operation) {

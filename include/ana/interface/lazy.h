@@ -60,9 +60,10 @@
                                  op_check::has_##op_name##_v<cell_value_t<V>>, \
                              bool> = false>                                    \
   auto operator op_symbol() const {                                            \
-    return this->m_df                                                          \
-        ->_equate([](cell_value_t<V> const &me) { return (op_symbol me); })    \
-        .evaluate(*this);                                                      \
+    return this->m_df->define(                                                 \
+        ana::column::expression(                                               \
+            [](cell_value_t<V> const &me) { return (op_symbol me); }),         \
+        *this);                                                                \
   }
 
 #define CHECK_FOR_SUBSCRIPT_OP()                                               \
@@ -90,11 +91,13 @@
                                cell_value_t<typename Arg::operation_type>>,    \
                        bool> = false>                                          \
   auto operator[](Arg const &arg) const {                                      \
-    return this->m_df->_equate(                                                \
-        [](cell_value_t<V> me,                                                 \
-           cell_value_t<typename Arg::operation_type> index) {                 \
-          return me[index];                                                    \
-        })(*this, arg);                                                        \
+    return this->m_df->define(                                                 \
+        ana::column::expression(                                               \
+            [](cell_value_t<V> me,                                             \
+               cell_value_t<typename Arg::operation_type> index) {             \
+              return me[index];                                                \
+            }),                                                                \
+        *this, arg);                                                           \
   }
 
 namespace ana {

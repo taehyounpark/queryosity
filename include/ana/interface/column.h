@@ -12,20 +12,6 @@ namespace dataset {
 template <typename T> class column;
 }
 
-namespace detail {
-
-// traits to check if a type is callable but not a std::function
-template <typename T, typename = void> struct is_callable : std::false_type {};
-
-template <typename T>
-struct is_callable<T, std::void_t<decltype(&T::operator())>> : std::true_type {
-};
-
-template <typename Ret, typename... Args>
-struct is_callable<std::function<Ret(Args...)>> : std::false_type {};
-
-} // namespace detail
-
 class column;
 
 template <typename T> constexpr bool is_column_v = std::is_base_of_v<column, T>;
@@ -79,43 +65,6 @@ public:
   check_representation(typename column::representation<T> const &);
   static constexpr std::false_type check_representation(...);
 
-  template <typename T> struct is_evaluator : std::false_type {};
-  template <typename T>
-  struct is_evaluator<column::evaluator<T>> : std::true_type {};
-
-  template <typename T, typename = void> struct evaluator_traits;
-  template <typename T>
-  struct evaluator_traits<T, typename std::enable_if_t<is_column_v<T>>> {
-    using evaluator_type = typename column::template evaluator<T>;
-  };
-
-  template <typename F> struct equation_traits;
-
-  // // for callables that aren't std::function
-  // template <typename F>
-  // struct equation_traits<F, std::enable_if_t<detail::is_callable<F>::value>>
-  // {
-  //   using equation_type = typename equation_traits<decltype(std::function{
-  //       std::declval<F>()})>::equation_type;
-  // };
-
-  // specialization for std::function
-  template <typename Ret, typename... Args>
-  struct equation_traits<std::function<Ret(Args...)>> {
-    using equation_type =
-        column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
-  };
-
-  // alias template for convenience
-  template <typename F>
-  using equation_t = typename equation_traits<F>::equation_type;
-
-  template <typename F>
-  struct evaluator_traits<F, typename std::enable_if_t<!ana::is_column_v<F>>> {
-    using evaluator_type = typename ana::column::template evaluator<
-        ana::column::template equation_t<F>>;
-  };
-
   template <typename T>
   static constexpr bool is_reader_v =
       decltype(check_reader(std::declval<std::decay_t<T> const &>()))::value;
@@ -136,8 +85,41 @@ public:
   static constexpr bool is_representation_v = decltype(check_representation(
       std::declval<std::decay_t<T> const &>()))::value;
 
+  template <typename T> struct is_evaluator : std::false_type {};
+  template <typename T>
+  struct is_evaluator<column::evaluator<T>> : std::true_type {};
+
   template <typename T>
   static constexpr bool is_evaluator_v = is_evaluator<T>::value;
+
+  // equation traits
+
+  template <typename F> struct equation_traits;
+
+  template <typename Ret, typename... Args>
+  struct equation_traits<std::function<Ret(Args...)>> {
+    using equation_type =
+        column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
+  };
+
+  template <typename F>
+  using equation_t = typename equation_traits<F>::equation_type;
+
+  // evaluator traits
+  template <typename T, typename = void> struct evaluator_traits;
+
+  template <typename T>
+  struct evaluator_traits<
+      T, typename std::enable_if_t<ana::column::template is_definition_v<T>>> {
+    using evaluator_type = typename column::template evaluator<T>;
+  };
+
+  template <typename F>
+  struct evaluator_traits<
+      F, typename std::enable_if_t<!ana::column::template is_definition_v<F>>> {
+    using evaluator_type = typename ana::column::template evaluator<
+        ana::column::template equation_t<F>>;
+  };
 
   template <typename T>
   using evaluator_t = typename evaluator_traits<T>::evaluator_type;
