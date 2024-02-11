@@ -7,10 +7,11 @@
 
 #include "ana/analogical.h"
 
-#include "ana/Json.h"
-#include "ana/WeightedSum.h"
+#include "Json.h"
+#include "WeightedSum.h"
 
 using dataflow = ana::dataflow;
+using column = ana::column;
 namespace dataset = ana::dataset;
 namespace multithread = ana::multithread;
 namespace systematic = ana::systematic;
@@ -55,20 +56,19 @@ std::vector<double> get_correct_result(const nlohmann::json &random_data) {
 
 std::vector<double> get_analogical_result(const nlohmann::json &random_data) {
   ana::dataflow df;
-  auto ds = df.open<Json>(random_data);
-  auto [x_nom, w_nom] = ds.read<double, unsigned int>({"x_nom", "w_nom"});
-  auto x = ds.vary(x_nom, {"vary_x", "x_var"});
-  auto w = ds.vary(w_nom, systematic::variation("vary_w", "w_var"));
-  auto wsumx = df.agg<WeightedSum>().fill(x).book(df.weight("weight")(w));
+  auto ds = df.open(dataset::input<Json>(random_data));
+
+  auto x = ds.vary(dataset::column<double>("x_nom"), {"vary_x", "x_var"});
+  auto w = ds.vary(dataset::column<unsigned int>("w_nom"), {"vary_w", "w_var"});
+
+  std::cout << typeid(w).name() << std::endl;
+
+  auto weighted = df.weight(w);
+
+  auto wsumx = df.agg<WeightedSum>().fill(x).book(weighted);
   auto wsumx_nom = wsumx.nominal().result();
   auto wsumx_xvar = wsumx["vary_x"].result();
   auto wsumx_wvar = wsumx["vary_w"].result();
-
-  auto x_plus_1 = df.define([](double x) { return x + 1; });
-  auto x_plus_1_or_2 =
-      df.vary(std::move(x_plus_1),
-              systematic::variation("plus_two", [](float x) { return x + 2; }));
-  auto x_plus_1_or_2_evaled = x_plus_1_or_2(x);
 
   return std::vector<double>{wsumx_nom, wsumx_xvar, wsumx_wvar};
 }

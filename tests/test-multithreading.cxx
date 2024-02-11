@@ -8,8 +8,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include "ana/Columnar.h"
-#include "ana/Json.h"
+#include "Columnar.h"
+#include "Json.h"
 
 namespace multithread = ana::multithread;
 using dataflow = ana::dataflow;

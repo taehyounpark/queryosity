@@ -6,8 +6,8 @@
 
 #include "ana/analogical.h"
 
-#include "ana/Json.h"
-#include "ana/SumOfWeights.h"
+#include "Json.h"
+#include "SumOfWeights.h"
 
 using dataflow = ana::dataflow;
 

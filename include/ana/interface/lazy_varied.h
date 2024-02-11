@@ -82,6 +82,14 @@ public:
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
 
+  template <typename Col, typename V = Act,
+            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  auto filter(Col const &col) -> typename lazy<selection>::varied;
+
+  template <typename Col, typename V = Act,
+            std::enable_if_t<ana::is_selection_v<V>, bool> = false>
+  auto weight(Col const &col) -> typename lazy<selection>::varied;
+
   template <typename Expr, typename... Args, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto filter(column::expression<Expr> const &expr, Args &&...args) ->
@@ -101,9 +109,8 @@ public:
   auto book(Aggs &&...aggs);
 
   template <typename V = Act,
-            std::enable_if_t<ana::is_column_v<V> ||
-                                 ana::aggregation::template has_output_v<V>,
-                             bool> = false>
+            std::enable_if_t<ana::aggregation::template has_output_v<V>, bool> =
+                false>
   auto operator[](const std::string &var_name) const -> lazy<V>;
 
   DECLARE_LAZY_VARIED_UNARY_OP(-)
@@ -165,6 +172,42 @@ std::set<std::string> ana::lazy<Act>::varied::list_variation_names() const {
 }
 
 template <typename Act>
+template <typename Col, typename V,
+          std::enable_if_t<ana::is_selection_v<V>, bool>>
+auto ana::lazy<Act>::varied::filter(Col const &col) ->
+    typename lazy<selection>::varied {
+
+  using varied_type = typename lazy<selection>::varied;
+
+  auto syst = varied_type(this->nominal().filter(col.nominal()));
+
+  for (auto const &var_name :
+       systematic::list_all_variation_names(*this, col)) {
+    syst.set_variation(
+        var_name, this->variation(var_name).filter(col.variation(var_name)));
+  }
+  return syst;
+}
+
+template <typename Act>
+template <typename Col, typename V,
+          std::enable_if_t<ana::is_selection_v<V>, bool>>
+auto ana::lazy<Act>::varied::weight(Col const &col) ->
+    typename lazy<selection>::varied {
+
+  using varied_type = typename lazy<selection>::varied;
+
+  auto syst = varied_type(this->nominal().weight(col.nominal()));
+
+  for (auto const &var_name :
+       systematic::list_all_variation_names(*this, col)) {
+    syst.set_variation(
+        var_name, this->variation(var_name).weight(col.variation(var_name)));
+  }
+  return syst;
+}
+
+template <typename Act>
 template <typename Expr, typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
 auto ana::lazy<Act>::varied::filter(ana::column::expression<Expr> const &expr,
@@ -220,9 +263,7 @@ auto ana::lazy<Act>::varied::book(Aggs &&...aggs) {
 
 template <typename Act>
 template <typename V,
-          std::enable_if_t<ana::is_column_v<V> ||
-                               ana::aggregation::template has_output_v<V>,
-                           bool>>
+          std::enable_if_t<ana::aggregation::template has_output_v<V>, bool>>
 auto ana::lazy<Act>::varied::operator[](const std::string &var_name) const
     -> lazy<V> {
   if (!this->has_variation(var_name)) {

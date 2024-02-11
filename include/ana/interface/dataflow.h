@@ -104,8 +104,8 @@ public:
   template <typename Col> auto filter(lazy<Col> const &col) -> lazy<selection>;
   template <typename Col> auto weight(lazy<Col> const &col) -> lazy<selection>;
 
-  template <typename Col> auto filter(typename lazy<Col>::varied const &col);
-  template <typename Col> auto weight(typename lazy<Col>::varied const &col);
+  template <typename Col> auto filter(Col const &col);
+  template <typename Col> auto weight(Col const &col);
 
   template <typename Expr, typename... Cols>
   auto filter(ana::column::expression<Expr> const &expr, Cols const &...cols)
@@ -338,8 +338,39 @@ auto ana::dataflow::filter(lazy<Col> const &col) -> lazy<selection> {
 
 template <typename Col>
 auto ana::dataflow::weight(lazy<Col> const &col) -> lazy<selection> {
-  return this->_select<selection::weight>([](double x) { return x; })
+  return this
+      ->_select<selection::weight>(std::function([](double x) { return x; }))
       .apply(col);
+}
+
+template <typename Col> auto ana::dataflow::filter(Col const &col) {
+  auto appl =
+      this->_select<selection::cut>(std::function([](double x) { return x; }));
+
+  using varied_type = typename lazy<selection>::varied;
+
+  varied_type syst(appl.template apply(col.nominal()));
+
+  for (auto const &var_name : col.list_variation_names()) {
+    syst.set_variation(var_name, appl.template apply(col.variation(var_name)));
+  }
+
+  return syst;
+}
+
+template <typename Col> auto ana::dataflow::weight(Col const &col) {
+  auto appl = this->_select<selection::weight>(
+      std::function([](double x) { return x; }));
+
+  using varied_type = typename lazy<selection>::varied;
+
+  varied_type syst(appl.template apply(col.nominal()));
+
+  for (auto const &var_name : col.list_variation_names()) {
+    syst.set_variation(var_name, appl.template apply(col.variation(var_name)));
+  }
+
+  return syst;
 }
 
 template <typename Expr, typename... Cols>
