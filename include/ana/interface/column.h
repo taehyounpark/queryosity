@@ -21,7 +21,7 @@ class column : public operation {
 public:
   class computation;
 
-  template <typename T> class constant;
+  template <typename T> class fixed;
 
   template <typename T> class calculation;
 
@@ -31,9 +31,11 @@ public:
 
   template <typename T> class representation;
 
-  template <typename T> class evaluator;
+  template <typename T> class constant;
 
   template <typename T> class expression;
+
+  template <typename T> class evaluator;
 
 public:
   column() = default;
@@ -47,8 +49,8 @@ public:
 
   template <typename T>
   static constexpr std::true_type
-  check_constant(typename column::constant<T> const &);
-  static constexpr std::false_type check_constant(...);
+  check_fixed(typename column::fixed<T> const &);
+  static constexpr std::false_type check_fixed(...);
 
   template <typename T>
   static constexpr std::true_type
@@ -70,8 +72,8 @@ public:
       decltype(check_reader(std::declval<std::decay_t<T> const &>()))::value;
 
   template <typename T>
-  static constexpr bool is_constant_v =
-      decltype(check_constant(std::declval<std::decay_t<T> const &>()))::value;
+  static constexpr bool is_fixed_v =
+      decltype(check_fixed(std::declval<std::decay_t<T> const &>()))::value;
 
   template <typename T>
   static constexpr bool is_definition_v = decltype(check_definition(

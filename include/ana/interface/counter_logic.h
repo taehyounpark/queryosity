@@ -1,7 +1,7 @@
 #pragma once
 
-#include "aggregation.h"
-#include "aggregation_output.h"
+#include "counter.h"
+#include "counter_output.h"
 
 namespace ana {
 
@@ -10,7 +10,7 @@ namespace ana {
  * @tparam Obs... Input column data types.
  */
 template <typename T, typename... Obs>
-class aggregation::logic<T(Obs...)> : public aggregation::output<T> {
+class counter::logic<T(Obs...)> : public counter::output<T> {
 
 public:
   using vartup_type = std::tuple<ana::variable<Obs>...>;
@@ -43,15 +43,14 @@ protected:
 
 template <typename T, typename... Obs>
 template <typename... Vals>
-void ana::aggregation::logic<T(Obs...)>::enter_columns(
-    term<Vals> const &...cols) {
+void ana::counter::logic<T(Obs...)>::enter_columns(term<Vals> const &...cols) {
   static_assert(sizeof...(Obs) == sizeof...(Vals),
                 "dimension mis-match between filled variables & columns.");
   m_fills.emplace_back(cols...);
 }
 
 template <typename T, typename... Obs>
-void ana::aggregation::logic<T(Obs...)>::aggregate(double w) {
+void ana::counter::logic<T(Obs...)>::aggregate(double w) {
   for (unsigned int ifill = 0; ifill < m_fills.size(); ++ifill) {
     std::apply(
         [this, w](const variable<Obs> &...obs) { this->fill(obs..., w); },

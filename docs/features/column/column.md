@@ -269,7 +269,7 @@ public:
 
 auto l1 = df.define<Lepton>()(l1p4, lep_charge[0], lep_type[0]);
 ```
-Representations provide a complementary role to definitions that can improve conceptual clarity (but not necessity) of the computation graph and (in some cases) its efficiency, demonstrated by the following aggregation-example.
+Representations provide a complementary role to definitions that can improve conceptual clarity (but not necessity) of the computation graph and (in some cases) its efficiency, demonstrated by the following counter-example.
 ```cpp
 // using a simple struct to hold properties
 struct Lepton { const P4 p4; const double q; const double type; };

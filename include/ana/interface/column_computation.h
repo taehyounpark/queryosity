@@ -29,7 +29,7 @@ public:
             const std::string &name) -> std::unique_ptr<read_column_t<DS, Val>>;
 
   template <typename Val>
-  auto assign(Val const &val) -> std::unique_ptr<column::constant<Val>>;
+  auto assign(Val const &val) -> std::unique_ptr<column::fixed<Val>>;
 
   template <typename Def, typename... Args>
   auto define(Args const &...vars) const
@@ -52,9 +52,9 @@ protected:
 
 } // namespace ana
 
-#include "column_constant.h"
 #include "column_equation.h"
 #include "column_evaluator.h"
+#include "column_fixed.h"
 
 template <typename DS, typename Val>
 auto ana::column::computation::read(dataset::source<DS> &ds,
@@ -68,8 +68,8 @@ auto ana::column::computation::read(dataset::source<DS> &ds,
 
 template <typename Val>
 auto ana::column::computation::assign(Val const &val)
-    -> std::unique_ptr<ana::column::constant<Val>> {
-  return std::make_unique<typename column::constant<Val>>(val);
+    -> std::unique_ptr<ana::column::fixed<Val>> {
+  return std::make_unique<typename column::fixed<Val>>(val);
 }
 
 template <typename Def, typename... Args>

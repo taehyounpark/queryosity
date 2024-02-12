@@ -6,7 +6,7 @@
 #include "ana/analogical.h"
 
 template <typename T>
-class Column : public ana::aggregation::logic<std::vector<T>(T)> {
+class Column : public ana::counter::logic<std::vector<T>(T)> {
 
 public:
   Column() = default;

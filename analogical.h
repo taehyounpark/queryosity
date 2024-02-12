@@ -546,7 +546,7 @@ public:
 
   template <typename T>
   static constexpr std::true_type
-  check_constant(typename column::constant<T> const &);
+  check_constant(typename column::fixed<T> const &);
   static constexpr std::false_type check_constant(...);
 
   template <typename T>
@@ -2284,7 +2284,7 @@ public:
             const std::string &name) -> std::unique_ptr<read_column_t<DS, Val>>;
 
   template <typename Val>
-  auto constant(Val const &val) -> std::unique_ptr<column::constant<Val>>;
+  auto constant(Val const &val) -> std::unique_ptr<column::fixed<Val>>;
 
   template <typename Def, typename... Args>
   auto define(Args const &...vars) const
@@ -2312,7 +2312,7 @@ namespace ana {
 //------------------------------------------------------------------------------
 // constant: value set manually
 //------------------------------------------------------------------------------
-template <typename Val> class column::constant : public term<Val> {
+template <typename Val> class column::fixed : public term<Val> {
 
 public:
   constant(const Val &val);
@@ -2327,9 +2327,9 @@ protected:
 } // namespace ana
 
 template <typename Val>
-ana::column::constant<Val>::constant(const Val &val) : m_value(val) {}
+ana::column::fixed<Val>::constant(const Val &val) : m_value(val) {}
 
-template <typename Val> const Val &ana::column::constant<Val>::value() const {
+template <typename Val> const Val &ana::column::fixed<Val>::value() const {
   return m_value;
 }
 
@@ -2387,8 +2387,8 @@ auto ana::column::computation::read(dataset::input<DS> &ds,
 
 template <typename Val>
 auto ana::column::computation::constant(Val const &val)
-    -> std::unique_ptr<ana::column::constant<Val>> {
-  return std::make_unique<typename column::constant<Val>>(val);
+    -> std::unique_ptr<ana::column::fixed<Val>> {
+  return std::make_unique<typename column::fixed<Val>>(val);
 }
 
 template <typename Def, typename... Args>
@@ -2566,7 +2566,7 @@ public:
    * @return The `lazy` defined constant.
    */
   template <typename Val>
-  auto constant(const Val &value) -> lazy<column::constant<Val>>;
+  auto constant(const Val &value) -> lazy<column::fixed<Val>>;
 
   /**
    * @brief Define a custom definition or representation.
@@ -3902,13 +3902,12 @@ auto ana::dataflow::read(dataset::input<DS> &ds, const std::string &name)
 }
 
 template <typename Val>
-auto ana::dataflow::constant(const Val &val)
-    -> lazy<ana::column::constant<Val>> {
+auto ana::dataflow::constant(const Val &val) -> lazy<ana::column::fixed<Val>> {
   auto act = this->m_processors.get_lockstep_node(
       [val = val](dataset::processor &proc) {
         return proc.template constant<Val>(val);
       });
-  auto lzy = lazy<column::constant<Val>>(*this, act);
+  auto lzy = lazy<column::fixed<Val>>(*this, act);
   this->add_operation(std::move(act));
   return lzy;
 }

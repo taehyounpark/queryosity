@@ -19,8 +19,8 @@ nav:
         - Cutflow: features/selection/cutflow.md
         - Applying selections: features/selection/selection.md
       - Aggregations: 
-        - Counting experiment: features/aggregation/experiment.md
-        - Booking aggregations: features/aggregation/aggregation.md
+        - Counting experiment: features/counter/experiment.md
+        - Booking counters: features/counter/counter.md
       - Sensitivity analysis: 
         - Systematic variation: features/sensitivity/variation.md
         - Applying variations: features/sensitivity/vary.md
@@ -36,11 +36,11 @@ nav:
       - 'delayed': analogical/classana_1_1delayed.md
       - 'delayed::varied': analogical/classana_1_1delayed_1_1varied.md
     - Implementation:
-      - 'dataset::input': analogical/classana_1_1dataset_1_1input.md
+      - 'dataset::input': analogical/classana_1_1dataset_1_1source.md
       - 'dataset::player': analogical/classana_1_1dataset_1_1player.md
       - 'dataset::column': analogical/classana_1_1dataset_1_1column.md
       - 'column::definition': analogical/classana_1_1column_1_1definition_3_01_ret_07_vals_8_8_8_08_4.md
-      - 'aggregation::logic': analogical/classana_1_1aggregation_1_1logic_3_01_t_07_obs_8_8_8_08_4.md
+      - 'counter::logic': analogical/classana_1_1counter_1_1logic_3_01_t_07_obs_8_8_8_08_4.md
 
 theme:
   name: 'material'
@@ -66,7 +66,7 @@ plugins:
           src-dirs: include/ana/interface # path to source code (support multiple paths separated by space) => INPUT
           full-doc: True # if you want to generate full documentation
           doxy-cfg: # standard doxygen configuration (key: value)
-            FILE_PATTERNS: "dataflow.h lazy*.h delayed*.h dataset.h dataset_input.h dataset_player.h dataset_column.h column_definition.h aggregation_logic.h aggregation_logic.h" # specify file patterns to filter out
+            FILE_PATTERNS: "dataflow.h lazy*.h delayed*.h dataset.h dataset_input.h dataset_player.h dataset_column.h column_definition.h counter_logic.h counter_logic.h" # specify file patterns to filter out
             RECURSIVE: True # recursive search in source directories
       save-api: .mkdoxy
 

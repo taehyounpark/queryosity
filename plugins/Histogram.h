@@ -16,7 +16,7 @@ using Histogram_t = boost::histogram::histogram<Axes_t>;
 
 template <typename... Cols>
 class Histogram
-    : public ana::aggregation::logic<std::shared_ptr<Histogram_t>(Cols...)> {
+    : public ana::counter::logic<std::shared_ptr<Histogram_t>(Cols...)> {
 
 public:
 public:

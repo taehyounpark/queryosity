@@ -23,7 +23,7 @@ _**Ana**lysis **Logic** **A**bstraction **L**ayer_
 ## Design goals
 
 - **Clear interface.** Use a clear high-level abstraction layer with modern C++ syntax to specify even the most complex operations.
-- **Customizable operations.** Support for inputs and outputs of any type and arbitrary execution, such as custom dataset formats, column definitions, and aggregation algorithms.
+- **Customizable operations.** Support for inputs and outputs of any type and arbitrary execution, such as custom dataset formats, column definitions, and counter algorithms.
 - **Sensitivity analysis.** Systematic variations of an analysis are automatically propagated and simultaneously processed within one dataset traversal.
 - **Computational efficiency.** Dataset operations are performed for an entry only if needed. Dataset traversal is multithreaded.
 

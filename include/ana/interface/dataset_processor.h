@@ -1,15 +1,14 @@
 #pragma once
 
-#include "aggregation_experiment.h"
 #include "column_computation.h"
+#include "counter_experiment.h"
 #include "operation.h"
 
 namespace ana {
 
 namespace dataset {
 
-class processor : public ana::column::computation,
-                  public aggregation::experiment {
+class processor : public ana::column::computation, public counter::experiment {
 
 public:
   processor(double scale);
@@ -23,11 +22,11 @@ public:
 
 } // namespace ana
 
-#include "aggregation.h"
+#include "counter.h"
 #include "selection.h"
 
 inline ana::dataset::processor::processor(double scale)
-    : aggregation::experiment(scale) {}
+    : counter::experiment(scale) {}
 
 inline void ana::dataset::processor::process(ana::dataset::player &plyr,
                                              ana::dataset::range const &part) {
@@ -40,7 +39,7 @@ inline void ana::dataset::processor::process(ana::dataset::player &plyr,
   for (auto const &sel : this->m_selections) {
     sel->initialize(part);
   }
-  for (auto const &cnt : this->m_aggregations) {
+  for (auto const &cnt : this->m_counters) {
     cnt->initialize(part);
   }
 
@@ -53,13 +52,13 @@ inline void ana::dataset::processor::process(ana::dataset::player &plyr,
     for (auto const &sel : this->m_selections) {
       sel->execute(part, entry);
     }
-    for (auto const &cnt : this->m_aggregations) {
+    for (auto const &cnt : this->m_counters) {
       cnt->execute(part, entry);
     }
   }
 
   // finalize (in reverse order)
-  for (auto const &cnt : this->m_aggregations) {
+  for (auto const &cnt : this->m_counters) {
     cnt->finalize(part);
   }
   for (auto const &sel : this->m_selections) {

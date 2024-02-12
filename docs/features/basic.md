@@ -26,6 +26,6 @@ table th:nth-of-type(4) {
 | `selection` | A boolean/floating-point decision | `filter()` | Apply a cut. | 
 | | | `weight()` | Apply a statistical significance. |
 | | | `channel()` | Same as filter, but remember its "path". |
-| `aggregation` | Perform an action and output a result | `agg()` | Create an aggregation. |
+| `counter` | Perform an action and output a result | `agg()` | Create an counter. |
 | | | `fill()` | Fill with column value(s) of the entry. |
 | | | `book()` | Book execution for entries passing the selection(s). |

@@ -9,8 +9,8 @@
 #include <utility>
 #include <vector>
 
-#include "aggregation.h"
 #include "column.h"
+#include "counter.h"
 #include "dataset.h"
 #include "dataset_partition.h"
 #include "dataset_player.h"
@@ -79,13 +79,16 @@ public:
    * @return The `lazy` defined constant.
    */
   template <typename Val>
-  auto constant(Val const &val) -> lazy<column::constant<Val>>;
+  auto _assign(Val const &val) -> lazy<column::fixed<Val>>;
 
   template <typename Def, typename... Args> auto _define(Args &&...args);
   template <typename Def> auto _define(column::definition<Def> const &defn);
 
   template <typename F> auto _equate(F fn);
   template <typename Expr> auto _equate(column::expression<Expr> const &expr);
+
+  template <typename Val, typename... Cols>
+  auto define(column::constant<Val> const &cnst);
 
   template <typename Def, typename... Cols>
   auto define(column::definition<Def> const &defn, Cols const &...cols);
@@ -116,11 +119,10 @@ public:
       -> lazy<selection>;
 
   template <typename Cnt, typename... Args>
-  auto agg(Args &&...args) -> delayed<aggregation::booker<Cnt>>;
+  auto agg(Args &&...args) -> delayed<counter::booker<Cnt>>;
 
   template <typename Val, typename... Vars>
-  auto vary(lazy<column::template constant<Val>> const &nom,
-            Vars const &...vars);
+  auto vary(column::constant<Val> const &nom, Vars const &...vars);
 
   template <typename Expr, typename... Vars>
   auto vary(column::expression<Expr> const &expr, Vars const &...vars);
@@ -145,16 +147,20 @@ protected:
   auto apply_selection(delayed<selection::applicator<Eqn>> const &calc,
                        lazy<Cols> const &...columns) -> lazy<selection>;
   template <typename Cnt>
-  auto select_aggregation(delayed<aggregation::booker<Cnt>> const &bkr,
-                          lazy<selection> const &sel) -> lazy<Cnt>;
+  auto select_counter(delayed<counter::booker<Cnt>> const &bkr,
+                      lazy<selection> const &sel) -> lazy<Cnt>;
   template <typename Cnt, typename... Sels>
-  auto select_aggregations(delayed<aggregation::booker<Cnt>> const &bkr,
-                           lazy<Sels> const &...sels)
+  auto select_counters(delayed<counter::booker<Cnt>> const &bkr,
+                       lazy<Sels> const &...sels)
       -> std::array<lazy<Cnt>, sizeof...(Sels)>;
 
   template <typename Syst, typename Expr>
   void _vary(Syst &syst, const std::string &name,
              column::expression<Expr> const &expr);
+
+  template <typename Syst, typename Val>
+  void _vary(Syst &syst, const std::string &name,
+             column::constant<Val> const &cnst);
 
   void add_operation(lockstep::node<operation> act);
   void add_operation(std::unique_ptr<operation> act);
@@ -291,14 +297,13 @@ auto ana::dataflow::_read(dataset::source<DS> &ds, const std::string &name)
 }
 
 template <typename Val>
-auto ana::dataflow::constant(Val const &val)
-    -> lazy<ana::column::constant<Val>> {
+auto ana::dataflow::_assign(Val const &val) -> lazy<ana::column::fixed<Val>> {
   auto act = lockstep::get_node(
       [&val](dataset::processor *proc) {
         return proc->template assign<Val>(val);
       },
       this->m_processors);
-  auto lzy = lazy<column::constant<Val>>(*this, act);
+  auto lzy = lazy<column::fixed<Val>>(*this, act);
   this->add_operation(std::move(act));
   return lzy;
 }
@@ -386,8 +391,8 @@ auto ana::dataflow::weight(ana::column::expression<Expr> const &expr,
 }
 
 template <typename Cnt, typename... Args>
-auto ana::dataflow::agg(Args &&...args) -> delayed<aggregation::booker<Cnt>> {
-  return delayed<aggregation::booker<Cnt>>(
+auto ana::dataflow::agg(Args &&...args) -> delayed<counter::booker<Cnt>> {
+  return delayed<counter::booker<Cnt>>(
       *this, lockstep::get_node(
                  [&args...](dataset::processor *proc) {
                    return proc->template agg<Cnt>(std::forward<Args>(args)...);
@@ -425,15 +430,14 @@ auto ana::dataflow::apply_selection(
 }
 
 template <typename Cnt>
-auto ana::dataflow::select_aggregation(
-    delayed<aggregation::booker<Cnt>> const &bkr, lazy<selection> const &sel)
-    -> lazy<Cnt> {
-  // any time a new aggregation is booked, means the dataflow must run: so reset
+auto ana::dataflow::select_counter(delayed<counter::booker<Cnt>> const &bkr,
+                                   lazy<selection> const &sel) -> lazy<Cnt> {
+  // any time a new counter is booked, means the dataflow must run: so reset
   // its status
   this->reset();
   auto act = lockstep::get_node(
-      [](dataset::processor *proc, aggregation::booker<Cnt> *bkr,
-         const selection *sel) { return proc->select_aggregation(*bkr, *sel); },
+      [](dataset::processor *proc, counter::booker<Cnt> *bkr,
+         const selection *sel) { return proc->select_counter(*bkr, *sel); },
       this->m_processors, bkr, sel);
   auto lzy = lazy<Cnt>(*this, act);
   this->add_operation(std::move(act));
@@ -441,12 +445,12 @@ auto ana::dataflow::select_aggregation(
 }
 
 template <typename Cnt, typename... Sels>
-auto ana::dataflow::select_aggregations(
-    delayed<aggregation::booker<Cnt>> const &bkr, lazy<Sels> const &...sels)
+auto ana::dataflow::select_counters(delayed<counter::booker<Cnt>> const &bkr,
+                                    lazy<Sels> const &...sels)
     -> std::array<lazy<Cnt>, sizeof...(Sels)> {
 
   return std::array<lazy<Cnt>, sizeof...(Sels)>{
-      this->select_aggregation(bkr, sels)...};
+      this->select_counter(bkr, sels)...};
 }
 
 inline void ana::dataflow::analyze() {
@@ -466,28 +470,24 @@ inline void ana::dataflow::analyze() {
 
   m_ds->finalize();
 
-  // clear aggregations so they are not run more than once
+  // clear counters so they are not run more than once
   this->m_processors.call_all_slots(
-      [](dataset::processor *proc) { proc->clear_aggregations(); });
+      [](dataset::processor *proc) { proc->clear_counters(); });
 }
 
 inline void ana::dataflow::reset() { m_analyzed = false; }
 
-// template <typename Val, typename... Vars>
-// auto ana::dataflow::vary(lazy<column::template constant<Val>> const &nom,
-//                          Vars const &...vars) {
-//   typename lazy<column::template constant<Val>>::varied syst(nom);
-//   ((this->vary_constant<Val>(syst, vars.name(), vars.args())), ...);
-//   return syst;
-// }
-
-// template <typename Val, typename Lazy, typename... Args>
-// void ana::dataflow::vary_constant(Lazy &syst, const std::string &name,
-//                                   std::tuple<Args...> args) {
-//   auto var = std::apply(
-//       [this](Args... args) { return this->constant<Val>(args...); }, args);
-//   syst.set_variation(name, std::move(var));
-// }
+template <typename Val, typename... Vars>
+auto ana::dataflow::vary(ana::column::constant<Val> const &cnst,
+                         Vars const &...vars) {
+  auto nom = this->define(cnst);
+  using varied_type = typename decltype(nom)::varied;
+  varied_type syst(nom);
+  ((this->_vary(syst, vars.name(),
+                column::constant<Val>(std::get<0>(vars.args())))),
+   ...);
+  return syst;
+}
 
 template <typename Expr, typename... Vars>
 auto ana::dataflow::vary(ana::column::expression<Expr> const &expr,
@@ -500,6 +500,12 @@ auto ana::dataflow::vary(ana::column::expression<Expr> const &expr,
                 column::expression(function_type(std::get<0>(vars.args()))))),
    ...);
   return syst;
+}
+
+template <typename Syst, typename Val>
+void ana::dataflow::_vary(Syst &syst, const std::string &name,
+                          ana::column::constant<Val> const &cnst) {
+  syst.set_variation(name, this->define(cnst));
 }
 
 template <typename Syst, typename Expr>

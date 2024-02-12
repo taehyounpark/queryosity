@@ -42,36 +42,36 @@ public:
   auto apply(Nodes const &...columns) -> typename lazy<selection>::varied;
 
   /**
-   * @brief Fill the aggregation with input columns.
-   * @param columns... Input columns to fill the aggregation with.
-   * @return A new delayed aggregation node with input columns filled.
+   * @brief Fill the counter with input columns.
+   * @param columns... Input columns to fill the counter with.
+   * @return A new delayed counter node with input columns filled.
    */
   template <
       typename... Nodes, typename V = Bld,
-      std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
+      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
   auto fill(Nodes const &...columns) -> varied;
 
   /**
-   * @brief Book the aggregation logic at a selection.
-   * @param selection Lazy selection to book aggregation at.
-   * @return Lazy aggregation booked at selection.
+   * @brief Book the counter logic at a selection.
+   * @param selection Lazy selection to book counter at.
+   * @return Lazy counter booked at selection.
    */
   template <
       typename Node, typename V = Bld,
-      std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
+      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
   auto book(Node const &selection) ->
-      typename lazy<aggregation::booked_t<V>>::varied;
+      typename lazy<counter::booked_t<V>>::varied;
 
   /**
-   * @brief Book the aggregation logic at multiple selections.
-   * @param selection Lazy selection to book aggregations at.
-   * @return Delayed aggregation containing booked lazy aggregations.
+   * @brief Book the counter logic at multiple selections.
+   * @param selection Lazy selection to book counters at.
+   * @return Delayed counter containing booked lazy counters.
    */
   template <
       typename... Nodes, typename V = Bld,
-      std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool> = false>
+      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
   auto book(Nodes const &...selections)
-      -> std::array<typename lazy<aggregation::booked_t<V>>::varied,
+      -> std::array<typename lazy<counter::booked_t<V>>::varied,
                     sizeof...(Nodes)>;
 
   /**
@@ -168,7 +168,7 @@ auto ana::delayed<Bld>::varied::apply(Nodes const &...columns) ->
 
 template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
+          std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
 auto ana::delayed<Bld>::varied::fill(Nodes const &...columns) -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
   for (auto const &var_name : list_all_variation_names(*this, columns...)) {
@@ -180,10 +180,10 @@ auto ana::delayed<Bld>::varied::fill(Nodes const &...columns) -> varied {
 
 template <typename Bld>
 template <typename Node, typename V,
-          std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
+          std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
 auto ana::delayed<Bld>::varied::book(Node const &selection) ->
-    typename lazy<aggregation::booked_t<V>>::varied {
-  using varied_type = typename lazy<aggregation::booked_t<V>>::varied;
+    typename lazy<counter::booked_t<V>>::varied {
+  using varied_type = typename lazy<counter::booked_t<V>>::varied;
   auto syst = varied_type(this->nominal().book(selection.nominal()));
   for (auto const &var_name : list_all_variation_names(*this, selection)) {
     syst.set_variation(var_name, this->variation(var_name).book(
@@ -194,28 +194,27 @@ auto ana::delayed<Bld>::varied::book(Node const &selection) ->
 
 template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<ana::aggregation::template is_booker_v<V>, bool>>
+          std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
 auto ana::delayed<Bld>::varied::book(Nodes const &...selections)
-    -> std::array<typename lazy<aggregation::booked_t<V>>::varied,
+    -> std::array<typename lazy<counter::booked_t<V>>::varied,
                   sizeof...(Nodes)> {
   // variations
-  using varied_type = typename lazy<aggregation::booked_t<V>>::varied;
+  using varied_type = typename lazy<counter::booked_t<V>>::varied;
   using array_of_varied_type =
-      std::array<typename lazy<aggregation::booked_t<V>>::varied,
-                 sizeof...(Nodes)>;
+      std::array<typename lazy<counter::booked_t<V>>::varied, sizeof...(Nodes)>;
   auto var_names = list_all_variation_names(*this, selections...);
-  auto select_aggregation_varied =
+  auto select_counter_varied =
       [var_names, this](systematic::resolver<lazy<selection>> const &sel) {
         auto syst = varied_type(
-            this->m_df->select_aggregation(this->nominal(), sel.nominal()));
+            this->m_df->select_counter(this->nominal(), sel.nominal()));
         for (auto const &var_name : var_names) {
-          syst.set_variation(var_name, this->m_df->select_aggregation(
-                                           this->variation(var_name),
-                                           sel.variation(var_name)));
+          syst.set_variation(
+              var_name, this->m_df->select_counter(this->variation(var_name),
+                                                   sel.variation(var_name)));
         }
         return syst;
       };
-  return array_of_varied_type{select_aggregation_varied(selections)...};
+  return array_of_varied_type{select_counter_varied(selections)...};
 }
 
 template <typename Bld>

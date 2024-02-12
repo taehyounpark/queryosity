@@ -66,8 +66,8 @@ public:
 
 } // namespace ana
 
-#include "aggregation.h"
 #include "column_equation.h"
+#include "counter.h"
 
 inline ana::selection::selection(const selection *presel)
     : m_preselection(presel) {}

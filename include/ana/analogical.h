@@ -8,8 +8,8 @@
 
 #include "interface/column_definition.h"
 
-#include "interface/aggregation_logic.h"
-#include "interface/aggregation_output.h"
+#include "interface/counter_logic.h"
+#include "interface/counter_output.h"
 
 #include "interface/dataflow.h"
 
@@ -17,5 +17,3 @@
 #include "interface/delayed_varied.h"
 #include "interface/lazy.h"
 #include "interface/lazy_varied.h"
-
-#include "interface/aggregation_summary.h"

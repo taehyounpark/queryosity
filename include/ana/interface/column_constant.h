@@ -4,32 +4,32 @@
 
 namespace ana {
 
-//------------------------------------------------------------------------------
-// constant: value set manually
-//------------------------------------------------------------------------------
-template <typename Val> class column::constant : public term<Val> {
+class dataflow;
+
+template <typename Val> class lazy;
+
+template <typename Val> class column::constant {
 
 public:
   constant(Val const &val);
-  template <typename... Args> constant(Args &&...args);
-  virtual ~constant() = default;
+  ~constant() = default;
 
-  const Val &value() const override;
+  auto _assign(dataflow &df) const -> lazy<column::fixed<Val>>;
 
 protected:
-  Val m_value;
+  Val m_val;
 };
 
 } // namespace ana
 
-template <typename Val>
-ana::column::constant<Val>::constant(Val const &val) : m_value(val) {}
+#include "dataflow.h"
+#include "lazy.h"
 
 template <typename Val>
-template <typename... Args>
-ana::column::constant<Val>::constant(Args &&...args)
-    : m_value(std::forward<Args>(args)...) {}
+ana::column::constant<Val>::constant(Val const &val) : m_val(val) {}
 
-template <typename Val> const Val &ana::column::constant<Val>::value() const {
-  return m_value;
+template <typename Val>
+auto ana::column::constant<Val>::_assign(ana::dataflow &df) const
+    -> lazy<column::fixed<Val>> {
+  return df._assign(this->m_val);
 }
