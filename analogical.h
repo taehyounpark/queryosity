@@ -1886,7 +1886,7 @@ public:
       -> std::unique_ptr<applicator<column::template equation_t<F>>>;
 
   template <typename Sel, typename... Cols>
-  auto apply_selection(applicator<Sel> const &calc, Cols const &...columns)
+  auto _apply(applicator<Sel> const &calc, Cols const &...columns)
       -> std::unique_ptr<selection>;
 
 protected:
@@ -1914,8 +1914,7 @@ public:
   void set_selection(const selection *presel, bool ch, const std::string &name);
 
   template <typename... Vals>
-  std::unique_ptr<selection>
-  apply_selection(cell<Vals> const &...columns) const;
+  std::unique_ptr<selection> _apply(cell<Vals> const &...columns) const;
 
 protected:
   std::function<std::unique_ptr<T>()> m_make_unique_equation;
@@ -1948,8 +1947,8 @@ void ana::selection::applicator<T>::set_selection(const selection *presel,
 
 template <typename T>
 template <typename... Vals>
-std::unique_ptr<ana::selection> ana::selection::applicator<T>::apply_selection(
-    cell<Vals> const &...columns) const {
+std::unique_ptr<ana::selection>
+ana::selection::applicator<T>::_apply(cell<Vals> const &...columns) const {
   // make this selection
   auto eqn = this->m_make_unique_equation();
   eqn->set_arguments(columns...);
@@ -2059,10 +2058,10 @@ auto ana::selection::cutflow::channel(selection const *prev,
 }
 
 template <typename Sel, typename... Cols>
-auto ana::selection::cutflow::apply_selection(applicator<Sel> const &calc,
-                                              Cols const &...columns)
+auto ana::selection::cutflow::_apply(applicator<Sel> const &calc,
+                                     Cols const &...columns)
     -> std::unique_ptr<selection> {
-  auto sel = calc.apply_selection(columns...);
+  auto sel = calc._apply(columns...);
   this->add_selection(*sel);
   return sel;
 }
@@ -2624,8 +2623,8 @@ protected:
   auto evaluate_column(delayed<column::evaluator<Def>> const &calc,
                        lazy<Cols> const &...columns) -> lazy<Def>;
   template <typename Eqn, typename... Cols>
-  auto apply_selection(delayed<selection::applicator<Eqn>> const &calc,
-                       lazy<Cols> const &...columns) -> lazy<selection>;
+  auto _apply(delayed<selection::applicator<Eqn>> const &calc,
+              lazy<Cols> const &...columns) -> lazy<selection>;
   template <typename Cnt>
   auto select_aggregation(delayed<aggregation::booker<Cnt>> const &bkr,
                           lazy<selection> const &sel) -> lazy<Cnt>;
@@ -3485,9 +3484,9 @@ public:
             std::enable_if_t<ana::selection::template is_applicator_v<V>,
                              bool> = false>
   auto apply(Nodes &&...columns) const
-      -> decltype(std::declval<delayed<V>>().apply_selection(
+      -> decltype(std::declval<delayed<V>>()._apply(
           std::forward<Nodes>(columns)...)) {
-    return this->apply_selection(std::forward<Nodes>(columns)...);
+    return this->_apply(std::forward<Nodes>(columns)...);
   }
 
   /**
@@ -3676,24 +3675,23 @@ protected:
             std::enable_if_t<selection::template is_applicator_v<V> &&
                                  ana::has_no_variation_v<Nodes...>,
                              bool> = false>
-  auto apply_selection(Nodes const &...columns) const -> lazy<selection> {
+  auto _apply(Nodes const &...columns) const -> lazy<selection> {
     // nominal
-    return this->m_df->apply_selection(*this, columns...);
+    return this->m_df->_apply(*this, columns...);
   }
 
   template <typename... Nodes, typename V = Bld,
             std::enable_if_t<selection::template is_applicator_v<V> &&
                                  ana::has_variation_v<Nodes...>,
                              bool> = false>
-  auto apply_selection(Nodes const &...columns) const ->
+  auto _apply(Nodes const &...columns) const ->
       typename lazy<selection>::varied {
     // variations
     using varied_type = typename lazy<selection>::varied;
-    auto syst =
-        varied_type(this->nominal().apply_selection(columns.nominal()...));
+    auto syst = varied_type(this->nominal()._apply(columns.nominal()...));
     auto var_names = list_all_variation_names(columns...);
     for (auto const &var_name : var_names) {
-      syst.set_variation(var_name, this->variation(var_name).apply_selection(
+      syst.set_variation(var_name, this->variation(var_name)._apply(
                                        columns.variation(var_name)...));
     }
     return syst;
@@ -4048,14 +4046,11 @@ auto ana::dataflow::evaluate_column(delayed<column::evaluator<Def>> const &calc,
 }
 
 template <typename Eqn, typename... Cols>
-auto ana::dataflow::apply_selection(
-    delayed<selection::applicator<Eqn>> const &calc,
-    lazy<Cols> const &...columns) -> lazy<selection> {
+auto ana::dataflow::_apply(delayed<selection::applicator<Eqn>> const &calc,
+                           lazy<Cols> const &...columns) -> lazy<selection> {
   auto act = this->m_processors.get_lockstep_node(
       [](dataset::processor &proc, selection::applicator<Eqn> &calc,
-         Cols &...cols) {
-        return proc.template apply_selection(calc, cols...);
-      },
+         Cols &...cols) { return proc.template _apply(calc, cols...); },
       calc.get_view(), columns...);
   auto lzy = lazy<selection>(*this, act);
   this->add_operation(std::move(act));

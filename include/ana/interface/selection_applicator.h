@@ -17,8 +17,7 @@ public:
   template <typename Sel> void set_selection(const selection *presel);
 
   template <typename... Vals>
-  std::unique_ptr<selection>
-  apply_selection(cell<Vals> const &...columns) const;
+  std::unique_ptr<selection> _apply(cell<Vals> const &...columns) const;
 
 protected:
   std::function<std::unique_ptr<T>()> m_make_unique_equation;
@@ -50,8 +49,8 @@ void ana::selection::applicator<T>::set_selection(const selection *presel) {
 
 template <typename T>
 template <typename... Vals>
-std::unique_ptr<ana::selection> ana::selection::applicator<T>::apply_selection(
-    cell<Vals> const &...columns) const {
+std::unique_ptr<ana::selection>
+ana::selection::applicator<T>::_apply(cell<Vals> const &...columns) const {
   // make this selection
   auto eqn = this->m_make_unique_equation();
   eqn->set_arguments(columns...);

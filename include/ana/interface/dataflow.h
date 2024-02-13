@@ -87,8 +87,7 @@ public:
   template <typename F> auto _equate(F fn);
   template <typename Expr> auto _equate(column::expression<Expr> const &expr);
 
-  template <typename Val, typename... Cols>
-  auto define(column::constant<Val> const &cnst);
+  template <typename Val> auto define(column::constant<Val> const &cnst);
 
   template <typename Def, typename... Cols>
   auto define(column::definition<Def> const &defn, Cols const &...cols);
@@ -97,11 +96,10 @@ public:
   auto define(column::expression<Expr> const &expr, Cols const &...cols);
 
   template <typename Sel, typename F>
-  auto _select(F callable)
-      -> delayed<selection::template custom_applicator_t<F>>;
+  auto _select(F fn) -> delayed<selection::template custom_applicator_t<F>>;
 
   template <typename Sel, typename F>
-  auto _select(lazy<selection> const &prev, F callable)
+  auto _select(lazy<selection> const &prev, F fn)
       -> delayed<selection::template custom_applicator_t<F>>;
 
   template <typename Col> auto filter(lazy<Col> const &col) -> lazy<selection>;
@@ -144,8 +142,8 @@ protected:
   auto evaluate_column(delayed<column::evaluator<Def>> const &calc,
                        lazy<Cols> const &...columns) -> lazy<Def>;
   template <typename Eqn, typename... Cols>
-  auto apply_selection(delayed<selection::applicator<Eqn>> const &calc,
-                       lazy<Cols> const &...columns) -> lazy<selection>;
+  auto _apply(delayed<selection::applicator<Eqn>> const &calc,
+              lazy<Cols> const &...columns) -> lazy<selection>;
   template <typename Cnt>
   auto select_counter(delayed<counter::booker<Cnt>> const &bkr,
                       lazy<selection> const &sel) -> lazy<Cnt>;
@@ -195,6 +193,7 @@ template <typename T> using operation_t = typename T::nominal_type;
 #include "lazy.h"
 #include "lazy_varied.h"
 
+#include "column_constant.h"
 #include "column_expression.h"
 
 #include "systematic_resolver.h"
@@ -308,19 +307,23 @@ auto ana::dataflow::_assign(Val const &val) -> lazy<ana::column::fixed<Val>> {
   return lzy;
 }
 
+template <typename Val>
+auto ana::dataflow::define(ana::column::constant<Val> const &cnst) {
+  return cnst._assign(*this);
+}
+
 template <typename Def, typename... Cols>
 auto ana::dataflow::define(ana::column::definition<Def> const &defn,
                            Cols const &...cols) {
   return this->_define(defn).template evaluate(cols...);
 }
 
-template <typename F> auto ana::dataflow::_equate(F callable) {
+template <typename F> auto ana::dataflow::_equate(F fn) {
   return delayed<ana::column::template evaluator_t<F>>(
-      *this, lockstep::get_node(
-                 [callable](dataset::processor *proc) {
-                   return proc->template equate(callable);
-                 },
-                 this->m_processors));
+      *this,
+      lockstep::get_node(
+          [fn](dataset::processor *proc) { return proc->template equate(fn); },
+          this->m_processors));
 }
 
 template <typename Expr>
@@ -415,14 +418,11 @@ auto ana::dataflow::evaluate_column(delayed<column::evaluator<Def>> const &calc,
 }
 
 template <typename Eqn, typename... Cols>
-auto ana::dataflow::apply_selection(
-    delayed<selection::applicator<Eqn>> const &calc,
-    lazy<Cols> const &...columns) -> lazy<selection> {
+auto ana::dataflow::_apply(delayed<selection::applicator<Eqn>> const &calc,
+                           lazy<Cols> const &...columns) -> lazy<selection> {
   auto act = lockstep::get_node(
       [](dataset::processor *proc, selection::applicator<Eqn> *calc,
-         Cols *...cols) {
-        return proc->template apply_selection(*calc, *cols...);
-      },
+         Cols *...cols) { return proc->template _apply(*calc, *cols...); },
       this->m_processors, calc, columns...);
   auto lzy = lazy<selection>(*this, act);
   this->add_operation(std::move(act));
@@ -542,23 +542,23 @@ auto ana::dataflow::_define(ana::column::definition<Def> const &defn) {
 }
 
 template <typename Sel, typename F>
-auto ana::dataflow::_select(F callable)
+auto ana::dataflow::_select(F fn)
     -> delayed<selection::template custom_applicator_t<F>> {
   return delayed<selection::template custom_applicator_t<F>>(
       *this, lockstep::get_node(
-                 [callable](dataset::processor *proc) {
-                   return proc->template select<Sel>(nullptr, callable);
+                 [fn](dataset::processor *proc) {
+                   return proc->template select<Sel>(nullptr, fn);
                  },
                  this->m_processors));
 }
 
 template <typename Sel, typename F>
-auto ana::dataflow::_select(lazy<selection> const &prev, F callable)
+auto ana::dataflow::_select(lazy<selection> const &prev, F fn)
     -> delayed<selection::template custom_applicator_t<F>> {
   return delayed<selection::template custom_applicator_t<F>>(
       *this, lockstep::get_node(
-                 [callable](dataset::processor *proc, selection const *prev) {
-                   return proc->template select<Sel>(prev, callable);
+                 [fn](dataset::processor *proc, selection const *prev) {
+                   return proc->template select<Sel>(prev, fn);
                  },
                  this->m_processors, prev));
 }

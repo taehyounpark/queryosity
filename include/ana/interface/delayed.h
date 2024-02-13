@@ -90,9 +90,9 @@ public:
             std::enable_if_t<ana::selection::template is_applicator_v<V>,
                              bool> = false>
   auto apply(Nodes &&...columns) const
-      -> decltype(std::declval<delayed<V>>().apply_selection(
+      -> decltype(std::declval<delayed<V>>()._apply(
           std::forward<Nodes>(columns)...)) {
-    return this->apply_selection(std::forward<Nodes>(columns)...);
+    return this->_apply(std::forward<Nodes>(columns)...);
   }
 
   /**
@@ -293,24 +293,23 @@ protected:
             std::enable_if_t<selection::template is_applicator_v<V> &&
                                  ana::has_no_variation_v<Nodes...>,
                              bool> = false>
-  auto apply_selection(Nodes const &...columns) const -> lazy<selection> {
+  auto _apply(Nodes const &...columns) const -> lazy<selection> {
     // nominal
-    return this->m_df->apply_selection(*this, columns...);
+    return this->m_df->_apply(*this, columns...);
   }
 
   template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<selection::template is_applicator_v<V> &&
                                  ana::has_variation_v<Nodes...>,
                              bool> = false>
-  auto apply_selection(Nodes const &...columns) const ->
+  auto _apply(Nodes const &...columns) const ->
       typename lazy<selection>::varied {
     // variations
     using varied_type = typename lazy<selection>::varied;
-    auto syst =
-        varied_type(this->nominal().apply_selection(columns.nominal()...));
+    auto syst = varied_type(this->nominal()._apply(columns.nominal()...));
     auto var_names = list_all_variation_names(columns...);
     for (auto const &var_name : var_names) {
-      syst.set_variation(var_name, this->variation(var_name).apply_selection(
+      syst.set_variation(var_name, this->variation(var_name)._apply(
                                        columns.variation(var_name)...));
     }
     return syst;

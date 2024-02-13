@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.stats import cauchy, norm, poisson
+from scipy.stats import cauchy, norm, poisson, randint
 import matplotlib.pyplot as plt
 import json
 
@@ -32,6 +32,9 @@ x_smear = x_nom + norm(loc=0.0, scale=resolution).rvs(nentries)
 w_nom = np.ones(nentries)
 w_toy = w_nom * poisson(1).rvs(nentries)
 
+# category
+category = randint.rvs(nentries)
+
 # Prepare the data for JSON
 data_to_save = [
     {
@@ -40,11 +43,12 @@ data_to_save = [
         "x_shift": float(x_shift_val), 
         "x_smear": float(x_smear_val),
         "w_nom": int(w_nom_val),
-        "w_toy": int(w_toy_val)
+        "w_toy": int(w_toy_val),
+        "category" : int(category)
     } 
-    for x_val, x_nom_val, x_shift_val, x_smear_val, w_nom_val, w_toy_val in zip(x_true, x_nom, x_shift, x_smear, w_nom, w_toy)
+    for x_val, x_nom_val, x_shift_val, x_smear_val, w_nom_val, w_toy_val in zip(x_true, x_nom, x_shift, x_smear, w_nom, w_toy, category)
 ]
 
 # Save the data into a JSON file
-with open('data.json', 'w') as f:
+with open('test_data.json', 'w') as f:
     json.dump(data_to_save, f, indent=4)

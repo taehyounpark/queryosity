@@ -20,7 +20,7 @@ public:
       -> std::unique_ptr<applicator<column::template equation_t<F>>>;
 
   template <typename Sel, typename... Cols>
-  auto apply_selection(applicator<Sel> const &calc, Cols const &...columns)
+  auto _apply(applicator<Sel> const &calc, Cols const &...columns)
       -> std::unique_ptr<selection>;
 
 protected:
@@ -47,10 +47,10 @@ auto ana::selection::cutflow::select(selection const *prev, F expression) const
 }
 
 template <typename Sel, typename... Cols>
-auto ana::selection::cutflow::apply_selection(applicator<Sel> const &calc,
-                                              Cols const &...columns)
+auto ana::selection::cutflow::_apply(applicator<Sel> const &calc,
+                                     Cols const &...columns)
     -> std::unique_ptr<selection> {
-  auto sel = calc.apply_selection(columns...);
+  auto sel = calc._apply(columns...);
   this->add_selection(*sel);
   return sel;
 }

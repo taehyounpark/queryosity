@@ -30,6 +30,10 @@ template <typename T> class opened;
 
 template <typename T> struct input;
 
+template <typename T> class column;
+
+template <typename... Ts> class columns;
+
 struct limit {
   limit(long long nrows) : nrows(nrows) {}
   long long nrows;

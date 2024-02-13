@@ -39,7 +39,7 @@ public:
    * @param weight The value of the weight at booked selection for the passed
    * entry.
    */
-  using counter::aggregate;
+  using counter::count;
 
   virtual void finalize(const dataset::range &) final override;
 
@@ -49,7 +49,7 @@ public:
 
   bool is_merged() const;
 
-  void set_merged_result(std::vector<T> const &results);
+  void set_result(std::vector<T> const &results);
 
 protected:
   T m_result;
@@ -76,7 +76,7 @@ template <typename T> T const &ana::counter::output<T>::get_result() const {
 }
 
 template <typename T>
-void ana::counter::output<T>::set_merged_result(std::vector<T> const &results) {
+void ana::counter::output<T>::set_result(std::vector<T> const &results) {
   if (!results.size()) {
     throw std::logic_error("merging requires at least one result");
   }

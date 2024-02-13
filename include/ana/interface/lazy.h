@@ -159,10 +159,16 @@ public:
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
 
-  template <typename Expr, typename... Args>
-  auto filter(ana::column::expression<Expr> const &expr, Args &&...args) const;
+  template <typename Expr, typename... Cols>
+  auto filter(ana::column::expression<Expr> const &expr,
+              Cols const &...cols) const;
 
-  template <typename... Args> auto weight(Args &&...args) const;
+  template <typename Expr, typename... Cols>
+  auto weight(ana::column::expression<Expr> const &expr,
+              Cols const &...cols) const;
+
+  template <typename Col> auto filter(lazy<Col> const &col) const;
+  template <typename Col> auto weight(lazy<Col> const &col) const;
 
   template <typename Agg> auto book(Agg &&agg) const;
   template <typename... Aggs> auto book(Aggs &&...aggs) const;
@@ -255,12 +261,12 @@ bool ana::lazy<Action>::has_variation(const std::string &) const {
 }
 
 template <typename Action>
-template <typename Expr, typename... Args>
+template <typename Expr, typename... Cols>
 auto ana::lazy<Action>::filter(ana::column::expression<Expr> const &expr,
-                               Args &&...args) const {
+                               Cols const &...cols) const {
   if constexpr (std::is_base_of_v<selection, Action>) {
     return expr.template _select<selection::cut>(*this->m_df, *this)
-        .template apply(std::forward<Args>(args)...);
+        .template apply(cols...);
   } else {
     static_assert(std::is_base_of_v<selection, Action>,
                   "filter must be called from a selection");
@@ -268,14 +274,30 @@ auto ana::lazy<Action>::filter(ana::column::expression<Expr> const &expr,
 }
 
 template <typename Action>
-template <typename... Args>
-auto ana::lazy<Action>::weight(Args &&...args) const {
+template <typename Col>
+auto ana::lazy<Action>::filter(ana::lazy<Col> const &col) const {
   if constexpr (std::is_base_of_v<selection, Action>) {
-    return this->m_df->template _select<selection::weight>(
-        *this, std::forward<Args>(args)...);
+    return this->m_df
+        ->template _select<selection::cut>(
+            *this, std::function([](double x) { return x; }))
+        .template apply(col);
   } else {
     static_assert(std::is_base_of_v<selection, Action>,
-                  "weight must be called from a selection");
+                  "filter must be called from a selection");
+  }
+}
+
+template <typename Action>
+template <typename Col>
+auto ana::lazy<Action>::weight(ana::lazy<Col> const &col) const {
+  if constexpr (std::is_base_of_v<selection, Action>) {
+    return this->m_df
+        ->template _select<selection::weight>(
+            *this, std::function([](double x) { return x; }))
+        .template apply(col);
+  } else {
+    static_assert(std::is_base_of_v<selection, Action>,
+                  "filter must be called from a selection");
   }
 }
 
@@ -316,6 +338,6 @@ void ana::lazy<Action>::merge_results() const {
     for (size_t islot = 0; islot < this->concurrency(); ++islot) {
       results.push_back(this->get_slot(islot)->get_result());
     }
-    model->set_merged_result(results);
+    model->set_result(results);
   }
 }

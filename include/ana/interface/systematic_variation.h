@@ -19,7 +19,7 @@ public:
   variation(const std::string &name, Args... args)
       : m_name(name), m_args(args...) {}
 
-  std::string name() const { return m_name; }
+  std::string const &name() const { return m_name; }
   std::tuple<Args...> const &args() const { return m_args; }
 
 protected:

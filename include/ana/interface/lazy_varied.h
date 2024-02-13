@@ -219,7 +219,8 @@ auto ana::lazy<Act>::varied::filter(ana::column::expression<Expr> const &expr,
   auto syst = varied_type(
       this->nominal().filter(expr, std::forward<Args>(args).nominal()...));
 
-  for (auto const &var_name : this->list_variation_names()) {
+  for (auto const &var_name : systematic::list_all_variation_names(
+           *this, std::forward<Args>(args)...)) {
     syst.set_variation(
         var_name, this->variation(var_name).filter(
                       expr, std::forward<Args>(args).variation(var_name)...));
@@ -239,7 +240,8 @@ auto ana::lazy<Act>::varied::weight(ana::column::expression<Expr> const &expr,
   auto syst = varied_type(
       this->nominal().weight(expr, std::forward<Args>(args).nominal()...));
 
-  for (auto const &var_name : this->list_variation_names()) {
+  for (auto const &var_name : systematic::list_all_variation_names(
+           *this, std::forward<Args>(args)...)) {
     syst.set_variation(
         var_name, this->variation(var_name).weight(
                       expr, std::forward<Args>(args).variation(var_name)...));
