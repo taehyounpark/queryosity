@@ -8,117 +8,114 @@
 
 namespace ana {
 
-class column;
+namespace column {
 
-template <typename T> constexpr bool is_column_v = std::is_base_of_v<column, T>;
+class column_base : public operation {};
 
-class column : public operation {
+class computation;
 
-public:
-  class computation;
+template <typename T> class fixed;
 
-  template <typename T> class fixed;
+template <typename T> class calculation;
 
-  template <typename T> class calculation;
+template <typename T> class definition;
 
-  template <typename T> class definition;
+template <typename T> class equation;
 
-  template <typename T> class equation;
+template <typename T> class representation;
 
-  template <typename T> class representation;
+template <typename T> class constant;
 
-  template <typename T> class constant;
+template <typename T> class expression;
 
-  template <typename T> class expression;
+template <typename T> class evaluator;
 
-  template <typename T> class evaluator;
+template <typename T>
+constexpr std::true_type check_reader(typename dataset::reader<T> const &);
+constexpr std::false_type check_reader(...);
 
-  template <typename T>
-  static constexpr std::true_type
-  check_reader(typename dataset::reader<T> const &);
-  static constexpr std::false_type check_reader(...);
+template <typename T>
+constexpr std::true_type check_fixed(typename column::fixed<T> const &);
+constexpr std::false_type check_fixed(...);
 
-  template <typename T>
-  static constexpr std::true_type
-  check_fixed(typename column::fixed<T> const &);
-  static constexpr std::false_type check_fixed(...);
+template <typename T>
+constexpr std::true_type
+check_definition(typename column::definition<T> const &);
+constexpr std::false_type check_definition(...);
 
-  template <typename T>
-  static constexpr std::true_type
-  check_definition(typename column::definition<T> const &);
-  static constexpr std::false_type check_definition(...);
+template <typename T>
+constexpr std::true_type check_equation(typename column::equation<T> const &);
+constexpr std::false_type check_equation(...);
 
-  template <typename T>
-  static constexpr std::true_type
-  check_equation(typename column::equation<T> const &);
-  static constexpr std::false_type check_equation(...);
+template <typename T>
+constexpr std::true_type
+check_representation(typename column::representation<T> const &);
+constexpr std::false_type check_representation(...);
 
-  template <typename T>
-  static constexpr std::true_type
-  check_representation(typename column::representation<T> const &);
-  static constexpr std::false_type check_representation(...);
+template <typename T>
+constexpr bool is_reader_v =
+    decltype(check_reader(std::declval<std::decay_t<T> const &>()))::value;
 
-  template <typename T>
-  static constexpr bool is_reader_v =
-      decltype(check_reader(std::declval<std::decay_t<T> const &>()))::value;
+template <typename T>
+constexpr bool is_fixed_v =
+    decltype(check_fixed(std::declval<std::decay_t<T> const &>()))::value;
 
-  template <typename T>
-  static constexpr bool is_fixed_v =
-      decltype(check_fixed(std::declval<std::decay_t<T> const &>()))::value;
+template <typename T>
+constexpr bool is_definition_v =
+    decltype(check_definition(std::declval<std::decay_t<T> const &>()))::value;
 
-  template <typename T>
-  static constexpr bool is_definition_v = decltype(check_definition(
-      std::declval<std::decay_t<T> const &>()))::value;
+template <typename T>
+constexpr bool is_equation_v =
+    decltype(check_equation(std::declval<std::decay_t<T> const &>()))::value;
 
-  template <typename T>
-  static constexpr bool is_equation_v =
-      decltype(check_equation(std::declval<std::decay_t<T> const &>()))::value;
+template <typename T>
+constexpr bool is_representation_v = decltype(check_representation(
+    std::declval<std::decay_t<T> const &>()))::value;
 
-  template <typename T>
-  static constexpr bool is_representation_v = decltype(check_representation(
-      std::declval<std::decay_t<T> const &>()))::value;
+template <typename T> struct is_evaluator : std::false_type {};
+template <typename T>
+struct is_evaluator<column::evaluator<T>> : std::true_type {};
 
-  template <typename T> struct is_evaluator : std::false_type {};
-  template <typename T>
-  struct is_evaluator<column::evaluator<T>> : std::true_type {};
+template <typename T> constexpr bool is_evaluator_v = is_evaluator<T>::value;
 
-  template <typename T>
-  static constexpr bool is_evaluator_v = is_evaluator<T>::value;
+// equation traits
 
-  // equation traits
+template <typename F> struct equation_traits;
 
-  template <typename F> struct equation_traits;
-
-  template <typename Ret, typename... Args>
-  struct equation_traits<std::function<Ret(Args...)>> {
-    using equation_type =
-        column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
-  };
-
-  template <typename F>
-  using equation_t = typename equation_traits<F>::equation_type;
-
-  // evaluator traits
-  template <typename T, typename = void> struct evaluator_traits;
-
-  template <typename T>
-  struct evaluator_traits<
-      T, typename std::enable_if_t<ana::column::template is_definition_v<T>>> {
-    using evaluator_type = typename column::template evaluator<T>;
-  };
-
-  template <typename F>
-  struct evaluator_traits<
-      F, typename std::enable_if_t<!ana::column::template is_definition_v<F>>> {
-    using evaluator_type = typename ana::column::template evaluator<
-        ana::column::template equation_t<F>>;
-  };
-
-  template <typename T>
-  using evaluator_t = typename evaluator_traits<T>::evaluator_type;
-
-  template <typename T> using evaluated_t = typename T::evaluated_type;
+template <typename Ret, typename... Args>
+struct equation_traits<std::function<Ret(Args...)>> {
+  using equation_type =
+      column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
 };
+
+template <typename F>
+using equation_t = typename equation_traits<F>::equation_type;
+
+// evaluator traits
+template <typename T, typename = void> struct evaluator_traits;
+
+template <typename T>
+struct evaluator_traits<
+    T, typename std::enable_if_t<ana::column::template is_definition_v<T>>> {
+  using evaluator_type = typename column::template evaluator<T>;
+};
+
+template <typename F>
+struct evaluator_traits<
+    F, typename std::enable_if_t<!ana::column::template is_definition_v<F>>> {
+  using evaluator_type = typename ana::column::template evaluator<
+      ana::column::template equation_t<F>>;
+};
+
+template <typename T>
+using evaluator_t = typename evaluator_traits<T>::evaluator_type;
+
+template <typename T> using evaluated_t = typename T::evaluated_type;
+
+} // namespace column
+
+template <typename T>
+constexpr bool is_column_v = std::is_base_of_v<column::column_base, T>;
 
 //---------------------------------------------------
 // cell can actually report on the concrete data type
@@ -178,7 +175,7 @@ private:
   cell<From> const *m_impl;
 };
 
-template <typename T> class term : public column, public cell<T> {
+template <typename T> class term : public column::column_base, public cell<T> {
 
 public:
   using value_type = typename cell<T>::value_type;

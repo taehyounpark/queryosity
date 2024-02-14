@@ -20,24 +20,25 @@ template <typename T> class observable;
 
 class selection;
 
-class counter : public operation {
+namespace counter {
+
+class experiment;
+
+template <typename T> class output;
+
+template <typename T> class logic;
+
+template <typename T> class booker;
+
+template <typename T> class bookkeeper;
+
+template <typename T> class summary;
+
+class counter_base : public operation {
 
 public:
-  class experiment;
-
-  template <typename T> class output;
-
-  template <typename T> class logic;
-
-  template <typename T> class booker;
-
-  template <typename T> class bookkeeper;
-
-  template <typename T> class summary;
-
-public:
-  counter();
-  virtual ~counter() = default;
+  counter_base();
+  virtual ~counter_base() = default;
 
   void apply_scale(double scale);
   void use_weight(bool use = true);
@@ -55,61 +56,65 @@ protected:
   bool m_raw;
   double m_scale;
   const selection *m_selection;
-
-public:
-  template <typename T>
-  static constexpr std::true_type check_implemented(const counter::output<T> &);
-  static constexpr std::false_type check_implemented(...);
-
-  template <typename Out, typename... Vals>
-  static constexpr std::true_type
-  check_fillable(const typename counter::logic<Out(Vals...)> &);
-  static constexpr std::false_type check_fillable(...);
-
-  template <typename T> struct is_booker : std::false_type {};
-  template <typename T>
-  struct is_booker<counter::booker<T>> : std::true_type {};
-
-  template <typename T>
-  static constexpr bool has_output_v =
-      decltype(check_implemented(std::declval<T>()))::value;
-
-  template <typename T>
-  static constexpr bool is_fillable_v =
-      decltype(check_fillable(std::declval<T>()))::value;
-
-  template <typename T> static constexpr bool is_booker_v = is_booker<T>::value;
-
-  template <typename Bkr> using booked_t = typename Bkr::counter_type;
 };
+
+template <typename T>
+constexpr std::true_type check_implemented(const counter::output<T> &);
+constexpr std::false_type check_implemented(...);
+
+template <typename Out, typename... Vals>
+constexpr std::true_type
+check_fillable(const typename counter::logic<Out(Vals...)> &);
+constexpr std::false_type check_fillable(...);
+
+template <typename T> struct is_booker : std::false_type {};
+template <typename T> struct is_booker<counter::booker<T>> : std::true_type {};
+
+template <typename T>
+constexpr bool has_output_v =
+    decltype(check_implemented(std::declval<T>()))::value;
+
+template <typename T>
+constexpr bool is_fillable_v =
+    decltype(check_fillable(std::declval<T>()))::value;
+
+template <typename T> constexpr bool is_booker_v = is_booker<T>::value;
+
+template <typename Bkr> using booked_t = typename Bkr::counter_type;
+
+} // namespace counter
 
 } // namespace ana
 
 #include "column.h"
 #include "selection.h"
 
-inline ana::counter::counter()
+inline ana::counter::counter_base::counter_base()
     : m_raw(false), m_scale(1.0), m_selection(nullptr) {}
 
-inline void ana::counter::set_selection(const selection &selection) {
+inline void
+ana::counter::counter_base::set_selection(const selection &selection) {
   m_selection = &selection;
 }
 
-inline const ana::selection *ana::counter::get_selection() const {
+inline const ana::selection *ana::counter::counter_base::get_selection() const {
   return m_selection;
 }
 
-inline void ana::counter::apply_scale(double scale) { m_scale *= scale; }
+inline void ana::counter::counter_base::apply_scale(double scale) {
+  m_scale *= scale;
+}
 
-inline void ana::counter::use_weight(bool use) { m_raw = !use; }
+inline void ana::counter::counter_base::use_weight(bool use) { m_raw = !use; }
 
-inline void ana::counter::initialize(const ana::dataset::range &) {
+inline void
+ana::counter::counter_base::initialize(const ana::dataset::range &) {
   if (!m_selection)
     throw std::runtime_error("no booked selection");
 }
 
-inline void ana::counter::execute(const ana::dataset::range &,
-                                  unsigned long long) {
+inline void ana::counter::counter_base::execute(const ana::dataset::range &,
+                                                unsigned long long) {
   if (m_selection->passed_cut()) {
     this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
   }

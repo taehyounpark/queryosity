@@ -14,8 +14,8 @@
 using dataflow = ana::dataflow;
 namespace multithread = ana::multithread;
 namespace dataset = ana::dataset;
-using column = ana::column;
-using counter = ana::column;
+namespace column = ana::column;
+namespace counter = ana::counter;
 namespace systematic = ana::systematic;
 
 std::vector<int> get_correct_result(const nlohmann::json &random_data) {

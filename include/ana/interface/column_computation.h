@@ -44,10 +44,10 @@ public:
       -> std::unique_ptr<Def>;
 
 protected:
-  void add_column(column &column);
+  void add_column(column::column_base &column);
 
 protected:
-  std::vector<column *> m_columns;
+  std::vector<column::column_base *> m_columns;
 };
 
 } // namespace ana
@@ -95,6 +95,6 @@ auto ana::column::computation::evaluate_column(column::evaluator<Def> &calc,
   return defn;
 }
 
-inline void ana::column::computation::add_column(column &column) {
+inline void ana::column::computation::add_column(column::column_base &column) {
   m_columns.push_back(&column);
 }

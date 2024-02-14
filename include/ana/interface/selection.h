@@ -47,7 +47,7 @@ public:
 private:
   const selection *const m_preselection;
 
-  std::unique_ptr<column> m_decision;
+  std::unique_ptr<column::column_base> m_decision;
   ana::variable<double> m_variable;
 
 public:

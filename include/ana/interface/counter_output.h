@@ -9,7 +9,7 @@ namespace ana {
  * @details This ABC should be used for operations that do not require any input
  * columns.
  */
-template <typename T> class counter::output : public counter {
+template <typename T> class counter::output : public counter_base {
 
 public:
   using result_type = T;
@@ -39,7 +39,7 @@ public:
    * @param weight The value of the weight at booked selection for the passed
    * entry.
    */
-  using counter::count;
+  using counter_base::count;
 
   virtual void finalize(const dataset::range &) final override;
 

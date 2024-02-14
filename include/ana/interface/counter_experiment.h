@@ -31,10 +31,10 @@ public:
   void clear_counters();
 
 protected:
-  void add_counter(counter &cnt);
+  void add_counter(counter::counter_base &cnt);
 
 protected:
-  std::vector<counter *> m_counters;
+  std::vector<counter::counter_base *> m_counters;
   const double m_scale;
 };
 
@@ -42,7 +42,8 @@ protected:
 
 inline ana::counter::experiment::experiment(double scale) : m_scale(scale) {}
 
-inline void ana::counter::experiment::add_counter(ana::counter &cnt) {
+inline void
+ana::counter::experiment::add_counter(ana::counter::counter_base &cnt) {
   m_counters.push_back(&cnt);
 }
 

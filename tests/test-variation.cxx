@@ -13,7 +13,8 @@
 using dataflow = ana::dataflow;
 namespace multithread = ana::multithread;
 namespace dataset = ana::dataset;
-using column = ana::column;
+namespace column = ana::column;
+namespace counter = ana::counter;
 namespace systematic = ana::systematic;
 
 // generate random data
