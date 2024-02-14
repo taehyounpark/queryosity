@@ -8,10 +8,6 @@
 
 namespace ana {
 
-namespace dataset {
-template <typename T> class column;
-}
-
 class column;
 
 template <typename T> constexpr bool is_column_v = std::is_base_of_v<column, T>;
@@ -37,11 +33,6 @@ public:
 
   template <typename T> class evaluator;
 
-public:
-  column() = default;
-  virtual ~column() = default;
-
-public:
   template <typename T>
   static constexpr std::true_type
   check_reader(typename dataset::reader<T> const &);

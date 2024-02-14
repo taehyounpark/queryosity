@@ -47,6 +47,9 @@ template <typename T, typename... Args>
 unsigned int get_concurrency(T const &first, Args const &...args);
 
 template <typename Fn, typename... Args>
+void call_slots(Fn const &fn, slotted<Args> const &...args);
+
+template <typename Fn, typename... Args>
 auto get_value(Fn const &fn, slotted<Args> const &...args)
     -> std::invoke_result_t<Fn, Args *...>;
 
@@ -324,6 +327,17 @@ inline unsigned int ana::lockstep::get_concurrency(T const &first,
                                                    Args const &...args) {
   assert(((first.concurrency() == args.concurrency()) && ...));
   return first.concurrency();
+}
+
+template <typename Fn, typename... Args>
+inline void ana::lockstep::call_slots(Fn const &fn,
+                                      slotted<Args> const &...args) {
+  auto concurrency = get_concurrency(args...);
+  // result at each slot must match the model
+  fn(args.get_model()...);
+  for (size_t i = 0; i < concurrency; ++i) {
+    fn(args.get_slot(i)...);
+  }
 }
 
 template <typename Fn, typename... Args>

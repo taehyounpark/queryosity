@@ -12,9 +12,7 @@ namespace ana {
 
 class dataflow;
 
-namespace systematic {
-
-template <typename U> class resolver {
+template <typename U> class systematic::resolver {
 
 public:
   using nominal_type = U;
@@ -29,7 +27,7 @@ public:
   virtual ~resolver() = default;
 
 public:
-  virtual void set_variation(const std::string &var_name, U &&nom) = 0;
+  virtual void set_variation(const std::string &var_name, U &&var) = 0;
 
   virtual U const &nominal() const = 0;
   virtual U const &variation(const std::string &var_name) const = 0;
@@ -40,8 +38,6 @@ public:
 protected:
   dataflow *m_df;
 };
-
-} // namespace systematic
 
 } // namespace ana
 

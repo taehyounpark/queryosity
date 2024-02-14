@@ -1,10 +1,8 @@
 #pragma once
 
-namespace ana {
+#include "systematic.h"
 
-namespace dataset {
-struct range;
-}
+namespace ana {
 
 /**
  * @class operation
@@ -20,6 +18,20 @@ public:
   virtual void execute(const ana::dataset::range &part,
                        unsigned long long entry) = 0;
   virtual void finalize(const ana::dataset::range &part) = 0;
+
+  systematic::mode &systematic_mode();
+  systematic::mode const &systematic_mode() const;
+
+protected:
+  systematic::mode m_syst_mode;
 };
 
 } // namespace ana
+
+inline ana::systematic::mode &ana::operation::systematic_mode() {
+  return m_syst_mode;
+}
+
+inline ana::systematic::mode const &ana::operation::systematic_mode() const {
+  return m_syst_mode;
+}

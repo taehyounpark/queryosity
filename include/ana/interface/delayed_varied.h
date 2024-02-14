@@ -140,8 +140,8 @@ auto ana::delayed<Bld>::varied::evaluate(Args &&...args) ->
       typename ana::lazy<column::template evaluated_t<V>>::varied;
   auto syst = varied_type(
       this->nominal().evaluate(std::forward<Args>(args).nominal()...));
-  for (auto const &var_name :
-       list_all_variation_names(*this, std::forward<Args>(args)...)) {
+  for (auto const &var_name : systematic::list_all_variation_names(
+           *this, std::forward<Args>(args)...)) {
     syst.set_variation(var_name,
                        variation(var_name).evaluate(
                            std::forward<Args>(args).variation(var_name)...));
@@ -158,7 +158,8 @@ auto ana::delayed<Bld>::varied::apply(Nodes const &...columns) ->
   using varied_type = typename lazy<selection>::varied;
   auto syst = varied_type(this->nominal().apply(columns.nominal()...));
 
-  for (auto const &var_name : list_all_variation_names(*this, columns...)) {
+  for (auto const &var_name :
+       systematic::list_all_variation_names(*this, columns...)) {
     syst.set_variation(
         var_name, variation(var_name).apply(columns.variation(var_name)...));
   }
@@ -171,7 +172,8 @@ template <typename... Nodes, typename V,
           std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
 auto ana::delayed<Bld>::varied::fill(Nodes const &...columns) -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
-  for (auto const &var_name : list_all_variation_names(*this, columns...)) {
+  for (auto const &var_name :
+       systematic::list_all_variation_names(*this, columns...)) {
     syst.set_variation(var_name, std::move(variation(var_name).fill(
                                      columns.variation(var_name)...)));
   }
@@ -185,7 +187,8 @@ auto ana::delayed<Bld>::varied::book(Node const &selection) ->
     typename lazy<counter::booked_t<V>>::varied {
   using varied_type = typename lazy<counter::booked_t<V>>::varied;
   auto syst = varied_type(this->nominal().book(selection.nominal()));
-  for (auto const &var_name : list_all_variation_names(*this, selection)) {
+  for (auto const &var_name :
+       systematic::list_all_variation_names(*this, selection)) {
     syst.set_variation(var_name, this->variation(var_name).book(
                                      selection.variation(var_name)));
   }
@@ -202,7 +205,7 @@ auto ana::delayed<Bld>::varied::book(Nodes const &...selections)
   using varied_type = typename lazy<counter::booked_t<V>>::varied;
   using array_of_varied_type =
       std::array<typename lazy<counter::booked_t<V>>::varied, sizeof...(Nodes)>;
-  auto var_names = list_all_variation_names(*this, selections...);
+  auto var_names = systematic::list_all_variation_names(*this, selections...);
   auto select_counter_varied =
       [var_names, this](systematic::resolver<lazy<selection>> const &sel) {
         auto syst = varied_type(
@@ -229,8 +232,8 @@ auto ana::delayed<Bld>::varied::operator()(Args &&...args) ->
 
   auto syst = varied_type(
       this->nominal().operator()(std::forward<Args>(args).nominal()...));
-  for (auto const &var_name :
-       list_all_variation_names(*this, std::forward<Args>(args)...)) {
+  for (auto const &var_name : systematic::list_all_variation_names(
+           *this, std::forward<Args>(args)...)) {
     syst.set_variation(var_name,
                        variation(var_name).operator()(
                            std::forward<Args>(args).variation(var_name)...));

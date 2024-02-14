@@ -11,9 +11,7 @@
 
 namespace ana {
 
-namespace systematic {
-
-template <typename... Args> class variation {
+template <typename... Args> class systematic::variation {
 
 public:
   variation(const std::string &name, Args... args)
@@ -26,7 +24,5 @@ protected:
   std::string m_name;
   std::tuple<Args...> m_args;
 };
-
-} // namespace systematic
 
 } // namespace ana

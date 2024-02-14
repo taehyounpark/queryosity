@@ -161,7 +161,6 @@ protected:
              column::constant<Val> const &cnst);
 
   void add_operation(lockstep::node<operation> act);
-  void add_operation(std::unique_ptr<operation> act);
 
 protected:
   multithread::core m_mt;
@@ -282,31 +281,6 @@ auto ana::dataflow::open(ana::dataset::input<DS> &&input)
   return dataset::opened<DS>(*this, *ds);
 }
 
-template <typename DS, typename Val>
-auto ana::dataflow::_read(dataset::source<DS> &ds, const std::string &name)
-    -> lazy<read_column_t<DS, Val>> {
-  auto act = lockstep::get_node(
-      [name, &ds](dataset::processor *proc, dataset::range *part) {
-        return proc->template read<DS, Val>(std::ref(ds), *part, name);
-      },
-      this->m_processors, this->m_parts);
-  auto lzy = lazy<read_column_t<DS, Val>>(*this, act);
-  this->add_operation(std::move(act));
-  return lzy;
-}
-
-template <typename Val>
-auto ana::dataflow::_assign(Val const &val) -> lazy<ana::column::fixed<Val>> {
-  auto act = lockstep::get_node(
-      [&val](dataset::processor *proc) {
-        return proc->template assign<Val>(val);
-      },
-      this->m_processors);
-  auto lzy = lazy<column::fixed<Val>>(*this, act);
-  this->add_operation(std::move(act));
-  return lzy;
-}
-
 template <typename Val>
 auto ana::dataflow::define(ana::column::constant<Val> const &cnst) {
   return cnst._assign(*this);
@@ -316,19 +290,6 @@ template <typename Def, typename... Cols>
 auto ana::dataflow::define(ana::column::definition<Def> const &defn,
                            Cols const &...cols) {
   return this->_define(defn).template evaluate(cols...);
-}
-
-template <typename F> auto ana::dataflow::_equate(F fn) {
-  return delayed<ana::column::template evaluator_t<F>>(
-      *this,
-      lockstep::get_node(
-          [fn](dataset::processor *proc) { return proc->template equate(fn); },
-          this->m_processors));
-}
-
-template <typename Expr>
-auto ana::dataflow::_equate(ana::column::expression<Expr> const &expr) {
-  return expr._equate(*this);
 }
 
 template <typename Expr, typename... Cols>
@@ -502,18 +463,6 @@ auto ana::dataflow::vary(ana::column::expression<Expr> const &expr,
   return syst;
 }
 
-template <typename Syst, typename Val>
-void ana::dataflow::_vary(Syst &syst, const std::string &name,
-                          ana::column::constant<Val> const &cnst) {
-  syst.set_variation(name, this->define(cnst));
-}
-
-template <typename Syst, typename Expr>
-void ana::dataflow::_vary(Syst &syst, const std::string &name,
-                          ana::column::expression<Expr> const &expr) {
-  syst.set_variation(name, this->_equate(expr));
-}
-
 inline void ana::dataflow::add_operation(lockstep::node<operation> operation) {
   m_operations.emplace_back(std::move(operation.m_model));
   for (unsigned int i = 0; i < operation.concurrency(); ++i) {
@@ -521,8 +470,29 @@ inline void ana::dataflow::add_operation(lockstep::node<operation> operation) {
   }
 }
 
-inline void ana::dataflow::add_operation(std::unique_ptr<operation> operation) {
-  m_operations.emplace_back(std::move(operation));
+template <typename DS, typename Val>
+auto ana::dataflow::_read(dataset::source<DS> &ds, const std::string &name)
+    -> lazy<read_column_t<DS, Val>> {
+  auto act = lockstep::get_node(
+      [name, &ds](dataset::processor *proc, dataset::range *part) {
+        return proc->template read<DS, Val>(std::ref(ds), *part, name);
+      },
+      this->m_processors, this->m_parts);
+  auto lzy = lazy<read_column_t<DS, Val>>(*this, act);
+  this->add_operation(std::move(act));
+  return lzy;
+}
+
+template <typename Val>
+auto ana::dataflow::_assign(Val const &val) -> lazy<ana::column::fixed<Val>> {
+  auto act = lockstep::get_node(
+      [&val](dataset::processor *proc) {
+        return proc->template assign<Val>(val);
+      },
+      this->m_processors);
+  auto lzy = lazy<column::fixed<Val>>(*this, act);
+  this->add_operation(std::move(act));
+  return lzy;
 }
 
 template <typename Def, typename... Args>
@@ -539,6 +509,19 @@ auto ana::dataflow::_define(Args &&...args) {
 template <typename Def>
 auto ana::dataflow::_define(ana::column::definition<Def> const &defn) {
   return defn._define(*this);
+}
+
+template <typename F> auto ana::dataflow::_equate(F fn) {
+  return delayed<ana::column::template evaluator_t<F>>(
+      *this,
+      lockstep::get_node(
+          [fn](dataset::processor *proc) { return proc->template equate(fn); },
+          this->m_processors));
+}
+
+template <typename Expr>
+auto ana::dataflow::_equate(ana::column::expression<Expr> const &expr) {
+  return expr._equate(*this);
 }
 
 template <typename Sel, typename F>
@@ -561,4 +544,16 @@ auto ana::dataflow::_select(lazy<selection> const &prev, F fn)
                    return proc->template select<Sel>(prev, fn);
                  },
                  this->m_processors, prev));
+}
+
+template <typename Syst, typename Val>
+void ana::dataflow::_vary(Syst &syst, const std::string &name,
+                          ana::column::constant<Val> const &cnst) {
+  syst.set_variation(name, this->define(cnst));
+}
+
+template <typename Syst, typename Expr>
+void ana::dataflow::_vary(Syst &syst, const std::string &name,
+                          ana::column::expression<Expr> const &expr) {
+  syst.set_variation(name, this->_equate(expr));
 }

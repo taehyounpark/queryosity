@@ -11,13 +11,12 @@
 #include "Column.h"
 #include "Json.h"
 
+using dataflow = ana::dataflow;
 namespace multithread = ana::multithread;
 namespace dataset = ana::dataset;
-namespace sytematic = ana::systematic;
-
-using dataflow = ana::dataflow;
 using column = ana::column;
 using counter = ana::column;
+namespace systematic = ana::systematic;
 
 std::vector<int> get_correct_result(const nlohmann::json &random_data) {
   std::vector<int> correct_result;

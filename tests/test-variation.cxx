@@ -11,9 +11,9 @@
 #include "WeightedSum.h"
 
 using dataflow = ana::dataflow;
-using column = ana::column;
-namespace dataset = ana::dataset;
 namespace multithread = ana::multithread;
+namespace dataset = ana::dataset;
+using column = ana::column;
 namespace systematic = ana::systematic;
 
 // generate random data

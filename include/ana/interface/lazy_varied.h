@@ -26,7 +26,7 @@
         varied(this->nominal().operator op_symbol(                             \
             std::forward<Arg>(b).nominal()));                                  \
     for (auto const &var_name :                                                \
-         list_all_variation_names(*this, std::forward<Arg>(b))) {              \
+         systematic::list_all_variation_names(*this, std::forward<Arg>(b))) {  \
       syst.set_variation(var_name,                                             \
                          variation(var_name).operator op_symbol(               \
                              std::forward<Arg>(b).variation(var_name)));       \
@@ -48,7 +48,7 @@
     auto syst = typename lazy<                                                 \
         typename decltype(std::declval<lazy<V>>().operator op_symbol())::      \
             operation_type>::varied(this->nominal().operator op_symbol());     \
-    for (auto const &var_name : list_all_variation_names(*this)) {             \
+    for (auto const &var_name : systematic::list_all_variation_names(*this)) { \
       syst.set_variation(var_name, variation(var_name).operator op_symbol());  \
     }                                                                          \
     return syst;                                                               \
@@ -146,7 +146,12 @@ ana::lazy<Act>::varied::varied(lazy<Act> const &nom)
 template <typename Act>
 void ana::lazy<Act>::varied::set_variation(const std::string &var_name,
                                            lazy &&var) {
-  m_var_map.insert(std::make_pair(var_name, std::move(var)));
+  lockstep::call_slots(
+      [var_name](operation *act) {
+        act->systematic_mode().set_mode(false, var_name);
+      },
+      var);
+  m_var_map.insert(std::make_pair(var_name, var));
   m_var_names.insert(var_name);
 }
 

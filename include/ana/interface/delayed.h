@@ -3,6 +3,7 @@
 #include "dataflow.h"
 #include "lazy.h"
 #include "lazy_varied.h"
+#include "systematic.h"
 #include "systematic_resolver.h"
 
 namespace ana {
@@ -168,7 +169,8 @@ protected:
     auto nom = this->m_df->evaluate_column(*this, columns.nominal()...);
     auto syst = varied_type(std::move(nom));
 
-    for (auto const &var_name : list_all_variation_names(columns...)) {
+    for (auto const &var_name :
+         systematic::list_all_variation_names(columns...)) {
       auto var =
           this->m_df->evaluate_column(*this, columns.variation(var_name)...);
       syst.set_variation(var_name, std::move(var));
@@ -200,7 +202,7 @@ protected:
       typename lazy<counter::booked_t<V>>::varied {
     using varied_type = typename lazy<counter::booked_t<V>>::varied;
     auto syst = varied_type(this->m_df->select_counter(*this, sel.nominal()));
-    for (auto const &var_name : list_all_variation_names(sel)) {
+    for (auto const &var_name : systematic::list_all_variation_names(sel)) {
       syst.set_variation(
           var_name, this->m_df->select_counter(*this, sel.variation(var_name)));
     }
@@ -230,7 +232,7 @@ protected:
     using array_of_varied_type =
         std::array<typename lazy<counter::booked_t<V>>::varied,
                    sizeof...(Nodes)>;
-    auto var_names = list_all_variation_names(sels...);
+    auto var_names = systematic::list_all_variation_names(sels...);
     auto select_counter_varied =
         [var_names, this](systematic::resolver<lazy<selection>> const &sel) {
           auto syst =
@@ -282,7 +284,8 @@ protected:
                              bool> = false>
   auto fill_counter(Nodes const &...columns) const -> varied {
     auto syst = varied(std::move(this->fill_counter(columns.nominal()...)));
-    for (auto const &var_name : list_all_variation_names(columns...)) {
+    for (auto const &var_name :
+         systematic::list_all_variation_names(columns...)) {
       syst.set_variation(var_name, std::move(this->fill_counter(
                                        columns.variation(var_name)...)));
     }
@@ -307,7 +310,7 @@ protected:
     // variations
     using varied_type = typename lazy<selection>::varied;
     auto syst = varied_type(this->nominal()._apply(columns.nominal()...));
-    auto var_names = list_all_variation_names(columns...);
+    auto var_names = systematic::list_all_variation_names(columns...);
     for (auto const &var_name : var_names) {
       syst.set_variation(var_name, this->variation(var_name)._apply(
                                        columns.variation(var_name)...));
