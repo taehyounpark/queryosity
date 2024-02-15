@@ -34,7 +34,7 @@ std::vector<int> get_analogical_result(const nlohmann::json &random_data,
   auto entry_value = ds.read(dataset::column<int>("value"));
   auto all = df.define(column::constant<bool>(true));
   auto incl = df.filter(all);
-  auto col = df.agg<Column<int>>();
+  auto col = df.agg(counter::output<Column<int>>());
   col = col.fill(entry_value);
   return incl.book(col).result();
 }

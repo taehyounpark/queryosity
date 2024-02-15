@@ -8,7 +8,7 @@
 
 namespace {
 
-class SumOfWeights : public ana::counter::output<double> {
+class SumOfWeights : public ana::counter::implementation<double> {
 
 public:
   SumOfWeights() = default;

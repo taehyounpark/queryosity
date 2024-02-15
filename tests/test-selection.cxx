@@ -10,6 +10,11 @@
 #include "SumOfWeights.h"
 
 using dataflow = ana::dataflow;
+namespace multithread = ana::multithread;
+namespace dataset = ana::dataset;
+namespace column = ana::column;
+namespace counter = ana::counter;
+namespace systematic = ana::systematic;
 
 TEST_CASE("correctness & consistency of selections") {
 
@@ -84,11 +89,13 @@ TEST_CASE("correctness & consistency of selections") {
   // auto sumw_a = cut_a.book(df.agg<SumOfWeights>());
 
   auto [sumw_a, sumw_b, sumw_c] =
-      df.agg<SumOfWeights>().book(cut_a, cut_b, cut_c);
-  auto [sumw_ab, sumw_bc] = df.agg<SumOfWeights>().book(cut_ab, cut_bc);
-  auto [sumw_none, sumw_abc] = df.agg<SumOfWeights>().book(cut_none, cut_abc);
+      df.agg(counter::output<SumOfWeights>()).book(cut_a, cut_b, cut_c);
+  auto [sumw_ab, sumw_bc] =
+      df.agg(counter::output<SumOfWeights>()).book(cut_ab, cut_bc);
+  auto [sumw_none, sumw_abc] =
+      df.agg(counter::output<SumOfWeights>()).book(cut_none, cut_abc);
 
-  auto sumw_one2 = df.agg<SumOfWeights>().book(cut_a2, cut_b2);
+  auto sumw_one2 = df.agg(counter::output<SumOfWeights>()).book(cut_a2, cut_b2);
 
   SUBCASE("basic results") {
     CHECK(sumw_a.result() == correct_sumw_a);

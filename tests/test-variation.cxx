@@ -66,7 +66,7 @@ std::vector<double> get_analogical_result(const nlohmann::json &random_data) {
 
   auto weighted = df.weight(w);
 
-  auto wsumx = df.agg<WeightedSum>().fill(x).book(weighted);
+  auto wsumx = df.agg(counter::output<WeightedSum>()).fill(x).book(weighted);
   auto wsumx_nom = wsumx.nominal().result();
   auto wsumx_xvar = wsumx["vary_x"].result();
   auto wsumx_wvar = wsumx["vary_w"].result();
