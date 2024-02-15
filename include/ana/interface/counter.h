@@ -24,15 +24,13 @@ namespace counter {
 
 class experiment;
 
-template <typename T> class output;
+template <typename T> class implementation;
 
-template <typename T> class logic;
+template <typename T> class definition;
 
 template <typename T> class booker;
 
-template <typename T> class bookkeeper;
-
-template <typename T> class summary;
+template <typename T> class output;
 
 class counter_base : public operation {
 
@@ -59,19 +57,19 @@ protected:
 };
 
 template <typename T>
-constexpr std::true_type check_implemented(const counter::output<T> &);
+constexpr std::true_type check_implemented(const counter::implementation<T> &);
 constexpr std::false_type check_implemented(...);
 
 template <typename Out, typename... Vals>
 constexpr std::true_type
-check_fillable(const typename counter::logic<Out(Vals...)> &);
+check_fillable(const typename counter::definition<Out(Vals...)> &);
 constexpr std::false_type check_fillable(...);
 
 template <typename T> struct is_booker : std::false_type {};
 template <typename T> struct is_booker<counter::booker<T>> : std::true_type {};
 
 template <typename T>
-constexpr bool has_output_v =
+constexpr bool is_implemented_v =
     decltype(check_implemented(std::declval<T>()))::value;
 
 template <typename T>

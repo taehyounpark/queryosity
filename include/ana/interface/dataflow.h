@@ -116,8 +116,11 @@ public:
   auto weight(ana::column::expression<Expr> const &expr, Cols const &...cols)
       -> lazy<selection>;
 
-  template <typename Cnt, typename... Args>
-  auto agg(Args &&...args) -> delayed<counter::booker<Cnt>>;
+  template <typename Cntr, typename... Args>
+  auto _aggregate(Args &&...args) -> delayed<counter::booker<Cntr>>;
+
+  template <typename Cntr>
+  auto agg(counter::output<Cntr> const &cntr) -> delayed<counter::booker<Cntr>>;
 
   template <typename Val, typename... Vars>
   auto vary(column::constant<Val> const &nom, Vars const &...vars);
@@ -144,13 +147,13 @@ protected:
   template <typename Eqn, typename... Cols>
   auto _apply(delayed<selection::applicator<Eqn>> const &calc,
               lazy<Cols> const &...columns) -> lazy<selection>;
-  template <typename Cnt>
-  auto select_counter(delayed<counter::booker<Cnt>> const &bkr,
-                      lazy<selection> const &sel) -> lazy<Cnt>;
-  template <typename Cnt, typename... Sels>
-  auto select_counters(delayed<counter::booker<Cnt>> const &bkr,
+  template <typename Cntr>
+  auto select_counter(delayed<counter::booker<Cntr>> const &bkr,
+                      lazy<selection> const &sel) -> lazy<Cntr>;
+  template <typename Cntr, typename... Sels>
+  auto select_counters(delayed<counter::booker<Cntr>> const &bkr,
                        lazy<Sels> const &...sels)
-      -> std::array<lazy<Cnt>, sizeof...(Sels)>;
+      -> std::array<lazy<Cntr>, sizeof...(Sels)>;
 
   template <typename Syst, typename Expr>
   void _vary(Syst &syst, const std::string &name,
@@ -194,6 +197,7 @@ template <typename T> using operation_t = typename T::nominal_type;
 
 #include "column_constant.h"
 #include "column_expression.h"
+#include "counter_output.h"
 
 #include "systematic_resolver.h"
 #include "systematic_variation.h"
@@ -354,14 +358,21 @@ auto ana::dataflow::weight(ana::column::expression<Expr> const &expr,
   return expr.template _select<selection::weight>(*this).apply(cols...);
 }
 
-template <typename Cnt, typename... Args>
-auto ana::dataflow::agg(Args &&...args) -> delayed<counter::booker<Cnt>> {
-  return delayed<counter::booker<Cnt>>(
+template <typename Cntr, typename... Args>
+auto ana::dataflow::_aggregate(Args &&...args)
+    -> delayed<counter::booker<Cntr>> {
+  return delayed<counter::booker<Cntr>>(
       *this, lockstep::get_node(
                  [&args...](dataset::processor *proc) {
-                   return proc->template agg<Cnt>(std::forward<Args>(args)...);
+                   return proc->template agg<Cntr>(std::forward<Args>(args)...);
                  },
                  this->m_processors));
+}
+
+template <typename Cntr>
+auto ana::dataflow::agg(ana::counter::output<Cntr> const &cntr)
+    -> delayed<counter::booker<Cntr>> {
+  return cntr._aggregate(*this);
 }
 
 template <typename Def, typename... Cols>
@@ -390,27 +401,27 @@ auto ana::dataflow::_apply(delayed<selection::applicator<Eqn>> const &calc,
   return lzy;
 }
 
-template <typename Cnt>
-auto ana::dataflow::select_counter(delayed<counter::booker<Cnt>> const &bkr,
-                                   lazy<selection> const &sel) -> lazy<Cnt> {
+template <typename Cntr>
+auto ana::dataflow::select_counter(delayed<counter::booker<Cntr>> const &bkr,
+                                   lazy<selection> const &sel) -> lazy<Cntr> {
   // any time a new counter is booked, means the dataflow must run: so reset
   // its status
   this->reset();
   auto act = lockstep::get_node(
-      [](dataset::processor *proc, counter::booker<Cnt> *bkr,
+      [](dataset::processor *proc, counter::booker<Cntr> *bkr,
          const selection *sel) { return proc->select_counter(*bkr, *sel); },
       this->m_processors, bkr, sel);
-  auto lzy = lazy<Cnt>(*this, act);
+  auto lzy = lazy<Cntr>(*this, act);
   this->add_operation(std::move(act));
   return lzy;
 }
 
-template <typename Cnt, typename... Sels>
-auto ana::dataflow::select_counters(delayed<counter::booker<Cnt>> const &bkr,
+template <typename Cntr, typename... Sels>
+auto ana::dataflow::select_counters(delayed<counter::booker<Cntr>> const &bkr,
                                     lazy<Sels> const &...sels)
-    -> std::array<lazy<Cnt>, sizeof...(Sels)> {
+    -> std::array<lazy<Cntr>, sizeof...(Sels)> {
 
-  return std::array<lazy<Cnt>, sizeof...(Sels)>{
+  return std::array<lazy<Cntr>, sizeof...(Sels)>{
       this->select_counter(bkr, sels)...};
 }
 

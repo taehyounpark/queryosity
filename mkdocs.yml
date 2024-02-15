@@ -40,7 +40,7 @@ nav:
       - 'dataset::player': analogical/classana_1_1dataset_1_1player.md
       - 'dataset::column': analogical/classana_1_1dataset_1_1column.md
       - 'column::definition': analogical/classana_1_1column_1_1definition_3_01_ret_07_vals_8_8_8_08_4.md
-      - 'counter::logic': analogical/classana_1_1counter_1_1logic_3_01_t_07_obs_8_8_8_08_4.md
+      - 'counter::definition': analogical/classana_1_1counter_1_1logic_3_01_t_07_obs_8_8_8_08_4.md
 
 theme:
   name: 'material'

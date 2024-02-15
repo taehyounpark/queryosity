@@ -6,7 +6,7 @@
 
 #include "ana/analogical.h"
 
-class WeightedSum : public ana::counter::logic<double(double)> {
+class WeightedSum : public ana::counter::definition<double(double)> {
 
 public:
   WeightedSum() = default;

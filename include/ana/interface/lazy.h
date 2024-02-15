@@ -173,14 +173,14 @@ public:
   template <typename Agg> auto book(Agg &&agg) const;
   template <typename... Aggs> auto book(Aggs &&...aggs) const;
 
-  template <
-      typename V = Action,
-      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
+  template <typename V = Action,
+            std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
+                false>
   auto result() const -> decltype(std::declval<V>().get_result());
 
-  template <
-      typename V = Action,
-      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
+  template <typename V = Action,
+            std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
+                false>
   auto operator->() const -> decltype(std::declval<V>().get_result()) {
     return this->result();
   }
@@ -202,9 +202,9 @@ public:
   DEFINE_LAZY_BINARY_OP(less_than_or_equal_to, <=)
 
 protected:
-  template <
-      typename V = Action,
-      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
+  template <typename V = Action,
+            std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
+                false>
   void merge_results() const;
 };
 
@@ -319,7 +319,7 @@ auto ana::lazy<Action>::book(Aggs &&...aggs) const {
 
 template <typename Action>
 template <typename V,
-          std::enable_if_t<ana::counter::template has_output_v<V>, bool>>
+          std::enable_if_t<ana::counter::template is_implemented_v<V>, bool>>
 auto ana::lazy<Action>::result() const
     -> decltype(std::declval<V>().get_result()) {
   this->m_df->analyze();
@@ -329,7 +329,7 @@ auto ana::lazy<Action>::result() const
 
 template <typename Action>
 template <typename V,
-          std::enable_if_t<ana::counter::template has_output_v<V>, bool> e>
+          std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> e>
 void ana::lazy<Action>::merge_results() const {
   auto model = this->get_model();
   if (!model->is_merged()) {

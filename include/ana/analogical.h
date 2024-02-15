@@ -8,8 +8,8 @@
 
 #include "interface/column_definition.h"
 
-#include "interface/counter_logic.h"
-#include "interface/counter_output.h"
+#include "interface/counter_definition.h"
+#include "interface/counter_implementation.h"
 
 #include "interface/dataflow.h"
 

@@ -17,7 +17,7 @@ public:
     return m_df->_read<DS, Val>(*m_ds, name);
   }
 
-  template <typename Val> auto read(dataset::column<Val> const &col);
+  template <typename Val> decltype(auto) read(dataset::column<Val> const &col);
 
   template <typename... Vals> auto read(dataset::columns<Vals...> const &cols);
 
@@ -47,7 +47,7 @@ ana::dataset::opened<DS>::opened(ana::dataflow &df, DS &ds)
 
 template <typename DS>
 template <typename Val>
-auto ana::dataset::opened<DS>::read(dataset::column<Val> const &col) {
+decltype(auto) ana::dataset::opened<DS>::read(dataset::column<Val> const &col) {
   return col.template _read(*this);
 }
 

@@ -14,10 +14,6 @@ template <typename T> class counter::booker {
 public:
   using counter_type = T;
 
-  using bkpr_and_cnts_type =
-      typename std::pair<std::unique_ptr<bookkeeper<T>>,
-                         std::vector<std::unique_ptr<T>>>;
-
 public:
   template <typename... Args> booker(Args... args);
   ~booker() = default;
@@ -86,35 +82,5 @@ auto ana::counter::booker<T>::select_counter(const selection &sel) const
   }
   // book cnt at the selection
   cnt->set_selection(sel);
-  // return
   return cnt;
 }
-
-// template <typename T>
-// template <typename... Sels>
-// auto ana::counter::booker<T>::select_counters(const Sels
-// &...selections)
-//     const -> std::array<std::unique_ptr<T>, sizeof...(Sels)> {
-
-//   return std::array<std::unique_ptr<T>, sizeof...(Sels)>{
-//       this->select_counter(sels)...};
-
-/*
-// make bookkeeper remember selections and gather counters into vector.
-auto counter_bookkeeper = std::make_unique<bookkeeper<T>>();
-std::vector<std::unique_ptr<T>> booked_counters;
-(std::invoke(
-   [this, bkpr = counter_bookkeeper.get(),
-    &cntr_list = booked_counters](const selection &sel) {
-     auto cntr = this->select_counter(sel);
-     bkpr->bookkeep(*cntr, sel);
-     cntr_list.emplace_back(std::move(cntr));
-   },
-   selections),
-...);
-
-// return a new booker with the selections added
-return std::make_pair(std::move(counter_bookkeeper),
-                    std::move(booked_counters));
-                    */
-// }

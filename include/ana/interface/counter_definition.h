@@ -1,7 +1,7 @@
 #pragma once
 
 #include "counter.h"
-#include "counter_output.h"
+#include "counter_implementation.h"
 
 namespace ana {
 
@@ -10,14 +10,14 @@ namespace ana {
  * @tparam Obs... Input column data types.
  */
 template <typename T, typename... Obs>
-class counter::logic<T(Obs...)> : public counter::output<T> {
+class counter::definition<T(Obs...)> : public counter::implementation<T> {
 
 public:
   using vartup_type = std::tuple<ana::variable<Obs>...>;
 
 public:
-  logic() = default;
-  virtual ~logic() = default;
+  definition() = default;
+  virtual ~definition() = default;
 
   /**
    * @brief Perform the counting operation for an entry.
@@ -43,14 +43,15 @@ protected:
 
 template <typename T, typename... Obs>
 template <typename... Vals>
-void ana::counter::logic<T(Obs...)>::enter_columns(term<Vals> const &...cols) {
+void ana::counter::definition<T(Obs...)>::enter_columns(
+    term<Vals> const &...cols) {
   static_assert(sizeof...(Obs) == sizeof...(Vals),
                 "dimension mis-match between filled variables & columns.");
   m_fills.emplace_back(cols...);
 }
 
 template <typename T, typename... Obs>
-void ana::counter::logic<T(Obs...)>::count(double w) {
+void ana::counter::definition<T(Obs...)>::count(double w) {
   for (unsigned int ifill = 0; ifill < m_fills.size(); ++ifill) {
     std::apply(
         [this, w](const variable<Obs> &...obs) { this->fill(obs..., w); },

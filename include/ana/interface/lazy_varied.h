@@ -108,9 +108,9 @@ public:
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto book(Aggs &&...aggs);
 
-  template <
-      typename V = Act,
-      std::enable_if_t<ana::counter::template has_output_v<V>, bool> = false>
+  template <typename V = Act,
+            std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
+                false>
   auto operator[](const std::string &var_name) const -> lazy<V>;
 
   DECLARE_LAZY_VARIED_UNARY_OP(-)
@@ -270,7 +270,7 @@ auto ana::lazy<Act>::varied::book(Aggs &&...aggs) {
 
 template <typename Act>
 template <typename V,
-          std::enable_if_t<ana::counter::template has_output_v<V>, bool>>
+          std::enable_if_t<ana::counter::template is_implemented_v<V>, bool>>
 auto ana::lazy<Act>::varied::operator[](const std::string &var_name) const
     -> lazy<V> {
   if (!this->has_variation(var_name)) {

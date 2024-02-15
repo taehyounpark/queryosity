@@ -73,12 +73,4 @@ auto ana::counter::experiment::select_counters(booker<Cnt> const &bkr,
 
   return std::array<std::unique_ptr<Cnt>, sizeof...(Sels)>{
       this->select_counter(bkr, sels)...};
-  // get a booker that has all the selections added
-  // auto bkpr_and_cntrs = bkr.select_counters(sels...);
-
-  // for (auto const &cntr : bkpr_and_cntrs.second) {
-  //   this->add_counter(*cntr);
-  // }
-
-  // return std::move(bkpr_and_cntrs);
 }
