@@ -21,12 +21,8 @@ public:
   std::unique_ptr<booker<Cnt>> agg(Args &&...args);
 
   template <typename Cnt>
-  auto select_counter(booker<Cnt> const &bkr, const selection &sel)
+  auto book(booker<Cnt> const &bkr, const selection &sel)
       -> std::unique_ptr<Cnt>;
-
-  template <typename Cnt, typename... Sels>
-  auto select_counters(booker<Cnt> const &bkr, Sels const &...sels)
-      -> std::array<std::unique_ptr<Cnt>, sizeof...(Sels)>;
 
   void clear_counters();
 
@@ -57,20 +53,11 @@ ana::counter::experiment::agg(Args &&...args) {
 }
 
 template <typename Cnt>
-auto ana::counter::experiment::select_counter(booker<Cnt> const &bkr,
-                                              const selection &sel)
+auto ana::counter::experiment::book(booker<Cnt> const &bkr,
+                                    const selection &sel)
     -> std::unique_ptr<Cnt> {
-  auto cnt = bkr.select_counter(sel);
+  auto cnt = bkr.set_selection(sel);
   cnt->apply_scale(m_scale);
   this->add_counter(*cnt);
   return cnt;
-}
-
-template <typename Cnt, typename... Sels>
-auto ana::counter::experiment::select_counters(booker<Cnt> const &bkr,
-                                               Sels const &...sels)
-    -> std::array<std::unique_ptr<Cnt>, sizeof...(Sels)> {
-
-  return std::array<std::unique_ptr<Cnt>, sizeof...(Sels)>{
-      this->select_counter(bkr, sels)...};
 }

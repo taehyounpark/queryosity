@@ -206,18 +206,16 @@ auto ana::delayed<Bld>::varied::book(Nodes const &...selections)
   using array_of_varied_type =
       std::array<typename lazy<counter::booked_t<V>>::varied, sizeof...(Nodes)>;
   auto var_names = systematic::list_all_variation_names(*this, selections...);
-  auto select_counter_varied =
-      [var_names, this](systematic::resolver<lazy<selection>> const &sel) {
-        auto syst = varied_type(
-            this->m_df->select_counter(this->nominal(), sel.nominal()));
-        for (auto const &var_name : var_names) {
-          syst.set_variation(
-              var_name, this->m_df->select_counter(this->variation(var_name),
-                                                   sel.variation(var_name)));
-        }
-        return syst;
-      };
-  return array_of_varied_type{select_counter_varied(selections)...};
+  auto _book_varied = [var_names,
+                       this](systematic::resolver<lazy<selection>> const &sel) {
+    auto syst = varied_type(this->m_df->_book(this->nominal(), sel.nominal()));
+    for (auto const &var_name : var_names) {
+      syst.set_variation(var_name, this->m_df->_book(this->variation(var_name),
+                                                     sel.variation(var_name)));
+    }
+    return syst;
+  };
+  return array_of_varied_type{_book_varied(selections)...};
 }
 
 template <typename Bld>

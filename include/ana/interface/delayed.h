@@ -116,12 +116,12 @@ public:
    * @return The counter booked at the selection.
    */
   template <typename Node> auto book(Node &&selection) const {
-    return this->select_counter(std::forward<Node>(selection));
+    return this->_book(std::forward<Node>(selection));
   }
 
   template <typename... Nodes> auto book(Nodes &&...nodes) const {
     static_assert(counter::template is_booker_v<Bkr>, "not a counter (booker)");
-    return this->select_counters(std::forward<Nodes>(nodes)...);
+    return this->_book(std::forward<Nodes>(nodes)...);
   }
 
   /**
@@ -186,9 +186,9 @@ protected:
             std::enable_if_t<ana::counter::template is_booker_v<V> &&
                                  ana::is_nominal_v<Node>,
                              bool> = false>
-  auto select_counter(Node const &sel) const -> lazy<counter::booked_t<V>> {
+  auto _book(Node const &sel) const -> lazy<counter::booked_t<V>> {
     // nominal
-    return this->m_df->select_counter(*this, sel);
+    return this->m_df->_book(*this, sel);
   }
 
   /**
@@ -198,13 +198,13 @@ protected:
             std::enable_if_t<ana::counter::template is_booker_v<V> &&
                                  ana::is_varied_v<Node>,
                              bool> = false>
-  auto select_counter(Node const &sel) const ->
+  auto _book(Node const &sel) const ->
       typename lazy<counter::booked_t<V>>::varied {
     using varied_type = typename lazy<counter::booked_t<V>>::varied;
-    auto syst = varied_type(this->m_df->select_counter(*this, sel.nominal()));
+    auto syst = varied_type(this->m_df->_book(*this, sel.nominal()));
     for (auto const &var_name : systematic::list_all_variation_names(sel)) {
-      syst.set_variation(
-          var_name, this->m_df->select_counter(*this, sel.variation(var_name)));
+      syst.set_variation(var_name,
+                         this->m_df->_book(*this, sel.variation(var_name)));
     }
     return syst;
   }
@@ -213,18 +213,18 @@ protected:
             std::enable_if_t<ana::counter::template is_booker_v<V> &&
                                  ana::has_no_variation_v<Nodes...>,
                              bool> = false>
-  auto select_counters(Nodes const &...sels) const
+  auto _book(Nodes const &...sels) const
       -> std::array<lazy<counter::booked_t<V>>, sizeof...(Nodes)> {
     // nominal
     return std::array<lazy<counter::booked_t<V>>, sizeof...(Nodes)>{
-        this->m_df->select_counter(*this, sels)...};
+        this->m_df->_book(*this, sels)...};
   }
 
   template <typename... Nodes, typename V = Bkr,
             std::enable_if_t<ana::counter::template is_booker_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
-  auto select_counters(Nodes const &...sels) const
+  auto _book(Nodes const &...sels) const
       -> std::array<typename lazy<counter::booked_t<V>>::varied,
                     sizeof...(Nodes)> {
     // variations
@@ -233,17 +233,16 @@ protected:
         std::array<typename lazy<counter::booked_t<V>>::varied,
                    sizeof...(Nodes)>;
     auto var_names = systematic::list_all_variation_names(sels...);
-    auto select_counter_varied =
-        [var_names, this](systematic::resolver<lazy<selection>> const &sel) {
-          auto syst =
-              varied_type(this->m_df->select_counter(*this, sel.nominal()));
-          for (auto const &var_name : var_names) {
-            syst.set_variation(var_name, this->m_df->select_counter(
-                                             *this, sel.variation(var_name)));
-          }
-          return syst;
-        };
-    return array_of_varied_type{select_counter_varied(sels)...};
+    auto _book_varied = [var_names, this](
+                            systematic::resolver<lazy<selection>> const &sel) {
+      auto syst = varied_type(this->m_df->_book(*this, sel.nominal()));
+      for (auto const &var_name : var_names) {
+        syst.set_variation(var_name,
+                           this->m_df->_book(*this, sel.variation(var_name)));
+      }
+      return syst;
+    };
+    return array_of_varied_type{_book_varied(sels)...};
   }
 
   template <typename... Args, typename V = Bkr,

@@ -25,12 +25,7 @@ public:
   template <typename... Vals>
   auto book_fill(term<Vals> const &...cols) const -> std::unique_ptr<booker<T>>;
 
-  auto select_counter(const selection &sel) const -> std::unique_ptr<T>;
-
-  template <typename... Sels>
-  auto select_counters(Sels const &...selections) const
-      -> std::array<std::unique_ptr<T>, sizeof...(Sels)>;
-  // -> bkpr_and_cnts_type;
+  auto set_selection(const selection &sel) const -> std::unique_ptr<T>;
 
 protected:
   std::unique_ptr<T> make_counter();
@@ -72,7 +67,7 @@ void ana::counter::booker<T>::fill_counter(term<Vals> const &...columns) {
 }
 
 template <typename T>
-auto ana::counter::booker<T>::select_counter(const selection &sel) const
+auto ana::counter::booker<T>::set_selection(const selection &sel) const
     -> std::unique_ptr<T> {
   // call constructor
   auto cnt = m_make_unique_counter();
