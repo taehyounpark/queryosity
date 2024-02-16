@@ -87,13 +87,16 @@ public:
   template <typename F> auto _equate(F fn);
   template <typename Expr> auto _equate(column::expression<Expr> const &expr);
 
-  template <typename Val> auto define(column::constant<Val> const &cnst);
+  template <typename Val>
+  auto define(column::constant<Val> const &cnst) -> lazy<column::fixed<Val>>;
 
   template <typename Def, typename... Cols>
-  auto define(column::definition<Def> const &defn, Cols const &...cols);
+  auto define(column::definition<Def> const &defn, Cols const &...cols)
+      -> lazy<Def>;
 
   template <typename Expr, typename... Cols>
-  auto define(column::expression<Expr> const &expr, Cols const &...cols);
+  auto define(column::expression<Expr> const &expr, Cols const &...cols)
+      -> lazy<column::equation_t<ana::column::expression<Expr>>>;
 
   template <typename Sel, typename F>
   auto _select(F fn) -> delayed<selection::template custom_applicator_t<F>>;
@@ -286,19 +289,21 @@ auto ana::dataflow::open(ana::dataset::input<DS> &&input)
 }
 
 template <typename Val>
-auto ana::dataflow::define(ana::column::constant<Val> const &cnst) {
+auto ana::dataflow::define(ana::column::constant<Val> const &cnst)
+    -> lazy<column::fixed<Val>> {
   return cnst._assign(*this);
 }
 
 template <typename Def, typename... Cols>
 auto ana::dataflow::define(ana::column::definition<Def> const &defn,
-                           Cols const &...cols) {
+                           Cols const &...cols) -> lazy<Def> {
   return this->_define(defn).template evaluate(cols...);
 }
 
 template <typename Expr, typename... Cols>
 auto ana::dataflow::define(ana::column::expression<Expr> const &expr,
-                           Cols const &...cols) {
+                           Cols const &...cols)
+    -> lazy<column::equation_t<ana::column::expression<Expr>>> {
   return this->_equate(expr).template evaluate(cols...);
 }
 

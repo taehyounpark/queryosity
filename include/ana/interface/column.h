@@ -88,6 +88,11 @@ struct equation_traits<std::function<Ret(Args...)>> {
       column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
 };
 
+template <typename Expr> struct equation_traits<expression<Expr>> {
+  using function_type = typename expression<Expr>::function_type;
+  using equation_type = typename equation_traits<function_type>::equation_type;
+};
+
 template <typename F>
 using equation_t = typename equation_traits<F>::equation_type;
 
