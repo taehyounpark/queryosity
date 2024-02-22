@@ -6,8 +6,8 @@
 
 #include "ana/analogical.h"
 
-#include "Json.h"
-#include "SumOfWeights.h"
+#include "ana/json.h"
+#include "ana/sumw.h"
 
 using dataflow = ana::dataflow;
 namespace multithread = ana::multithread;
@@ -58,7 +58,7 @@ TEST_CASE("correctness & consistency of selections") {
   // compute answer with analogical
   dataflow df;
 
-  auto ds = df.open(ana::dataset::input<Json>(random_data));
+  auto ds = df.open(ana::dataset::input<ana::json>(random_data));
 
   auto [cat, w] =
       ds.read(ana::dataset::columns<std::string, unsigned int>("c", "w"));
@@ -85,17 +85,17 @@ TEST_CASE("correctness & consistency of selections") {
   auto cut_a2 = weighted.filter(cut_ab && cut_a);
   auto cut_b2 = weighted.filter(cut_ab && cut_b);
 
-  // auto sumw_a = df.agg<SumOfWeights>().at(cut_a);
-  // auto sumw_a = cut_a.book(df.agg<SumOfWeights>());
+  // auto sumw_a = df.agg<ana::sumw>().at(cut_a);
+  // auto sumw_a = cut_a.book(df.agg<ana::sumw>());
 
   auto [sumw_a, sumw_b, sumw_c] =
-      df.agg(counter::output<SumOfWeights>()).book(cut_a, cut_b, cut_c);
+      df.agg(counter::output<ana::sumw>()).book(cut_a, cut_b, cut_c);
   auto [sumw_ab, sumw_bc] =
-      df.agg(counter::output<SumOfWeights>()).book(cut_ab, cut_bc);
+      df.agg(counter::output<ana::sumw>()).book(cut_ab, cut_bc);
   auto [sumw_none, sumw_abc] =
-      df.agg(counter::output<SumOfWeights>()).book(cut_none, cut_abc);
+      df.agg(counter::output<ana::sumw>()).book(cut_none, cut_abc);
 
-  auto sumw_one2 = df.agg(counter::output<SumOfWeights>()).book(cut_a2, cut_b2);
+  auto sumw_one2 = df.agg(counter::output<ana::sumw>()).book(cut_a2, cut_b2);
 
   SUBCASE("basic results") {
     CHECK(sumw_a.result() == correct_sumw_a);

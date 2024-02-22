@@ -7,8 +7,8 @@
 
 #include "ana/analogical.h"
 
-#include "Json.h"
-#include "WeightedSum.h"
+#include "ana/json.h"
+#include "ana/wsum.h"
 
 using dataflow = ana::dataflow;
 namespace multithread = ana::multithread;
@@ -57,7 +57,7 @@ std::vector<double> get_correct_result(const nlohmann::json &random_data) {
 
 std::vector<double> get_analogical_result(const nlohmann::json &random_data) {
   ana::dataflow df;
-  auto ds = df.open(dataset::input<Json>(random_data));
+  auto ds = df.open(dataset::input<ana::json>(random_data));
 
   auto x = ds.vary(dataset::column<double>("x_nom"), {"vary_x", "x_var"});
   auto w = ds.vary(dataset::column<unsigned int>("w_nom"), {"vary_w", "w_var"});
@@ -66,7 +66,7 @@ std::vector<double> get_analogical_result(const nlohmann::json &random_data) {
 
   auto weighted = df.weight(w);
 
-  auto wsumx = df.agg(counter::output<WeightedSum>()).fill(x).book(weighted);
+  auto wsumx = df.agg(counter::output<ana::wsum>()).fill(x).book(weighted);
   auto wsumx_nom = wsumx.nominal().result();
   auto wsumx_xvar = wsumx["vary_x"].result();
   auto wsumx_wvar = wsumx["vary_w"].result();

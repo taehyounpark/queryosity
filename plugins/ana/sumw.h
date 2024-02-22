@@ -6,13 +6,13 @@
 
 #include "ana/analogical.h"
 
-namespace {
+namespace ana {
 
-class SumOfWeights : public ana::counter::implementation<double> {
+class sumw : public ana::counter::implementation<double> {
 
 public:
-  SumOfWeights() = default;
-  ~SumOfWeights() = default;
+  sumw() = default;
+  ~sumw() = default;
 
   virtual void count(double w) override;
   virtual double result() const override;
@@ -22,12 +22,12 @@ protected:
   double m_result = 0.0;
 };
 
-} // namespace
+} // namespace ana
 
-void SumOfWeights::count(double w) { m_result += w; }
+void ana::sumw::count(double w) { m_result += w; }
 
-double SumOfWeights::result() const { return m_result; }
+double ana::sumw::result() const { return m_result; }
 
-double SumOfWeights::merge(std::vector<double> const &results) const {
+double ana::sumw::merge(std::vector<double> const &results) const {
   return std::accumulate(results.begin(), results.end(), 0.0);
 }

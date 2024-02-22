@@ -3,8 +3,7 @@ find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-file(GLOB ANALOGICAL_PLUGINS_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
-
+file(GLOB ANALOGICAL_PLUGINS_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/ana/*.h)
 
 add_library(
   analogical_plugins
@@ -12,9 +11,7 @@ add_library(
   ${ANALOGICAL_PLUGINS_HEADERS}
 )
 set_property(TARGET analogical_plugins PROPERTY EXPORT_NAME plugins)
-add_library(
-  ana::plugins ALIAS analogical_plugins
-)
+add_library(ana::plugins ALIAS analogical_plugins)
 
 target_compile_features(analogical_plugins INTERFACE "cxx_std_${ANALOGICAL_CXX_STANDARD}" )
 

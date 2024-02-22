@@ -1,10 +1,12 @@
+#include <fstream>
+
 #include <matplot/matplot.h>
 #include <nlohmann/json.hpp>
 
 #include "ana/analogical.h"
 
-#include "ana/Histogram.h"
-#include "ana/Json.h"
+#include "ana/hist.h"
+#include "ana/json.h"
 
 using json = nlohmann::json;
 
@@ -31,22 +33,23 @@ template <typename T> void plot_histogram(const T &hist) {
 
 int main() {
 
-  std::ifstream data_file("data/data.json");
-  auto data = json::parse(data_file);
+  std::ifstream json_file("data/data.json");
 
   ana::dataflow df;
-  auto ds = ds.open<Json>(data);
+  auto ds = df.open(ana::dataset::input<ana::json>(json_file));
 
-  auto x = ds.vary(ds.read<double>("x_nom"),
+  auto x = ds.vary(ana::dataset::column<double>("x_nom"),
                    systematic::variation("scale", "x_scale"),
                    systematic::variation("smear", "x_smear"));
-  auto w =
-      df.vary(ds.read<double>("w_nom"), systematic::variation("toy", "w_toy"));
+  auto w = ds.vary(ana::dataset::column<double>("w_nom"),
+                   systematic::variation("toy", "w_toy"));
 
-  auto weight = df.weight("weight")(w);
+  auto weighted = df.weight(w);
 
-  auto hx =
-      df.agg<Histogram<float>>(LinearAxis(50, 120, 130)).fill(x).book(weight);
+  auto hx = df.agg(ana::counter::output<ana::hist::hist<float>>(
+                       ana::hist::axis::regular(50, 120, 130)))
+                .fill(x)
+                .book(weighted);
 
   auto hx_nom = hx.nominal().result();
   auto hx_scale = hx["scale"].result();
@@ -62,7 +65,7 @@ int main() {
   plot_histogram(*hx_smear);
   plot_histogram(*hx_toy);
 
-  mp::save("example-histograms.pdf");
+  mp::save("histograms.pdf");
 
   return 0;
 }

@@ -8,8 +8,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include "Column.h"
-#include "Json.h"
+#include "ana/col.h"
+#include "ana/json.h"
 
 using dataflow = ana::dataflow;
 namespace multithread = ana::multithread;
@@ -30,11 +30,11 @@ std::vector<int> get_correct_result(const nlohmann::json &random_data) {
 std::vector<int> get_analogical_result(const nlohmann::json &random_data,
                                        int ncores) {
   dataflow df(multithread::enable(ncores));
-  auto ds = df.open(dataset::input<Json>(random_data));
+  auto ds = df.open(dataset::input<ana::json>(random_data));
   auto entry_value = ds.read(dataset::column<int>("value"));
   auto all = df.define(column::constant<bool>(true));
   auto incl = df.filter(all);
-  auto col = df.agg(counter::output<Column<int>>());
+  auto col = df.agg(counter::output<ana::col<int>>());
   col = col.fill(entry_value);
   return incl.book(col).result();
 }
