@@ -25,7 +25,7 @@ jobs:
       CXX: g++-${{ matrix.gcc }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Install nlohmann::json & boost::histogram
         run: |
           sudo apt-get -y update
