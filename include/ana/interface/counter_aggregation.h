@@ -6,22 +6,22 @@ namespace ana {
 
 /**
  * @brief Minimal counter with an output result.
- * @details This ABC should be used for operations that do not require any input
+ * @details This ABC should be used for actions that do not require any input
  * columns.
  */
-template <typename T> class counter::implementation : public counter_base {
+template <typename T> class counter::aggregation : public counter_base {
 
 public:
   using result_type = T;
 
 public:
-  implementation();
-  virtual ~implementation() = default;
+  aggregation();
+  virtual ~aggregation() = default;
 
   /**
    * @brief Create and return the result of the counter.
    * @return The result.
-   * @detail The implementation from each concurrent slot, which is returned by
+   * @detail The aggregation from each concurrent slot, which is returned by
    * value, are collected into a list to be merged into one.
    */
   virtual T result() const = 0;
@@ -41,7 +41,7 @@ public:
    */
   using counter_base::count;
 
-  virtual void finalize(const dataset::range &) final override;
+  virtual void finalize(unsigned int) final override;
 
   T const &get_result() const;
 
@@ -61,25 +61,24 @@ protected:
 #include "selection.h"
 
 template <typename T>
-ana::counter::implementation<T>::implementation() : m_merged(false) {}
+ana::counter::aggregation<T>::aggregation() : m_merged(false) {}
 
-template <typename T> bool ana::counter::implementation<T>::is_merged() const {
+template <typename T> bool ana::counter::aggregation<T>::is_merged() const {
   return m_merged;
 }
 
 template <typename T>
-void ana::counter::implementation<T>::finalize(const ana::dataset::range &) {
+void ana::counter::aggregation<T>::finalize(unsigned int) {
   m_result = this->result();
 }
 
 template <typename T>
-T const &ana::counter::implementation<T>::get_result() const {
+T const &ana::counter::aggregation<T>::get_result() const {
   return m_result;
 }
 
 template <typename T>
-void ana::counter::implementation<T>::set_result(
-    std::vector<T> const &results) {
+void ana::counter::aggregation<T>::set_result(std::vector<T> const &results) {
   if (!results.size()) {
     throw std::logic_error("merging requires at least one result");
   }

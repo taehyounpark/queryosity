@@ -14,8 +14,6 @@
 #include "dataset.h"
 #include "dataset_partition.h"
 #include "dataset_player.h"
-#include "dataset_processor.h"
-#include "dataset_source.h"
 #include "multithread.h"
 #include "selection.h"
 #include "systematic.h"
@@ -24,7 +22,7 @@ namespace ana {
 
 template <typename T> class lazy;
 
-template <typename U> class delayed;
+template <typename U> class todo;
 
 class dataflow {
 
@@ -32,7 +30,10 @@ public:
   template <typename> friend class dataset::opened;
 
   template <typename> friend class lazy;
-  template <typename> friend class delayed;
+  template <typename> friend class todo;
+
+public:
+  class node;
 
 public:
   /**
@@ -95,7 +96,7 @@ public:
       -> lazy<selection>;
 
   template <typename Cntr>
-  auto agg(counter::output<Cntr> const &cntr) -> delayed<counter::booker<Cntr>>;
+  auto agg(counter::output<Cntr> const &cntr) -> todo<counter::booker<Cntr>>;
 
   template <typename Val, typename... Vars>
   auto vary(column::constant<Val> const &nom, Vars const &...vars);
@@ -118,14 +119,14 @@ public:
   template <typename Expr> auto _equate(column::expression<Expr> const &expr);
 
   template <typename Sel, typename F>
-  auto _select(F fn) -> delayed<selection::template custom_applicator_t<F>>;
+  auto _select(F fn) -> todo<selection::template custom_applicator_t<F>>;
 
   template <typename Sel, typename F>
   auto _select(lazy<selection> const &prev, F fn)
-      -> delayed<selection::template custom_applicator_t<F>>;
+      -> todo<selection::template custom_applicator_t<F>>;
 
   template <typename Cntr, typename... Args>
-  auto _aggregate(Args &&...args) -> delayed<counter::booker<Cntr>>;
+  auto _aggregate(Args &&...args) -> todo<counter::booker<Cntr>>;
 
 protected:
   template <typename Kwd> void accept_kwarg(Kwd const &kwarg);
@@ -134,23 +135,22 @@ protected:
   void reset();
 
   template <typename DS, typename Val>
-  auto _read(dataset::source<DS> &ds, const std::string &name)
+  auto _read(dataset::reader<DS> &ds, const std::string &name)
       -> lazy<read_column_t<DS, Val>>;
 
   template <typename Def, typename... Cols>
-  auto evaluate_column(delayed<column::evaluator<Def>> const &calc,
+  auto evaluate_column(todo<column::evaluator<Def>> const &calc,
                        lazy<Cols> const &...columns) -> lazy<Def>;
 
   template <typename Eqn, typename... Cols>
-  auto _apply(delayed<selection::applicator<Eqn>> const &calc,
+  auto _apply(todo<selection::applicator<Eqn>> const &calc,
               lazy<Cols> const &...columns) -> lazy<selection>;
 
   template <typename Cntr>
-  auto _book(delayed<counter::booker<Cntr>> const &bkr,
-             lazy<selection> const &sel) -> lazy<Cntr>;
+  auto _book(todo<counter::booker<Cntr>> const &bkr, lazy<selection> const &sel)
+      -> lazy<Cntr>;
   template <typename Cntr, typename... Sels>
-  auto _book(delayed<counter::booker<Cntr>> const &bkr,
-             lazy<Sels> const &...sels)
+  auto _book(todo<counter::booker<Cntr>> const &bkr, lazy<Sels> const &...sels)
       -> std::array<lazy<Cntr>, sizeof...(Sels)>;
 
   template <typename Syst, typename Val>
@@ -161,37 +161,46 @@ protected:
   void _vary(Syst &syst, const std::string &name,
              column::expression<Expr> const &expr);
 
-  void add_operation(lockstep::node<operation> act);
+  template <typename Action,
+            std::enable_if_t<std::is_base_of_v<action, Action>, bool> = false>
+  void add_action(std::vector<std::unique_ptr<Action>> slots);
 
 protected:
   multithread::core m_mt;
   long long m_nrows;
   dataset::weight m_weight;
 
-  dataset::partition m_partition;
-  double m_norm;
+  std::unique_ptr<dataset::source> m_ds;
+  std::vector<unsigned int> m_dslots;
+  std::vector<std::unique_ptr<dataset::player>> m_dplyrs_owned;
+  std::vector<dataset::player *> m_dplyrs;
 
-  std::unique_ptr<dataset::inifin> m_ds;
-
-  lockstep::node<dataset::range> m_parts;
-  lockstep::node<dataset::player> m_players;
-  lockstep::node<dataset::processor> m_processors;
-
-  std::vector<std::unique_ptr<operation>> m_operations;
+  std::vector<std::unique_ptr<action>> m_actions;
   bool m_analyzed;
 };
 
-template <typename T> using operation_t = typename T::nominal_type;
+class dataflow::node {
+
+public:
+  friend class dataflow;
+
+public:
+  node(dataflow &df) : m_df(&df) {}
+  virtual ~node() = default;
+
+protected:
+  dataflow *m_df;
+};
 
 } // namespace ana
 
 #include "dataset_input.h"
 #include "dataset_opened.h"
-#include "dataset_range.h"
+#include "dataset_player.h"
 
-#include "delayed.h"
 #include "lazy.h"
 #include "lazy_varied.h"
+#include "todo.h"
 
 #include "column_constant.h"
 #include "column_expression.h"
@@ -220,11 +229,11 @@ template <typename Kwd> void ana::dataflow::accept_kwarg(Kwd const &kwarg) {
   constexpr bool is_weight = std::is_same_v<Kwd, dataset::weight>;
   constexpr bool is_nrows = std::is_same_v<Kwd, dataset::limit>;
   if constexpr (is_mt) {
-    this->m_mt = kwarg;
+    m_mt = kwarg;
   } else if (is_weight) {
-    this->m_weight = kwarg;
+    m_weight = kwarg;
   } else if (is_nrows) {
-    this->m_nrows = kwarg.nrows;
+    m_nrows = kwarg.nrows;
   } else {
     static_assert(is_mt || is_weight || is_nrows,
                   "unrecognized keyword argument");
@@ -242,45 +251,33 @@ ana::dataflow::dataflow(Kwd1 kwarg1, Kwd2 kwarg2, Kwd3 kwarg3) : dataflow() {
 }
 
 template <typename DS>
-auto ana::dataflow::open(ana::dataset::input<DS> &&input)
+auto ana::dataflow::open(ana::dataset::input<DS> &&in)
     -> ana::dataset::opened<DS> {
 
   if (m_ds) {
-    std::runtime_error("opening multiple datasets is not yet supported.");
+    throw std::runtime_error(
+        "opening multiple datasets is not (yet) supported.");
+  }
+  // !!! must get raw address before moving the unique_ptr
+  auto ds_rdr = in.ds.get();
+  m_ds = std::move(in.ds);
+
+  auto nslots = m_mt.concurrency();
+  m_ds->parallelize(nslots);
+  m_dplyrs_owned.resize(nslots);
+  m_dplyrs.resize(nslots);
+  for (unsigned int islot = 0; islot < nslots; ++islot) {
+    m_dplyrs_owned[islot] =
+        std::make_unique<dataset::player>(*ds_rdr, m_weight);
+    m_dplyrs[islot] = m_dplyrs_owned[islot].get();
+  }
+  // same for slot numbers
+  m_dslots = std::vector<unsigned int>(nslots);
+  for (unsigned int i = 0; i < m_dslots.size(); ++i) {
+    m_dslots[i] = i;
   }
 
-  auto ds = input.ds.get();
-  m_ds = std::move(input.ds);
-
-  // 1. parallelize the dataset partition
-  this->m_partition = ds->parallelize();
-  // 2. truncate entries to limit
-  this->m_partition.truncate(this->m_nrows);
-  // 3. merge parts to concurrency limit
-  this->m_partition.merge(this->m_mt.concurrency);
-  // 4. normalize scale
-  this->m_norm = ds->normalize();
-
-  // put partition into slots
-  this->m_parts.clear_slots();
-  // model reprents whole dataset
-  this->m_parts.set_model(
-      std::make_unique<dataset::range>(this->m_partition.total()));
-  // each slot takes a part
-  for (unsigned int ipart = 0; ipart < m_partition.size(); ++ipart) {
-    this->m_parts.add_slot(
-        std::make_unique<dataset::range>(this->m_partition[ipart]));
-  }
-
-  // open dataset reader and processor for each thread
-  // slot for each partition range
-  this->m_players = lockstep::get_node(
-      [ds](dataset::range *part) { return ds->open_player(*part); },
-      this->m_parts);
-  this->m_processors = lockstep::node<dataset::processor>(
-      m_parts.concurrency(), this->m_weight / this->m_norm);
-
-  return dataset::opened<DS>(*this, *ds);
+  return dataset::opened<DS>(*this, *ds_rdr);
 }
 
 template <typename Val>
@@ -359,91 +356,101 @@ auto ana::dataflow::weight(ana::column::expression<Expr> const &expr,
 }
 
 template <typename Cntr, typename... Args>
-auto ana::dataflow::_aggregate(Args &&...args)
-    -> delayed<counter::booker<Cntr>> {
-  return delayed<counter::booker<Cntr>>(
-      *this, lockstep::get_node(
-                 [&args...](dataset::processor *proc) {
-                   return proc->template agg<Cntr>(std::forward<Args>(args)...);
+auto ana::dataflow::_aggregate(Args &&...args) -> todo<counter::booker<Cntr>> {
+  return todo<counter::booker<Cntr>>(
+      *this, concurrent::invoke(
+                 [&args...](dataset::player *plyr) {
+                   return plyr->template agg<Cntr>(std::forward<Args>(args)...);
                  },
-                 this->m_processors));
+                 m_dplyrs));
 }
 
 template <typename Cntr>
 auto ana::dataflow::agg(ana::counter::output<Cntr> const &cntr)
-    -> delayed<counter::booker<Cntr>> {
+    -> todo<counter::booker<Cntr>> {
   return cntr._aggregate(*this);
 }
 
 template <typename Def, typename... Cols>
-auto ana::dataflow::evaluate_column(delayed<column::evaluator<Def>> const &calc,
+auto ana::dataflow::evaluate_column(todo<column::evaluator<Def>> const &calc,
                                     lazy<Cols> const &...columns) -> lazy<Def> {
-  auto act = lockstep::get_node(
-      [](dataset::processor *proc, column::evaluator<Def> *calc,
+  auto act = concurrent::invoke(
+      [](dataset::player *plyr, column::evaluator<Def> *calc,
          Cols const *...cols) {
-        return proc->template evaluate_column(*calc, *cols...);
+        return plyr->template evaluate_column(*calc, *cols...);
       },
-      this->m_processors, calc, columns...);
+      m_dplyrs, calc.get_slots(), columns.get_slots()...);
   auto lzy = lazy<Def>(*this, act);
-  this->add_operation(std::move(act));
+  this->add_action(std::move(act));
   return lzy;
 }
 
 template <typename Eqn, typename... Cols>
-auto ana::dataflow::_apply(delayed<selection::applicator<Eqn>> const &calc,
+auto ana::dataflow::_apply(todo<selection::applicator<Eqn>> const &calc,
                            lazy<Cols> const &...columns) -> lazy<selection> {
-  auto act = lockstep::get_node(
-      [](dataset::processor *proc, selection::applicator<Eqn> *calc,
-         Cols *...cols) { return proc->template _apply(*calc, *cols...); },
-      this->m_processors, calc, columns...);
+  auto act = concurrent::invoke(
+      [](dataset::player *plyr, selection::applicator<Eqn> *calc,
+         Cols *...cols) { return plyr->template _apply(*calc, *cols...); },
+      m_dplyrs, calc.get_slots(), columns.get_slots()...);
   auto lzy = lazy<selection>(*this, act);
-  this->add_operation(std::move(act));
+  this->add_action(std::move(act));
   return lzy;
 }
 
 template <typename Cntr>
-auto ana::dataflow::_book(delayed<counter::booker<Cntr>> const &bkr,
+auto ana::dataflow::_book(todo<counter::booker<Cntr>> const &bkr,
                           lazy<selection> const &sel) -> lazy<Cntr> {
-  // any time a new counter is booked, means the dataflow must run: so reset
-  // its status
+  // new counter booked: dataset will need to be analyzed
   this->reset();
-  auto act = lockstep::get_node(
-      [](dataset::processor *proc, counter::booker<Cntr> *bkr,
-         const selection *sel) { return proc->book(*bkr, *sel); },
-      this->m_processors, bkr, sel);
+  auto act = concurrent::invoke(
+      [](dataset::player *plyr, counter::booker<Cntr> *bkr,
+         const selection *sel) { return plyr->book(*bkr, *sel); },
+      m_dplyrs, bkr.get_slots(), sel.get_slots());
   auto lzy = lazy<Cntr>(*this, act);
-  this->add_operation(std::move(act));
+  this->add_action(std::move(act));
   return lzy;
 }
 
 template <typename Cntr, typename... Sels>
-auto ana::dataflow::_book(delayed<counter::booker<Cntr>> const &bkr,
+auto ana::dataflow::_book(todo<counter::booker<Cntr>> const &bkr,
                           lazy<Sels> const &...sels)
     -> std::array<lazy<Cntr>, sizeof...(Sels)> {
-
   return std::array<lazy<Cntr>, sizeof...(Sels)>{this->_book(bkr, sels)...};
 }
 
 inline void ana::dataflow::analyze() {
-  // do not analyze if already done
+
+  // 0. do not analyze if already done
   if (m_analyzed)
     return;
 
-  // ignore future analyze() requests until reset() is called
-  m_analyzed = true;
+  // 1. partition the dataset
+  auto ds_parts = m_ds->partition();
+  // truncate entries to limit
+  ds_parts = dataset::partition::truncate(ds_parts, m_nrows);
+  // merge ds_parts to concurrency limit
+  ds_parts = dataset::partition::merge(ds_parts, m_mt.concurrency());
 
+  // dataset players should match partition
+  m_dplyrs.resize(ds_parts.size());
+  m_dslots.resize(ds_parts.size());
+
+  // 3. event loop is starting
   m_ds->initialize();
 
-  this->m_mt.run(
-      [](dataset::processor *proc, dataset::player *plyr,
-         const dataset::range *part) { proc->process(*plyr, *part); },
-      this->m_processors, this->m_players, this->m_parts);
+  // 4. enter event loop
+  m_mt.run(
+      [](dataset::player *plyr, unsigned int slot,
+         std::pair<unsigned long long, unsigned long long> part) {
+        plyr->play(slot, part.first, part.second);
+      },
+      m_dplyrs, m_dslots, ds_parts);
 
+  // 5. event loop has finished
   m_ds->finalize();
 
-  // clear counters so they are not run more than once
-  this->m_processors.call_all_slots(
-      [](dataset::processor *proc) { proc->clear_counters(); });
+  // done
+  m_analyzed = true;
 }
 
 inline void ana::dataflow::reset() { m_analyzed = false; }
@@ -473,47 +480,47 @@ auto ana::dataflow::vary(ana::column::expression<Expr> const &expr,
   return syst;
 }
 
-inline void ana::dataflow::add_operation(lockstep::node<operation> operation) {
-  m_operations.emplace_back(std::move(operation.m_model));
-  for (unsigned int i = 0; i < operation.concurrency(); ++i) {
-    m_operations.emplace_back(std::move(operation.m_slots[i]));
+template <typename Action,
+          std::enable_if_t<std::is_base_of_v<ana::action, Action>, bool>>
+void ana::dataflow::add_action(std::vector<std::unique_ptr<Action>> slots) {
+  m_actions.reserve(m_actions.size() + slots.size());
+  for (unsigned int i = 0; i < slots.size(); ++i) {
+    m_actions.push_back(std::move(slots[i]));
   }
 }
 
 template <typename DS, typename Val>
-auto ana::dataflow::_read(dataset::source<DS> &ds, const std::string &name)
+auto ana::dataflow::_read(dataset::reader<DS> &ds, const std::string &name)
     -> lazy<read_column_t<DS, Val>> {
-  auto act = lockstep::get_node(
-      [name, &ds](dataset::processor *proc, dataset::range *part) {
-        return proc->template read<DS, Val>(std::ref(ds), *part, name);
+  auto act = concurrent::invoke(
+      [name, &ds](dataset::player *plyr, unsigned int slot) {
+        return plyr->template read<DS, Val>(ds, slot, name);
       },
-      this->m_processors, this->m_parts);
+      m_dplyrs, m_dslots);
   auto lzy = lazy<read_column_t<DS, Val>>(*this, act);
-  this->add_operation(std::move(act));
+  this->add_action(std::move(act));
   return lzy;
 }
 
 template <typename Val>
 auto ana::dataflow::_assign(Val const &val) -> lazy<ana::column::fixed<Val>> {
-  auto act = lockstep::get_node(
-      [&val](dataset::processor *proc) {
-        return proc->template assign<Val>(val);
-      },
-      this->m_processors);
+  auto act = concurrent::invoke(
+      [&val](dataset::player *plyr) { return plyr->template assign<Val>(val); },
+      m_dplyrs);
   auto lzy = lazy<column::fixed<Val>>(*this, act);
-  this->add_operation(std::move(act));
+  this->add_action(std::move(act));
   return lzy;
 }
 
 template <typename Def, typename... Args>
 auto ana::dataflow::_define(Args &&...args) {
-  return delayed<ana::column::template evaluator_t<Def>>(
+  return todo<ana::column::template evaluator_t<Def>>(
       *this,
-      lockstep::get_node(
-          [&args...](dataset::processor *proc) {
-            return proc->template define<Def>(std::forward<Args>(args)...);
+      concurrent::invoke(
+          [&args...](dataset::player *plyr) {
+            return plyr->template define<Def>(std::forward<Args>(args)...);
           },
-          this->m_processors));
+          m_dplyrs));
 }
 
 template <typename Def>
@@ -522,11 +529,11 @@ auto ana::dataflow::_define(ana::column::definition<Def> const &defn) {
 }
 
 template <typename F> auto ana::dataflow::_equate(F fn) {
-  return delayed<ana::column::template evaluator_t<F>>(
+  return todo<ana::column::template evaluator_t<F>>(
       *this,
-      lockstep::get_node(
-          [fn](dataset::processor *proc) { return proc->template equate(fn); },
-          this->m_processors));
+      concurrent::invoke(
+          [fn](dataset::player *plyr) { return plyr->template equate(fn); },
+          m_dplyrs));
 }
 
 template <typename Expr>
@@ -536,24 +543,24 @@ auto ana::dataflow::_equate(ana::column::expression<Expr> const &expr) {
 
 template <typename Sel, typename F>
 auto ana::dataflow::_select(F fn)
-    -> delayed<selection::template custom_applicator_t<F>> {
-  return delayed<selection::template custom_applicator_t<F>>(
-      *this, lockstep::get_node(
-                 [fn](dataset::processor *proc) {
-                   return proc->template select<Sel>(nullptr, fn);
+    -> todo<selection::template custom_applicator_t<F>> {
+  return todo<selection::template custom_applicator_t<F>>(
+      *this, concurrent::invoke(
+                 [fn](dataset::player *plyr) {
+                   return plyr->template select<Sel>(nullptr, fn);
                  },
-                 this->m_processors));
+                 m_dplyrs));
 }
 
 template <typename Sel, typename F>
 auto ana::dataflow::_select(lazy<selection> const &prev, F fn)
-    -> delayed<selection::template custom_applicator_t<F>> {
-  return delayed<selection::template custom_applicator_t<F>>(
-      *this, lockstep::get_node(
-                 [fn](dataset::processor *proc, selection const *prev) {
-                   return proc->template select<Sel>(prev, fn);
+    -> todo<selection::template custom_applicator_t<F>> {
+  return todo<selection::template custom_applicator_t<F>>(
+      *this, concurrent::invoke(
+                 [fn](dataset::player *plyr, selection const *prev) {
+                   return plyr->template select<Sel>(prev, fn);
                  },
-                 this->m_processors, prev));
+                 m_dplyrs, prev.get_slots()));
 }
 
 template <typename Syst, typename Val>

@@ -3,8 +3,10 @@
 /** @file */
 
 #include <iostream>
+#include <memory>
 #include <set>
 #include <type_traits>
+#include <vector>
 
 #include "dataflow.h"
 #include "systematic_resolver.h"
@@ -26,17 +28,17 @@
 #define DEFINE_LAZY_BINARY_OP(op_name, op_symbol)                              \
   template <                                                                   \
       typename Arg, typename V = Action,                                       \
-      std::enable_if_t<ana::is_column_v<V> &&                                  \
-                           ana::is_column_v<typename Arg::operation_type> &&   \
-                           op_check::has_##op_name##_v<                        \
-                               cell_value_t<V>,                                \
-                               cell_value_t<typename Arg::operation_type>>,    \
-                       bool> = false>                                          \
+      std::enable_if_t<                                                        \
+          ana::is_column_v<V> &&                                               \
+              ana::is_column_v<typename Arg::action_type> &&                   \
+              op_check::has_##op_name##_v<                                     \
+                  cell_value_t<V>, cell_value_t<typename Arg::action_type>>,   \
+          bool> = false>                                                       \
   auto operator op_symbol(Arg const &arg) const {                              \
     return this->m_df->define(                                                 \
         ana::column::expression(                                               \
             [](cell_value_t<V> const &me,                                      \
-               cell_value_t<typename Arg::operation_type> const &you) {        \
+               cell_value_t<typename Arg::action_type> const &you) {           \
               return me op_symbol you;                                         \
             }),                                                                \
         *this, arg);                                                           \
@@ -83,18 +85,17 @@
   static constexpr bool has_subscript_v = has_subscript<T, Index>::value;
 
 #define DEFINE_LAZY_SUBSCRIPT_OP()                                             \
-  template <                                                                   \
-      typename Arg, typename V = Action,                                       \
-      std::enable_if_t<is_column_v<V> &&                                       \
-                           op_check::has_subscript_v<                          \
-                               cell_value_t<V>,                                \
-                               cell_value_t<typename Arg::operation_type>>,    \
-                       bool> = false>                                          \
+  template <typename Arg, typename V = Action,                                 \
+            std::enable_if_t<is_column_v<V> &&                                 \
+                                 op_check::has_subscript_v<                    \
+                                     cell_value_t<V>,                          \
+                                     cell_value_t<typename Arg::action_type>>, \
+                             bool> = false>                                    \
   auto operator[](Arg const &arg) const {                                      \
     return this->m_df->define(                                                 \
         ana::column::expression(                                               \
             [](cell_value_t<V> me,                                             \
-               cell_value_t<typename Arg::operation_type> index) {             \
+               cell_value_t<typename Arg::action_type> index) {                \
               return me[index];                                                \
             }),                                                                \
         *this, arg);                                                           \
@@ -106,7 +107,7 @@ namespace op_check {
 CHECK_FOR_UNARY_OP(logical_not, !)
 CHECK_FOR_UNARY_OP(minus, -)
 CHECK_FOR_BINARY_OP(addition, +)
-CHECK_FOR_BINARY_OP(subtroperation, -)
+CHECK_FOR_BINARY_OP(subtraction, -)
 CHECK_FOR_BINARY_OP(multiplication, *)
 CHECK_FOR_BINARY_OP(division, /)
 CHECK_FOR_BINARY_OP(remainder, %)
@@ -122,26 +123,30 @@ CHECK_FOR_SUBSCRIPT_OP()
 } // namespace op_check
 
 template <typename Action>
-class lazy : public systematic::resolver<lazy<Action>>,
-             public lockstep::view<Action> {
+class lazy : public dataflow::node,
+             public concurrent::slotted<Action>,
+             public systematic::resolver<lazy<Action>> {
 
 public:
   class varied;
 
 public:
-  using operation_type = Action;
+  using action_type = Action;
 
 public:
   friend class dataflow;
   template <typename> friend class lazy;
 
 public:
-  lazy(dataflow &dataflow, const lockstep::view<Action> &operation)
-      : systematic::resolver<lazy<Action>>::resolver(dataflow),
-        lockstep::view<Action>::view(operation) {}
-  lazy(dataflow &dataflow, const lockstep::node<Action> &operation)
-      : systematic::resolver<lazy<Action>>::resolver(dataflow),
-        lockstep::view<Action>::view(operation) {}
+  lazy(dataflow &df, std::vector<Action *> const &slots)
+      : dataflow::node(df), m_slots(slots) {}
+  lazy(dataflow &df, std::vector<std::unique_ptr<Action>> const &slots)
+      : dataflow::node(df) {
+    this->m_slots.reserve(slots.size());
+    for (auto const &slot : slots) {
+      this->m_slots.push_back(slot.get());
+    }
+  }
 
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;
@@ -150,6 +155,9 @@ public:
   template <typename Derived> lazy &operator=(lazy<Derived> const &derived);
 
   virtual ~lazy() = default;
+
+  virtual Action *get_slot(unsigned int islot) const override;
+  virtual unsigned int concurrency() const override;
 
   virtual void set_variation(const std::string &var_name, lazy &&var) override;
 
@@ -191,7 +199,7 @@ public:
   DEFINE_LAZY_BINARY_OP(equality, ==)
   DEFINE_LAZY_BINARY_OP(inequality, !=)
   DEFINE_LAZY_BINARY_OP(addition, +)
-  DEFINE_LAZY_BINARY_OP(subtroperation, -)
+  DEFINE_LAZY_BINARY_OP(subtraction, -)
   DEFINE_LAZY_BINARY_OP(multiplication, *)
   DEFINE_LAZY_BINARY_OP(division, /)
   DEFINE_LAZY_BINARY_OP(logical_or, ||)
@@ -206,34 +214,52 @@ protected:
             std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> =
                 false>
   void merge_results() const;
+
+protected:
+  std::vector<Action *> m_slots;
 };
 
 } // namespace ana
 
 #include "column.h"
-#include "delayed.h"
 #include "lazy_varied.h"
+#include "todo.h"
 
 template <typename Action>
 template <typename Derived>
 ana::lazy<Action>::lazy(lazy<Derived> const &derived)
-    : ana::systematic::resolver<lazy<Action>>(*derived.m_df),
-      ana::lockstep::view<Action>(derived) {
-  this->m_df = derived.m_df;
+    : ana::dataflow::node(*derived.m_df) {
+  this->m_slots.reserve(derived.m_slots.size());
+  for (auto slot : derived.m_slots) {
+    this->m_slots.push_back(static_cast<Action *>(slot));
+  }
 }
 
 template <typename Action>
 template <typename Derived>
 ana::lazy<Action> &ana::lazy<Action>::operator=(lazy<Derived> const &derived) {
-  lockstep::view<Action>::operator=(derived);
   this->m_df = derived.m_df;
+  this->m_slots.clear();
+  this->m_slots.reserve(derived.m_slots.size());
+  for (auto slot : derived.m_slots) {
+    this->m_slots.push_back(static_cast<Action *>(slot));
+  }
   return *this;
+}
+
+template <typename Action>
+Action *ana::lazy<Action>::get_slot(unsigned int islot) const {
+  return this->m_slots[islot];
+}
+
+template <typename Action> unsigned int ana::lazy<Action>::concurrency() const {
+  return this->m_slots.size();
 }
 
 template <typename Action>
 void ana::lazy<Action>::set_variation(const std::string &, lazy &&) {
   // should never be called
-  throw std::logic_error("cannot set variation to a lazy operation");
+  throw std::logic_error("cannot set variation to a nominal-only action");
 }
 
 template <typename Action>
@@ -324,19 +350,19 @@ auto ana::lazy<Action>::result() const
     -> decltype(std::declval<V>().get_result()) {
   this->m_df->analyze();
   this->merge_results();
-  return this->get_model()->get_result();
+  return this->get_slot(0)->get_result();
 }
 
 template <typename Action>
 template <typename V,
           std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> e>
 void ana::lazy<Action>::merge_results() const {
-  auto model = this->get_model();
+  auto model = this->get_slot(0);
   if (!model->is_merged()) {
     std::vector<std::decay_t<decltype(model->get_result())>> results;
     results.reserve(this->concurrency());
-    for (size_t islot = 0; islot < this->concurrency(); ++islot) {
-      results.push_back(this->get_slot(islot)->get_result());
+    for (size_t islot = 0; islot < this->m_slots.size(); ++islot) {
+      results.push_back(this->m_slots.at(islot)->get_result());
     }
     model->set_result(results);
   }

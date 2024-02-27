@@ -1,34 +1,77 @@
 #pragma once
 
-#include "operation.h"
+#include "column_computation.h"
+#include "counter_experiment.h"
 
 namespace ana {
 
 namespace dataset {
 
-struct range;
-
-class player : public operation {
+class player : public ana::column::computation, public counter::experiment {
 
 public:
-  player() = default;
+  player(source &ds, double scale);
   virtual ~player() = default;
 
 public:
-  virtual void initialize(const range &) override;
-  virtual void execute(const range &, unsigned long long) override;
-  virtual void finalize(const range &) override;
+  void play(unsigned int slot, unsigned long long begin,
+            unsigned long long end);
+
+protected:
+  source *m_ds;
 };
 
 } // namespace dataset
 
 } // namespace ana
 
-#include "dataset.h"
+#include "dataset_source.h"
 
-inline void ana::dataset::player::initialize(const ana::dataset::range &) {}
+inline ana::dataset::player::player(dataset::source &ds, double scale)
+    : counter::experiment(scale), m_ds(&ds) {}
 
-inline void ana::dataset::player::execute(const ana::dataset::range &,
-                                          unsigned long long) {}
+inline void ana::dataset::player::play(unsigned int slot,
+                                       unsigned long long begin,
+                                       unsigned long long end) {
 
-inline void ana::dataset::player::finalize(const ana::dataset::range &) {}
+  // initialize
+  m_ds->initialize(slot, begin, end);
+  for (auto col : m_columns) {
+    col->initialize(slot, begin, end);
+  }
+  for (auto sel : m_selections) {
+    sel->initialize(slot, begin, end);
+  }
+  for (auto cnt : m_counters) {
+    cnt->initialize(slot, begin, end);
+  }
+
+  // execute
+  for (auto entry = begin; entry < end; ++entry) {
+    m_ds->execute(slot, entry);
+    for (auto col : m_columns) {
+      col->execute(slot, entry);
+    }
+    for (auto sel : m_selections) {
+      sel->execute(slot, entry);
+    }
+    for (auto cnt : m_counters) {
+      cnt->execute(slot, entry);
+    }
+  }
+
+  // finalize (in reverse order)
+  for (auto cnt : m_counters) {
+    cnt->finalize(slot);
+  }
+  for (auto sel : m_selections) {
+    sel->finalize(slot);
+  }
+  for (auto col : m_columns) {
+    col->finalize(slot);
+  }
+  m_ds->finalize(slot);
+
+  // clear out counters (should not be re-played)
+  m_counters.clear();
+}

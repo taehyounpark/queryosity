@@ -8,133 +8,97 @@
 #include <string>
 #include <vector>
 
+#include "dataset.h"
 #include "multithread.h"
 
 namespace ana {
 
 namespace dataset {
 
-/**
- * @brief Partition of a dataset.
- * @details A partition contains one or more ranges of the datset in sequential
- * order of their entries. They can dynamically truncated and merged according
- * to the maximum limit of entries of the dataset and multithreading
- * configuration as specified by the analyzer.
- */
-struct partition {
-  static std::vector<std::vector<range>>
-  group_parts(const std::vector<range> &parts, size_t n);
-  static range sum_parts(const std::vector<range> &parts);
+namespace partition {
 
-  partition() : fixed(false) {}
-  partition(unsigned long long nentries,
-            unsigned long long max_entries_per_slot = 1);
-  ~partition() = default;
+std::vector<range> truncate(std::vector<range> const &parts,
+                            long long nentries_max);
 
-  void emplace_back(size_t islot, unsigned long long begin,
-                    unsigned long long end);
+std::vector<range> merge(std::vector<range> const &parts,
+                         unsigned int nslots_max);
 
-  range const &operator[](size_t irange) const;
-  range total() const;
-
-  size_t size() const;
-
-  void truncate(long long max_entries = -1);
-
-  void merge(size_t max_parts);
-
-  bool fixed;
-  std::vector<range> parts;
-};
+} // namespace partition
 
 } // namespace dataset
 
 } // namespace ana
 
-#include "dataset_range.h"
+inline std::vector<ana::dataset::range>
+ana::dataset::partition::merge(std::vector<ana::dataset::range> const &parts,
+                               unsigned int nslots_max) {
 
-inline std::vector<std::vector<ana::dataset::range>>
-ana::dataset::partition::group_parts(const std::vector<range> &parts,
-                                     size_t n) {
-  std::vector<std::vector<range>> grouped_parts;
-  size_t length = parts.size() / n;
-  size_t remain = parts.size() % n;
-  size_t begin = 0;
-  size_t end = 0;
-  for (size_t i = 0; i < std::min(n, parts.size()); ++i) {
-    end += (remain > 0) ? (length + !!(remain--)) : length;
-    grouped_parts.push_back(
-        std::vector<range>(parts.begin() + begin, parts.begin() + end));
-    begin = end;
+  // no merging needed
+  if (nslots_max >= static_cast<unsigned int>(parts.size()))
+    return parts;
+
+  assert(!parts.empty() && nslots_max > 0);
+
+  std::vector<range> parts_merged;
+
+  const unsigned int total_size = parts.back().second - parts.front().first;
+  const unsigned int size_per_slot = total_size / nslots_max;
+  const unsigned int extra_size =
+      total_size % nslots_max; // Extra units to distribute across slots
+
+  unsigned int current_start = parts[0].first;
+  unsigned int current_end = current_start;
+  unsigned int accumulated_size = 0;
+  unsigned int nslots_created = 0;
+
+  for (const auto &part : parts) {
+    unsigned int part_size = part.second - part.first;
+    if (accumulated_size + part_size >
+            size_per_slot + (nslots_created < extra_size ? 1 : 0) &&
+        nslots_created < nslots_max - 1) {
+      // Finalize the current slot before it exceeds the average size too much
+      parts_merged.emplace_back(current_start, current_end);
+      current_start = current_end;
+      accumulated_size = 0;
+      ++nslots_created;
+    }
+
+    // Add part size to the current slot
+    accumulated_size += part_size;
+    current_end += part_size;
+
+    // Handle the last slot differently to include all remaining parts
+    if (nslots_created == nslots_max - 1) {
+      parts_merged.emplace_back(current_start, parts.back().second);
+      break; // All parts have been processed
+    }
   }
-  return grouped_parts;
-}
 
-inline ana::dataset::range
-ana::dataset::partition::sum_parts(const std::vector<range> &parts) {
-  return std::accumulate(std::next(parts.begin()), parts.end(), parts.front());
-}
-
-inline ana::dataset::partition::partition(
-    unsigned long long nentries, unsigned long long max_entries_per_slot)
-    : fixed(false) {
-  auto remaining = nentries;
-  unsigned long long begin = 0;
-  unsigned int islot = 0;
-  while (remaining) {
-    auto slot_entries = std::min(remaining, max_entries_per_slot);
-    auto end = begin + slot_entries;
-    this->emplace_back(islot++, begin, end);
-    begin += slot_entries;
-    remaining -= slot_entries;
+  // Ensure we have exactly nslots_max slots
+  if (static_cast<unsigned int>(parts_merged.size()) < nslots_max) {
+    parts_merged.emplace_back(current_start, parts.back().second);
   }
+
+  return parts_merged;
 }
 
-inline void ana::dataset::partition::emplace_back(size_t islot,
-                                                  unsigned long long begin,
-                                                  unsigned long long end) {
-  this->parts.emplace_back(islot, begin, end);
-}
+inline std::vector<ana::dataset::range>
+ana::dataset::partition::truncate(std::vector<ana::dataset::range> const &parts,
+                                  long long nentries_max) {
+  if (nentries_max < 0)
+    return parts;
 
-inline ana::dataset::range const &
-ana::dataset::partition::operator[](size_t islot) const {
-  return this->parts[islot];
-}
+  std::vector<range> parts_truncated;
 
-inline ana::dataset::range ana::dataset::partition::total() const {
-  return sum_parts(this->parts);
-}
-
-inline size_t ana::dataset::partition::size() const {
-  return this->parts.size();
-}
-
-inline void ana::dataset::partition::merge(size_t max_parts) {
-  if (fixed)
-    return;
-  auto groups = group_parts(this->parts, max_parts);
-  this->parts.clear();
-  for (const auto &group : groups) {
-    this->parts.push_back(sum_parts(group));
-  }
-}
-
-inline void ana::dataset::partition::truncate(long long max_entries) {
-  if (fixed)
-    return;
-  if (max_entries < 0)
-    return;
-  // remember the full parts
-  auto full_parts = this->parts;
-  // clear the parts to be added anew
-  this->parts.clear();
-  for (const auto &part : full_parts) {
-    auto part_end = max_entries >= 0
-                        ? std::min(part.begin + max_entries, part.end)
-                        : part.end;
-    this->parts.push_back(range(part.slot, part.begin, part_end));
-    max_entries -= part_end;
-    if (!max_entries)
+  for (const auto &part : parts) {
+    auto part_end = nentries_max >= 0
+                        ? std::min(part.first + nentries_max, part.second)
+                        : part.second;
+    parts_truncated.emplace_back(part.first, part_end);
+    nentries_max -= (part_end - part.first);
+    if (!nentries_max)
       break;
   }
+
+  return parts_truncated;
 }

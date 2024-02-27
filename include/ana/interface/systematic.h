@@ -22,7 +22,7 @@ public:
   mode() : m_is_nominal(true), m_variation_name("") {}
   ~mode() = default;
 
-  void set_mode(bool is_nominal, const std::string &var_name) {
+  void set_systematic(bool is_nominal, const std::string &var_name) {
     m_is_nominal = is_nominal;
     m_variation_name = var_name;
   }

@@ -56,7 +56,9 @@ TEST_CASE("correctness & consistency of selections") {
   }
 
   // compute answer with analogical
-  dataflow df;
+  dataflow df(ana::multithread::disable());
+
+  std::cout << "hello" << std::endl;
 
   auto ds = df.open(ana::dataset::input<ana::json>(random_data));
 
@@ -65,13 +67,15 @@ TEST_CASE("correctness & consistency of selections") {
 
   auto weighted = df.weight(w);
 
+  std::cout << "hm" << std::endl;
+
   // auto a = df.define(ana::column::constant<std::string>("a"));
   // auto b = df.define(ana::column::constant<std::string>("b"));
   // auto c = df.define(ana::column::constant<std::string>("c"));
 
-  auto a = df._assign<std::string>("a");
-  auto b = df._assign<std::string>("b");
-  auto c = df._assign<std::string>("c");
+  auto a = df.define(column::constant<std::string>("a"));
+  auto b = df.define(column::constant<std::string>("b"));
+  auto c = df.define(column::constant<std::string>("c"));
 
   auto cut_a = weighted.filter(cat == a);
   auto cut_b = weighted.filter(cat == b);
@@ -96,6 +100,9 @@ TEST_CASE("correctness & consistency of selections") {
       df.agg(counter::output<ana::sumw>()).book(cut_none, cut_abc);
 
   auto sumw_one2 = df.agg(counter::output<ana::sumw>()).book(cut_a2, cut_b2);
+
+  std::cout << "hi" << std::endl;
+  std::cout << cut_a2.concurrency() << std::endl;
 
   SUBCASE("basic results") {
     CHECK(sumw_a.result() == correct_sumw_a);

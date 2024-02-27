@@ -1,7 +1,7 @@
 #pragma once
 
 #include "counter.h"
-#include "counter_implementation.h"
+#include "counter_aggregation.h"
 
 namespace ana {
 
@@ -10,7 +10,7 @@ namespace ana {
  * @tparam Obs... Input column data types.
  */
 template <typename T, typename... Obs>
-class counter::definition<T(Obs...)> : public counter::implementation<T> {
+class counter::definition<T(Obs...)> : public counter::aggregation<T> {
 
 public:
   using vartup_type = std::tuple<ana::variable<Obs>...>;
@@ -20,12 +20,12 @@ public:
   virtual ~definition() = default;
 
   /**
-   * @brief Perform the counting operation for an entry.
+   * @brief Perform the counting action for an entry.
    * @param observables The `observable` of each input column.
    * @param weight The weight value of the booked selection for the passed
    * entry.
-   * @details This operation is performed N times for a passed entry, where N is
-   * the number of `fill` calls made to its `lazy` operation, each with its the
+   * @details This action is performed N times for a passed entry, where N is
+   * the number of `fill` calls made to its `lazy` action, each with its the
    * set of input columns as provided then.
    */
   virtual void fill(ana::observable<Obs>... observables, double w) = 0;

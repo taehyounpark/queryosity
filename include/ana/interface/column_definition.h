@@ -5,7 +5,7 @@
 
 #include "column_calculation.h"
 #include "column_evaluator.h"
-#include "delayed.h"
+#include "todo.h"
 
 namespace ana {
 
@@ -48,7 +48,7 @@ public:
   auto _define(dataflow &df) const;
 
 protected:
-  std::function<delayed<evaluator_t<Def>>(dataflow &)> m_define;
+  std::function<todo<evaluator_t<Def>>(dataflow &)> m_define;
 };
 
 } // namespace ana

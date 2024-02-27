@@ -31,7 +31,7 @@ public:
 
 protected:
   dataflow *m_df;
-  dataset::source<DS> *m_ds;
+  dataset::reader<DS> *m_ds;
 };
 
 } // namespace ana

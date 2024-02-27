@@ -4,7 +4,7 @@
 
 namespace ana {
 
-namespace dataset {
+namespace column {
 
 struct range;
 
@@ -25,8 +25,7 @@ public:
    * @brief Read the value of the column at current entry.
    * @return Column value
    */
-  virtual const_reference read(const range &part,
-                               unsigned long long entry) const = 0;
+  virtual const_reference read(unsigned int, unsigned long long) const = 0;
 
   /**
    * @brief Get the value of the column at current entry.
@@ -34,39 +33,39 @@ public:
    */
   virtual const_reference value() const override;
 
-  virtual void execute(const range &part,
-                       unsigned long long entry) final override;
+  virtual void execute(unsigned int, unsigned long long) final override;
 
 protected:
   mutable T const *m_addr;
   mutable bool m_updated;
 
-  const range *m_part;
+private:
+  unsigned int m_slot;
   unsigned long long m_entry;
 };
 
-} // namespace dataset
+} // namespace column
 
 } // namespace ana
 
 #include "dataset.h"
 
 template <typename T>
-ana::dataset::reader<T>::reader()
-    : m_addr(nullptr), m_updated(false), m_part(nullptr), m_entry(0) {}
+ana::column::reader<T>::reader()
+    : m_addr(nullptr), m_updated(false), m_slot(0), m_entry(0) {}
 
-template <typename T> T const &ana::dataset::reader<T>::value() const {
+template <typename T> T const &ana::column::reader<T>::value() const {
   if (!this->m_updated) {
-    m_addr = &(this->read(*this->m_part, m_entry));
+    m_addr = &(this->read(this->m_slot, this->m_entry));
     m_updated = true;
   }
   return *m_addr;
 }
 
 template <typename T>
-void ana::dataset::reader<T>::execute(const ana::dataset::range &part,
-                                      unsigned long long entry) {
-  this->m_part = &part;
+void ana::column::reader<T>::execute(unsigned int slot,
+                                     unsigned long long entry) {
+  this->m_slot = slot;
   this->m_entry = entry;
   this->m_updated = false;
 }

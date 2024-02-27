@@ -4,8 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "action.h"
 #include "column.h"
-#include "operation.h"
 
 namespace ana {
 
@@ -14,7 +14,7 @@ class selection;
 template <typename T>
 constexpr bool is_selection_v = std::is_base_of_v<ana::selection, T>;
 
-// class selection : public operation {
+// class selection : public action {
 class selection : public column::calculation<double> {
 
 public:
@@ -39,10 +39,10 @@ public:
   virtual double get_weight() const = 0;
 
 public:
-  virtual void initialize(const dataset::range &part) override;
-  virtual void execute(const dataset::range &part,
-                       unsigned long long entry) override;
-  virtual void finalize(const dataset::range &part) override;
+  virtual void initialize(unsigned int slot, unsigned long long begin,
+                          unsigned long long end) override;
+  virtual void execute(unsigned int slot, unsigned long long entry) override;
+  virtual void finalize(unsigned int slot) override;
 
 private:
   const selection *const m_preselection;
@@ -80,20 +80,22 @@ inline const ana::selection *ana::selection::get_previous() const noexcept {
   return m_preselection;
 }
 
-inline void ana::selection::initialize(const ana::dataset::range &part) {
-  ana::column::calculation<double>::initialize(part);
-  m_decision->initialize(part);
+inline void ana::selection::initialize(unsigned int slot,
+                                       unsigned long long begin,
+                                       unsigned long long end) {
+  ana::column::calculation<double>::initialize(slot, begin, end);
+  m_decision->initialize(slot, begin, end);
 }
 
-inline void ana::selection::execute(const ana::dataset::range &part,
+inline void ana::selection::execute(unsigned int slot,
                                     unsigned long long entry) {
-  ana::column::calculation<double>::execute(part, entry);
-  m_decision->execute(part, entry);
+  ana::column::calculation<double>::execute(slot, entry);
+  m_decision->execute(slot, entry);
 }
 
-inline void ana::selection::finalize(const ana::dataset::range &part) {
-  ana::column::calculation<double>::finalize(part);
-  m_decision->finalize(part);
+inline void ana::selection::finalize(unsigned int slot) {
+  ana::column::calculation<double>::finalize(slot);
+  m_decision->finalize(slot);
 }
 
 template <typename T>

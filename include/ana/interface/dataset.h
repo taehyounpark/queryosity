@@ -6,6 +6,7 @@
 #include <memory>
 #include <numeric>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "multithread.h"
@@ -14,21 +15,17 @@ namespace ana {
 
 namespace dataset {
 
-struct range;
+using range = std::pair<unsigned long long, unsigned long long>;
 
-using row = unsigned long long;
-
-struct partition;
-
-template <typename T> class source;
+class source;
 
 class player;
 
 template <typename T> class reader;
 
-template <typename T> class opened;
-
 template <typename T> struct input;
+
+template <typename T> class opened;
 
 template <typename T> class column;
 
@@ -54,24 +51,7 @@ struct weight {
 
 } // namespace dataset
 
-template <typename T>
-using open_player_t = typename decltype(std::declval<T const &>().open_player(
-    std::declval<const ana::dataset::range &>()))::element_type;
-
-template <typename T, typename Val>
-using read_column_t =
-    typename decltype(std::declval<T>().template read_column<Val>(
-        std::declval<dataset::range const &>(),
-        std::declval<std::string const &>()))::element_type;
-
-template <typename T> struct is_unique_ptr : std::false_type {};
-template <typename T>
-struct is_unique_ptr<std::unique_ptr<T>> : std::true_type {};
-template <typename T>
-static constexpr bool is_unique_ptr_v = is_unique_ptr<T>::value;
-
 } // namespace ana
 
 #include "column.h"
-#include "dataset_player.h"
-#include "dataset_range.h"
+#include "dataset_source.h"

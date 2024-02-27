@@ -7,7 +7,7 @@
 
 namespace ana {
 
-class json : public ana::dataset::source<json> {
+class json : public ana::dataset::reader<json> {
 
 public:
   template <typename T> class entry;
@@ -17,24 +17,25 @@ public:
   json(std::ifstream &data);
   ~json() = default;
 
-  virtual ana::dataset::partition parallelize() override;
+  virtual void parallelize(unsigned int nslots) override;
+  virtual std::vector<std::pair<unsigned long long, unsigned long long>>
+  partition() override;
 
   template <typename T>
-  std::unique_ptr<entry<T>> read(const ana::dataset::range &part,
-                                 const std::string &name) const;
+  std::unique_ptr<entry<T>> read(unsigned int, const std::string &name) const;
 
 protected:
   nlohmann::json const m_data;
+  unsigned int m_nslots;
 };
 
-template <typename T> class json::entry : public ana::dataset::reader<T> {
+template <typename T> class json::entry : public ana::column::reader<T> {
 
 public:
   entry(const nlohmann::json &data, const std::string &name);
   ~entry() = default;
 
-  virtual const T &read(const ana::dataset::range &part,
-                        unsigned long long entry) const override;
+  virtual const T &read(unsigned int, unsigned long long entry) const override;
 
 protected:
   mutable T m_value;
@@ -52,18 +53,33 @@ template <typename T>
 ana::json::entry<T>::entry(nlohmann::json const &data, const std::string &name)
     : m_data(data), m_key(name) {}
 
-ana::dataset::partition ana::json::parallelize() {
-  return ana::dataset::partition(m_data.size());
+void ana::json::parallelize(unsigned int nslots) { m_nslots = nslots; }
+
+std::vector<std::pair<unsigned long long, unsigned long long>>
+ana::json::partition() {
+  const unsigned int nentries_per_slot = m_data.size() / m_nslots;
+  if (!nentries_per_slot)
+    return {{0, m_data.size()}};
+  const unsigned int nentries_remainder = m_data.size() % m_nslots;
+  std::vector<std::pair<unsigned long long, unsigned long long>> parts;
+  for (unsigned int islot = 0; islot < m_nslots; ++islot) {
+    parts.emplace_back(islot * nentries_per_slot,
+                       (islot + 1) * nentries_per_slot);
+    std::cout << parts.back().second << std::endl;
+  }
+  parts.back().second += nentries_remainder;
+  assert(parts.back().second == m_data.size());
+  return parts;
 }
 
 template <typename Val>
 std::unique_ptr<ana::json::entry<Val>>
-ana::json::read(const ana::dataset::range &, const std::string &name) const {
+ana::json::read(unsigned int, const std::string &name) const {
   return std::make_unique<entry<Val>>(this->m_data, name);
 }
 
 template <typename T>
-const T &ana::json::entry<T>::read(const ana::dataset::range &,
+const T &ana::json::entry<T>::read(unsigned int,
                                    unsigned long long entry) const {
   m_value = this->m_data[entry][m_key].template get<T>();
   return m_value;

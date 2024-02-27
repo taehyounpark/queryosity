@@ -8,7 +8,7 @@ namespace ana {
  * @brief Calculate a column value for each dataset entry.
  * @tparam Val Column value type.
  * @details A calculation is performed once per-entry (if needed) and its value
- * is stored for multiple accesses by downstream operations within the entry.
+ * is stored for multiple accesses by downstream actions within the entry.
  * The type `Val` must be *CopyConstructible* and *CopyAssignable*.
  */
 template <typename Val> class column::calculation : public term<Val> {
@@ -25,10 +25,10 @@ public:
 
   virtual Val calculate() const = 0;
 
-  virtual void initialize(const dataset::range &part) override;
-  virtual void execute(const dataset::range &part,
-                       unsigned long long entry) override;
-  virtual void finalize(const dataset::range &part) override;
+  virtual void initialize(unsigned int slot, unsigned long long begin,
+                          unsigned long long end) override;
+  virtual void execute(unsigned int slot, unsigned long long entry) override;
+  virtual void finalize(unsigned int slot) override;
 
 protected:
   void update() const;
@@ -57,7 +57,7 @@ const Val &ana::column::calculation<Val>::value() const {
 }
 
 template <typename Val> void ana::column::calculation<Val>::update() const {
-  m_value = this->calculate();
+  m_value = std::move(this->calculate());
   m_updated = true;
 }
 
@@ -66,13 +66,13 @@ template <typename Val> void ana::column::calculation<Val>::reset() const {
 }
 
 template <typename Val>
-void ana::column::calculation<Val>::initialize(const ana::dataset::range &) {}
+void ana::column::calculation<Val>::initialize(unsigned int, unsigned long long,
+                                               unsigned long long) {}
 
 template <typename Val>
-void ana::column::calculation<Val>::execute(const ana::dataset::range &,
-                                            unsigned long long) {
+void ana::column::calculation<Val>::execute(unsigned int, unsigned long long) {
   this->reset();
 }
 
 template <typename Val>
-void ana::column::calculation<Val>::finalize(const ana::dataset::range &) {}
+void ana::column::calculation<Val>::finalize(unsigned int) {}

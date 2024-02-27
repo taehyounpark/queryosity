@@ -2,7 +2,7 @@ An arbitrary analysis consists of a directed, acyclic graph of tasks performed f
 
 ![dataflow](../assets/dataflow.png)
 
-An operation falls into one of three categories associated with a set of applicable methods:
+An action falls into one of three categories associated with a set of applicable methods:
 
 <style>
 table th:first-of-type {

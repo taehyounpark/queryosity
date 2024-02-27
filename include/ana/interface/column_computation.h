@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "column.h"
-#include "dataset_source.h"
+#include "dataset.h"
 
 namespace ana {
 
@@ -14,7 +14,7 @@ namespace ana {
  * @brief Computation graph of columns.
  * @details `column::computation<Dataset_t>` issues `unique::ptr<Column_t>`
  * for all columns, or their evaluators, used in the analysis.
- * It keeps a raw pointer of each, only if their operation needs to be called
+ * It keeps a raw pointer of each, only if their action needs to be called
  * for each dataset entry (e.g. constant values are not stored).
  */
 class column::computation {
@@ -25,8 +25,8 @@ public:
 
 public:
   template <typename DS, typename Val>
-  auto read(dataset::source<DS> &ds, const dataset::range &part,
-            const std::string &name) -> std::unique_ptr<read_column_t<DS, Val>>;
+  auto read(dataset::reader<DS> &ds, unsigned int slot, const std::string &name)
+      -> std::unique_ptr<read_column_t<DS, Val>>;
 
   template <typename Val>
   auto assign(Val const &val) -> std::unique_ptr<column::fixed<Val>>;
@@ -55,13 +55,13 @@ protected:
 #include "column_equation.h"
 #include "column_evaluator.h"
 #include "column_fixed.h"
+#include "dataset_source.h"
 
 template <typename DS, typename Val>
-auto ana::column::computation::read(dataset::source<DS> &ds,
-                                    const ana::dataset::range &part,
+auto ana::column::computation::read(dataset::reader<DS> &ds, unsigned int slot,
                                     const std::string &name)
     -> std::unique_ptr<read_column_t<DS, Val>> {
-  auto rdr = ds.template read_column<Val>(part, name);
+  auto rdr = ds.template read_column<Val>(slot, name);
   this->add_column(*rdr);
   return rdr;
 }

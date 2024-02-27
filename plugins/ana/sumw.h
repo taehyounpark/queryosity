@@ -8,7 +8,7 @@
 
 namespace ana {
 
-class sumw : public ana::counter::implementation<double> {
+class sumw : public ana::counter::aggregation<double> {
 
 public:
   sumw() = default;

@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include "operation.h"
+#include "action.h"
 
 namespace ana {
 
@@ -24,7 +24,7 @@ namespace counter {
 
 class experiment;
 
-template <typename T> class implementation;
+template <typename T> class aggregation;
 
 template <typename T> class definition;
 
@@ -32,7 +32,7 @@ template <typename T> class booker;
 
 template <typename T> class output;
 
-class counter_base : public operation {
+class counter_base : public action {
 
 public:
   counter_base();
@@ -44,9 +44,9 @@ public:
   void set_selection(const selection &selection);
   const selection *get_selection() const;
 
-  virtual void initialize(const dataset::range &part) override;
-  virtual void execute(const dataset::range &part,
-                       unsigned long long entry) override;
+  virtual void initialize(unsigned int slot, unsigned long long begin,
+                          unsigned long long end) override;
+  virtual void execute(unsigned int slot, unsigned long long entry) override;
 
   virtual void count(double w) = 0;
 
@@ -57,7 +57,7 @@ protected:
 };
 
 template <typename T>
-constexpr std::true_type check_implemented(const counter::implementation<T> &);
+constexpr std::true_type check_implemented(const counter::aggregation<T> &);
 constexpr std::false_type check_implemented(...);
 
 template <typename Out, typename... Vals>
@@ -105,13 +105,14 @@ inline void ana::counter::counter_base::apply_scale(double scale) {
 
 inline void ana::counter::counter_base::use_weight(bool use) { m_raw = !use; }
 
-inline void
-ana::counter::counter_base::initialize(const ana::dataset::range &) {
+inline void ana::counter::counter_base::initialize(unsigned int,
+                                                   unsigned long long,
+                                                   unsigned long long) {
   if (!m_selection)
     throw std::runtime_error("no booked selection");
 }
 
-inline void ana::counter::counter_base::execute(const ana::dataset::range &,
+inline void ana::counter::counter_base::execute(unsigned int,
                                                 unsigned long long) {
   if (m_selection->passed_cut()) {
     this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());

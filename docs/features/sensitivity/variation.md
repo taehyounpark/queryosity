@@ -17,12 +17,12 @@ Any column can be varied with an alternate constructor of the same type, which t
 
 # Propagation of variations
 
-Nominal and varied operations are automatically carried forward during an analysis, meaning:
+Nominal and varied actions are automatically carried forward during an analysis, meaning:
 
 - Any dependent columns and selections evaluated from varied input columns will be varied.
 - Any counters performed using varied columns and selections will be varied.
 
-The propagation proceeds "in lockstep" and "transparently", meaning:
+The propagation proceeds "in concurrent" and "transparently", meaning:
 
 - If two actions each have a variation of the same name, they are in effect together.
 - If one action has a variation while another doesn't, then the nominal is in effect for the latter.

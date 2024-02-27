@@ -30,7 +30,7 @@ auto tree_name = "mini";
 auto ds = df.open<Tree>(tree_files, tree_name);
 ```
 ```cpp title="Read out columns"
-// std::vector-like containers types with useful array operations
+// std::vector-like containers types with useful array actions
 using VecUI = ROOT::RVec<unsigned int>;
 using VecF = ROOT::RVec<float>;
 using VecD = ROOT::RVec<double>;

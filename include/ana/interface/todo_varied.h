@@ -1,30 +1,30 @@
 #pragma once
 
-#include "delayed.h"
+#include "todo.h"
 
 namespace ana {
 
 /**
- * @brief Varied version of a delayed node.
- * @details A delayed varied operation is functionally equivalent to a delayed
+ * @brief Varied version of a todo node.
+ * @details A todo varied action is functionally equivalent to a todo
  * node, except that it contains multiple nodes corresponding to nominal and
  * systematic variations.
  */
 template <typename Bld>
-class delayed<Bld>::varied : public systematic::resolver<delayed<Bld>> {
+class todo<Bld>::varied : public dataflow::node,
+                          systematic::resolver<todo<Bld>> {
 
 public:
-  varied(delayed<Bld> &&nom);
+  varied(todo<Bld> &&nom);
   ~varied() = default;
 
   varied(varied &&) = default;
   varied &operator=(varied &&) = default;
 
-  virtual void set_variation(const std::string &var_name,
-                             delayed &&var) override;
+  virtual void set_variation(const std::string &var_name, todo &&var) override;
 
-  virtual delayed const &nominal() const override;
-  virtual delayed const &variation(const std::string &var_name) const override;
+  virtual todo const &nominal() const override;
+  virtual todo const &variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
@@ -44,7 +44,7 @@ public:
   /**
    * @brief Fill the counter with input columns.
    * @param columns... Input columns to fill the counter with.
-   * @return A new delayed counter node with input columns filled.
+   * @return A new todo counter node with input columns filled.
    */
   template <
       typename... Nodes, typename V = Bld,
@@ -81,12 +81,12 @@ public:
    */
   template <typename... Args>
   auto operator()(Args &&...args) ->
-      typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
-          std::forward<Args>(args).nominal()...))::operation_type>::varied;
+      typename lazy<typename decltype(std::declval<todo<Bld>>().operator()(
+          std::forward<Args>(args).nominal()...))::action_type>::varied;
 
 protected:
-  delayed<Bld> m_nominal;
-  std::unordered_map<std::string, delayed<Bld>> m_variation_map;
+  todo<Bld> m_nominal;
+  std::unordered_map<std::string, todo<Bld>> m_variation_map;
   std::set<std::string> m_variation_names;
 };
 
@@ -97,44 +97,42 @@ protected:
 #include "selection.h"
 
 template <typename Bld>
-ana::delayed<Bld>::varied::varied(delayed<Bld> &&nom)
-    : systematic::resolver<delayed<Bld>>::resolver(*nom.m_df),
-      m_nominal(std::move(nom)) {}
+ana::todo<Bld>::varied::varied(todo<Bld> &&nom)
+    : dataflow::node(*nom.m_df), m_nominal(std::move(nom)) {}
 
 template <typename Bld>
-void ana::delayed<Bld>::varied::set_variation(const std::string &var_name,
-                                              delayed &&var) {
+void ana::todo<Bld>::varied::set_variation(const std::string &var_name,
+                                           todo &&var) {
   m_variation_map.insert(std::move(std::make_pair(var_name, std::move(var))));
   m_variation_names.insert(var_name);
 }
 
 template <typename Bld>
-auto ana::delayed<Bld>::varied::nominal() const -> delayed const & {
+auto ana::todo<Bld>::varied::nominal() const -> todo const & {
   return m_nominal;
 }
 
 template <typename Bld>
-auto ana::delayed<Bld>::varied::variation(const std::string &var_name) const
-    -> delayed const & {
+auto ana::todo<Bld>::varied::variation(const std::string &var_name) const
+    -> todo const & {
   return (this->has_variation(var_name) ? m_variation_map.at(var_name)
                                         : m_nominal);
 }
 
 template <typename Bld>
-bool ana::delayed<Bld>::varied::has_variation(
-    const std::string &var_name) const {
+bool ana::todo<Bld>::varied::has_variation(const std::string &var_name) const {
   return m_variation_map.find(var_name) != m_variation_map.end();
 }
 
 template <typename Bld>
-std::set<std::string> ana::delayed<Bld>::varied::list_variation_names() const {
+std::set<std::string> ana::todo<Bld>::varied::list_variation_names() const {
   return m_variation_names;
 }
 
 template <typename Bld>
 template <typename... Args, typename V,
           std::enable_if_t<ana::column::template is_evaluator_v<V>, bool>>
-auto ana::delayed<Bld>::varied::evaluate(Args &&...args) ->
+auto ana::todo<Bld>::varied::evaluate(Args &&...args) ->
     typename ana::lazy<column::template evaluated_t<V>>::varied {
   using varied_type =
       typename ana::lazy<column::template evaluated_t<V>>::varied;
@@ -152,7 +150,7 @@ auto ana::delayed<Bld>::varied::evaluate(Args &&...args) ->
 template <typename Bld>
 template <typename... Nodes, typename V,
           std::enable_if_t<ana::selection::template is_applicator_v<V>, bool>>
-auto ana::delayed<Bld>::varied::apply(Nodes const &...columns) ->
+auto ana::todo<Bld>::varied::apply(Nodes const &...columns) ->
     typename lazy<selection>::varied {
 
   using varied_type = typename lazy<selection>::varied;
@@ -170,7 +168,7 @@ auto ana::delayed<Bld>::varied::apply(Nodes const &...columns) ->
 template <typename Bld>
 template <typename... Nodes, typename V,
           std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
-auto ana::delayed<Bld>::varied::fill(Nodes const &...columns) -> varied {
+auto ana::todo<Bld>::varied::fill(Nodes const &...columns) -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
   for (auto const &var_name :
        systematic::list_all_variation_names(*this, columns...)) {
@@ -183,7 +181,7 @@ auto ana::delayed<Bld>::varied::fill(Nodes const &...columns) -> varied {
 template <typename Bld>
 template <typename Node, typename V,
           std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
-auto ana::delayed<Bld>::varied::book(Node const &selection) ->
+auto ana::todo<Bld>::varied::book(Node const &selection) ->
     typename lazy<counter::booked_t<V>>::varied {
   using varied_type = typename lazy<counter::booked_t<V>>::varied;
   auto syst = varied_type(this->nominal().book(selection.nominal()));
@@ -198,7 +196,7 @@ auto ana::delayed<Bld>::varied::book(Node const &selection) ->
 template <typename Bld>
 template <typename... Nodes, typename V,
           std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
-auto ana::delayed<Bld>::varied::book(Nodes const &...selections)
+auto ana::todo<Bld>::varied::book(Nodes const &...selections)
     -> std::array<typename lazy<counter::booked_t<V>>::varied,
                   sizeof...(Nodes)> {
   // variations
@@ -220,13 +218,13 @@ auto ana::delayed<Bld>::varied::book(Nodes const &...selections)
 
 template <typename Bld>
 template <typename... Args>
-auto ana::delayed<Bld>::varied::operator()(Args &&...args) ->
-    typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
-        std::forward<Args>(args).nominal()...))::operation_type>::varied {
+auto ana::todo<Bld>::varied::operator()(Args &&...args) ->
+    typename lazy<typename decltype(std::declval<todo<Bld>>().operator()(
+        std::forward<Args>(args).nominal()...))::action_type>::varied {
 
   using varied_type =
-      typename lazy<typename decltype(std::declval<delayed<Bld>>().operator()(
-          std::forward<Args>(args).nominal()...))::operation_type>::varied;
+      typename lazy<typename decltype(std::declval<todo<Bld>>().operator()(
+          std::forward<Args>(args).nominal()...))::action_type>::varied;
 
   auto syst = varied_type(
       this->nominal().operator()(std::forward<Args>(args).nominal()...));

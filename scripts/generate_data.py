@@ -22,7 +22,7 @@ cauchy_samples = cauchy_dist.rvs(size=nentries)
 gaussian_dist = norm(loc=0.0, scale=1.0)
 gaussian_samples = gaussian_dist.rvs(size=nentries)
 
-# Perform the operations as described
+# Perform the actions as described
 x_true = cauchy_samples
 x_nom = x_true + gaussian_samples
 x_scale = x_nom * offset

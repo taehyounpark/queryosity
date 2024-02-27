@@ -20,7 +20,7 @@ public:
   auto _aggregate(dataflow &df) const;
 
 protected:
-  std::function<delayed<counter::booker<Cntr>>(dataflow &)> m_aggregate;
+  std::function<todo<counter::booker<Cntr>>(dataflow &)> m_aggregate;
 };
 
 } // namespace counter

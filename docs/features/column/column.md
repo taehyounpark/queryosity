@@ -15,7 +15,7 @@ Consider the following JSON data:
 
     namespace ana {
 
-    class json : public ana::dataset::source<json> {
+    class json : public ana::dataset::reader<json> {
 
     public:
     template <typename T> class column;
@@ -27,20 +27,20 @@ Consider the following JSON data:
     ana::dataset::partition parallelize();
 
     template <typename T>
-    std::unique_ptr<column<T>> read(const ana::dataset::range &part,
+    std::unique_ptr<column<T>> read(unsigned int,
                                 const std::string &name) const;
 
     protected:
     nlohmann::json m_data;
     };
 
-    template <typename T> class json::column : public ana::dataset::reader<T> {
+    template <typename T> class json::column : public ana::column::reader<T> {
 
     public:
     column(const nlohmann::json &data, const std::string &name);
     ~column() = default;
 
-    virtual const T &read(const ana::dataset::range &part,
+    virtual const T &read(unsigned int,
                         unsigned long long entry) const override;
 
     protected:
@@ -114,7 +114,7 @@ auto [a, b, c] = df.open<ana::json>(data)
     Even in the "worst" case, explicit template specialization can be used to cherry-pick how to read a specific data type.
     ```cpp
     template <>
-    class ana::json::reader<CustomData> : public ana::dataset::reader<CustomData>
+    class ana::json::reader<CustomData> : public ana::column::reader<CustomData>
     { 
       virtual ColumnData const& read() const override { /* (implementation) */ }
     };
@@ -142,10 +142,10 @@ auto first_number = numbers[first];
 ```
 
 1. Constants of arbitrary data type can be declared by providing their value. The type must be *CopyConstructable*.
-2. Binary and unary operations between the underlying data types can be used. Self-assignment operators (e.g. `+=`) are not suppported.
+2. Binary and unary actions between the underlying data types can be used. Self-assignment operators (e.g. `+=`) are not suppported.
 
 !!! info 
-    Reminder that these operations are *lazy*, and have not been performed on any particular entry or values.
+    Reminder that these actions are *lazy*, and have not been performed on any particular entry or values.
 
 ### Callable expressions.
 

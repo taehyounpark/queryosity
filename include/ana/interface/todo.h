@@ -8,19 +8,19 @@
 
 namespace ana {
 
-template <typename T> class delayed;
+template <typename T> class todo;
 
 template <typename U>
 static constexpr std::true_type check_lazy(lazy<U> const &);
 static constexpr std::false_type check_lazy(...);
 template <typename U>
-static constexpr std::true_type check_delayed(delayed<U> const &);
-static constexpr std::false_type check_delayed(...);
+static constexpr std::true_type check_todo(todo<U> const &);
+static constexpr std::false_type check_todo(...);
 
 template <typename V>
 static constexpr bool is_nominal_v =
     (decltype(check_lazy(std::declval<V>()))::value ||
-     decltype(check_delayed(std::declval<V>()))::value);
+     decltype(check_todo(std::declval<V>()))::value);
 template <typename V> static constexpr bool is_varied_v = !is_nominal_v<V>;
 
 template <typename... Args>
@@ -30,40 +30,48 @@ static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 /**
  * @brief A node that instantiates a lazy action.
- * @details A delayed node requires additional inputs to instantiate a lazy
+ * @details A todo node requires additional inputs to instantiate a lazy
  * action.
  * @tparam Bkr Booker that instantiates a lazy action.
  */
 template <typename Bkr>
-class delayed : public systematic::resolver<delayed<Bkr>>,
-                public lockstep::node<Bkr> {
+class todo : public dataflow::node,
+             public concurrent::slotted<Bkr>,
+             public systematic::resolver<todo<Bkr>> {
 
 public:
   class varied;
 
 public:
-  delayed(dataflow &dataflow, lockstep::node<Bkr> &&operation)
-      : systematic::resolver<delayed<Bkr>>::resolver(dataflow),
-        lockstep::node<Bkr>::node(std::move(operation)) {}
+  todo(dataflow &df, std::vector<std::unique_ptr<Bkr>> &&bkr)
+      : dataflow::node(df), m_slots(std::move(bkr)) {}
 
-  virtual ~delayed() = default;
+  virtual ~todo() = default;
 
-  template <typename V>
-  delayed(delayed<V> &&other)
-      : systematic::resolver<delayed<Bkr>>::resolver(*other.m_df),
-        lockstep::node<Bkr>::node(std::move(other)) {}
+  template <typename V> todo(todo<V> &&other) : dataflow::node(*other.m_df) {
+    this->m_slots.reserve(other.m_slots.size());
+    for (auto &&slot : other.m_slots) {
+      this->m_slots.push_back(std::move(slot));
+    }
+  }
 
-  template <typename V> delayed &operator=(delayed<V> &&other) {
+  template <typename V> todo &operator=(todo<V> &&other) {
     this->m_df = other.m_df;
-    lockstep::node<Bkr>::operator=(std::move(other));
+    this->m_slots.clear();
+    this->m_slots.reserve(other.m_slots.size());
+    for (auto &&slot : other.m_slots) {
+      this->m_slots.push_back(std::move(slot));
+    }
     return *this;
   }
 
-  virtual void set_variation(const std::string &var_name,
-                             delayed &&var) override;
+  virtual Bkr *get_slot(unsigned int islot) const override;
+  virtual unsigned int concurrency() const override;
 
-  virtual delayed const &nominal() const override;
-  virtual delayed const &variation(const std::string &var_name) const override;
+  virtual void set_variation(const std::string &var_name, todo &&var) override;
+
+  virtual todo const &nominal() const override;
+  virtual todo const &variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
@@ -77,7 +85,7 @@ public:
       typename... Nodes, typename V = Bkr,
       std::enable_if_t<ana::column::template is_evaluator_v<V>, bool> = false>
   auto evaluate(Nodes &&...columns) const
-      -> decltype(std::declval<delayed<V>>().evaluate_column(
+      -> decltype(std::declval<todo<V>>().evaluate_column(
           std::forward<Nodes>(columns)...)) {
     return this->evaluate_column(std::forward<Nodes>(columns)...);
   }
@@ -91,7 +99,7 @@ public:
             std::enable_if_t<ana::selection::template is_applicator_v<V>,
                              bool> = false>
   auto apply(Nodes &&...columns) const
-      -> decltype(std::declval<delayed<V>>()._apply(
+      -> decltype(std::declval<todo<V>>()._apply(
           std::forward<Nodes>(columns)...)) {
     return this->_apply(std::forward<Nodes>(columns)...);
   }
@@ -105,7 +113,7 @@ public:
       typename... Nodes, typename V = Bkr,
       std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
   auto fill(Nodes &&...columns) const
-      -> decltype(std::declval<delayed<V>>().fill_counter(
+      -> decltype(std::declval<todo<V>>().fill_counter(
           std::declval<Nodes>()...)) {
     return this->fill_counter(std::forward<Nodes>(columns)...);
   }
@@ -135,7 +143,7 @@ public:
                                  selection::template is_applicator_v<V>,
                              bool> = false>
   auto operator()(Args &&...columns) const
-      -> decltype(std::declval<delayed<V>>().evaluate_or_apply(
+      -> decltype(std::declval<todo<V>>().evaluate_or_apply(
           std::forward<Args>(std::declval<Args &&>())...)) {
     return this->evaluate_or_apply(std::forward<Args>(columns)...);
   }
@@ -166,7 +174,7 @@ protected:
 
     using varied_type = typename lazy<column::template evaluated_t<V>>::varied;
 
-    auto nom = this->m_df->evaluate_column(*this, columns.nominal()...);
+    auto nom = this->m_df->evaluate_column(this, columns.nominal()...);
     auto syst = varied_type(std::move(nom));
 
     for (auto const &var_name :
@@ -248,7 +256,7 @@ protected:
   template <typename... Args, typename V = Bkr,
             std::enable_if_t<column::template is_evaluator_v<V>, bool> = false>
   auto evaluate_or_apply(Args &&...columns) const
-      -> decltype(std::declval<delayed<V>>().evaluate(
+      -> decltype(std::declval<todo<V>>().evaluate(
           std::forward<Args>(std::declval<Args &&>())...)) {
     return this->evaluate(std::forward<Args>(columns)...);
   }
@@ -257,7 +265,7 @@ protected:
       typename... Args, typename V = Bkr,
       std::enable_if_t<selection::template is_applicator_v<V>, bool> = false>
   auto evaluate_or_apply(Args &&...columns) const
-      -> decltype(std::declval<delayed<V>>().apply(
+      -> decltype(std::declval<todo<V>>().apply(
           std::forward<Args>(std::declval<Args &&>())...)) {
     return this->apply(std::forward<Args>(columns)...);
   }
@@ -266,15 +274,14 @@ protected:
             std::enable_if_t<ana::counter::template is_booker_v<V> &&
                                  ana::has_no_variation_v<Nodes...>,
                              bool> = false>
-  auto fill_counter(Nodes const &...columns) const -> delayed<V> {
+  auto fill_counter(Nodes const &...columns) const -> todo<V> {
     // nominal
-    return delayed<V>(
-        *this->m_df,
-        lockstep::get_node(
-            [](V *fillable, typename Nodes::operation_type *...cols) {
-              return fillable->book_fill(*cols...);
-            },
-            *this, columns...));
+    return todo<V>(*this->m_df,
+                   concurrent::invoke(
+                       [](V *fillable, typename Nodes::action_type *...cols) {
+                         return fillable->book_fill(*cols...);
+                       },
+                       this->get_slots(), columns.get_slots()...));
   }
 
   template <typename... Nodes, typename V = Bkr,
@@ -316,37 +323,47 @@ protected:
     }
     return syst;
   }
+
+protected:
+  std::vector<std::unique_ptr<Bkr>> m_slots;
 };
 
 } // namespace ana
 
-template <typename Bkr>
-void ana::delayed<Bkr>::set_variation(const std::string &, delayed<Bkr> &&) {
-  // should never be called
-  throw std::logic_error("cannot set variation to a lazy operation");
+template <typename Action>
+Action *ana::todo<Action>::get_slot(unsigned int islot) const {
+  return this->m_slots[islot].get();
+}
+
+template <typename Action> unsigned int ana::todo<Action>::concurrency() const {
+  return this->m_slots.size();
 }
 
 template <typename Bkr>
-auto ana::delayed<Bkr>::nominal() const -> delayed const & {
+void ana::todo<Bkr>::set_variation(const std::string &, todo<Bkr> &&) {
+  // should never be called
+  throw std::logic_error("cannot set variation to a nominal-only action");
+}
+
+template <typename Bkr> auto ana::todo<Bkr>::nominal() const -> todo const & {
   // this is nominal
   return *this;
 }
 
 template <typename Bkr>
-auto ana::delayed<Bkr>::variation(const std::string &) const
-    -> delayed const & {
+auto ana::todo<Bkr>::variation(const std::string &) const -> todo const & {
   // propagation of variations must occur "transparently"
   return *this;
 }
 
 template <typename Bkr>
-std::set<std::string> ana::delayed<Bkr>::list_variation_names() const {
+std::set<std::string> ana::todo<Bkr>::list_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
 
 template <typename Bkr>
-bool ana::delayed<Bkr>::has_variation(const std::string &) const {
+bool ana::todo<Bkr>::has_variation(const std::string &) const {
   // always false
   return false;
 }

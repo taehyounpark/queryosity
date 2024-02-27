@@ -33,8 +33,8 @@ nav:
       - 'dataflow': analogical/classana_1_1dataflow.md
       - 'lazy': analogical/classana_1_1lazy.md
       - 'lazy::varied': analogical/classana_1_1lazy_1_1varied.md
-      - 'delayed': analogical/classana_1_1delayed.md
-      - 'delayed::varied': analogical/classana_1_1delayed_1_1varied.md
+      - 'todo': analogical/classana_1_1todo.md
+      - 'todo::varied': analogical/classana_1_1todo_1_1varied.md
     - Implementation:
       - 'dataset::input': analogical/classana_1_1dataset_1_1source.md
       - 'dataset::player': analogical/classana_1_1dataset_1_1player.md
@@ -66,7 +66,7 @@ plugins:
           src-dirs: include/ana/interface # path to source code (support multiple paths separated by space) => INPUT
           full-doc: True # if you want to generate full documentation
           doxy-cfg: # standard doxygen configuration (key: value)
-            FILE_PATTERNS: "dataflow.h lazy*.h delayed*.h dataset.h dataset_input.h dataset_player.h dataset_column.h column_definition.h counter_logic.h counter_logic.h" # specify file patterns to filter out
+            FILE_PATTERNS: "dataflow.h lazy*.h todo*.h dataset.h dataset_input.h dataset_player.h dataset_column.h column_definition.h counter_logic.h counter_logic.h" # specify file patterns to filter out
             RECURSIVE: True # recursive search in source directories
       save-api: .mkdoxy
 

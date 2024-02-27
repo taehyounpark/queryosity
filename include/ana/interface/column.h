@@ -4,15 +4,17 @@
 #include <memory>
 #include <type_traits>
 
-#include "operation.h"
+#include "action.h"
 
 namespace ana {
 
 namespace column {
 
-class column_base : public operation {};
+class column_base : public action {};
 
 class computation;
+
+template <typename T> class reader;
 
 template <typename T> class fixed;
 
@@ -31,7 +33,7 @@ template <typename T> class expression;
 template <typename T> class evaluator;
 
 template <typename T>
-constexpr std::true_type check_reader(typename dataset::reader<T> const &);
+constexpr std::true_type check_reader(typename column::reader<T> const &);
 constexpr std::false_type check_reader(...);
 
 template <typename T>
@@ -189,10 +191,10 @@ public:
   term() = default;
   virtual ~term() = default;
 
-  virtual void initialize(const dataset::range &part) override;
-  virtual void execute(const dataset::range &part,
-                       unsigned long long entry) override;
-  virtual void finalize(const dataset::range &part) override;
+  virtual void initialize(unsigned int slot, unsigned long long begin,
+                          unsigned long long end) override;
+  virtual void execute(unsigned int slot, unsigned long long entry) override;
+  virtual void finalize(unsigned int slot) override;
 };
 
 // costly to move around
@@ -239,13 +241,13 @@ using cell_value_t = std::decay_t<decltype(std::declval<T>().value())>;
 } // namespace ana
 
 template <typename T>
-void ana::term<T>::initialize(ana::dataset::range const &) {}
+void ana::term<T>::initialize(unsigned int, unsigned long long,
+                              unsigned long long) {}
 
 template <typename T>
-void ana::term<T>::execute(ana::dataset::range const &, unsigned long long) {}
+void ana::term<T>::execute(unsigned int, unsigned long long) {}
 
-template <typename T>
-void ana::term<T>::finalize(ana::dataset::range const &) {}
+template <typename T> void ana::term<T>::finalize(unsigned int) {}
 
 template <typename T> T const *ana::cell<T>::field() const {
   return &this->value();

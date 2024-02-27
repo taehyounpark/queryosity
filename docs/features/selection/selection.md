@@ -15,7 +15,7 @@ auto filtered_n_weighted = filtered.weight("weight")(w);
 ```
 
 !!! info 
-    Calling a subsequent `filter()/weight()` operation from an existing selection node compound it on top of the chain.
+    Calling a subsequent `filter()/weight()` action from an existing selection node compound it on top of the chain.
     In the example above, the final cut and weight decisions are:
     ```cpp
     cut = decision && true;
