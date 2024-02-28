@@ -32,14 +32,14 @@ public:
 public:
   template <
       typename... Args, typename V = Bld,
-      std::enable_if_t<ana::column::template is_evaluator_v<V>, bool> = false>
+      std::enable_if_t<ana::column::template is_evaluatable_v<V>, bool> = false>
   auto evaluate(Args &&...args) ->
       typename ana::lazy<column::template evaluated_t<V>>::varied;
 
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<ana::selection::template is_applicator_v<V>,
+            std::enable_if_t<ana::selection::template is_applicable_v<V>,
                              bool> = false>
-  auto apply(Nodes const &...columns) -> typename lazy<selection>::varied;
+  auto apply(Nodes const &...columns) -> typename lazy<selection::node>::varied;
 
   /**
    * @brief Fill the counter with input columns.
@@ -48,7 +48,7 @@ public:
    */
   template <
       typename... Nodes, typename V = Bld,
-      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
+      std::enable_if_t<ana::counter::template is_bookable_v<V>, bool> = false>
   auto fill(Nodes const &...columns) -> varied;
 
   /**
@@ -58,7 +58,7 @@ public:
    */
   template <
       typename Node, typename V = Bld,
-      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
+      std::enable_if_t<ana::counter::template is_bookable_v<V>, bool> = false>
   auto book(Node const &selection) ->
       typename lazy<counter::booked_t<V>>::varied;
 
@@ -69,7 +69,7 @@ public:
    */
   template <
       typename... Nodes, typename V = Bld,
-      std::enable_if_t<ana::counter::template is_booker_v<V>, bool> = false>
+      std::enable_if_t<ana::counter::template is_bookable_v<V>, bool> = false>
   auto book(Nodes const &...selections)
       -> std::array<typename lazy<counter::booked_t<V>>::varied,
                     sizeof...(Nodes)>;
@@ -131,7 +131,7 @@ std::set<std::string> ana::todo<Bld>::varied::list_variation_names() const {
 
 template <typename Bld>
 template <typename... Args, typename V,
-          std::enable_if_t<ana::column::template is_evaluator_v<V>, bool>>
+          std::enable_if_t<ana::column::template is_evaluatable_v<V>, bool>>
 auto ana::todo<Bld>::varied::evaluate(Args &&...args) ->
     typename ana::lazy<column::template evaluated_t<V>>::varied {
   using varied_type =
@@ -149,11 +149,11 @@ auto ana::todo<Bld>::varied::evaluate(Args &&...args) ->
 
 template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<ana::selection::template is_applicator_v<V>, bool>>
+          std::enable_if_t<ana::selection::template is_applicable_v<V>, bool>>
 auto ana::todo<Bld>::varied::apply(Nodes const &...columns) ->
-    typename lazy<selection>::varied {
+    typename lazy<selection::node>::varied {
 
-  using varied_type = typename lazy<selection>::varied;
+  using varied_type = typename lazy<selection::node>::varied;
   auto syst = varied_type(this->nominal().apply(columns.nominal()...));
 
   for (auto const &var_name :
@@ -167,7 +167,7 @@ auto ana::todo<Bld>::varied::apply(Nodes const &...columns) ->
 
 template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
+          std::enable_if_t<ana::counter::template is_bookable_v<V>, bool>>
 auto ana::todo<Bld>::varied::fill(Nodes const &...columns) -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
   for (auto const &var_name :
@@ -180,7 +180,7 @@ auto ana::todo<Bld>::varied::fill(Nodes const &...columns) -> varied {
 
 template <typename Bld>
 template <typename Node, typename V,
-          std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
+          std::enable_if_t<ana::counter::template is_bookable_v<V>, bool>>
 auto ana::todo<Bld>::varied::book(Node const &selection) ->
     typename lazy<counter::booked_t<V>>::varied {
   using varied_type = typename lazy<counter::booked_t<V>>::varied;
@@ -195,7 +195,7 @@ auto ana::todo<Bld>::varied::book(Node const &selection) ->
 
 template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<ana::counter::template is_booker_v<V>, bool>>
+          std::enable_if_t<ana::counter::template is_bookable_v<V>, bool>>
 auto ana::todo<Bld>::varied::book(Nodes const &...selections)
     -> std::array<typename lazy<counter::booked_t<V>>::varied,
                   sizeof...(Nodes)> {
@@ -204,15 +204,18 @@ auto ana::todo<Bld>::varied::book(Nodes const &...selections)
   using array_of_varied_type =
       std::array<typename lazy<counter::booked_t<V>>::varied, sizeof...(Nodes)>;
   auto var_names = systematic::list_all_variation_names(*this, selections...);
-  auto _book_varied = [var_names,
-                       this](systematic::resolver<lazy<selection>> const &sel) {
-    auto syst = varied_type(this->m_df->_book(this->nominal(), sel.nominal()));
-    for (auto const &var_name : var_names) {
-      syst.set_variation(var_name, this->m_df->_book(this->variation(var_name),
-                                                     sel.variation(var_name)));
-    }
-    return syst;
-  };
+  auto _book_varied =
+      [var_names,
+       this](systematic::resolver<lazy<selection::node>> const &sel) {
+        auto syst =
+            varied_type(this->m_df->_book(this->nominal(), sel.nominal()));
+        for (auto const &var_name : var_names) {
+          syst.set_variation(var_name,
+                             this->m_df->_book(this->variation(var_name),
+                                               sel.variation(var_name)));
+        }
+        return syst;
+      };
   return array_of_varied_type{_book_varied(selections)...};
 }
 

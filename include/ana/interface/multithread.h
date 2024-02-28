@@ -125,8 +125,7 @@ inline unsigned int ana::concurrent::check(std::vector<T> const &first,
 template <typename Fn, typename... Args>
 inline void ana::concurrent::call(Fn const &fn,
                                   std::vector<Args> const &...args) {
-  auto nslots = check(args...);
-  // result at each slot must match the model
+  const auto nslots = check(args...);
   for (size_t i = 0; i < nslots; ++i) {
     fn(args.at(i)...);
   }
@@ -138,7 +137,6 @@ inline auto ana::concurrent::invoke(Fn const &fn,
     -> std::vector<typename std::invoke_result_t<Fn, Args...>> {
   auto nslots = check(args...);
   typename std::vector<typename std::invoke_result_t<Fn, Args...>> invoked;
-  // invoked.set_model(std::move(fn(args.get_model()...)));
   invoked.reserve(nslots);
   for (size_t i = 0; i < nslots; ++i) {
     invoked.push_back(std::move((fn(args.at(i)...))));
@@ -149,7 +147,9 @@ inline auto ana::concurrent::invoke(Fn const &fn,
 template <typename T>
 std::vector<T *> ana::concurrent::slotted<T>::get_slots() const {
   std::vector<T *> slots;
-  for (unsigned int i = 0; i < this->concurrency(); ++i) {
+  const auto nslots = this->concurrency();
+  slots.reserve(nslots);
+  for (unsigned int i = 0; i < nslots; ++i) {
     slots.push_back(this->get_slot(i));
   }
   return slots;

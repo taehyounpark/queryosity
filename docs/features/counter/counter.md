@@ -24,7 +24,7 @@ An counter can be `fill()`ed as many times as needed:
 ```cpp title="Filling a histogram twice per-entry"
 auto hist_xy = df.agg<Histogram<float>>("x_and_y",100,0,100).fill(x).fill(y);
 ```
-<!-- !!! warning "Make sure to get the returned booker"
+<!-- !!! warning "Make sure to get the returned book"
 
     Reminder: each (chained) method returns a new node with the lazy action booked.
     In other words, make sure to obtain and use the returned counter for the columns to be actually filled!

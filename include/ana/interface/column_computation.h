@@ -13,7 +13,7 @@ namespace ana {
 /**
  * @brief Computation graph of columns.
  * @details `column::computation<Dataset_t>` issues `unique::ptr<Column_t>`
- * for all columns, or their evaluators, used in the analysis.
+ * for all columns, or their evaluates, used in the analysis.
  * It keeps a raw pointer of each, only if their action needs to be called
  * for each dataset entry (e.g. constant values are not stored).
  */
@@ -33,27 +33,27 @@ public:
 
   template <typename Def, typename... Args>
   auto define(Args const &...vars) const
-      -> std::unique_ptr<ana::column::template evaluator_t<Def>>;
+      -> std::unique_ptr<ana::column::template evaluate_t<Def>>;
 
   template <typename Ret, typename... Args>
   auto equate(std::function<Ret(Args...)> fn) const -> std::unique_ptr<
-      ana::column::template evaluator_t<std::function<Ret(Args...)>>>;
+      ana::column::template evaluate_t<std::function<Ret(Args...)>>>;
 
   template <typename Def, typename... Cols>
-  auto evaluate_column(column::evaluator<Def> &calc, Cols const &...columns)
+  auto evaluate(column::evaluate<Def> &calc, Cols const &...columns)
       -> std::unique_ptr<Def>;
 
 protected:
-  void add_column(column::column_base &column);
+  void add_column(column::node &column);
 
 protected:
-  std::vector<column::column_base *> m_columns;
+  std::vector<column::node *> m_columns;
 };
 
 } // namespace ana
 
 #include "column_equation.h"
-#include "column_evaluator.h"
+#include "column_evaluate.h"
 #include "column_fixed.h"
 #include "dataset_source.h"
 
@@ -74,27 +74,27 @@ auto ana::column::computation::assign(Val const &val)
 
 template <typename Def, typename... Args>
 auto ana::column::computation::define(Args const &...args) const
-    -> std::unique_ptr<ana::column::template evaluator_t<Def>> {
-  return std::make_unique<evaluator<Def>>(args...);
+    -> std::unique_ptr<ana::column::template evaluate_t<Def>> {
+  return std::make_unique<column::evaluate<Def>>(args...);
 }
 
 template <typename Ret, typename... Args>
 auto ana::column::computation::equate(std::function<Ret(Args...)> fn) const
     -> std::unique_ptr<
-        ana::column::template evaluator_t<std::function<Ret(Args...)>>> {
+        ana::column::template evaluate_t<std::function<Ret(Args...)>>> {
   return std::make_unique<
-      ana::column::template evaluator_t<std::function<Ret(Args...)>>>(fn);
+      ana::column::template evaluate_t<std::function<Ret(Args...)>>>(fn);
 }
 
 template <typename Def, typename... Cols>
-auto ana::column::computation::evaluate_column(column::evaluator<Def> &calc,
-                                               Cols const &...columns)
+auto ana::column::computation::evaluate(column::evaluate<Def> &calc,
+                                        Cols const &...columns)
     -> std::unique_ptr<Def> {
-  auto defn = calc.evaluate_column(columns...);
+  auto defn = calc._evaluate(columns...);
   this->add_column(*defn);
   return defn;
 }
 
-inline void ana::column::computation::add_column(column::column_base &column) {
+inline void ana::column::computation::add_column(column::node &column) {
   m_columns.push_back(&column);
 }

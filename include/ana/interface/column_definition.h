@@ -4,7 +4,7 @@
 #include <tuple>
 
 #include "column_calculation.h"
-#include "column_evaluator.h"
+#include "column_evaluate.h"
 #include "todo.h"
 
 namespace ana {
@@ -48,7 +48,7 @@ public:
   auto _define(dataflow &df) const;
 
 protected:
-  std::function<todo<evaluator_t<Def>>(dataflow &)> m_define;
+  std::function<todo<evaluate_t<Def>>(dataflow &)> m_define;
 };
 
 } // namespace ana

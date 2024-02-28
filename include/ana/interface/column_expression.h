@@ -11,7 +11,11 @@ class dataflow;
 
 template <typename T> class lazy;
 
-class selection;
+namespace selection {
+
+class node;
+
+}
 
 template <typename Expr> class column::expression {
 
@@ -27,7 +31,7 @@ public:
   template <typename Sel> auto _select(dataflow &df) const;
 
   template <typename Sel>
-  auto _select(dataflow &df, lazy<selection> const &presel) const;
+  auto _select(dataflow &df, lazy<selection::node> const &presel) const;
 
 protected:
   function_type m_expression;
@@ -56,6 +60,6 @@ auto ana::column::expression<Expr>::_select(ana::dataflow &df) const {
 template <typename Expr>
 template <typename Sel>
 auto ana::column::expression<Expr>::_select(
-    ana::dataflow &df, lazy<selection> const &presel) const {
+    ana::dataflow &df, lazy<selection::node> const &presel) const {
   return df._select<Sel>(presel, this->m_expression);
 }

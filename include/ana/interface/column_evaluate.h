@@ -8,17 +8,17 @@
 
 namespace ana {
 
-template <typename T> class column::evaluator {
+template <typename T> class column::evaluate {
 
 public:
   using evaluated_type = T;
 
 public:
-  template <typename... Args> evaluator(Args const &...args);
-  ~evaluator() = default;
+  template <typename... Args> evaluate(Args const &...args);
+  ~evaluate() = default;
 
   template <typename... Vals>
-  std::unique_ptr<T> evaluate_column(cell<Vals> const &...cols) const;
+  std::unique_ptr<T> _evaluate(cell<Vals> const &...cols) const;
 
 protected:
   std::function<std::unique_ptr<T>()> m_make_unique;
@@ -28,7 +28,7 @@ protected:
 
 template <typename T>
 template <typename... Args>
-ana::column::evaluator<T>::evaluator(Args const &...args)
+ana::column::evaluate<T>::evaluate(Args const &...args)
     : m_make_unique(std::bind(
           [](Args const &...args) { return std::make_unique<T>(args...); },
           args...)) {}
@@ -36,7 +36,7 @@ ana::column::evaluator<T>::evaluator(Args const &...args)
 template <typename T>
 template <typename... Vals>
 std::unique_ptr<T>
-ana::column::evaluator<T>::evaluate_column(cell<Vals> const &...columns) const {
+ana::column::evaluate<T>::_evaluate(cell<Vals> const &...columns) const {
   auto defn = m_make_unique();
 
   defn->set_arguments(columns...);

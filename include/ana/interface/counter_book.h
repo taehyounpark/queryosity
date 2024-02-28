@@ -9,23 +9,23 @@
 
 namespace ana {
 
-template <typename T> class counter::booker {
+template <typename T> class counter::book {
 
 public:
   using counter_type = T;
 
 public:
-  template <typename... Args> booker(Args... args);
-  ~booker() = default;
+  template <typename... Args> book(Args... args);
+  ~book() = default;
 
   // copyable
-  booker(const booker &) = default;
-  booker &operator=(const booker &) = default;
+  book(const book &) = default;
+  book &operator=(const book &) = default;
 
   template <typename... Vals>
-  auto book_fill(term<Vals> const &...cols) const -> std::unique_ptr<booker<T>>;
+  auto book_fill(term<Vals> const &...cols) const -> std::unique_ptr<book<T>>;
 
-  auto set_selection(const selection &sel) const -> std::unique_ptr<T>;
+  auto set_selection(const selection::node &sel) const -> std::unique_ptr<T>;
 
 protected:
   std::unique_ptr<T> make_counter();
@@ -40,26 +40,26 @@ protected:
 
 template <typename T>
 template <typename... Args>
-ana::counter::booker<T>::booker(Args... args)
+ana::counter::book<T>::book(Args... args)
     : m_make_unique_counter(std::bind(
           [](Args... args) { return std::make_unique<T>(args...); }, args...)) {
 }
 
 template <typename T>
 template <typename... Vals>
-auto ana::counter::booker<T>::book_fill(term<Vals> const &...columns) const
-    -> std::unique_ptr<booker<T>> {
+auto ana::counter::book<T>::book_fill(term<Vals> const &...columns) const
+    -> std::unique_ptr<book<T>> {
   // use a fresh one with its current fills
-  auto filled = std::make_unique<booker<T>>(*this);
+  auto filled = std::make_unique<book<T>>(*this);
   // add fills
   filled->fill_counter(columns...);
-  // return new booker
+  // return new book
   return filled;
 }
 
 template <typename T>
 template <typename... Vals>
-void ana::counter::booker<T>::fill_counter(term<Vals> const &...columns) {
+void ana::counter::book<T>::fill_counter(term<Vals> const &...columns) {
   // use a snapshot of its current calls
   m_fill_columns.push_back(std::bind(
       [](T &cnt, term<Vals> const &...cols) { cnt.enter_columns(cols...); },
@@ -67,7 +67,7 @@ void ana::counter::booker<T>::fill_counter(term<Vals> const &...columns) {
 }
 
 template <typename T>
-auto ana::counter::booker<T>::set_selection(const selection &sel) const
+auto ana::counter::book<T>::set_selection(const selection::node &sel) const
     -> std::unique_ptr<T> {
   // call constructor
   auto cnt = m_make_unique_counter();

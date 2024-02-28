@@ -8,20 +8,20 @@
 
 namespace ana {
 
-template <typename T> class ana::selection::applicator {
+template <typename T> class ana::selection::apply {
 
 public:
-  template <typename Fn> applicator(Fn fn);
-  ~applicator() = default;
+  template <typename Fn> apply(Fn fn);
+  ~apply() = default;
 
-  template <typename Sel> void set_selection(const selection *presel);
+  template <typename Sel> void set_selection(const selection::node *presel);
 
   template <typename... Vals>
-  std::unique_ptr<selection> _apply(cell<Vals> const &...columns) const;
+  std::unique_ptr<selection::node> _apply(cell<Vals> const &...columns) const;
 
 protected:
   std::function<std::unique_ptr<T>()> m_make_unique_equation;
-  std::function<std::unique_ptr<selection>()> m_make_unique_selection;
+  std::function<std::unique_ptr<selection::node>()> m_make_unique_selection;
 };
 
 } // namespace ana
@@ -30,13 +30,13 @@ protected:
 
 template <typename T>
 template <typename Fn>
-ana::selection::applicator<T>::applicator(Fn fn)
+ana::selection::apply<T>::apply(Fn fn)
     : m_make_unique_equation([fn]() { return std::make_unique<T>(fn); }),
       m_make_unique_selection([]() { return nullptr; }) {}
 
 template <typename T>
 template <typename Sel>
-void ana::selection::applicator<T>::set_selection(const selection *presel) {
+void ana::selection::apply<T>::set_selection(const selection::node *presel) {
   m_make_unique_selection = [presel]() {
     return std::make_unique<Sel>(presel);
   };
@@ -44,8 +44,8 @@ void ana::selection::applicator<T>::set_selection(const selection *presel) {
 
 template <typename T>
 template <typename... Vals>
-std::unique_ptr<ana::selection>
-ana::selection::applicator<T>::_apply(cell<Vals> const &...columns) const {
+std::unique_ptr<ana::selection::node>
+ana::selection::apply<T>::_apply(cell<Vals> const &...columns) const {
 
   // make selection
   auto sel = this->m_make_unique_selection();

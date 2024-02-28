@@ -4,13 +4,13 @@
 
 namespace ana {
 
-class selection::weight : public selection {
+class selection::weight : public selection::node {
 
 public:
   class a_times_b;
 
 public:
-  weight(const selection *presel);
+  weight(const selection::node *presel);
   virtual ~weight() = default;
 
 public:
@@ -21,8 +21,8 @@ public:
 
 } // namespace ana
 
-inline ana::selection::weight::weight(const selection *presel)
-    : selection(presel) {}
+inline ana::selection::weight::weight(const selection::node *presel)
+    : selection::node(presel) {}
 
 inline double ana::selection::weight::calculate() const {
   return this->m_preselection

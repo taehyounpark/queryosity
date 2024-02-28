@@ -4,10 +4,10 @@
 
 namespace ana {
 
-class selection::cut : public selection {
+class selection::cut : public selection::node {
 
 public:
-  cut(const selection *presel);
+  cut(const selection::node *presel);
   virtual ~cut() = default;
 
 public:
@@ -18,7 +18,8 @@ public:
 
 } // namespace ana
 
-inline ana::selection::cut::cut(const selection *presel) : selection(presel) {}
+inline ana::selection::cut::cut(const selection::node *presel)
+    : selection::node(presel) {}
 
 inline double ana::selection::cut::calculate() const {
   return this->m_preselection

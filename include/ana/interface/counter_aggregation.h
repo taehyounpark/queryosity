@@ -9,7 +9,7 @@ namespace ana {
  * @details This ABC should be used for actions that do not require any input
  * columns.
  */
-template <typename T> class counter::aggregation : public counter_base {
+template <typename T> class counter::aggregation : public node {
 
 public:
   using result_type = T;
@@ -39,7 +39,7 @@ public:
    * @param weight The value of the weight at booked selection for the passed
    * entry.
    */
-  using counter_base::count;
+  using node::count;
 
   virtual void finalize(unsigned int) final override;
 
@@ -49,7 +49,7 @@ public:
 
   bool is_merged() const;
 
-  void set_result(std::vector<T> const &results);
+  void set_merged_result(std::vector<T> const &results);
 
 protected:
   T m_result;
@@ -78,7 +78,8 @@ T const &ana::counter::aggregation<T>::get_result() const {
 }
 
 template <typename T>
-void ana::counter::aggregation<T>::set_result(std::vector<T> const &results) {
+void ana::counter::aggregation<T>::set_merged_result(
+    std::vector<T> const &results) {
   if (!results.size()) {
     throw std::logic_error("merging requires at least one result");
   }

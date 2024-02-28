@@ -19,21 +19,17 @@ template <typename... Args> class variation;
 
 class mode {
 public:
-  mode() : m_is_nominal(true), m_variation_name("") {}
+  mode() : m_variation_name("") {}
   ~mode() = default;
 
-  void set_systematic(bool is_nominal, const std::string &var_name) {
-    m_is_nominal = is_nominal;
+  void set_variation_name(const std::string &var_name) {
     m_variation_name = var_name;
   }
 
-  bool is_nominal() const { return m_is_nominal; }
-  std::string variation_name() const {
-    return m_is_nominal ? "" : m_variation_name;
-  }
+  bool is_nominal() const { return m_variation_name.empty(); }
+  std::string variation_name() const { return m_variation_name; }
 
 protected:
-  bool m_is_nominal;
   std::string m_variation_name;
 };
 

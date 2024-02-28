@@ -290,11 +290,11 @@ template <typename Action>
 template <typename Expr, typename... Cols>
 auto ana::lazy<Action>::filter(ana::column::expression<Expr> const &expr,
                                Cols const &...cols) const {
-  if constexpr (std::is_base_of_v<selection, Action>) {
+  if constexpr (std::is_base_of_v<selection::node, Action>) {
     return expr.template _select<selection::cut>(*this->m_df, *this)
         .template apply(cols...);
   } else {
-    static_assert(std::is_base_of_v<selection, Action>,
+    static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");
   }
 }
@@ -302,13 +302,13 @@ auto ana::lazy<Action>::filter(ana::column::expression<Expr> const &expr,
 template <typename Action>
 template <typename Col>
 auto ana::lazy<Action>::filter(ana::lazy<Col> const &col) const {
-  if constexpr (std::is_base_of_v<selection, Action>) {
+  if constexpr (std::is_base_of_v<selection::node, Action>) {
     return this->m_df
         ->template _select<selection::cut>(
             *this, std::function([](double x) { return x; }))
         .template apply(col);
   } else {
-    static_assert(std::is_base_of_v<selection, Action>,
+    static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");
   }
 }
@@ -316,13 +316,13 @@ auto ana::lazy<Action>::filter(ana::lazy<Col> const &col) const {
 template <typename Action>
 template <typename Col>
 auto ana::lazy<Action>::weight(ana::lazy<Col> const &col) const {
-  if constexpr (std::is_base_of_v<selection, Action>) {
+  if constexpr (std::is_base_of_v<selection::node, Action>) {
     return this->m_df
         ->template _select<selection::weight>(
             *this, std::function([](double x) { return x; }))
         .template apply(col);
   } else {
-    static_assert(std::is_base_of_v<selection, Action>,
+    static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");
   }
 }
@@ -330,7 +330,7 @@ auto ana::lazy<Action>::weight(ana::lazy<Col> const &col) const {
 template <typename Action>
 template <typename Agg>
 auto ana::lazy<Action>::book(Agg &&agg) const {
-  static_assert(std::is_base_of_v<selection, Action>,
+  static_assert(std::is_base_of_v<selection::node, Action>,
                 "book must be called from a selection");
   return agg.book(*this);
 }
@@ -338,7 +338,7 @@ auto ana::lazy<Action>::book(Agg &&agg) const {
 template <typename Action>
 template <typename... Aggs>
 auto ana::lazy<Action>::book(Aggs &&...aggs) const {
-  static_assert(std::is_base_of_v<selection, Action>,
+  static_assert(std::is_base_of_v<selection::node, Action>,
                 "book must be called from a selection");
   return std::make_tuple((aggs.book(*this), ...));
 }
@@ -358,12 +358,13 @@ template <typename V,
           std::enable_if_t<ana::counter::template is_implemented_v<V>, bool> e>
 void ana::lazy<Action>::merge_results() const {
   auto model = this->get_slot(0);
-  if (!model->is_merged()) {
+  const auto nslots = this->concurrency();
+  if (nslots > 1 && !model->is_merged()) {
     std::vector<std::decay_t<decltype(model->get_result())>> results;
-    results.reserve(this->concurrency());
-    for (size_t islot = 0; islot < this->m_slots.size(); ++islot) {
-      results.push_back(this->m_slots.at(islot)->get_result());
+    results.reserve(nslots);
+    for (size_t islot = 0; islot < nslots; ++islot) {
+      results.push_back(this->get_slot(islot)->get_result());
     }
-    model->set_result(results);
+    model->set_merged_result(results);
   }
 }

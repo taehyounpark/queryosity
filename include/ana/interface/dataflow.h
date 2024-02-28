@@ -81,22 +81,24 @@ public:
   auto define(column::expression<Expr> const &expr, Cols const &...cols)
       -> lazy<column::equation_t<ana::column::expression<Expr>>>;
 
-  template <typename Col> auto filter(lazy<Col> const &col) -> lazy<selection>;
-  template <typename Col> auto weight(lazy<Col> const &col) -> lazy<selection>;
+  template <typename Col>
+  auto filter(lazy<Col> const &col) -> lazy<selection::node>;
+  template <typename Col>
+  auto weight(lazy<Col> const &col) -> lazy<selection::node>;
 
   template <typename Col> auto filter(Col const &col);
   template <typename Col> auto weight(Col const &col);
 
   template <typename Expr, typename... Cols>
   auto filter(ana::column::expression<Expr> const &expr, Cols const &...cols)
-      -> lazy<selection>;
+      -> lazy<selection::node>;
 
   template <typename Expr, typename... Cols>
   auto weight(ana::column::expression<Expr> const &expr, Cols const &...cols)
-      -> lazy<selection>;
+      -> lazy<selection::node>;
 
   template <typename Cntr>
-  auto agg(counter::output<Cntr> const &cntr) -> todo<counter::booker<Cntr>>;
+  auto agg(counter::output<Cntr> const &cntr) -> todo<counter::book<Cntr>>;
 
   template <typename Val, typename... Vars>
   auto vary(column::constant<Val> const &nom, Vars const &...vars);
@@ -119,14 +121,14 @@ public:
   template <typename Expr> auto _equate(column::expression<Expr> const &expr);
 
   template <typename Sel, typename F>
-  auto _select(F fn) -> todo<selection::template custom_applicator_t<F>>;
+  auto _select(F fn) -> todo<selection::template custom_apply_t<F>>;
 
   template <typename Sel, typename F>
-  auto _select(lazy<selection> const &prev, F fn)
-      -> todo<selection::template custom_applicator_t<F>>;
+  auto _select(lazy<selection::node> const &prev, F fn)
+      -> todo<selection::template custom_apply_t<F>>;
 
   template <typename Cntr, typename... Args>
-  auto _aggregate(Args &&...args) -> todo<counter::booker<Cntr>>;
+  auto _aggregate(Args &&...args) -> todo<counter::book<Cntr>>;
 
 protected:
   template <typename Kwd> void accept_kwarg(Kwd const &kwarg);
@@ -139,18 +141,18 @@ protected:
       -> lazy<read_column_t<DS, Val>>;
 
   template <typename Def, typename... Cols>
-  auto evaluate_column(todo<column::evaluator<Def>> const &calc,
-                       lazy<Cols> const &...columns) -> lazy<Def>;
+  auto _evaluate(todo<column::evaluate<Def>> const &calc,
+                 lazy<Cols> const &...columns) -> lazy<Def>;
 
   template <typename Eqn, typename... Cols>
-  auto _apply(todo<selection::applicator<Eqn>> const &calc,
-              lazy<Cols> const &...columns) -> lazy<selection>;
+  auto _apply(todo<selection::apply<Eqn>> const &calc,
+              lazy<Cols> const &...columns) -> lazy<selection::node>;
 
   template <typename Cntr>
-  auto _book(todo<counter::booker<Cntr>> const &bkr, lazy<selection> const &sel)
-      -> lazy<Cntr>;
+  auto _book(todo<counter::book<Cntr>> const &bkr,
+             lazy<selection::node> const &sel) -> lazy<Cntr>;
   template <typename Cntr, typename... Sels>
-  auto _book(todo<counter::booker<Cntr>> const &bkr, lazy<Sels> const &...sels)
+  auto _book(todo<counter::book<Cntr>> const &bkr, lazy<Sels> const &...sels)
       -> std::array<lazy<Cntr>, sizeof...(Sels)>;
 
   template <typename Syst, typename Val>
@@ -300,14 +302,14 @@ auto ana::dataflow::define(ana::column::expression<Expr> const &expr,
 }
 
 template <typename Col>
-auto ana::dataflow::filter(lazy<Col> const &col) -> lazy<selection> {
+auto ana::dataflow::filter(lazy<Col> const &col) -> lazy<selection::node> {
   return this
       ->_select<selection::cut>(std::function([](double x) { return x; }))
       .apply(col);
 }
 
 template <typename Col>
-auto ana::dataflow::weight(lazy<Col> const &col) -> lazy<selection> {
+auto ana::dataflow::weight(lazy<Col> const &col) -> lazy<selection::node> {
   return this
       ->_select<selection::weight>(std::function([](double x) { return x; }))
       .apply(col);
@@ -317,7 +319,7 @@ template <typename Col> auto ana::dataflow::filter(Col const &col) {
   auto appl =
       this->_select<selection::cut>(std::function([](double x) { return x; }));
 
-  using varied_type = typename lazy<selection>::varied;
+  using varied_type = typename lazy<selection::node>::varied;
 
   varied_type syst(appl.template apply(col.nominal()));
 
@@ -332,7 +334,7 @@ template <typename Col> auto ana::dataflow::weight(Col const &col) {
   auto appl = this->_select<selection::weight>(
       std::function([](double x) { return x; }));
 
-  using varied_type = typename lazy<selection>::varied;
+  using varied_type = typename lazy<selection::node>::varied;
 
   varied_type syst(appl.template apply(col.nominal()));
 
@@ -345,19 +347,19 @@ template <typename Col> auto ana::dataflow::weight(Col const &col) {
 
 template <typename Expr, typename... Cols>
 auto ana::dataflow::filter(ana::column::expression<Expr> const &expr,
-                           Cols const &...cols) -> lazy<selection> {
+                           Cols const &...cols) -> lazy<selection::node> {
   return expr.template _select<selection::cut>(*this).apply(cols...);
 }
 
 template <typename Expr, typename... Cols>
 auto ana::dataflow::weight(ana::column::expression<Expr> const &expr,
-                           Cols const &...cols) -> lazy<selection> {
+                           Cols const &...cols) -> lazy<selection::node> {
   return expr.template _select<selection::weight>(*this).apply(cols...);
 }
 
 template <typename Cntr, typename... Args>
-auto ana::dataflow::_aggregate(Args &&...args) -> todo<counter::booker<Cntr>> {
-  return todo<counter::booker<Cntr>>(
+auto ana::dataflow::_aggregate(Args &&...args) -> todo<counter::book<Cntr>> {
+  return todo<counter::book<Cntr>>(
       *this, concurrent::invoke(
                  [&args...](dataset::player *plyr) {
                    return plyr->template agg<Cntr>(std::forward<Args>(args)...);
@@ -367,17 +369,17 @@ auto ana::dataflow::_aggregate(Args &&...args) -> todo<counter::booker<Cntr>> {
 
 template <typename Cntr>
 auto ana::dataflow::agg(ana::counter::output<Cntr> const &cntr)
-    -> todo<counter::booker<Cntr>> {
+    -> todo<counter::book<Cntr>> {
   return cntr._aggregate(*this);
 }
 
 template <typename Def, typename... Cols>
-auto ana::dataflow::evaluate_column(todo<column::evaluator<Def>> const &calc,
-                                    lazy<Cols> const &...columns) -> lazy<Def> {
+auto ana::dataflow::_evaluate(todo<column::evaluate<Def>> const &calc,
+                              lazy<Cols> const &...columns) -> lazy<Def> {
   auto act = concurrent::invoke(
-      [](dataset::player *plyr, column::evaluator<Def> *calc,
+      [](dataset::player *plyr, column::evaluate<Def> *calc,
          Cols const *...cols) {
-        return plyr->template evaluate_column(*calc, *cols...);
+        return plyr->template evaluate(*calc, *cols...);
       },
       m_dplyrs, calc.get_slots(), columns.get_slots()...);
   auto lzy = lazy<Def>(*this, act);
@@ -386,25 +388,27 @@ auto ana::dataflow::evaluate_column(todo<column::evaluator<Def>> const &calc,
 }
 
 template <typename Eqn, typename... Cols>
-auto ana::dataflow::_apply(todo<selection::applicator<Eqn>> const &calc,
-                           lazy<Cols> const &...columns) -> lazy<selection> {
+auto ana::dataflow::_apply(todo<selection::apply<Eqn>> const &calc,
+                           lazy<Cols> const &...columns)
+    -> lazy<selection::node> {
   auto act = concurrent::invoke(
-      [](dataset::player *plyr, selection::applicator<Eqn> *calc,
-         Cols *...cols) { return plyr->template _apply(*calc, *cols...); },
+      [](dataset::player *plyr, selection::apply<Eqn> *calc, Cols *...cols) {
+        return plyr->template _apply(*calc, *cols...);
+      },
       m_dplyrs, calc.get_slots(), columns.get_slots()...);
-  auto lzy = lazy<selection>(*this, act);
+  auto lzy = lazy<selection::node>(*this, act);
   this->add_action(std::move(act));
   return lzy;
 }
 
 template <typename Cntr>
-auto ana::dataflow::_book(todo<counter::booker<Cntr>> const &bkr,
-                          lazy<selection> const &sel) -> lazy<Cntr> {
+auto ana::dataflow::_book(todo<counter::book<Cntr>> const &bkr,
+                          lazy<selection::node> const &sel) -> lazy<Cntr> {
   // new counter booked: dataset will need to be analyzed
   this->reset();
   auto act = concurrent::invoke(
-      [](dataset::player *plyr, counter::booker<Cntr> *bkr,
-         const selection *sel) { return plyr->book(*bkr, *sel); },
+      [](dataset::player *plyr, counter::book<Cntr> *bkr,
+         const selection::node *sel) { return plyr->book(*bkr, *sel); },
       m_dplyrs, bkr.get_slots(), sel.get_slots());
   auto lzy = lazy<Cntr>(*this, act);
   this->add_action(std::move(act));
@@ -412,7 +416,7 @@ auto ana::dataflow::_book(todo<counter::booker<Cntr>> const &bkr,
 }
 
 template <typename Cntr, typename... Sels>
-auto ana::dataflow::_book(todo<counter::booker<Cntr>> const &bkr,
+auto ana::dataflow::_book(todo<counter::book<Cntr>> const &bkr,
                           lazy<Sels> const &...sels)
     -> std::array<lazy<Cntr>, sizeof...(Sels)> {
   return std::array<lazy<Cntr>, sizeof...(Sels)>{this->_book(bkr, sels)...};
@@ -514,7 +518,7 @@ auto ana::dataflow::_assign(Val const &val) -> lazy<ana::column::fixed<Val>> {
 
 template <typename Def, typename... Args>
 auto ana::dataflow::_define(Args &&...args) {
-  return todo<ana::column::template evaluator_t<Def>>(
+  return todo<ana::column::template evaluate_t<Def>>(
       *this,
       concurrent::invoke(
           [&args...](dataset::player *plyr) {
@@ -529,7 +533,7 @@ auto ana::dataflow::_define(ana::column::definition<Def> const &defn) {
 }
 
 template <typename F> auto ana::dataflow::_equate(F fn) {
-  return todo<ana::column::template evaluator_t<F>>(
+  return todo<ana::column::template evaluate_t<F>>(
       *this,
       concurrent::invoke(
           [fn](dataset::player *plyr) { return plyr->template equate(fn); },
@@ -543,8 +547,8 @@ auto ana::dataflow::_equate(ana::column::expression<Expr> const &expr) {
 
 template <typename Sel, typename F>
 auto ana::dataflow::_select(F fn)
-    -> todo<selection::template custom_applicator_t<F>> {
-  return todo<selection::template custom_applicator_t<F>>(
+    -> todo<selection::template custom_apply_t<F>> {
+  return todo<selection::template custom_apply_t<F>>(
       *this, concurrent::invoke(
                  [fn](dataset::player *plyr) {
                    return plyr->template select<Sel>(nullptr, fn);
@@ -553,11 +557,11 @@ auto ana::dataflow::_select(F fn)
 }
 
 template <typename Sel, typename F>
-auto ana::dataflow::_select(lazy<selection> const &prev, F fn)
-    -> todo<selection::template custom_applicator_t<F>> {
-  return todo<selection::template custom_applicator_t<F>>(
+auto ana::dataflow::_select(lazy<selection::node> const &prev, F fn)
+    -> todo<selection::template custom_apply_t<F>> {
+  return todo<selection::template custom_apply_t<F>>(
       *this, concurrent::invoke(
-                 [fn](dataset::player *plyr, selection const *prev) {
+                 [fn](dataset::player *plyr, selection::node const *prev) {
                    return plyr->template select<Sel>(prev, fn);
                  },
                  m_dplyrs, prev.get_slots()));

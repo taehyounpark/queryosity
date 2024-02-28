@@ -86,21 +86,21 @@ public:
 
   template <typename Col, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto filter(Col const &col) -> typename lazy<selection>::varied;
+  auto filter(Col const &col) -> typename lazy<selection::node>::varied;
 
   template <typename Col, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
-  auto weight(Col const &col) -> typename lazy<selection>::varied;
+  auto weight(Col const &col) -> typename lazy<selection::node>::varied;
 
   template <typename Expr, typename... Args, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto filter(column::expression<Expr> const &expr, Args &&...args) ->
-      typename lazy<selection>::varied;
+      typename lazy<selection::node>::varied;
 
   template <typename Expr, typename... Args, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
   auto weight(column::expression<Expr> const &expr, Args &&...args) ->
-      typename lazy<selection>::varied;
+      typename lazy<selection::node>::varied;
 
   template <typename Agg, typename V = Act,
             std::enable_if_t<ana::is_selection_v<V>, bool> = false>
@@ -149,9 +149,7 @@ template <typename Act>
 void ana::lazy<Act>::varied::set_variation(const std::string &var_name,
                                            lazy &&var) {
   concurrent::call(
-      [var_name](action *act) {
-        act->systematic_mode().set_systematic(false, var_name);
-      },
+      [var_name](action *act) { act->set_variation_name(var_name); },
       var.get_slots());
   m_var_map.insert(std::make_pair(var_name, var));
   m_var_names.insert(var_name);
@@ -182,9 +180,9 @@ template <typename Act>
 template <typename Col, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
 auto ana::lazy<Act>::varied::filter(Col const &col) ->
-    typename lazy<selection>::varied {
+    typename lazy<selection::node>::varied {
 
-  using varied_type = typename lazy<selection>::varied;
+  using varied_type = typename lazy<selection::node>::varied;
 
   auto syst = varied_type(this->nominal().filter(col.nominal()));
 
@@ -200,9 +198,9 @@ template <typename Act>
 template <typename Col, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
 auto ana::lazy<Act>::varied::weight(Col const &col) ->
-    typename lazy<selection>::varied {
+    typename lazy<selection::node>::varied {
 
-  using varied_type = typename lazy<selection>::varied;
+  using varied_type = typename lazy<selection::node>::varied;
 
   auto syst = varied_type(this->nominal().weight(col.nominal()));
 
@@ -219,9 +217,9 @@ template <typename Expr, typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
 auto ana::lazy<Act>::varied::filter(ana::column::expression<Expr> const &expr,
                                     Args &&...args) ->
-    typename lazy<selection>::varied {
+    typename lazy<selection::node>::varied {
 
-  using varied_type = typename lazy<selection>::varied;
+  using varied_type = typename lazy<selection::node>::varied;
 
   auto syst = varied_type(
       this->nominal().filter(expr, std::forward<Args>(args).nominal()...));
@@ -240,9 +238,9 @@ template <typename Expr, typename... Args, typename V,
           std::enable_if_t<ana::is_selection_v<V>, bool>>
 auto ana::lazy<Act>::varied::weight(ana::column::expression<Expr> const &expr,
                                     Args &&...args) ->
-    typename lazy<selection>::varied {
+    typename lazy<selection::node>::varied {
 
-  using varied_type = typename lazy<selection>::varied;
+  using varied_type = typename lazy<selection::node>::varied;
 
   auto syst = varied_type(
       this->nominal().weight(expr, std::forward<Args>(args).nominal()...));
