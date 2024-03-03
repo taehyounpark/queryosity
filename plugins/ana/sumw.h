@@ -4,11 +4,11 @@
 #include <unordered_map>
 #include <variant>
 
-#include "ana/analogical.h"
+#include "queryosity/queryosity.h"
 
-namespace ana {
+namespace queryosity {
 
-class sumw : public ana::counter::aggregation<double> {
+class sumw : public queryosity::query::aggregation<double> {
 
 public:
   sumw() = default;
@@ -22,12 +22,12 @@ protected:
   double m_result = 0.0;
 };
 
-} // namespace ana
+} // namespace queryosity
 
-void ana::sumw::count(double w) { m_result += w; }
+void queryosity::sumw::count(double w) { m_result += w; }
 
-double ana::sumw::result() const { return m_result; }
+double queryosity::sumw::result() const { return m_result; }
 
-double ana::sumw::merge(std::vector<double> const &results) const {
+double queryosity::sumw::merge(std::vector<double> const &results) const {
   return std::accumulate(results.begin(), results.end(), 0.0);
 }

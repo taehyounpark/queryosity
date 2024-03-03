@@ -35,4 +35,4 @@ graph TB
   F --> G([Weight Y]);
 ```
 
-Any arbitrary cutflow can be created in `analogical`.
+Any arbitrary cutflow can be created in `queryosity`.

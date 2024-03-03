@@ -5,7 +5,7 @@
 This demo analyzes physics collision in simulated \(H\rightarrow WW^{\ast}\rightarrow \ell\nu\ell\nu\) events.
 
 - The public dataset is available at [CERN Open Data Portal](https://opendata.cern.ch/record/700).
-- The implementation of [CERN ROOT Framework](https://root.cern) for analogical is provided by [AnalysisPlugins](https://github.com/taehyounpark/AnalysisPlugins).
+- The implementation of [CERN ROOT Framework](https://root.cern) for queryosity is provided by [AnalysisPlugins](https://github.com/taehyounpark/AnalysisPlugins).
 
 The following tasks will be performed:
 
@@ -22,7 +22,7 @@ The following tasks will be performed:
 
 ```cpp title="Setup"
 
-using dataflow = ana::dataflow;
+using dataflow = queryosity::dataflow;
 auto df = dataflow();
 
 auto tree_files = std::vector<std::string>{"hww.root"};
@@ -131,7 +131,7 @@ auto pth_hists = df.agg<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, c
 auto out_file = TFile::Open("hww_hists.root","recreate");
 
 // Folder is user-implemented
-ana::output::dump<Folder>(pth_hists, out_file, "hww");
+queryosity::output::dump<Folder>(pth_hists, out_file, "hww");
 
 delete out_file;
 ```

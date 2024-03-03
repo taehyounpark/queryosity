@@ -212,7 +212,7 @@
   DOCTEST_MSVC_SUPPRESS_WARNING(4616) /* invalid compiler warning */           \
   DOCTEST_MSVC_SUPPRESS_WARNING(4619) /* invalid compiler warning */           \
   DOCTEST_MSVC_SUPPRESS_WARNING(                                               \
-      4996) /* The compiler encountered a deprecated declaration */            \
+      4996) /* The compiler enqueryed a deprecated declaration */              \
   DOCTEST_MSVC_SUPPRESS_WARNING(                                               \
       4706) /* assignment within conditional expression */                     \
   DOCTEST_MSVC_SUPPRESS_WARNING(                                               \
@@ -1032,7 +1032,9 @@ using namespace std;
 #else
 template <bool COND, typename T = void> struct enable_if {};
 
-template <typename T> struct enable_if<true, T> { using type = T; };
+template <typename T> struct enable_if<true, T> {
+  using type = T;
+};
 
 struct true_type {
   static DOCTEST_CONSTEXPR bool value = true;
@@ -1041,15 +1043,25 @@ struct false_type {
   static DOCTEST_CONSTEXPR bool value = false;
 };
 
-template <typename T> struct remove_reference { using type = T; };
-template <typename T> struct remove_reference<T &> { using type = T; };
-template <typename T> struct remove_reference<T &&> { using type = T; };
+template <typename T> struct remove_reference {
+  using type = T;
+};
+template <typename T> struct remove_reference<T &> {
+  using type = T;
+};
+template <typename T> struct remove_reference<T &&> {
+  using type = T;
+};
 
 template <typename T> struct is_rvalue_reference : false_type {};
 template <typename T> struct is_rvalue_reference<T &&> : true_type {};
 
-template <typename T> struct remove_const { using type = T; };
-template <typename T> struct remove_const<const T> { using type = T; };
+template <typename T> struct remove_const {
+  using type = T;
+};
+template <typename T> struct remove_const<const T> {
+  using type = T;
+};
 
 // Compiler intrinsics
 template <typename T> struct is_enum {
@@ -1465,9 +1477,9 @@ DOCTEST_CLANG_SUPPRESS_WARNING_WITH_PUSH("-Wunused-comparison")
 #define SFINAE_OP(ret, op) ret
 #else
 #define SFINAE_OP(ret, op)                                                     \
-  decltype(                                                                    \
-      (void)(doctest::detail::declval<L>() op doctest::detail::declval<R>()),  \
-      ret{})
+  decltype((void)(doctest::detail::declval<L>()                                \
+                      op doctest::detail::declval<R>()),                       \
+           ret{})
 #endif
 
 #define DOCTEST_DO_BINARY_EXPRESSION_COMPARISON(op, op_str, op_macro)          \
@@ -3900,8 +3912,8 @@ private:
   // that there is minimal to no overhead in determining the correct atomic for
   // the current thread.
   //
-  // 1. A global static counter laneCounter counts continuously up.
-  // 2. Each successive thread will use modulo operation of that counter so it
+  // 1. A global static query laneCounter counts continuously up.
+  // 2. Each successive thread will use modulo operation of that query so it
   // gets an atomic
   //    assigned in a round-robin fashion.
   // 3. This tlsLaneIdx is stored in the thread local data, so it is directly
@@ -3956,7 +3968,7 @@ struct ContextState : ContextOptions, TestRunStats, CurrentTestCaseStats {
   void finalizeTestCaseData() {
     seconds = timer.getElapsedSeconds();
 
-    // update the non-atomic counters
+    // update the non-atomic querys
     numAsserts += numAssertsCurrentTest_atomic;
     numAssertsFailed += numAssertsFailedCurrentTest_atomic;
     numAssertsCurrentTest = numAssertsCurrentTest_atomic;
@@ -5668,7 +5680,7 @@ namespace {
         if ((c & 0xF8) == 0xF0) {
             return 4;
         }
-        DOCTEST_INTERNAL_ERROR("Invalid multibyte utf-8 start byte encountered");
+        DOCTEST_INTERNAL_ERROR("Invalid multibyte utf-8 start byte enqueryed");
     }
 
     uint32_t headerValue(unsigned char c) {
@@ -5681,7 +5693,7 @@ namespace {
         if ((c & 0xF8) == 0xF0) {
             return c & 0x07;
         }
-        DOCTEST_INTERNAL_ERROR("Invalid multibyte utf-8 start byte encountered");
+        DOCTEST_INTERNAL_ERROR("Invalid multibyte utf-8 start byte enqueryed");
     }
 
     void hexEscapeChar(std::ostream& os, unsigned char c) {
@@ -7569,7 +7581,7 @@ int Context::run() {
       p->failure_flags = TestCaseFailureReason::None;
       p->seconds = 0;
 
-      // reset atomic counters
+      // reset atomic querys
       p->numAssertsFailedCurrentTest_atomic = 0;
       p->numAssertsCurrentTest_atomic = 0;
 

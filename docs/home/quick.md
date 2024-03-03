@@ -1,10 +1,10 @@
 ```cpp
-#include "analogical.h"
+#include "queryosity.h"
 
 #include "Json.h"
 #include "Histogram.h"
 
-auto df = ana::dataflow( ana::multithread::enable(10) );
+auto df = queryosity::dataflow( queryosity::multithread::enable(10) );
 
 auto [x, w] = df.open<Json>("data.json")
                 .read<std::vector<float>, float>({"x", "w"});

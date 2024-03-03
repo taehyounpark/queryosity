@@ -5,14 +5,14 @@
 #include <random>
 #include <unordered_map>
 
-#include "ana/analogical.h"
+#include "queryosity/queryosity.h"
 
-#include "ana/Json.h"
-#include "ana/WeightedSum.h"
+#include "queryosity/Json.h"
+#include "queryosity/WeightedSum.h"
 
-namespace multithread = ana::multithread;
-namespace sample = ana::sample;
-using dataflow = ana::dataflow;
+namespace multithread = queryosity::multithread;
+namespace sample = queryosity::sample;
+using dataflow = queryosity::dataflow;
 
 // generate random data
 nlohmann::json generate_random_data(unsigned int nentries = 100) {
@@ -52,8 +52,8 @@ std::vector<double> get_correct_result(const nlohmann::json &random_data) {
   return std::vector<double>{wsumx_nom, wsumx_xvar, wsumx_wvar};
 }
 
-std::vector<double> get_analogical_result(const nlohmann::json &random_data) {
-  ana::dataflow df;
+std::vector<double> get_queryosity_result(const nlohmann::json &random_data) {
+  queryosity::dataflow df;
   auto ds = df.open<Json>(random_data);
   auto x = ds.read<double>("x_nom", {{"vary_x", "x_var"}});
   auto w = ds.read<unsigned int>("w_nom", {{"vary_w", "w_var"}});
@@ -69,10 +69,10 @@ TEST_CASE("compute weighted sum") {
   // get answers
   auto random_data = generate_random_data(1000);
   auto correct_result = get_correct_result(random_data);
-  auto analogical_result = get_analogical_result(random_data);
+  auto queryosity_result = get_queryosity_result(random_data);
 
   // compare answers
-  CHECK(analogical_result[0] == correct_result[0]);
-  CHECK(analogical_result[1] == correct_result[1]);
-  CHECK(analogical_result[2] == correct_result[2]);
+  CHECK(queryosity_result[0] == correct_result[0]);
+  CHECK(queryosity_result[1] == correct_result[1]);
+  CHECK(queryosity_result[2] == correct_result[2]);
 }

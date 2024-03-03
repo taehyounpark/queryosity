@@ -2,9 +2,9 @@
 #include <functional>          // std::ref
 #include <utility>
 
-#include "ana/analogical.h"
+#include "queryosity/queryosity.h"
 
-namespace ana {
+namespace queryosity {
 
 namespace hist {
 
@@ -24,14 +24,16 @@ using axes_t = std::vector<axis::axis_t>;
 using hist_t = boost::histogram::histogram<axes_t>;
 
 template <typename... Cols>
-class hist : public ana::counter::definition<std::shared_ptr<hist_t>(Cols...)> {
+class hist
+    : public queryosity::query::definition<std::shared_ptr<hist_t>(Cols...)> {
 
 public:
 public:
   template <typename... Axes> hist(Axes &&...axes);
   ~hist() = default;
 
-  virtual void fill(ana::observable<Cols>... columns, double w) override;
+  virtual void fill(queryosity::column::observable<Cols>... columns,
+                    double w) override;
   virtual std::shared_ptr<hist_t> result() const override;
   virtual std::shared_ptr<hist_t>
   merge(std::vector<std::shared_ptr<hist_t>> const &results) const override;
@@ -42,28 +44,30 @@ protected:
 
 } // namespace hist
 
-} // namespace ana
+} // namespace queryosity
 
 template <typename... Cols>
 template <typename... Axes>
-ana::hist::hist<Cols...>::hist(Axes &&...axes) {
+queryosity::hist::hist<Cols...>::hist(Axes &&...axes) {
   m_hist = std::make_shared<hist_t>(std::move(
       boost::histogram::make_weighted_histogram(std::forward<Axes>(axes)...)));
 }
 
 template <typename... Cols>
-void ana::hist::hist<Cols...>::fill(ana::observable<Cols>... columns,
-                                    double w) {
+void queryosity::hist::hist<Cols...>::fill(
+    queryosity::column::observable<Cols>... columns, double w) {
   (*m_hist)(columns.value()..., boost::histogram::weight(w));
 }
 
 template <typename... Cols>
-std::shared_ptr<ana::hist::hist_t> ana::hist::hist<Cols...>::result() const {
+std::shared_ptr<queryosity::hist::hist_t>
+queryosity::hist::hist<Cols...>::result() const {
   return m_hist;
 }
 
 template <typename... Cols>
-std::shared_ptr<ana::hist::hist_t> ana::hist::hist<Cols...>::merge(
+std::shared_ptr<queryosity::hist::hist_t>
+queryosity::hist::hist<Cols...>::merge(
     std::vector<std::shared_ptr<hist_t>> const &results) const {
   auto sum = std::make_shared<hist_t>(*results[0]);
   sum->reset();

@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.14)
 
-project(analogical)
+project(queryosity)
 
 
 OPTION(ANALOGICAL_INSTALL "Install target" ON)
@@ -16,22 +16,22 @@ set(ANALOGICAL_VERSION ${ANALOGICAL_MAJOR_VERSION}.${ANALOGICAL_MINOR_VERSION}.$
 
 set(ANALOGICAL_CXX_STANDARD 17 CACHE STRING "Minimum C++ standard") 
 
-add_library(analogical INTERFACE)
-add_library(ana::analogical ALIAS analogical)
+add_library(queryosity INTERFACE)
+add_library(queryosity::queryosity ALIAS queryosity)
 
-set_target_properties(analogical PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(queryosity PROPERTIES LINKER_LANGUAGE CXX)
 
 target_include_directories(
-  analogical
+  queryosity
   INTERFACE
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
-target_compile_features(analogical INTERFACE "cxx_std_${ANALOGICAL_CXX_STANDARD}" )
+target_compile_features(queryosity INTERFACE "cxx_std_${ANALOGICAL_CXX_STANDARD}" )
 
 target_compile_options(
-  analogical INTERFACE 
+  queryosity INTERFACE 
   -Wall -Wextra
   $<$<CONFIG:Release>:-O3> 
   $<$<CONFIG:RelWithDebInfo>:-O3> 
@@ -43,25 +43,25 @@ if (ANALOGICAL_INSTALL)
   include(GNUInstallDirs)
 
   configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/analogicalConfig.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/analogicalConfig.cmake"
-    INSTALL_DESTINATION lib/cmake/analogical
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/queryosityConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/queryosityConfig.cmake"
+    INSTALL_DESTINATION lib/cmake/queryosity
   )
 
   write_basic_package_version_file(
-    analogicalConfigVersion.cmake
+    queryosityConfigVersion.cmake
     VERSION ${ANALOGICAL_VERSION}
     COMPATIBILITY SameMajorVersion
     ARCH_INDEPENDENT
   )
 
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/analogicalConfigVersion.cmake"
-                "${CMAKE_CURRENT_BINARY_DIR}/analogicalConfig.cmake"
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/analogical)
+  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/queryosityConfigVersion.cmake"
+                "${CMAKE_CURRENT_BINARY_DIR}/queryosityConfig.cmake"
+          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/queryosity)
 
   install(
-    TARGETS analogical
-    EXPORT analogicalTargets
+    TARGETS queryosity
+    EXPORT queryosityTargets
     INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
   )
 
@@ -71,15 +71,15 @@ if (ANALOGICAL_INSTALL)
   )
 
   install(
-    EXPORT analogicalTargets
-    FILE   analogicalTargets.cmake
-    NAMESPACE ana::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/analogical
+    EXPORT queryosityTargets
+    FILE   queryosityTargets.cmake
+    NAMESPACE queryosity::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/queryosity
   )
 
-  export(EXPORT analogicalTargets
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/analogicalTargets.cmake"
-    NAMESPACE ana::
+  export(EXPORT queryosityTargets
+    FILE "${CMAKE_CURRENT_BINARY_DIR}/queryosityTargets.cmake"
+    NAMESPACE queryosity::
   )
 
 endif()

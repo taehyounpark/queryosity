@@ -5,17 +5,17 @@
 #include <random>
 #include <unordered_map>
 
-#include "ana/analogical.h"
+#include "queryosity/queryosity.h"
 
-#include "ana/json.h"
-#include "ana/wsum.h"
+#include "queryosity/json.h"
+#include "queryosity/wsum.h"
 
-using dataflow = ana::dataflow;
-namespace multithread = ana::multithread;
-namespace dataset = ana::dataset;
-namespace column = ana::column;
-namespace counter = ana::counter;
-namespace systematic = ana::systematic;
+using dataflow = queryosity::dataflow;
+namespace multithread = queryosity::multithread;
+namespace dataset = queryosity::dataset;
+namespace column = queryosity::column;
+namespace query = queryosity::query;
+namespace systematic = queryosity::systematic;
 
 // generate random data
 nlohmann::json generate_random_data(unsigned int nentries = 100) {
@@ -55,9 +55,9 @@ std::vector<double> get_correct_result(const nlohmann::json &random_data) {
   return std::vector<double>{wsumx_nom, wsumx_xvar, wsumx_wvar};
 }
 
-std::vector<double> get_analogical_result(const nlohmann::json &random_data) {
-  ana::dataflow df;
-  auto ds = df.open(dataset::input<ana::json>(random_data));
+std::vector<double> get_queryosity_result(const nlohmann::json &random_data) {
+  queryosity::dataflow df;
+  auto ds = df.open(dataset::input<queryosity::json>(random_data));
 
   auto x = ds.vary(dataset::column<double>("x_nom"), {"vary_x", "x_var"});
   auto w = ds.vary(dataset::column<unsigned int>("w_nom"), {"vary_w", "w_var"});
@@ -66,7 +66,7 @@ std::vector<double> get_analogical_result(const nlohmann::json &random_data) {
 
   auto weighted = df.weight(w);
 
-  auto wsumx = df.agg(counter::output<ana::wsum>()).fill(x).book(weighted);
+  auto wsumx = df.agg(query::output<queryosity::wsum>()).fill(x).book(weighted);
   auto wsumx_nom = wsumx.nominal().result();
   auto wsumx_xvar = wsumx["vary_x"].result();
   auto wsumx_wvar = wsumx["vary_w"].result();
@@ -79,10 +79,10 @@ TEST_CASE("compute weighted sum") {
   // get answers
   auto random_data = generate_random_data(1000);
   auto correct_result = get_correct_result(random_data);
-  auto analogical_result = get_analogical_result(random_data);
+  auto queryosity_result = get_queryosity_result(random_data);
 
   // compare answers
-  CHECK(analogical_result[0] == correct_result[0]);
-  CHECK(analogical_result[1] == correct_result[1]);
-  CHECK(analogical_result[2] == correct_result[2]);
+  CHECK(queryosity_result[0] == correct_result[0]);
+  CHECK(queryosity_result[1] == correct_result[1]);
+  CHECK(queryosity_result[2] == correct_result[2]);
 }

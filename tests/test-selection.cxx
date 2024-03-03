@@ -4,17 +4,17 @@
 #include <random>
 #include <unordered_map>
 
-#include "ana/analogical.h"
+#include "queryosity/queryosity.h"
 
-#include "ana/json.h"
-#include "ana/sumw.h"
+#include "queryosity/json.h"
+#include "queryosity/sumw.h"
 
-using dataflow = ana::dataflow;
-namespace multithread = ana::multithread;
-namespace dataset = ana::dataset;
-namespace column = ana::column;
-namespace counter = ana::counter;
-namespace systematic = ana::systematic;
+using dataflow = queryosity::dataflow;
+namespace multithread = queryosity::multithread;
+namespace dataset = queryosity::dataset;
+namespace column = queryosity::column;
+namespace query = queryosity::query;
+namespace systematic = queryosity::systematic;
 
 TEST_CASE("correctness & consistency of selections") {
 
@@ -55,23 +55,23 @@ TEST_CASE("correctness & consistency of selections") {
     correct_sumw_abc += w;
   }
 
-  // compute answer with analogical
-  dataflow df(ana::multithread::disable());
+  // compute answer with queryosity
+  dataflow df(queryosity::multithread::disable());
 
   std::cout << "hello" << std::endl;
 
-  auto ds = df.open(ana::dataset::input<ana::json>(random_data));
+  auto ds = df.open(queryosity::dataset::input<queryosity::json>(random_data));
 
-  auto [cat, w] =
-      ds.read(ana::dataset::columns<std::string, unsigned int>("c", "w"));
+  auto [cat, w] = ds.read(
+      queryosity::dataset::columns<std::string, unsigned int>("c", "w"));
 
   auto weighted = df.weight(w);
 
   std::cout << "hm" << std::endl;
 
-  // auto a = df.define(ana::column::constant<std::string>("a"));
-  // auto b = df.define(ana::column::constant<std::string>("b"));
-  // auto c = df.define(ana::column::constant<std::string>("c"));
+  // auto a = df.define(queryosity::column::constant<std::string>("a"));
+  // auto b = df.define(queryosity::column::constant<std::string>("b"));
+  // auto c = df.define(queryosity::column::constant<std::string>("c"));
 
   auto a = df.define(column::constant<std::string>("a"));
   auto b = df.define(column::constant<std::string>("b"));
@@ -89,17 +89,18 @@ TEST_CASE("correctness & consistency of selections") {
   auto cut_a2 = weighted.filter(cut_ab && cut_a);
   auto cut_b2 = weighted.filter(cut_ab && cut_b);
 
-  // auto sumw_a = df.agg<ana::sumw>().at(cut_a);
-  // auto sumw_a = cut_a.book(df.agg<ana::sumw>());
+  // auto sumw_a = df.agg<queryosity::sumw>().at(cut_a);
+  // auto sumw_a = cut_a.book(df.agg<queryosity::sumw>());
 
   auto [sumw_a, sumw_b, sumw_c] =
-      df.agg(counter::output<ana::sumw>()).book(cut_a, cut_b, cut_c);
+      df.agg(query::output<queryosity::sumw>()).book(cut_a, cut_b, cut_c);
   auto [sumw_ab, sumw_bc] =
-      df.agg(counter::output<ana::sumw>()).book(cut_ab, cut_bc);
+      df.agg(query::output<queryosity::sumw>()).book(cut_ab, cut_bc);
   auto [sumw_none, sumw_abc] =
-      df.agg(counter::output<ana::sumw>()).book(cut_none, cut_abc);
+      df.agg(query::output<queryosity::sumw>()).book(cut_none, cut_abc);
 
-  auto sumw_one2 = df.agg(counter::output<ana::sumw>()).book(cut_a2, cut_b2);
+  auto sumw_one2 =
+      df.agg(query::output<queryosity::sumw>()).book(cut_a2, cut_b2);
 
   std::cout << "hi" << std::endl;
   std::cout << cut_a2.concurrency() << std::endl;

@@ -3,11 +3,11 @@
 
 #include <nlohmann/json.hpp>
 
-#include "ana/analogical.h"
+#include "queryosity/queryosity.h"
 
-namespace ana {
+namespace queryosity {
 
-class json : public ana::dataset::reader<json> {
+class json : public queryosity::dataset::reader<json> {
 
 public:
   template <typename T> class entry;
@@ -29,7 +29,7 @@ protected:
   unsigned int m_nslots;
 };
 
-template <typename T> class json::entry : public ana::column::reader<T> {
+template <typename T> class json::entry : public queryosity::column::reader<T> {
 
 public:
   entry(const nlohmann::json &data, const std::string &name);
@@ -43,20 +43,22 @@ protected:
   const std::string m_key;
 };
 
-} // namespace ana
+} // namespace queryosity
 
-ana::json::json(std::ifstream &data) : m_data(nlohmann::json::parse(data)) {}
+queryosity::json::json(std::ifstream &data)
+    : m_data(nlohmann::json::parse(data)) {}
 
-ana::json::json(nlohmann::json const &data) : m_data(data) {}
+queryosity::json::json(nlohmann::json const &data) : m_data(data) {}
 
 template <typename T>
-ana::json::entry<T>::entry(nlohmann::json const &data, const std::string &name)
+queryosity::json::entry<T>::entry(nlohmann::json const &data,
+                                  const std::string &name)
     : m_data(data), m_key(name) {}
 
-void ana::json::parallelize(unsigned int nslots) { m_nslots = nslots; }
+void queryosity::json::parallelize(unsigned int nslots) { m_nslots = nslots; }
 
 std::vector<std::pair<unsigned long long, unsigned long long>>
-ana::json::partition() {
+queryosity::json::partition() {
   const unsigned int nentries_per_slot = m_data.size() / m_nslots;
   if (!nentries_per_slot)
     return {{0, m_data.size()}};
@@ -73,14 +75,14 @@ ana::json::partition() {
 }
 
 template <typename Val>
-std::unique_ptr<ana::json::entry<Val>>
-ana::json::read(unsigned int, const std::string &name) const {
+std::unique_ptr<queryosity::json::entry<Val>>
+queryosity::json::read(unsigned int, const std::string &name) const {
   return std::make_unique<entry<Val>>(this->m_data, name);
 }
 
 template <typename T>
-const T &ana::json::entry<T>::read(unsigned int,
-                                   unsigned long long entry) const {
+const T &queryosity::json::entry<T>::read(unsigned int,
+                                          unsigned long long entry) const {
   m_value = this->m_data[entry][m_key].template get<T>();
   return m_value;
 }

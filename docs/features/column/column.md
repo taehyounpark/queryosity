@@ -11,11 +11,11 @@ Consider the following JSON data:
 ??? abstract "Example implementation"
     ```cpp
     #include <nlohmann/json.hpp>
-    #include "ana/analogical.h"
+    #include "queryosity/queryosity.h"
 
-    namespace ana {
+    namespace queryosity {
 
-    class json : public ana::dataset::reader<json> {
+    class json : public queryosity::dataset::reader<json> {
 
     public:
     template <typename T> class column;
@@ -24,7 +24,7 @@ Consider the following JSON data:
     json(const nlohmann::json &data);
     ~json() = default;
 
-    ana::dataset::partition parallelize();
+    queryosity::dataset::partition parallelize();
 
     template <typename T>
     std::unique_ptr<column<T>> read(unsigned int,
@@ -34,7 +34,7 @@ Consider the following JSON data:
     nlohmann::json m_data;
     };
 
-    template <typename T> class json::column : public ana::column::reader<T> {
+    template <typename T> class json::column : public queryosity::column::reader<T> {
 
     public:
     column(const nlohmann::json &data, const std::string &name);
@@ -49,17 +49,17 @@ Consider the following JSON data:
     const std::string m_name;
     };
 
-    } // namespace ana
+    } // namespace queryosity
 
-    ana::json::json(nlohmann::json const &data) : m_data(data) {}
+    queryosity::json::json(nlohmann::json const &data) : m_data(data) {}
 
     template <typename T>
-    ana::json::reader<T>::column(nlohmann::json const &data,
+    queryosity::json::reader<T>::column(nlohmann::json const &data,
                             const std::string &name)
     : m_data(data), m_name(name) {}
 
-    ana::dataset::partition ana::json::parallelize() {
-    ana::dataset::partition parts;
+    queryosity::dataset::partition queryosity::json::parallelize() {
+    queryosity::dataset::partition parts;
     auto nentries = m_data.size();
     for (unsigned int i = 0; i < nentries; ++i) {
     parts.emplace_back(i, i, i + 1);
@@ -68,13 +68,13 @@ Consider the following JSON data:
     }
 
     template <typename Val>
-    std::unique_ptr<ana::json::reader<Val>>
-    ana::json::read(const ana::dataset::range &, const std::string &name) const {
+    std::unique_ptr<queryosity::json::reader<Val>>
+    queryosity::json::read(const queryosity::dataset::range &, const std::string &name) const {
     return std::make_unique<column<Val>>(this->m_data, name);
     }
 
     template <typename T>
-    const T &ana::json::reader<T>::read(const ana::dataset::range &,
+    const T &queryosity::json::reader<T>::read(const queryosity::dataset::range &,
                                     unsigned long long entry) const {
     m_value = this->m_data[entry][m_name].template get<T>();
     return m_value;
@@ -84,14 +84,14 @@ Consider the following JSON data:
 It can be opened by a dataflow:
 ```{ .cpp .annotate } 
 #include <nlohmann/json.hpp>
-#include "analogical.h"
+#include "queryosity.h"
 
-using dataflow = ana::dataflow;
+using dataflow = queryosity::dataflow;
 
 nlohmann::json data;  // above data
 
 dataflow df;
-auto ds = df.open<ana::json>(data);
+auto ds = df.open<queryosity::json>(data);
 ```
 
 And the dataset columns can be read individually:
@@ -102,7 +102,7 @@ auto c = ds.read<std::string>("c");
 ```
 Alternatively, multiple columns can be read out in a single line:
 ```{ .cpp .annotate }
-auto [a, b, c] = df.open<ana::json>(data)
+auto [a, b, c] = df.open<queryosity::json>(data)
                    .read<int,double,string>({"a","b","c"}); // (1)
 ```
 
@@ -114,7 +114,7 @@ auto [a, b, c] = df.open<ana::json>(data)
     Even in the "worst" case, explicit template specialization can be used to cherry-pick how to read a specific data type.
     ```cpp
     template <>
-    class ana::json::reader<CustomData> : public ana::column::reader<CustomData>
+    class queryosity::json::reader<CustomData> : public queryosity::column::reader<CustomData>
     { 
       virtual ColumnData const& read() const override { /* (implementation) */ }
     };
@@ -164,7 +164,7 @@ Complex computations can be fully specified by implementing a `definition`.
 
 ```cpp
 // shift & smear a quantity be a (relative) gaussian convolution
-class GaussianConvolution : public ana::column::definition<double(double)>
+class GaussianConvolution : public queryosity::column::definition<double(double)>
 {
   GaussianConvolution(double mu = 1.0, double sigma = 0.0) : m_mu(mu), m_sigma(sigma) {}
   virtual ~GaussianConvolution() = default;
@@ -215,7 +215,7 @@ A column definition works with arbitrary set of input and output value types. He
 using VecD = ROOT::RVec<double>;
 using P4 = ROOT::Math::PtEtaPhiMVector;
 
-class NthP4 : public ana::column::definition<P4(VecD, VecD, VecD, VecD)>
+class NthP4 : public queryosity::column::definition<P4(VecD, VecD, VecD, VecD)>
 {
 public:
   NthP4(unsigned int index) : 
@@ -223,7 +223,7 @@ public:
   {}
   virtual ~NthP4() = default;
 
-  virtual P4 evaluate(ana::observable<VecD> pt, ana::observable<VecD> eta, ana::observable<VecD> phi, ana::observable<VecD> energy) const override {
+  virtual P4 evaluate(queryosity::column::observable<VecD> pt, queryosity::column::observable<VecD> eta, queryosity::column::observable<VecD> phi, queryosity::column::observable<VecD> energy) const override {
   }
 
 protected:
@@ -249,7 +249,7 @@ For cases in which values of multiple columns in a dataset correspond to attribu
 // example: not used in rest of walkthrough
 
 // want to define an object corresponding to "lepton" out of four-momentum, charge, and type columns
-class Lepton : public ana::column::representation<Lepton(P4,int,unsigned int)>
+class Lepton : public queryosity::column::representation<Lepton(P4,int,unsigned int)>
 {
 public:
   // helper to keep track of of properties index
@@ -269,7 +269,7 @@ public:
 
 auto l1 = df.define<Lepton>()(l1p4, lep_charge[0], lep_type[0]);
 ```
-Representations provide a complementary role to definitions that can improve conceptual clarity (but not necessity) of the computation graph and (in some cases) its efficiency, demonstrated by the following counter-example.
+Representations provide a complementary role to definitions that can improve conceptual clarity (but not necessity) of the computation graph and (in some cases) its efficiency, demonstrated by the following query-example.
 ```cpp
 // using a simple struct to hold properties
 struct Lepton { const P4 p4; const double q; const double type; };

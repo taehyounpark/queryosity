@@ -3,15 +3,15 @@
 #include <matplot/matplot.h>
 #include <nlohmann/json.hpp>
 
-#include "ana/analogical.h"
+#include "queryosity/queryosity.h"
 
-#include "ana/hist.h"
-#include "ana/json.h"
+#include "queryosity/hist.h"
+#include "queryosity/json.h"
 
 using json = nlohmann::json;
 
-using dataflow = ana::dataflow;
-namespace systematic = ana::systematic;
+using dataflow = queryosity::dataflow;
+namespace systematic = queryosity::systematic;
 
 namespace bh = boost::histogram;
 namespace mp = matplot;
@@ -35,19 +35,19 @@ int main() {
 
   std::ifstream json_file("data/data.json");
 
-  ana::dataflow df;
-  auto ds = df.open(ana::dataset::input<ana::json>(json_file));
+  queryosity::dataflow df;
+  auto ds = df.open(queryosity::dataset::input<queryosity::json>(json_file));
 
-  auto x = ds.vary(ana::dataset::column<double>("x_nom"),
+  auto x = ds.vary(queryosity::dataset::column<double>("x_nom"),
                    systematic::variation("scale", "x_scale"),
                    systematic::variation("smear", "x_smear"));
-  auto w = ds.vary(ana::dataset::column<double>("w_nom"),
+  auto w = ds.vary(queryosity::dataset::column<double>("w_nom"),
                    systematic::variation("toy", "w_toy"));
 
   auto weighted = df.weight(w);
 
-  auto hx = df.agg(ana::counter::output<ana::hist::hist<float>>(
-                       ana::hist::axis::regular(50, 120, 130)))
+  auto hx = df.agg(queryosity::query::output<queryosity::hist::hist<float>>(
+                       queryosity::hist::axis::regular(50, 120, 130)))
                 .fill(x)
                 .book(weighted);
 

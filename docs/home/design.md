@@ -1,7 +1,7 @@
 # Design goals
 
 - **Clear interface.** Use a clear high-level abstraction layer with modern C++ syntax to specify even the most complex actions.
-- **Customizable actions.** Support for inputs and outputs of any type and arbitrary execution, such as custom dataset formats, column definitions, and counter algorithms.
+- **Customizable actions.** Support for inputs and outputs of any type and arbitrary execution, such as custom dataset formats, column definitions, and query algorithms.
 - **Sensitivity analysis.** Systematic variations of an analysis are automatically propagated and simultaneously processed within one dataset traversal.
 - **Computational efficiency.** Dataset actions are performed for an entry only if needed. Dataset traversal is multithreaded.
 

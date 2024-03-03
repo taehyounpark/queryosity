@@ -1,15 +1,15 @@
 _**Ana**lysis **Logic** **A**bstraction **L**ayer_
 
 ![Version](https://img.shields.io/badge/Version-0.2.0-blue.svg)
-[![Ubuntu](https://github.com/taehyounpark/analogical/actions/workflows/ubuntu.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/ubuntu.yml)
-[![macOS](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml)
-[![Documentation](https://img.shields.io/badge/Documentation-mkdocs-blue.svg)](https://taehyounpark.github.io/analogical/home/design/)
+[![Ubuntu](https://github.com/taehyounpark/queryosity/actions/workflows/ubuntu.yml/badge.svg?branch=master)](https://github.com/taehyounpark/queryosity/actions/workflows/ubuntu.yml)
+[![macOS](https://github.com/taehyounpark/queryosity/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/taehyounpark/queryosity/actions/workflows/macos.yml)
+[![Documentation](https://img.shields.io/badge/Documentation-mkdocs-blue.svg)](https://taehyounpark.github.io/queryosity/home/design/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`analogical` is a C++ library for performing dataset transformations.
+`queryosity` is a C++ library for performing dataset transformations.
 
 <p align="center">
-	<strong> <a href="https://taehyounpark.github.io/analogical/">See full documentation</a></strong>
+	<strong> <a href="https://taehyounpark.github.io/queryosity/">See full documentation</a></strong>
 </p>
 
 
@@ -23,42 +23,42 @@ _**Ana**lysis **Logic** **A**bstraction **L**ayer_
 ## Design goals
 
 - **Clear interface.** Use a clear high-level abstraction layer with modern C++ syntax to specify even the most complex actions.
-- **Customizable actions.** Support for inputs and outputs of any type and arbitrary execution, such as custom dataset formats, column definitions, and counter algorithms.
+- **Customizable actions.** Support for inputs and outputs of any type and arbitrary execution, such as custom dataset formats, column definitions, and query algorithms.
 - **Sensitivity analysis.** Systematic variations of an analysis are automatically propagated and simultaneously processed within one dataset traversal.
 - **Computational efficiency.** Dataset actions are performed for an entry only if needed. Dataset traversal is multithreaded.
 
 ## Installation
 
-### [Single-header](https://raw.githubusercontent.com/taehyounpark/analogical/master/analogical.h)
+### [Single-header](https://raw.githubusercontent.com/taehyounpark/queryosity/master/queryosity.h)
 ```cpp
-#include "analogical.h"
+#include "queryosity.h"
 ```
 ### CMake
 ```sh
-git clone https://github.com/taehyounpark/analogical.git
+git clone https://github.com/taehyounpark/queryosity.git
 ``````
 #### External
 ```sh
-cd analogical/ && mkdir build/ && cd build/
+cd queryosity/ && mkdir build/ && cd build/
 cmake ../
 cmake --build .
 cmake --install .
 ```
 ```cmake
-find_package(analogical 0.1.0 REQUIRED)
+find_package(queryosity 0.1.0 REQUIRED)
 ...
 add_library(Analysis ...)
 ...
-target_link_libraries(Analysis INTERFACE ana::analogical)
+target_link_libraries(Analysis INTERFACE queryosity::queryosity)
 ```
 ```cpp
-#include "ana/analogical.h"
+#include "queryosity/queryosity.h"
 ```
 #### Integrated
 ```cmake
-add_subdirectory(analogical)
+add_subdirectory(queryosity)
 ...
 add_library(Analysis ...)
 ...
-target_link_libraries(Analysis INTERFACE ana::analogical)
+target_link_libraries(Analysis INTERFACE queryosity::queryosity)
 ```
