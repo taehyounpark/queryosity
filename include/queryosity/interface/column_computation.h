@@ -11,11 +11,7 @@
 namespace queryosity {
 
 /**
- * @brief Computation graph of columns.
- * @details `column::computation<Dataset_t>` issues `unique::ptr<Column_t>`
- * for all columns, or their evaluates, used in the analysis.
- * It keeps a raw pointer of each, only if their action needs to be called
- * for each dataset entry (e.g. constant values are not stored).
+ * Computation graph of columns.
  */
 class column::computation {
 

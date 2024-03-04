@@ -134,16 +134,19 @@ template <typename Action>
 struct result_if_aggregation<
     Action, std::enable_if_t<query::template is_aggregation_v<Action>>> {
   using result_type = decltype(std::declval<Action>().result());
+  result_if_aggregation() : m_merged(false){};
+  virtual ~result_if_aggregation() = default;
 
 protected:
   result_type m_result;
+  bool m_merged;
 };
 
 template <typename Action>
 class lazy : public dataflow::node,
              public concurrent::slotted<Action>,
-             public systematic::resolver<lazy<Action>> {
-  //  public result_if_aggregation<Action> {
+             public systematic::resolver<lazy<Action>>,
+             public result_if_aggregation<Action> {
 
 public:
   class varied;
@@ -210,12 +213,12 @@ public:
   template <typename V = Action,
             std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
                              bool> = false>
-  auto result() const -> decltype(std::declval<V>().get_result());
+  auto result() -> decltype(std::declval<V>().result());
 
   template <typename V = Action,
             std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
                              bool> = false>
-  auto operator->() const -> decltype(std::declval<V>().get_result()) {
+  auto operator->() -> decltype(std::declval<V>().result()) {
     return this->result();
   }
 
@@ -239,7 +242,7 @@ protected:
   template <typename V = Action,
             std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
                              bool> = false>
-  void merge_results() const;
+  void merge_results();
 
 protected:
   std::vector<Action *> m_slots;
@@ -428,26 +431,32 @@ template <typename Action>
 template <
     typename V,
     std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool>>
-auto queryosity::lazy<Action>::result() const
-    -> decltype(std::declval<V>().get_result()) {
+auto queryosity::lazy<Action>::result()
+    -> decltype(std::declval<V>().result()) {
   this->m_df->analyze();
   this->merge_results();
-  return this->get_slot(0)->get_result();
+  return this->m_result;
 }
 
 template <typename Action>
 template <
     typename V,
     std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool> e>
-void queryosity::lazy<Action>::merge_results() const {
+void queryosity::lazy<Action>::merge_results() {
+  if (this->m_merged)
+    return;
   auto model = this->get_slot(0);
+  using result_type = decltype(model->result());
   const auto nslots = this->concurrency();
-  if (nslots > 1 && !model->is_merged()) {
-    std::vector<std::decay_t<decltype(model->get_result())>> results;
+  if (nslots == 1) {
+    this->m_result = model->result();
+  } else {
+    std::vector<result_type> results;
     results.reserve(nslots);
     for (size_t islot = 0; islot < nslots; ++islot) {
-      results.push_back(this->get_slot(islot)->get_result());
+      results.push_back(std::move(this->get_slot(islot)->result()));
     }
-    model->set_merged_result(results);
+    this->m_result = model->merge(results);
   }
+  this->m_merged = true;
 }

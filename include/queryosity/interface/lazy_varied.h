@@ -119,6 +119,10 @@ public:
   template <typename V = Act,
             std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
                              bool> = false>
+  auto operator[](const std::string &var_name) -> lazy<V> &;
+  template <typename V = Act,
+            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+                             bool> = false>
   auto operator[](const std::string &var_name) const -> lazy<V> const &;
 
   DECLARE_LAZY_VARIED_UNARY_OP(-)
@@ -285,6 +289,18 @@ template <typename... Aggs, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::book(Aggs &&...aggs) {
   return std::make_tuple((aggs.book(*this), ...));
+}
+
+template <typename Act>
+template <
+    typename V,
+    std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool>>
+auto queryosity::lazy<Act>::varied::operator[](const std::string &var_name)
+    -> lazy<V> & {
+  if (!this->has_variation(var_name)) {
+    throw std::out_of_range("variation does not exist");
+  }
+  return this->variation(var_name);
 }
 
 template <typename Act>

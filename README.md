@@ -1,4 +1,4 @@
-_**Ana**lysis **Logic** **A**bstraction **L**ayer_
+# Queryosity
 
 ![Version](https://img.shields.io/badge/Version-0.2.0-blue.svg)
 [![Ubuntu](https://github.com/taehyounpark/queryosity/actions/workflows/ubuntu.yml/badge.svg?branch=master)](https://github.com/taehyounpark/queryosity/actions/workflows/ubuntu.yml)
@@ -6,7 +6,7 @@ _**Ana**lysis **Logic** **A**bstraction **L**ayer_
 [![Documentation](https://img.shields.io/badge/Documentation-mkdocs-blue.svg)](https://taehyounpark.github.io/queryosity/home/design/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`queryosity` is a C++ library for performing dataset transformations.
+`queryosity` is powerful data analysis and query library written in C++.
 
 <p align="center">
 	<strong> <a href="https://taehyounpark.github.io/queryosity/">See full documentation</a></strong>
@@ -16,16 +16,16 @@ _**Ana**lysis **Logic** **A**bstraction **L**ayer_
 ## Features
 
 - *Dataflow* interface.
-- Lazy execution.
-- Multithreaded processing.
+- Lazy actions.
+- Multithreading.
 - Sensitivity analysis.
 
 ## Design goals
 
 - **Clear interface.** Use a clear high-level abstraction layer with modern C++ syntax to specify even the most complex actions.
-- **Customizable actions.** Support for inputs and outputs of any type and arbitrary execution, such as custom dataset formats, column definitions, and query algorithms.
-- **Sensitivity analysis.** Systematic variations of an analysis are automatically propagated and simultaneously processed within one dataset traversal.
-- **Computational efficiency.** Dataset actions are performed for an entry only if needed. Dataset traversal is multithreaded.
+- **Customizable actions.** Support for custom datasets and queries, as well as arbitrary computations in-between.
+- **Sensitivity analysis.** Systematic variations within an analysis are automatically propagated and simultaneously processed.
+- **Computational efficiency.** Actions are performed for an entry only when required. Dataset traversal is multithreaded.
 
 ## Installation
 

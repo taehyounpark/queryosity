@@ -1,11 +1,12 @@
 # Design goals
 
-- **Clear interface.** Use a clear high-level abstraction layer with modern C++ syntax to specify even the most complex actions.
-- **Customizable actions.** Support for inputs and outputs of any type and arbitrary execution, such as custom dataset formats, column definitions, and query algorithms.
-- **Sensitivity analysis.** Systematic variations of an analysis are automatically propagated and simultaneously processed within one dataset traversal.
-- **Computational efficiency.** Dataset actions are performed for an entry only if needed. Dataset traversal is multithreaded.
+`queryosity` is aims to achieve the following:
 
-# Non-goals
+- **Clear interface.** Use a clear abstraction layer with modern C++ syntax to describe even the most complex analyses.
+- **Customizable actions.** Support for custom datasets and queries, as well as arbitrary computations in-between.
+- **Sensitivity analysis.** Systematic variations within an analysis are automatically propagated and simultaneously processed.
+- **Computational efficiency.** Actions are performed for an entry only when required. Dataset traversal is multithreaded.
 
-- Columnar analysis. Being **designed to handle arbitrary data types**, the dataset traversal is **inherently row-wise**. If an analysis can be expressed as array actions, then libraries with an index-based API (and SIMD support) will be better-suited (and faster).
-- Best-ever speed. One can expect **overall performance** to be **comparable to other frameworks**; some benchmarks are available [here](https://github.com/iris-hep/adl-benchmarks-index). If there is a (not array-wise) workflow that is significantly lacking in speed, please submit an issue on GitHub.
+It does *not* strive to be well-suited for:
+
+- Array-wise, i.e. columnar, analysis. Being **designed to handle arbitrary data types**, the dataset traversal is **inherently row-wise**. If an analysis consists mainly of bulk operations on arrays, then libraries with an index-based API (and SIMD support) will be better-suited (and faster).

@@ -24,6 +24,9 @@ template <typename T> class lazy;
 
 template <typename U> class todo;
 
+/**
+ * Main data analysis and query graph interface.
+ */
 class dataflow {
 
 public:

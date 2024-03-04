@@ -1,0 +1,5 @@
+title: queryosity
+description: Coherent data analysis and queries
+files:
+  - "include/queryosity/interface/*.h"
+

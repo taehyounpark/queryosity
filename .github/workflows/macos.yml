@@ -30,7 +30,7 @@ jobs:
           brew install nlohmann-json
           brew install boost
       - name: Run CMake
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DANALOGICAL_TESTS=ON
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DQUERYOSITY_TESTS=ON
       - name: Build
         run: cmake --build build --parallel 4
       - name: Test
@@ -49,7 +49,7 @@ jobs:
           brew install nlohmann-json
           brew install boost
       - name: Run CMake
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DANALOGICAL_TESTS=ON -DANALOGICAL_CXX_STANDARD=${{ matrix.standard }}
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DQUERYOSITY_TESTS=ON -DQUERYOSITY_CXX_STANDARD=${{ matrix.standard }}
       - name: Build
         run: cmake --build build --parallel 4
       - name: Test

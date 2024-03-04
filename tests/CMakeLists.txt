@@ -1,4 +1,4 @@
-if (ANALOGICAL_TESTS)
+if (QUERYOSITY_TESTS)
 
   find_package(Threads REQUIRED)
 

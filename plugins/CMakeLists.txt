@@ -3,17 +3,17 @@ find_package(Boost REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 
-file(GLOB ANALOGICAL_PLUGINS_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/ana/*.h)
+file(GLOB QUERYOSITY_PLUGINS_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/queryosity/*.h)
 
 add_library(
   queryosity_plugins
   SHARED
-  ${ANALOGICAL_PLUGINS_HEADERS}
+  ${QUERYOSITY_PLUGINS_HEADERS}
 )
 set_property(TARGET queryosity_plugins PROPERTY EXPORT_NAME plugins)
 add_library(queryosity::plugins ALIAS queryosity_plugins)
 
-target_compile_features(queryosity_plugins INTERFACE "cxx_std_${ANALOGICAL_CXX_STANDARD}" )
+target_compile_features(queryosity_plugins INTERFACE "cxx_std_${QUERYOSITY_CXX_STANDARD}" )
 
 set_target_properties(queryosity_plugins PROPERTIES LINKER_LANGUAGE CXX)
 

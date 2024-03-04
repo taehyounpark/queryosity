@@ -55,6 +55,7 @@ public:
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) override;
   virtual void execute(unsigned int slot, unsigned long long entry) override;
+  virtual void finalize(unsigned int slot) override;
 
   virtual void count(double w) = 0;
 
@@ -126,3 +127,5 @@ inline void queryosity::query::node::execute(unsigned int, unsigned long long) {
     this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
   }
 }
+
+inline void queryosity::query::node::finalize(unsigned int) {}

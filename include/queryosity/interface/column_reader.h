@@ -22,15 +22,13 @@ public:
   virtual ~reader() = default;
 
   /**
-   * @brief Read the value of the column at current entry.
-   * @return Column value
+   * Read the value of the column at current entry.
+   * @param[in] slot Multithreaded slot enumerator.
+   * @param[in] entry Dataset global entry enumerator.
+   * @return Column value at current entry.
    */
   virtual const_reference read(unsigned int, unsigned long long) const = 0;
 
-  /**
-   * @brief Get the value of the column at current entry.
-   * @return Column value
-   */
   virtual const_reference value() const override;
 
   virtual void execute(unsigned int, unsigned long long) final override;
