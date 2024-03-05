@@ -6,7 +6,8 @@
 namespace queryosity {
 
 /**
- * @brief Counter output to be filled with columns using arbitrary logic.
+ * @brief Query filled with column value(s) per-entry.
+ * @tparam T Output result type.
  * @tparam Obs... Input column data types.
  */
 template <typename T, typename... Obs>
@@ -25,8 +26,7 @@ public:
    * @param weight The weight value of the booked selection for the passed
    * entry.
    * @details This action is performed N times for a passed entry, where N is
-   * the number of `fill` calls made to its `lazy` action, each with its the
-   * set of input columns as provided then.
+   * the number of `fill` calls made during its `todo` configuration.
    */
   virtual void fill(column::observable<Obs>... observables, double w) = 0;
   virtual void count(double w) final override;

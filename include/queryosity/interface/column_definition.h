@@ -27,9 +27,6 @@ public:
   definition() = default;
   virtual ~definition() = default;
 
-protected:
-  template <typename... Args> definition(Args &&...args);
-
 public:
   virtual Ret calculate() const final override;
   virtual Ret evaluate(observable<Vals>... args) const = 0;
@@ -54,11 +51,6 @@ protected:
 } // namespace queryosity
 
 #include "dataflow.h"
-
-template <typename Ret, typename... Vals>
-template <typename... Args>
-queryosity::column::definition<Ret(Vals...)>::definition(Args &&...args)
-    : calculation<Ret>(std::forward<Args>(args)...) {}
 
 template <typename Ret, typename... Vals>
 template <typename... Ins>

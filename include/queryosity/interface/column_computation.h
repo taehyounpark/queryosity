@@ -25,7 +25,10 @@ public:
       -> std::unique_ptr<read_column_t<DS, Val>>;
 
   template <typename Val>
-  auto assign(Val const &val) -> std::unique_ptr<column::fixed<Val>>;
+  auto assign(Val const &val) -> std::unique_ptr<fixed<Val>>;
+
+  template <typename To, typename Col>
+  auto convert(Col const &col) -> std::unique_ptr<conversion<To, value_t<Col>>>;
 
   template <typename Def, typename... Args>
   auto define(Args const &...vars) const
@@ -36,7 +39,7 @@ public:
       queryosity::column::template evaluate_t<std::function<Ret(Args...)>>>;
 
   template <typename Def, typename... Cols>
-  auto evaluate(column::evaluate<Def> &calc, Cols const &...columns)
+  auto evaluate(column::evaluate<Def> &calc, Cols const &...cols)
       -> std::unique_ptr<Def>;
 
 protected:
@@ -48,10 +51,11 @@ protected:
 
 } // namespace queryosity
 
+#include "column_conversion.h"
 #include "column_equation.h"
 #include "column_evaluate.h"
 #include "column_fixed.h"
-#include "dataset_source.h"
+#include "dataset_reader.h"
 
 template <typename DS, typename Val>
 auto queryosity::column::computation::read(dataset::reader<DS> &ds,
@@ -67,6 +71,15 @@ template <typename Val>
 auto queryosity::column::computation::assign(Val const &val)
     -> std::unique_ptr<queryosity::column::fixed<Val>> {
   return std::make_unique<typename column::fixed<Val>>(val);
+}
+
+template <typename To, typename Col>
+auto queryosity::column::computation::convert(Col const &col)
+    -> std::unique_ptr<column::conversion<To, value_t<Col>>> {
+  auto cnv = std::make_unique<conversion<To, value_t<Col>>>(col);
+  cnv->set_arguments(col);
+  this->add_column(*cnv);
+  return cnv;
 }
 
 template <typename Def, typename... Args>
@@ -85,9 +98,9 @@ auto queryosity::column::computation::equate(std::function<Ret(Args...)> fn)
 
 template <typename Def, typename... Cols>
 auto queryosity::column::computation::evaluate(column::evaluate<Def> &calc,
-                                               Cols const &...columns)
+                                               Cols const &...cols)
     -> std::unique_ptr<Def> {
-  auto defn = calc._evaluate(columns...);
+  auto defn = calc._evaluate(cols...);
   this->add_column(*defn);
   return defn;
 }

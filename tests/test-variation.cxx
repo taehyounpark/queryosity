@@ -62,7 +62,10 @@ std::vector<double> get_queryosity_result(const nlohmann::json &random_data) {
   auto x = ds.vary(dataset::column<double>("x_nom"), {"vary_x", "x_var"});
   auto w = ds.vary(dataset::column<unsigned int>("w_nom"), {"vary_w", "w_var"});
 
-  std::cout << typeid(w).name() << std::endl;
+  auto one = df.define(column::constant<int>(1));
+  auto two = df.define(column::constant<unsigned int>(2));
+  auto test =
+      df.vary(systematic::nominal(one), systematic::variation("two", two));
 
   auto weighted = df.weight(w);
 

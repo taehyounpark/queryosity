@@ -1,0 +1,111 @@
+site_name: Coherent data analysis in C++
+
+repo_url: https://github.com/taehyounpark/queryosity
+repo_name: taehyounpark/queryosity
+
+nav:
+  - Home:
+    - Welcome: index.md
+    - Installation: home/installation.md
+    - Quickstart: home/quick.md
+  - Features:
+      - Basic concepts: features/basic.md
+      - Dataflow: features/dataflow/dataflow.md 
+      - Columns: 
+        - Computation graph: features/column/computation.md
+        - Computing columns: features/column/column.md
+      - Selections: 
+        - Cutflow: features/selection/cutflow.md
+        - Applying selections: features/selection/selection.md
+      - Queries: 
+        - Query: features/query/experiment.md
+        - Creating queries: features/query/query.md
+      - Sensitivity analysis: 
+        - Systematic variation: features/sensitivity/variation.md
+        - Applying variations: features/sensitivity/vary.md
+      - Lazy actions: features/lazy.md
+      - Implicit multithreading: features/multithread.md
+  - Demos:
+    - Higgs WW: demo/hww/notebook.md
+  - API:
+    - 'dataflow': api/classqueryosity_1_1dataflow.md
+    - 'lazy': api/classqueryosity_1_1lazy.md
+    - 'lazy::varied': api/classqueryosity_1_1lazy_1_1varied.md
+    - 'todo': api/classqueryosity_1_1todo.md
+    - 'todo::varied': api/classqueryosity_1_1todo_1_1varied.md
+  - ABCs:
+    - 'dataset::reader': abc/classqueryosity_1_1dataset_1_1reader.md
+    - 'column::reader': abc/classqueryosity_1_1column_1_1reader.md
+    - 'column::definition': abc/classqueryosity_1_1column_1_1definition_3_01_ret_07_vals_8_8_8_08_4.md
+    - 'query::definition': abc/classqueryosity_1_1query_1_1definition_3_01_t_07_obs_8_8_8_08_4.md
+
+theme:
+  name: 'material'
+  font:
+    text: Inter Tight
+    code: JetBrains Mono
+  palette:
+    primary: custom
+  icon:
+    repo: fontawesome/brands/github
+  features:
+    - navigation.tabs
+    - navigation.prune
+    - navigation.top
+    - navigation.footer
+    - toc.follow
+    - content.tabs.link
+
+plugins:
+  - mkdoxy:
+      projects:
+        api: # name of project must be alphanumeric + numbers (without spaces)
+          src-dirs: include/queryosity/interface # path to source code (support multiple paths separated by space) => INPUT
+          full-doc: True # if you want to generate full documentation
+          doxy-cfg: # standard doxygen configuration (key: value)
+            FILE_PATTERNS: "dataflow.h lazy*.h todo*.h dataset.h dataset_input.h dataset_player.h dataset_column.h column_definition.h counter_logic.h counter_logic.h" # specify file patterns to filter out
+            RECURSIVE: True # recursive search in source directories
+        abc: # name of project must be alphanumeric + numbers (without spaces)
+          src-dirs: include/queryosity/interface # path to source code (support multiple paths separated by space) => INPUT
+          full-doc: True # if you want to generate full documentation
+          doxy-cfg: # standard doxygen configuration (key: value)
+            FILE_PATTERNS: "dataset_reader.h column_reader.h column_definition.h query_definition.h" # specify file patterns to filter out
+            RECURSIVE: True # recursive search in source directories
+      save-api: .mkdoxy
+
+markdown_extensions:
+  - admonition
+  - tables
+  - footnotes
+  - attr_list
+  - def_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      use_pygments: true
+      pygments_lang_class: true
+  - toc:
+      title: On this page
+  - pymdownx.tabbed:
+      alternate_style: true
+
+extra_javascript:
+  - javascripts/mathjax.js
+  - https://polyfill.io/v3/polyfill.min.js?features=es6
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+
+extra_css:
+  - stylesheets/extra.css

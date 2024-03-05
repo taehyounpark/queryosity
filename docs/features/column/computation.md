@@ -1,4 +1,4 @@
-Computing quantities of interest out of existing column values in an entry may be a complicated task.
+Computing quantities of interest out of existing column values in an entry can become a complicated task.
 
 ```mermaid
   graph BT
@@ -11,9 +11,9 @@ Computing quantities of interest out of existing column values in an entry may b
   B --> Z;
 ```
 
-The following properties of the computation graph are guaranteed by the interface:
+The following properties of the computation graph are guaranteed by the library:
 
 - No circular loops.
-- Each column value is computed at most once per-entry, only if needed.
-- No column values are copied when used as inputs for definitions.
-    - The value *is* copied if an implicit conversion is required.
+- No values are copied when used as inputs for definitions.
+  - The value *is* copied if an implicit conversion is required.
+- A value is computed at most once per-entry, only if needed.

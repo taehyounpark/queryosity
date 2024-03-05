@@ -1,11 +1,11 @@
 
 Implicit multithreading of a dataflow object can be enabled by:
 ```cpp
-queryosity::multithread::enable(/* optional: thread count, default: system max. */);
+qty::multithread::enable(/* optional: thread count, default: system max. */);
 ```
 !!! warning "Thread-safety requirements"
-    In order for the multithreading to be valid for, analyzers must ensure the following:
+    In order for the multithreading to be supported, developers must ensure the following:
 
-    1. `queryosity::dataset::input` must define a way of partitioning the dataset for parallel processing.
-    2. `queryosity::dataset::player` and `queryosity::dataset::column` must access the underlying data in a thread-safe way.
-    2. `queryosity::column::definition` and `queryosity::query::definition` implementations must be thread-safe.
+    1. `qty::dataset::reader` must partition the dataset for parallel processing.
+    2. `qty::dataset::reader` and `qty::column::reader` must access the underlying dataset in a thread-safe way.
+    2. `qty::column::definition` and `qty::query::definition` must be thread-safe.

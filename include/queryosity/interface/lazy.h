@@ -1,7 +1,5 @@
 #pragma once
 
-/** @file */
-
 #include <iostream>
 #include <memory>
 #include <set>
@@ -9,121 +7,10 @@
 #include <vector>
 
 #include "dataflow.h"
+#include "detail.h"
 #include "systematic_resolver.h"
 
-#define CHECK_FOR_BINARY_OP(op_name, op_symbol)                                \
-  struct has_no_##op_name {};                                                  \
-  template <typename T, typename Arg>                                          \
-  has_no_##op_name operator op_symbol(const T &, const Arg &);                 \
-  template <typename T, typename Arg = T> struct has_##op_name {               \
-    enum {                                                                     \
-      value = !std::is_same<decltype(std::declval<T>()                         \
-                                         op_symbol std::declval<Arg>()),       \
-                            has_no_##op_name>::value                           \
-    };                                                                         \
-  };                                                                           \
-  template <typename T, typename Arg = T>                                      \
-  static constexpr bool has_##op_name##_v = has_##op_name<T, Arg>::value;
-
-#define DEFINE_LAZY_BINARY_OP(op_name, op_symbol)                              \
-  template <typename Arg, typename V = Action,                                 \
-            std::enable_if_t<                                                  \
-                queryosity::is_column_v<V> &&                                  \
-                    queryosity::is_column_v<typename Arg::action_type> &&      \
-                    op_check::has_##op_name##_v<                               \
-                        column::template value_t<V>,                           \
-                        column::template value_t<typename Arg::action_type>>,  \
-                bool> = false>                                                 \
-  auto operator op_symbol(Arg const &arg) const {                              \
-    return this->m_df->define(                                                 \
-        queryosity::column::expression(                                        \
-            [](column::template value_t<V> const &me,                          \
-               column::template value_t<typename Arg::action_type> const       \
-                   &you) { return me op_symbol you; }),                        \
-        *this, arg);                                                           \
-  }
-
-#define CHECK_FOR_UNARY_OP(op_name, op_symbol)                                 \
-  struct has_no_##op_name {};                                                  \
-  template <typename T> has_no_##op_name operator op_symbol(const T &);        \
-  template <typename T> struct has_##op_name {                                 \
-    enum {                                                                     \
-      value = !std::is_same<decltype(op_symbol std::declval<T>()),             \
-                            has_no_##op_name>::value                           \
-    };                                                                         \
-  };                                                                           \
-  template <typename T>                                                        \
-  static constexpr bool has_##op_name##_v = has_##op_name<T>::value;
-
-#define DEFINE_LAZY_UNARY_OP(op_name, op_symbol)                               \
-  template <typename V = Action,                                               \
-            std::enable_if_t<                                                  \
-                queryosity::is_column_v<V> &&                                  \
-                    op_check::has_##op_name##_v<column::template value_t<V>>,  \
-                bool> = false>                                                 \
-  auto operator op_symbol() const {                                            \
-    return this->m_df->define(queryosity::column::expression(                  \
-                                  [](column::template value_t<V> const &me) {  \
-                                    return (op_symbol me);                     \
-                                  }),                                          \
-                              *this);                                          \
-  }
-
-#define CHECK_FOR_SUBSCRIPT_OP()                                               \
-  template <class T, class Index> struct has_subscript_impl {                  \
-    template <class T1, class IndexDeduced = Index,                            \
-              class Reference = decltype((                                     \
-                  *std::declval<T *>())[std::declval<IndexDeduced>()]),        \
-              typename = typename std::enable_if<                              \
-                  !std::is_void<Reference>::value>::type>                      \
-    static std::true_type test(int);                                           \
-    template <class> static std::false_type test(...);                         \
-    using type = decltype(test<T>(0));                                         \
-  };                                                                           \
-  template <class T, class Index>                                              \
-  using has_subscript = typename has_subscript_impl<T, Index>::type;           \
-  template <class T, class Index>                                              \
-  static constexpr bool has_subscript_v = has_subscript<T, Index>::value;
-
-#define DEFINE_LAZY_SUBSCRIPT_OP()                                             \
-  template <typename Arg, typename V = Action,                                 \
-            std::enable_if_t<                                                  \
-                is_column_v<V> &&                                              \
-                    op_check::has_subscript_v<                                 \
-                        column::template value_t<V>,                           \
-                        column::template value_t<typename Arg::action_type>>,  \
-                bool> = false>                                                 \
-  auto operator[](Arg const &arg) const {                                      \
-    return this->m_df->define(                                                 \
-        queryosity::column::expression(                                        \
-            [](column::template value_t<V> me,                                 \
-               column::template value_t<typename Arg::action_type> index) {    \
-              return me[index];                                                \
-            }),                                                                \
-        *this, arg);                                                           \
-  }
-
 namespace queryosity {
-
-namespace op_check {
-CHECK_FOR_UNARY_OP(logical_not, !)
-CHECK_FOR_UNARY_OP(minus, -)
-CHECK_FOR_BINARY_OP(addition, +)
-CHECK_FOR_BINARY_OP(subtraction, -)
-CHECK_FOR_BINARY_OP(multiplication, *)
-CHECK_FOR_BINARY_OP(division, /)
-CHECK_FOR_BINARY_OP(remainder, %)
-CHECK_FOR_BINARY_OP(greater_than, >)
-CHECK_FOR_BINARY_OP(less_than, <)
-CHECK_FOR_BINARY_OP(greater_than_or_equal_to, >=)
-CHECK_FOR_BINARY_OP(less_than_or_equal_to, <=)
-CHECK_FOR_BINARY_OP(equality, ==)
-CHECK_FOR_BINARY_OP(inequality, !=)
-CHECK_FOR_BINARY_OP(logical_and, &&)
-CHECK_FOR_BINARY_OP(logical_or, ||)
-CHECK_FOR_SUBSCRIPT_OP()
-
-} // namespace op_check
 
 // mixin class to conditionally add a member variable
 template <typename Action, typename Enable = void>
@@ -134,7 +21,7 @@ template <typename Action>
 struct result_if_aggregation<
     Action, std::enable_if_t<query::template is_aggregation_v<Action>>> {
   using result_type = decltype(std::declval<Action>().result());
-  result_if_aggregation() : m_merged(false){};
+  result_if_aggregation() : m_merged(false) {}
   virtual ~result_if_aggregation() = default;
 
 protected:
@@ -142,6 +29,11 @@ protected:
   bool m_merged;
 };
 
+/**
+ * A todo node instantiates a lazy action upon inputs from existing lazy
+ * actions.
+ * @tparam Bkr Helper class that instantiates a lazy action.
+ */
 template <typename Action>
 class lazy : public dataflow::node,
              public concurrent::slotted<Action>,
@@ -169,14 +61,16 @@ public:
     }
   }
 
+  template <typename Derived>
+  lazy(dataflow &df, std::vector<Derived *> const &slots);
+  template <typename Derived>
+  lazy(dataflow &df, std::vector<std::unique_ptr<Derived>> const &slots);
+
   lazy(const lazy &) = delete;
   lazy &operator=(const lazy &) = delete;
 
   lazy(lazy &&) = default;
   lazy &operator=(lazy &&) = default;
-
-  template <typename Derived> lazy(lazy<Derived> const &derived);
-  template <typename Derived> lazy &operator=(lazy<Derived> const &derived);
 
   virtual ~lazy() = default;
 
@@ -192,6 +86,10 @@ public:
 
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
+
+  template <typename To, typename V = Action,
+            std::enable_if_t<queryosity::is_column_v<V>, bool> = false>
+  auto to() const -> lazy<column::cell<To>>;
 
   template <typename Col> auto filter(lazy<Col> const &col) const;
   template <typename Col> auto weight(lazy<Col> const &col) const;
@@ -236,7 +134,7 @@ public:
   DEFINE_LAZY_BINARY_OP(less_than, <)
   DEFINE_LAZY_BINARY_OP(greater_than_or_equal_to, >=)
   DEFINE_LAZY_BINARY_OP(less_than_or_equal_to, <=)
-  DEFINE_LAZY_SUBSCRIPT_OP()
+  DEFINE_LAZY_INDEX_OP()
 
 protected:
   template <typename V = Action,
@@ -256,25 +154,26 @@ protected:
 
 template <typename Action>
 template <typename Derived>
-queryosity::lazy<Action>::lazy(lazy<Derived> const &derived)
-    : queryosity::dataflow::node(*derived.m_df) {
-  this->m_slots.reserve(derived.m_slots.size());
-  for (auto slot : derived.m_slots) {
-    this->m_slots.push_back(static_cast<Action *>(slot));
+queryosity::lazy<Action>::lazy(dataflow &df,
+                               std::vector<Derived *> const &slots)
+    : dataflow::node(df) {
+  m_slots.clear();
+  m_slots.reserve(slots.size());
+  for (auto slot : slots) {
+    m_slots.push_back(static_cast<Action *>(slot));
   }
 }
 
 template <typename Action>
 template <typename Derived>
-queryosity::lazy<Action> &
-queryosity::lazy<Action>::operator=(lazy<Derived> const &derived) {
-  this->m_df = derived.m_df;
-  this->m_slots.clear();
-  this->m_slots.reserve(derived.m_slots.size());
-  for (auto slot : derived.m_slots) {
-    this->m_slots.push_back(static_cast<Action *>(slot));
+queryosity::lazy<Action>::lazy(
+    dataflow &df, std::vector<std::unique_ptr<Derived>> const &slots)
+    : dataflow::node(df) {
+  m_slots.clear();
+  m_slots.reserve(slots.size());
+  for (auto const &slot : slots) {
+    m_slots.push_back(static_cast<Action *>(slot.get()));
   }
-  return *this;
 }
 
 template <typename Action>
@@ -327,6 +226,19 @@ template <typename Action>
 bool queryosity::lazy<Action>::has_variation(const std::string &) const {
   // always false
   return false;
+}
+
+template <typename Action>
+template <typename To, typename V,
+          std::enable_if_t<queryosity::is_column_v<V>, bool>>
+auto queryosity::lazy<Action>::to() const -> lazy<column::cell<To>> {
+  if constexpr (std::is_same_v<To, column::template value_t<V>> ||
+                std::is_base_of_v<To, column::template value_t<V>>) {
+    return lazy<column::cell<To>>(*this->m_df, this->get_slots());
+  } else {
+    return lazy<column::cell<To>>(
+        *this->m_df, this->m_df->template _convert<To>(*this).get_slot());
+  }
 }
 
 template <typename Action>

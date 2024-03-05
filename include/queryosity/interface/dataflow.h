@@ -45,16 +45,18 @@ public:
   dataflow();
   ~dataflow() = default;
 
-  /**
-   * @brief Constructor with one keyword argument.
-   * @tparam Kwd Keyword argument type.
-   * @details A keyword argument can be:
-   *  - @p queryosity::dataset::weight(float)
-   *  - @p queryosity::dataset::limit(unsigned int)
-   *  - @p queryosity::multithread::enable(unsigned int)
-   */
   template <typename Kwd> dataflow(Kwd kwarg);
   template <typename Kwd1, typename Kwd2> dataflow(Kwd1 kwarg1, Kwd2 kwarg2);
+
+  /**
+   * Constructor with (up to) three keyword arguments, which can be one of the
+   * following:
+   *
+   *  - `queryosity::multithread::enable(unsigned int)`
+   *  - `queryosity::dataset::limit(unsigned int)`
+   *  - `queryosity::dataset::weight(float)`
+   *
+   */
   template <typename Kwd1, typename Kwd2, typename Kwd3>
   dataflow(Kwd1 kwarg1, Kwd2 kwarg2, Kwd3 kwarg3);
 
@@ -65,7 +67,7 @@ public:
   dataflow &operator=(dataflow &&) = default;
 
   /**
-   * @brief Open a dataset input.
+   * Open a dataset input.
    * @tparam DS Dataset input.
    * @tparam Args... Dataset input constructor arguments
    * @return Opened dataset input
@@ -109,13 +111,20 @@ public:
   template <typename Expr, typename... Vars>
   auto vary(column::expression<Expr> const &expr, Vars const &...vars);
 
-  template <typename Expr, typename... Vars>
-  auto vary(column::definition<Expr> const &defn, Vars const &...vars);
+  template <typename Defn, typename... Vars>
+  auto vary(column::definition<Defn> const &defn, Vars const &...vars);
+
+  template <typename Lzy, typename... Vars>
+  auto vary(systematic::nominal<Lzy> const &nom, Vars const &...vars);
 
   /* public, but not really... */
 
   template <typename Val>
   auto _assign(Val const &val) -> lazy<column::fixed<Val>>;
+
+  template <typename To, typename Col>
+  auto _convert(lazy<Col> const &col)
+      -> lazy<column::conversion<To, column::value_t<Col>>>;
 
   template <typename Def, typename... Args> auto _define(Args &&...args);
   template <typename Def> auto _define(column::definition<Def> const &defn);
@@ -207,6 +216,7 @@ protected:
 #include "column_expression.h"
 #include "query_output.h"
 
+#include "systematic_nominal.h"
 #include "systematic_resolver.h"
 #include "systematic_variation.h"
 
@@ -443,7 +453,7 @@ auto queryosity::dataflow::vary(queryosity::column::constant<Val> const &cnst,
                                 Vars const &...vars) {
   auto nom = this->define(cnst);
   using varied_type = typename decltype(nom)::varied;
-  varied_type syst(nom);
+  varied_type syst(std::move(nom));
   ((this->_vary(syst, vars.name(),
                 column::constant<Val>(std::get<0>(vars.args())))),
    ...);
@@ -459,6 +469,23 @@ auto queryosity::dataflow::vary(
   varied_type syst(std::move(nom));
   ((this->_vary(syst, vars.name(),
                 column::expression(function_type(std::get<0>(vars.args()))))),
+   ...);
+  return syst;
+}
+
+template <typename Lzy, typename... Vars>
+auto queryosity::dataflow::vary(systematic::nominal<Lzy> const &nom,
+                                Vars const &...vars) {
+  using action_type = typename Lzy::action_type;
+  using value_type = column::template value_t<action_type>;
+  using nominal_type = lazy<column::cell<value_type>>;
+  using varied_type = typename nominal_type::varied;
+  const auto identity =
+      column::expression([](value_type const &x) { return x; });
+  varied_type syst(nom.get().template to<value_type>());
+  (syst.set_variation(
+       vars.name(),
+       this->define(identity, vars.get()).template to<value_type>()),
    ...);
   return syst;
 }
@@ -494,6 +521,19 @@ auto queryosity::dataflow::_assign(Val const &val)
       [&val](dataset::player *plyr) { return plyr->template assign<Val>(val); },
       m_dplyrs);
   auto lzy = lazy<column::fixed<Val>>(*this, act);
+  this->add_action(std::move(act));
+  return lzy;
+}
+
+template <typename To, typename Col>
+auto queryosity::dataflow::_convert(lazy<Col> const &col) -> lazy<
+    queryosity::column::conversion<To, queryosity::column::value_t<Col>>> {
+  auto act = concurrent::invoke(
+      [](dataset::player *plyr, Col const *from) {
+        return plyr->template convert<To>(from);
+      },
+      m_dplyrs, col);
+  auto lzy = lazy<column::conversion<To, column::value_t<Col>>>(*this, act);
   this->add_action(std::move(act));
   return lzy;
 }

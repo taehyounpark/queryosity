@@ -25,4 +25,35 @@ protected:
   std::tuple<Args...> m_args;
 };
 
+template <typename Action> class systematic::variation<lazy<Action>> {
+
+public:
+  variation(const std::string &name, lazy<Action> const &var);
+  virtual ~variation() = default;
+
+  auto name() const -> std::string;
+  auto get() const -> lazy<Action> const &;
+
+protected:
+  std::string m_name;
+  lazy<Action> const &m_var;
+};
+
 } // namespace queryosity
+
+template <typename Action>
+queryosity::systematic::variation<queryosity::lazy<Action>>::variation(
+    const std::string &name, queryosity::lazy<Action> const &var)
+    : m_name(name), m_var(var) {}
+
+template <typename Action>
+auto queryosity::systematic::variation<queryosity::lazy<Action>>::name() const
+    -> std::string {
+  return m_name;
+}
+
+template <typename Action>
+auto queryosity::systematic::variation<queryosity::lazy<Action>>::get() const
+    -> queryosity::lazy<Action> const & {
+  return m_var;
+}

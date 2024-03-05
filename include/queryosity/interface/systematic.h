@@ -8,6 +8,8 @@
 
 namespace queryosity {
 
+template <typename T> class lazy;
+
 namespace systematic {
 
 template <typename... Nodes>
@@ -16,6 +18,8 @@ auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 template <typename Node> class resolver;
 
 template <typename... Args> class variation;
+
+template <typename Lzy> class nominal;
 
 class mode {
 public:

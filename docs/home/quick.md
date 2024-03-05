@@ -1,23 +1,32 @@
 ```cpp
 #include "queryosity.h"
 
-#include "Json.h"
-#include "Histogram.h"
+#include "queryosity/json.h"
+#include "queryosity/hist.h"
 
-auto df = queryosity::dataflow( queryosity::multithread::enable(10) );
+namespace qty = queryosity;
 
-auto [x, w] = df.open<Json>("data.json")
-                .read<std::vector<float>, float>({"x", "w"});
+auto df = qty::dataflow( qty::multithread::enable(10) );
 
-auto zero = df.constant(0);
+auto [ds, x, w] = df.read( qty::dataset::input<qty::json>("data.json"), 
+                           qty::dataset::columns<std::vector<float>, float>("x", "w") );
+
+auto zero = df.define( qty::column::constant(0) );
 auto x0 = x[zero];
 
-auto mask = [](std::vector<float> const& v){return v.size()};
-auto masked = df.filter("mask",mask)(x).weight("weight")(w);
+auto masked_n_weighted = df.filter(
+  qty::column::expression(
+    [](std::vector<float> const& v){return v.size()}
+    ), x
+  ).weight(w);
 
-auto hist; = df.agg<Histogram<float>>(LinearAxis(100,0.0,1.0));
-auto hist_x0_masked = hist.fill(x0).book(masked).result();
+auto hist = df.get( 
+  qty::query::output<qty::hist<float>>( 
+    qty::axis::linear(100,0.0,1.0)
+    ) 
+  ).fill(x0).book(masked_n_weighted);
 
-std::ostringstream os; os << *(hist_x0_masked);
+std::ostringstream os;
+os << *(hist.result());
 std::cout << os.str() << std::endl;
 ```

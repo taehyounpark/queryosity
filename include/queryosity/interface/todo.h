@@ -29,21 +29,19 @@ template <typename... Args>
 static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 /**
- * @brief A node that instantiates a lazy action.
- * @details A todo node requires additional inputs to instantiate a lazy
- * action.
- * @tparam Bkr Booker that instantiates a lazy action.
+ * A todo node instantiates a lazy action upon inputs from existing ones.
+ * @tparam Helper Helper class to instantiate the lazy action.
  */
-template <typename Bkr>
+template <typename Helper>
 class todo : public dataflow::node,
-             public concurrent::slotted<Bkr>,
-             public systematic::resolver<todo<Bkr>> {
+             public concurrent::slotted<Helper>,
+             public systematic::resolver<todo<Helper>> {
 
 public:
   class varied;
 
 public:
-  todo(dataflow &df, std::vector<std::unique_ptr<Bkr>> bkr)
+  todo(dataflow &df, std::vector<std::unique_ptr<Helper>> bkr)
       : dataflow::node(df), m_slots(std::move(bkr)) {}
 
   virtual ~todo() = default;
@@ -51,7 +49,7 @@ public:
   todo(todo &&) = default;
   todo &operator=(todo &&) = default;
 
-  virtual Bkr *get_slot(unsigned int islot) const override;
+  virtual Helper *get_slot(unsigned int islot) const override;
   virtual unsigned int concurrency() const override;
 
   virtual void set_variation(const std::string &var_name, todo var) override;
@@ -65,11 +63,11 @@ public:
   virtual std::set<std::string> list_variation_names() const override;
 
   /**
-   * @brief Evaluate the column out of existing ones.
+   * Evaluate the column out of existing ones.
    * @param columns Input columns.
    * @return Evaluated column.
    */
-  template <typename... Nodes, typename V = Bkr,
+  template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::column::template is_evaluatable_v<V>,
                              bool> = false>
   auto evaluate(Nodes &&...columns) const
@@ -79,40 +77,45 @@ public:
   }
 
   /**
-   * @brief Fill the query with input columns.
-   * @param columns Input columns
-   * @return The query filled with input columns.
+   * Fill query with input columns per-entry.
+   * @param columns Input columns.
+   * @return Query filled with input columns.
    */
-  template <typename... Nodes, typename V = Bkr,
+  template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::query::template is_bookable_v<V>,
                              bool> = false>
   auto fill(Nodes &&...columns) const
-      -> decltype(std::declval<todo<V>>().fill_query(
-          std::declval<Nodes>()...)) {
-    return this->fill_query(std::forward<Nodes>(columns)...);
+      -> decltype(std::declval<todo<V>>()._fill(std::declval<Nodes>()...)) {
+    return this->_fill(std::forward<Nodes>(columns)...);
   }
 
   /**
-   * @brief Book the query at a selection.
-   * @param selection Selection to be counted.
+   * Book the query at a selection.
+   * @param sel Selection node at which query is counted/filled.
    * @return The query booked at the selection.
    */
   template <typename Node> auto book(Node &&selection) const {
     return this->_book(std::forward<Node>(selection));
   }
 
-  template <typename... Nodes> auto book(Nodes &&...nodes) const {
-    static_assert(query::template is_bookable_v<Bkr>, "not a query (book)");
-    return this->_book(std::forward<Nodes>(nodes)...);
+  /**
+   * Book multiple query at multiple selections.
+   * @tparam Sels... Selections.
+   * @param sels... selection nodes.
+   * @return `std::tuple` of queries booked at each selection.
+   */
+  template <typename... Sels> auto book(Sels &&...sels) const {
+    static_assert(query::template is_bookable_v<Helper>, "not bookable");
+    return this->_book(std::forward<Sels>(sels)...);
   }
 
   /**
-   * @brief Shorthand for `evaluate()` and `apply()`
-   * for column and selection respectively.
-   * @param columns The input columns.
-   * @return The evaluated/applied column/selection.
+   * Shorthand for `evaluate()`.
+   * @tparam Args... Input column types.
+   * @param columns... Input columns.
+   * @return Evaluated column.
    */
-  template <typename... Args, typename V = Bkr,
+  template <typename... Args, typename V = Helper,
             std::enable_if_t<column::template is_evaluatable_v<V> ||
                                  selection::template is_applicable_v<V>,
                              bool> = false>
@@ -123,10 +126,7 @@ public:
   }
 
 protected:
-  /**
-   * @brief Evaluate a column definition out of nominal input columns
-   */
-  template <typename... Nodes, typename V = Bkr,
+  template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::column::template is_evaluatable_v<V> &&
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
@@ -135,11 +135,7 @@ protected:
     return this->m_df->_evaluate(*this, columns...);
   }
 
-  /**
-   * @brief Evaluate a column definition out of at least one varied input
-   * columns
-   */
-  template <typename... Nodes, typename V = Bkr,
+  template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::column::template is_evaluatable_v<V> &&
                                  queryosity::has_variation_v<Nodes...>,
                              bool> = false>
@@ -160,10 +156,7 @@ protected:
     return syst;
   }
 
-  /**
-   * @brief Book an query at a nominal selection
-   */
-  template <typename Node, typename V = Bkr,
+  template <typename Node, typename V = Helper,
             std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
                                  queryosity::is_nominal_v<Node>,
                              bool> = false>
@@ -172,10 +165,7 @@ protected:
     return this->m_df->_book(*this, sel);
   }
 
-  /**
-   * @brief Book an query at a varied selection
-   */
-  template <typename Node, typename V = Bkr,
+  template <typename Node, typename V = Helper,
             std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
                                  queryosity::is_varied_v<Node>,
                              bool> = false>
@@ -190,7 +180,7 @@ protected:
     return syst;
   }
 
-  template <typename... Nodes, typename V = Bkr,
+  template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
@@ -201,7 +191,7 @@ protected:
         this->m_df->_book(*this, sels)...};
   }
 
-  template <typename... Nodes, typename V = Bkr,
+  template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
@@ -226,11 +216,11 @@ protected:
     return array_of_varied_type{_book_varied(sels)...};
   }
 
-  template <typename... Nodes, typename V = Bkr,
+  template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
-  auto fill_query(Nodes const &...columns) const -> todo<V> {
+  auto _fill(Nodes const &...columns) const -> todo<V> {
     // nominal
     return todo<V>(*this->m_df,
                    concurrent::invoke(
@@ -240,22 +230,22 @@ protected:
                        this->get_slots(), columns.get_slots()...));
   }
 
-  template <typename... Nodes, typename V = Bkr,
+  template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
-  auto fill_query(Nodes const &...columns) const -> varied {
-    auto syst = varied(std::move(this->fill_query(columns.nominal()...)));
+  auto _fill(Nodes const &...columns) const -> varied {
+    auto syst = varied(std::move(this->_fill(columns.nominal()...)));
     for (auto const &var_name :
          systematic::list_all_variation_names(columns...)) {
-      syst.set_variation(var_name, std::move(this->fill_query(
-                                       columns.variation(var_name)...)));
+      syst.set_variation(
+          var_name, std::move(this->_fill(columns.variation(var_name)...)));
     }
     return syst;
   }
 
 protected:
-  std::vector<std::unique_ptr<Bkr>> m_slots;
+  std::vector<std::unique_ptr<Helper>> m_slots;
 };
 
 } // namespace queryosity
@@ -270,44 +260,45 @@ unsigned int queryosity::todo<Action>::concurrency() const {
   return this->m_slots.size();
 }
 
-template <typename Bkr>
-void queryosity::todo<Bkr>::set_variation(const std::string &, todo<Bkr>) {
+template <typename Helper>
+void queryosity::todo<Helper>::set_variation(const std::string &,
+                                             todo<Helper>) {
   // should never be called
   throw std::logic_error("cannot set variation to a nominal-only action");
 }
 
-template <typename Bkr> auto queryosity::todo<Bkr>::nominal() -> todo & {
+template <typename Helper> auto queryosity::todo<Helper>::nominal() -> todo & {
   // this is nominal
   return *this;
 }
 
-template <typename Bkr>
-auto queryosity::todo<Bkr>::variation(const std::string &) -> todo & {
+template <typename Helper>
+auto queryosity::todo<Helper>::variation(const std::string &) -> todo & {
   // propagation of variations must occur "transparently"
   return *this;
 }
 
-template <typename Bkr>
-auto queryosity::todo<Bkr>::nominal() const -> todo const & {
+template <typename Helper>
+auto queryosity::todo<Helper>::nominal() const -> todo const & {
   // this is nominal
   return *this;
 }
 
-template <typename Bkr>
-auto queryosity::todo<Bkr>::variation(const std::string &) const
+template <typename Helper>
+auto queryosity::todo<Helper>::variation(const std::string &) const
     -> todo const & {
   // propagation of variations must occur "transparently"
   return *this;
 }
 
-template <typename Bkr>
-std::set<std::string> queryosity::todo<Bkr>::list_variation_names() const {
+template <typename Helper>
+std::set<std::string> queryosity::todo<Helper>::list_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
 
-template <typename Bkr>
-bool queryosity::todo<Bkr>::has_variation(const std::string &) const {
+template <typename Helper>
+bool queryosity::todo<Helper>::has_variation(const std::string &) const {
   // always false
   return false;
 }

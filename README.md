@@ -6,7 +6,7 @@
 [![Documentation](https://img.shields.io/badge/Documentation-mkdocs-blue.svg)](https://taehyounpark.github.io/queryosity/home/design/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`queryosity` is powerful data analysis and query library written in C++.
+`queryosity` is powerful data analysis library written in C++.
 
 <p align="center">
 	<strong> <a href="https://taehyounpark.github.io/queryosity/">See full documentation</a></strong>

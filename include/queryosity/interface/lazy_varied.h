@@ -5,66 +5,15 @@
 #include <unordered_map>
 #include <utility>
 
+#include "detail.h"
 #include "lazy.h"
 #include "systematic_resolver.h"
-
-#define DECLARE_LAZY_VARIED_BINARY_OP(op_symbol)                               \
-  template <typename Arg>                                                      \
-  auto operator op_symbol(Arg &&b) const->typename lazy<                       \
-      typename decltype(std::declval<lazy<Act>>().operator op_symbol(          \
-          std::forward<Arg>(b).nominal()))::action_type>::varied;
-#define DEFINE_LAZY_VARIED_BINARY_OP(op_symbol)                                \
-  template <typename Act>                                                      \
-  template <typename Arg>                                                      \
-  auto queryosity::lazy<Act>::varied::operator op_symbol(Arg &&b) const->      \
-      typename lazy<                                                           \
-          typename decltype(std::declval<lazy<Act>>().operator op_symbol(      \
-              std::forward<Arg>(b).nominal()))::action_type>::varied {         \
-    auto syst = typename lazy<                                                 \
-        typename decltype(std::declval<lazy<Act>>().operator op_symbol(        \
-            std::forward<Arg>(b).nominal()))::action_type>::                   \
-        varied(this->nominal().operator op_symbol(                             \
-            std::forward<Arg>(b).nominal()));                                  \
-    for (auto const &var_name :                                                \
-         systematic::list_all_variation_names(*this, std::forward<Arg>(b))) {  \
-      syst.set_variation(var_name,                                             \
-                         variation(var_name).operator op_symbol(               \
-                             std::forward<Arg>(b).variation(var_name)));       \
-    }                                                                          \
-    return syst;                                                               \
-  }
-#define DECLARE_LAZY_VARIED_UNARY_OP(op_symbol)                                \
-  template <typename V = Act,                                                  \
-            std::enable_if_t<queryosity::is_column_v<V>, bool> = false>        \
-  auto operator op_symbol() const->typename lazy<                              \
-      typename decltype(std::declval<lazy<V>>().                               \
-                        operator op_symbol())::action_type>::varied;
-#define DEFINE_LAZY_VARIED_UNARY_OP(op_name, op_symbol)                        \
-  template <typename Act>                                                      \
-  template <typename V, std::enable_if_t<queryosity::is_column_v<V>, bool>>    \
-  auto queryosity::lazy<Act>::varied::operator op_symbol() const->             \
-      typename lazy<                                                           \
-          typename decltype(std::declval<lazy<V>>().                           \
-                            operator op_symbol())::action_type>::varied {      \
-    auto syst =                                                                \
-        typename lazy<typename decltype(std::declval<lazy<V>>().               \
-                                        operator op_symbol())::action_type>::  \
-            varied(this->nominal().operator op_symbol());                      \
-    for (auto const &var_name : systematic::list_all_variation_names(*this)) { \
-      syst.set_variation(var_name, variation(var_name).operator op_symbol());  \
-    }                                                                          \
-    return syst;                                                               \
-  }
 
 namespace queryosity {
 
 /**
- * @brief Variations of a lazy action to be performed in an dataflow.
- * @tparam T Input dataset type
- * @tparam U Actions to be performed lazily.
- * @details A `varied` node can be treated identical to a `lazy` one, except
- * that it contains multiple variations of the action as dictated by the
- * analyzer that propagate through the rest of the analysis.
+ * Variations of a lazy action to be performed in an dataflow.
+ * @tparam Action The action.
  */
 template <typename Act>
 class lazy<Act>::varied : public dataflow::node,
@@ -90,6 +39,9 @@ public:
   virtual bool has_variation(const std::string &var_name) const override;
   virtual std::set<std::string> list_variation_names() const override;
 
+  /**
+   * Apply a filter.
+   */
   template <typename Col, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
   auto filter(Col const &col) -> typename lazy<selection::node>::varied;

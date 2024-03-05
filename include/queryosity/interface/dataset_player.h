@@ -26,7 +26,7 @@ protected:
 
 } // namespace queryosity
 
-#include "dataset_source.h"
+#include "dataset_reader.h"
 
 inline queryosity::dataset::player::player(dataset::source &ds, double scale)
     : query::experiment(scale), m_ds(&ds) {}

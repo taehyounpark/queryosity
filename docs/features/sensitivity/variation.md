@@ -1,19 +1,19 @@
 To perform a sensitivity analysis means to determine how variations in the input of a system affect its output.
 
-A **systematic variation** constitutes a __change in a column value that affects the outcome of selections and querys__.
-Processing these them within a single dataflow object offers the following benefits over applying them independently:
+A **systematic variation** constitutes a __change in a column value that affects the outcome of selections and queries__.
+There is built-in support to handle these within a single dataflow graph, which offer the following benefits:
 
-- Guarantee by construction that only one variation at a time is in effect.
-- Eliminate runtime overhead associated with repeated dataset traversal.
+- Guarantee that only one variation is in effect at a time versus a nominal, by construction.
+- Eliminate runtime overhead associated with repeated dataset traversals.
 
-Any column can be varied with an alternate constructor of the same type, which translates to:
+Any column can be varied within the same type, which translates to:
 
 | Column | Variation |
 | :--- | :--- |
-| `dataset::column` | Column name |
-| `constant` | Value |
-| `equation` | Callable expression + input columns |
-| `definition`/`representation` | Constructor arguments + input columns + direct-access |
+| `reader` | Read a different column of the same data type |
+| `constant` | Set a different value of the same data type |
+| `equation` | Use a different expression (with compatible function arguments and return type up to conversion) |
+| `definition` | Initialize with different constructor arguments + manually manipulate instances per-variation |
 
 # Propagation of variations
 

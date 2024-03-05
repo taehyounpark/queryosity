@@ -133,6 +133,8 @@ template <typename T> class calculation;
 
 template <typename T> class definition;
 
+template <typename T, typename U> class conversion;
+
 template <typename T> class equation;
 
 template <typename T> class representation;

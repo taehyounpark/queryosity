@@ -1,8 +1,8 @@
-An arbitrary analysis consists of a directed, acyclic graph of tasks performed for each entry. This is called a `dataflow` object in queryosity.
+An arbitrary analysis consists of a directed, acyclic graph of tasks performed for each entry. This is called a `dataflow` object.
 
 ![dataflow](../assets/dataflow.png)
 
-An action falls into one of three categories associated with a set of applicable methods:
+Each `node` comprises an action to be performed per-entry, and falls into one of three categories associated with a set of applicable methods:
 
 <style>
 table th:first-of-type {
@@ -19,13 +19,12 @@ table th:nth-of-type(4) {
 }
 </style>
 
-| Operation | Description | Methods | Description |
+| Action | Description | Methods | Description |
 | :------------ | :------------------------------------ | :------------ | :------------------------------------ |
-| `column` | Access or evaluate a quantity | `read()` | Read the value of a column. |
-| | | `define()` | Evaluate a column value per-entry. |
+| `column` | Access or evaluate a quantity | `read()` | Read a column. |
+| | | `define()` | Evaluate a column. |
 | `selection` | A boolean/floating-point decision | `filter()` | Apply a cut. | 
 | | | `weight()` | Apply a statistical significance. |
-| | | `channel()` | Same as filter, but remember its "path". |
-| `query` | Perform an action and output a result | `agg()` | Create an query. |
+| `query` | Perform a query | `agg()` | Specify a query and its output. |
 | | | `fill()` | Fill with column value(s) of the entry. |
-| | | `book()` | Book execution for entries passing the selection(s). |
+| | | `book()` | Count entries that pass the desired selection(s). |

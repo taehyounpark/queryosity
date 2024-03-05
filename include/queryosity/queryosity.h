@@ -2,7 +2,7 @@
 
 #include "interface/multithread.h"
 
-#include "interface/dataset_source.h"
+#include "interface/dataset_reader.h"
 
 #include "interface/column_definition.h"
 #include "interface/column_reader.h"

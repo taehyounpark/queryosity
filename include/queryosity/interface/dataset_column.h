@@ -27,7 +27,6 @@ template <typename... Vals> class dataset::columns {
 
 public:
   template <typename... Names> columns(Names const &...names);
-  columns(std::array<std::string, sizeof...(Vals)> const &names);
   ~columns() = default;
 
   template <std::size_t... Is> auto _read(std::index_sequence<Is...>) const {
@@ -71,13 +70,9 @@ template <typename... Vals>
 template <typename... Names>
 queryosity::dataset::columns<Vals...>::columns(Names const &...names)
     : m_columns(_construct(std::array<std::string, sizeof...(Vals)>{names...},
-                           std::make_index_sequence<sizeof...(Vals)>{})) {}
-
-template <typename... Vals>
-queryosity::dataset::columns<Vals...>::columns(
-    std::array<std::string, sizeof...(Vals)> const &names)
-    : m_columns(
-          _construct(names, std::make_index_sequence<sizeof...(Vals)>{})) {}
+                           std::make_index_sequence<sizeof...(Vals)>{})) {
+  static_assert(sizeof...(Vals) == sizeof...(Names));
+}
 
 template <typename... Vals>
 template <typename DS>

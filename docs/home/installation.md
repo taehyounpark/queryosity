@@ -23,9 +23,9 @@ cmake --install .
 ```cmake
 find_package(queryosity 0.1.0 REQUIRED)
 ...
-add_library(Analysis ...)
+add_library(YourProject ...)
 ...
-target_link_libraries(Analysis INTERFACE queryosity::queryosity)
+target_link_libraries(YourProject INTERFACE queryosity::queryosity)
 ```
 ```cpp
 #include "queryosity/queryosity.h"
@@ -34,9 +34,9 @@ target_link_libraries(Analysis INTERFACE queryosity::queryosity)
 ```cmake
 add_subdirectory(queryosity)
 ...
-add_library(Analysis ...)
+add_library(YourProject ...)
 ...
-target_link_libraries(Analysis INTERFACE queryosity::queryosity)
+target_link_libraries(YourProject INTERFACE queryosity::queryosity)
 ```
 ```cpp
 #include "queryosity/queryosity.h"
