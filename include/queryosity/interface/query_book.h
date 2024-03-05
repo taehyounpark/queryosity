@@ -23,7 +23,7 @@ public:
   book &operator=(const book &) = default;
 
   template <typename... Vals>
-  auto book_fill(column::cell<Vals> const &...cols) const
+  auto book_fill(column::valued<Vals> const &...cols) const
       -> std::unique_ptr<book<T>>;
 
   auto set_selection(const selection::node &sel) const -> std::unique_ptr<T>;
@@ -31,7 +31,7 @@ public:
 protected:
   std::unique_ptr<T> make_query();
   template <typename... Vals>
-  void fill_query(column::cell<Vals> const &...cols);
+  void fill_query(column::valued<Vals> const &...cols);
 
 protected:
   std::function<std::unique_ptr<T>()> m_make_unique_query;
@@ -50,7 +50,7 @@ queryosity::query::book<T>::book(Args... args)
 template <typename T>
 template <typename... Vals>
 auto queryosity::query::book<T>::book_fill(
-    column::cell<Vals> const &...columns) const -> std::unique_ptr<book<T>> {
+    column::valued<Vals> const &...columns) const -> std::unique_ptr<book<T>> {
   // use a fresh one with its current fills
   auto filled = std::make_unique<book<T>>(*this);
   // add fills
@@ -62,10 +62,10 @@ auto queryosity::query::book<T>::book_fill(
 template <typename T>
 template <typename... Vals>
 void queryosity::query::book<T>::fill_query(
-    column::cell<Vals> const &...columns) {
+    column::valued<Vals> const &...columns) {
   // use a snapshot of its current calls
   m_fill_columns.push_back(std::bind(
-      [](T &cnt, column::cell<Vals> const &...cols) {
+      [](T &cnt, column::valued<Vals> const &...cols) {
         cnt.enter_columns(cols...);
       },
       std::placeholders::_1, std::ref(columns)...));

@@ -21,7 +21,7 @@ public:
   using value_type = T;
 
 public:
-  template <typename U> class conversion_of;
+  template <typename U> class converted_from;
 
   template <typename U> class interface_of;
 
@@ -38,18 +38,18 @@ public:
 //------------------------------------
 template <typename To>
 template <typename From>
-class view<To>::conversion_of : public view<To> {
+class view<To>::converted_from : public view<To> {
 
 public:
-  conversion_of(view<From> const &from);
-  virtual ~conversion_of() = default;
+  converted_from(view<From> const &from);
+  virtual ~converted_from() = default;
 
 public:
   virtual const To &value() const override;
 
 private:
   view<From> const *m_from;
-  mutable To m_conversion_of;
+  mutable To m_converted_from;
 };
 
 //------------------------------------------
@@ -70,14 +70,14 @@ private:
   view<From> const *m_impl;
 };
 
-template <typename T> class cell : public column::node, public view<T> {
+template <typename T> class valued : public column::node, public view<T> {
 
 public:
   using value_type = typename view<T>::value_type;
 
 public:
-  cell() = default;
-  virtual ~cell() = default;
+  valued() = default;
+  virtual ~valued() = default;
 
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) override;
@@ -245,14 +245,14 @@ constexpr bool is_column_v = std::is_base_of_v<column::node, T>;
 } // namespace queryosity
 
 template <typename T>
-void queryosity::column::cell<T>::initialize(unsigned int, unsigned long long,
-                                             unsigned long long) {}
+void queryosity::column::valued<T>::initialize(unsigned int, unsigned long long,
+                                               unsigned long long) {}
 
 template <typename T>
-void queryosity::column::cell<T>::execute(unsigned int, unsigned long long) {}
+void queryosity::column::valued<T>::execute(unsigned int, unsigned long long) {}
 
 template <typename T>
-void queryosity::column::cell<T>::finalize(unsigned int) {}
+void queryosity::column::valued<T>::finalize(unsigned int) {}
 
 template <typename T> T const *queryosity::column::view<T>::field() const {
   return &this->value();
@@ -260,15 +260,15 @@ template <typename T> T const *queryosity::column::view<T>::field() const {
 
 template <typename To>
 template <typename From>
-queryosity::column::view<To>::conversion_of<From>::conversion_of(
+queryosity::column::view<To>::converted_from<From>::converted_from(
     view<From> const &from)
     : m_from(&from) {}
 
 template <typename To>
 template <typename From>
-const To &queryosity::column::view<To>::conversion_of<From>::value() const {
-  m_conversion_of = m_from->value();
-  return m_conversion_of;
+const To &queryosity::column::view<To>::converted_from<From>::value() const {
+  m_converted_from = std::move(m_from->value());
+  return m_converted_from;
 }
 
 template <typename Base>
@@ -295,7 +295,7 @@ queryosity::column::view_as(view<From> const &from) {
         from);
   } else if constexpr (std::is_convertible_v<From, To>) {
     return std::make_unique<
-        typename queryosity::column::view<To>::template conversion_of<From>>(
+        typename queryosity::column::view<To>::template converted_from<From>>(
         from);
   }
 }

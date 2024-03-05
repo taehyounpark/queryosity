@@ -30,7 +30,7 @@ template <typename U> class todo;
 class dataflow {
 
 public:
-  template <typename> friend class dataset::opened;
+  template <typename> friend class dataset::loaded;
 
   template <typename> friend class lazy;
   template <typename> friend class todo;
@@ -73,7 +73,13 @@ public:
    * @return Opened dataset input
    */
   template <typename DS>
-  auto open(dataset::input<DS> &&in) -> dataset::opened<DS>;
+  auto load(dataset::input<DS> &&in) -> dataset::loaded<DS>;
+
+  template <typename DS, typename Val>
+  auto read(dataset::input<DS> in, dataset::column<Val> const &col);
+
+  template <typename DS, typename... Vals>
+  auto read(dataset::input<DS> in, dataset::columns<Vals...> const &cols);
 
   template <typename Val>
   auto define(column::constant<Val> const &cnst) -> lazy<column::fixed<Val>>;
@@ -103,7 +109,7 @@ public:
               Cols const &...cols);
 
   template <typename Cntr>
-  auto agg(query::output<Cntr> const &cntr) -> todo<query::book<Cntr>>;
+  auto get(query::output<Cntr> const &cntr) -> todo<query::book<Cntr>>;
 
   template <typename Val, typename... Vars>
   auto vary(column::constant<Val> const &nom, Vars const &...vars);
@@ -205,7 +211,7 @@ protected:
 } // namespace queryosity
 
 #include "dataset_input.h"
-#include "dataset_opened.h"
+#include "dataset_loaded.h"
 #include "dataset_player.h"
 
 #include "lazy.h"
@@ -264,8 +270,8 @@ queryosity::dataflow::dataflow(Kwd1 kwarg1, Kwd2 kwarg2, Kwd3 kwarg3)
 }
 
 template <typename DS>
-auto queryosity::dataflow::open(queryosity::dataset::input<DS> &&in)
-    -> queryosity::dataset::opened<DS> {
+auto queryosity::dataflow::load(queryosity::dataset::input<DS> &&in)
+    -> queryosity::dataset::loaded<DS> {
 
   if (m_ds) {
     throw std::runtime_error(
@@ -290,7 +296,22 @@ auto queryosity::dataflow::open(queryosity::dataset::input<DS> &&in)
     m_dslots[i] = i;
   }
 
-  return dataset::opened<DS>(*this, *ds_rdr);
+  return dataset::loaded<DS>(*this, *ds_rdr);
+}
+
+template <typename DS, typename Val>
+auto queryosity::dataflow::read(queryosity::dataset::input<DS> in,
+                                queryosity::dataset::column<Val> const &col) {
+  auto ds = this->load<DS>(std::move(in));
+  return ds.read(col);
+}
+
+template <typename DS, typename... Vals>
+auto queryosity::dataflow::read(
+    queryosity::dataset::input<DS> in,
+    queryosity::dataset::columns<Vals...> const &cols) {
+  auto ds = this->load<DS>(std::move(in));
+  return ds.read(cols);
 }
 
 template <typename Val>
@@ -362,14 +383,14 @@ auto queryosity::dataflow::_aggregate(Args &&...args)
     -> todo<query::book<Cntr>> {
   return todo<query::book<Cntr>>(*this, concurrent::invoke(
                                             [&args...](dataset::player *plyr) {
-                                              return plyr->template agg<Cntr>(
+                                              return plyr->template get<Cntr>(
                                                   std::forward<Args>(args)...);
                                             },
                                             m_dplyrs));
 }
 
 template <typename Cntr>
-auto queryosity::dataflow::agg(queryosity::query::output<Cntr> const &cntr)
+auto queryosity::dataflow::get(queryosity::query::output<Cntr> const &cntr)
     -> todo<query::book<Cntr>> {
   return cntr._aggregate(*this);
 }
@@ -478,7 +499,7 @@ auto queryosity::dataflow::vary(systematic::nominal<Lzy> const &nom,
                                 Vars const &...vars) {
   using action_type = typename Lzy::action_type;
   using value_type = column::template value_t<action_type>;
-  using nominal_type = lazy<column::cell<value_type>>;
+  using nominal_type = lazy<column::valued<value_type>>;
   using varied_type = typename nominal_type::varied;
   const auto identity =
       column::expression([](value_type const &x) { return x; });

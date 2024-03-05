@@ -28,7 +28,7 @@ public:
   bool is_initial() const noexcept;
   const selection::node *get_previous() const noexcept;
 
-  template <typename T> void set_decision(column::cell<T> const &dec);
+  template <typename T> void set_decision(column::valued<T> const &dec);
 
   virtual bool passed_cut() const = 0;
   virtual double get_weight() const = 0;

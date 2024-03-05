@@ -9,12 +9,7 @@
 #include "queryosity/json.h"
 #include "queryosity/sumw.h"
 
-using dataflow = queryosity::dataflow;
-namespace multithread = queryosity::multithread;
-namespace dataset = queryosity::dataset;
-namespace column = queryosity::column;
-namespace query = queryosity::query;
-namespace systematic = queryosity::systematic;
+namespace qty = queryosity;
 
 TEST_CASE("correctness & consistency of selections") {
 
@@ -56,26 +51,27 @@ TEST_CASE("correctness & consistency of selections") {
   }
 
   // compute answer with queryosity
-  dataflow df(queryosity::multithread::disable());
+  qty::dataflow df(qty::multithread::disable());
 
-  std::cout << "hello" << std::endl;
+  // auto test = dataset::input<qty::json>(random_data);
+  // auto ds = df.load(std::move(test));
 
-  auto ds = df.open(queryosity::dataset::input<queryosity::json>(random_data));
+  // auto ds =
+  // df.load(qty::dataset::input<qty::json>(random_data));
 
-  auto [cat, w] = ds.read(
-      queryosity::dataset::columns<std::string, unsigned int>("c", "w"));
+  auto [cat, w] =
+      df.read(qty::dataset::input<qty::json>(random_data),
+              qty::dataset::columns<std::string, unsigned int>("c", "w"));
 
   auto weighted = df.weight(w);
 
-  std::cout << "hm" << std::endl;
+  // auto a = df.define(qty::column::constant<std::string>("a"));
+  // auto b = df.define(qty::column::constant<std::string>("b"));
+  // auto c = df.define(qty::column::constant<std::string>("c"));
 
-  // auto a = df.define(queryosity::column::constant<std::string>("a"));
-  // auto b = df.define(queryosity::column::constant<std::string>("b"));
-  // auto c = df.define(queryosity::column::constant<std::string>("c"));
-
-  auto a = df.define(column::constant<std::string>("a"));
-  auto b = df.define(column::constant<std::string>("b"));
-  auto c = df.define(column::constant<std::string>("c"));
+  auto a = df.define(qty::column::constant<std::string>("a"));
+  auto b = df.define(qty::column::constant<std::string>("b"));
+  auto c = df.define(qty::column::constant<std::string>("c"));
 
   auto cut_a = weighted.filter(cat == a);
   auto cut_b = weighted.filter(cat == b);
@@ -89,18 +85,17 @@ TEST_CASE("correctness & consistency of selections") {
   auto cut_a2 = weighted.filter(cut_ab && cut_a);
   auto cut_b2 = weighted.filter(cut_ab && cut_b);
 
-  // auto sumw_a = df.agg<queryosity::sumw>().at(cut_a);
-  // auto sumw_a = cut_a.book(df.agg<queryosity::sumw>());
+  // auto sumw_a = df.get<qty::sumw>().at(cut_a);
+  // auto sumw_a = cut_a.book(df.get<qty::sumw>());
 
   auto [sumw_a, sumw_b, sumw_c] =
-      df.agg(query::output<queryosity::sumw>()).book(cut_a, cut_b, cut_c);
+      df.get(qty::query::output<qty::sumw>()).book(cut_a, cut_b, cut_c);
   auto [sumw_ab, sumw_bc] =
-      df.agg(query::output<queryosity::sumw>()).book(cut_ab, cut_bc);
+      df.get(qty::query::output<qty::sumw>()).book(cut_ab, cut_bc);
   auto [sumw_none, sumw_abc] =
-      df.agg(query::output<queryosity::sumw>()).book(cut_none, cut_abc);
+      df.get(qty::query::output<qty::sumw>()).book(cut_none, cut_abc);
 
-  auto sumw_one2 =
-      df.agg(query::output<queryosity::sumw>()).book(cut_a2, cut_b2);
+  auto sumw_one2 = df.get(qty::query::output<qty::sumw>()).book(cut_a2, cut_b2);
 
   std::cout << "hi" << std::endl;
   std::cout << cut_a2.concurrency() << std::endl;

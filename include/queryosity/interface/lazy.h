@@ -89,7 +89,7 @@ public:
 
   template <typename To, typename V = Action,
             std::enable_if_t<queryosity::is_column_v<V>, bool> = false>
-  auto to() const -> lazy<column::cell<To>>;
+  auto to() const -> lazy<column::valued<To>>;
 
   template <typename Col> auto filter(lazy<Col> const &col) const;
   template <typename Col> auto weight(lazy<Col> const &col) const;
@@ -231,12 +231,12 @@ bool queryosity::lazy<Action>::has_variation(const std::string &) const {
 template <typename Action>
 template <typename To, typename V,
           std::enable_if_t<queryosity::is_column_v<V>, bool>>
-auto queryosity::lazy<Action>::to() const -> lazy<column::cell<To>> {
+auto queryosity::lazy<Action>::to() const -> lazy<column::valued<To>> {
   if constexpr (std::is_same_v<To, column::template value_t<V>> ||
                 std::is_base_of_v<To, column::template value_t<V>>) {
-    return lazy<column::cell<To>>(*this->m_df, this->get_slots());
+    return lazy<column::valued<To>>(*this->m_df, this->get_slots());
   } else {
-    return lazy<column::cell<To>>(
+    return lazy<column::valued<To>>(
         *this->m_df, this->m_df->template _convert<To>(*this).get_slot());
   }
 }

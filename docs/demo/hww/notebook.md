@@ -118,14 +118,14 @@ auto cut_2lsf_wwcr = cut_2lsf.filter("wwcr")(mll > mll_cut);  // path = "2lsf/cr
 ```
 ```cpp title="Book histograms"
 // Hist<1,float> is user-implemented.
-auto pth_hist = df.agg<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
+auto pth_hist = df.get<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los);
 
 // also at "2ldf/wwcr", "2lsf/wwcr"
 auto l1n2_pt_hists_wwcrs = l1n2_pt_hist.at(cut_2lsf_sr, cut_2lsf_wwcr);
 ```
 ```cpp title="(Optional) Dump out results"
 // booked at multiple selections
-auto pth_hists = df.agg<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, cut_2ldf, cut_2lsf);
+auto pth_hists = df.get<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, cut_2ldf, cut_2lsf);
 
 // want to write histogram at each selection, using its path as sub-folders
 auto out_file = TFile::Open("hww_hists.root","recreate");
@@ -163,7 +163,7 @@ cut_2l.has_variation("sf_var");  // true
 
 // ...
 
-auto mll_vars = df.agg<Hist<1,float>>("mll",50,0,100).fill(mll).at(cut_2los);
+auto mll_vars = df.get<Hist<1,float>>("mll",50,0,100).fill(mll).at(cut_2los);
 mll_vars.has_variation("lp4_up"); // true : mll & cut_2los varied
 mll_vars.has_variation("sf_var"); // true : mll nominal & cut_2los varied
 ```
@@ -176,7 +176,7 @@ mll_vars["lp4_up"]->Draw("same");
 ```cpp title="Booking multiple selections and variations at once"
 // mll contains variations = {lp4_up, sf_var}
 // booked at selections = {cut_2ldf, cut_2lsf}
-auto mll_channels_vars = df.agg<Hist<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
+auto mll_channels_vars = df.get<Hist<1,float>>("mll",50,0,200).fill(mll).at(cut_2ldf, cut_2lsf);
 
 // specify variation name, followed by selection path
 mll_channels_vars.nominal()["2ldf"]->GetEntries();

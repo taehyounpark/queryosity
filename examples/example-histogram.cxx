@@ -36,7 +36,7 @@ int main() {
   std::ifstream json_file("data/data.json");
 
   queryosity::dataflow df;
-  auto ds = df.open(queryosity::dataset::input<queryosity::json>(json_file));
+  auto ds = df.load(queryosity::dataset::input<queryosity::json>(json_file));
 
   auto x = ds.vary(queryosity::dataset::column<double>("x_nom"),
                    systematic::variation("scale", "x_scale"),
@@ -46,7 +46,7 @@ int main() {
 
   auto weighted = df.weight(w);
 
-  auto hx = df.agg(queryosity::query::output<queryosity::hist::hist<float>>(
+  auto hx = df.get(queryosity::query::output<queryosity::hist::hist<float>>(
                        queryosity::hist::axis::regular(50, 120, 130)))
                 .fill(x)
                 .book(weighted);

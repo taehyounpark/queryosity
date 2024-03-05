@@ -12,18 +12,15 @@ namespace queryosity {
  * @brief Column definition that converts from one type to another.
  */
 template <typename To, typename From>
-class column::conversion : public column::definition<To(From)> {
+class column::conversion : public column::node,
+                           column::valued<To>::template converted_from<From> {
 public:
-  conversion() = default;
+  conversion(view<From> const &from);
   virtual ~conversion() = default;
-
-  virtual To evaluate(observable<From> from) const override;
 };
 
 } // namespace queryosity
 
 template <typename To, typename From>
-To queryosity::column::conversion<To, From>::evaluate(
-    observable<From> from) const {
-  return from.value();
-}
+queryosity::column::conversion<To, From>::conversion(view<From> const &from)
+    : valued<To>::template converted_from<From>(from) {}

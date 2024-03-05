@@ -16,7 +16,7 @@ public:
 
 public:
   template <typename Sel, typename Val>
-  auto select(selection::node const *prev, column::cell<Val> const &dec)
+  auto select(selection::node const *prev, column::valued<Val> const &dec)
       -> std::unique_ptr<selection::node>;
 
 protected:
@@ -34,7 +34,7 @@ protected:
 
 template <typename Sel, typename Val>
 auto queryosity::selection::cutflow::select(selection::node const *prev,
-                                            column::cell<Val> const &dec)
+                                            column::valued<Val> const &dec)
     -> std::unique_ptr<selection::node> {
   auto sel = std::make_unique<Sel>(prev, column::variable<double>(dec));
   this->add_selection(*sel);

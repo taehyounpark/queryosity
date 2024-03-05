@@ -49,7 +49,7 @@ Main data analysis and query graph interface.
     
 
 ### open<a name="open"></a>
-!!! function "template &lt;typename DS&gt; auto open(dataset::input&lt;DS&gt; &amp;&amp;in) -&gt; dataset::opened&lt;DS&gt;"
+!!! function "template &lt;typename DS&gt; auto read(dataset::input&lt;DS&gt; &amp;&amp;in) -&gt; dataset::loaded&lt;DS&gt;"
 
     
     Open a dataset input.

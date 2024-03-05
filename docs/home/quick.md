@@ -8,7 +8,7 @@ namespace qty = queryosity;
 
 auto df = qty::dataflow( qty::multithread::enable(10) );
 
-auto [ds, x, w] = df.read( qty::dataset::input<qty::json>("data.json"), 
+auto [ds, x, w] = df.load( qty::dataset::input<qty::json>("data.json"), 
                            qty::dataset::columns<std::vector<float>, float>("x", "w") );
 
 auto zero = df.define( qty::column::constant(0) );

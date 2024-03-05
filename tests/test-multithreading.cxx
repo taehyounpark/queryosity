@@ -30,11 +30,11 @@ std::vector<int> get_correct_result(const nlohmann::json &random_data) {
 std::vector<int> get_queryosity_result(const nlohmann::json &random_data,
                                        int ncores) {
   dataflow df(multithread::enable(ncores));
-  auto ds = df.open(dataset::input<queryosity::json>(random_data));
+  auto ds = df.load(dataset::input<queryosity::json>(random_data));
   auto entry_value = ds.read(dataset::column<int>("value"));
   auto all = df.define(column::constant<bool>(true));
   auto incl = df.filter(all);
-  auto col = df.agg(query::output<queryosity::col<int>>());
+  auto col = df.get(query::output<queryosity::col<int>>());
   col = col.fill(entry_value);
   return incl.book(col).result();
 }

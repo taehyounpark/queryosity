@@ -7,7 +7,7 @@ namespace queryosity {
 //------------------------------------------------------------------------------
 // fixed: value set manually
 //------------------------------------------------------------------------------
-template <typename Val> class column::fixed : public cell<Val> {
+template <typename Val> class column::fixed : public valued<Val> {
 
 public:
   fixed(Val const &val);

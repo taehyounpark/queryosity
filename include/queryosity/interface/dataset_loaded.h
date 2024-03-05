@@ -7,11 +7,11 @@
 
 namespace queryosity {
 
-template <typename DS> class dataset::opened {
+template <typename DS> class dataset::loaded {
 
 public:
-  opened(dataflow &df, DS &ds);
-  ~opened() = default;
+  loaded(dataflow &df, DS &ds);
+  ~loaded() = default;
 
   template <typename Val> auto _read(const std::string &name) {
     return m_df->_read<DS, Val>(*m_ds, name);
@@ -42,26 +42,26 @@ protected:
 #include "systematic_variation.h"
 
 template <typename DS>
-queryosity::dataset::opened<DS>::opened(queryosity::dataflow &df, DS &ds)
+queryosity::dataset::loaded<DS>::loaded(queryosity::dataflow &df, DS &ds)
     : m_df(&df), m_ds(&ds) {}
 
 template <typename DS>
 template <typename Val>
 decltype(auto)
-queryosity::dataset::opened<DS>::read(dataset::column<Val> const &col) {
+queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col) {
   return col.template _read(*this);
 }
 
 template <typename DS>
 template <typename... Vals>
-auto queryosity::dataset::opened<DS>::read(
+auto queryosity::dataset::loaded<DS>::read(
     dataset::columns<Vals...> const &cols) {
   return cols.template _read(*this);
 }
 
 template <typename DS>
 template <typename Val>
-auto queryosity::dataset::opened<DS>::vary(
+auto queryosity::dataset::loaded<DS>::vary(
     dataset::column<Val> const &col,
     systematic::variation<std::string> const &var) {
   auto nom = this->read(col);
@@ -73,7 +73,7 @@ auto queryosity::dataset::opened<DS>::vary(
 
 template <typename DS>
 template <typename Val, typename... Vars>
-auto queryosity::dataset::opened<DS>::vary(
+auto queryosity::dataset::loaded<DS>::vary(
     dataset::column<Val> const &col,
     systematic::variation<Vars> const &...vars) {
   auto nom = this->read(col);

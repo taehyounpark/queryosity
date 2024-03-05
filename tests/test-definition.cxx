@@ -57,7 +57,7 @@ std::vector<double> get_queryosity_result(const nlohmann::json &random_data) {
   auto ds = df.open<Json>(random_data);
   auto x = ds.read<double>("x_nom", {{"vary_x", "x_var"}});
   auto w = ds.read<unsigned int>("w_nom", {{"vary_w", "w_var"}});
-  auto wsumx = df.agg<WeightedSum>().fill(x).book(df.weight("weight")(w));
+  auto wsumx = df.get<WeightedSum>().fill(x).book(df.weight("weight")(w));
   auto wsumx_nom = wsumx.nominal().result();
   auto wsumx_xvar = wsumx["vary_x"].result();
   auto wsumx_wvar = wsumx["vary_w"].result();

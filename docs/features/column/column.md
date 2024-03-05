@@ -81,7 +81,7 @@ Consider the following JSON data:
     }
     ```
 
-It can be opened by a dataflow:
+It can be loaded by a dataflow:
 ```{ .cpp .annotate } 
 #include <nlohmann/json.hpp>
 #include "queryosity.h"

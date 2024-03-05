@@ -13,7 +13,7 @@ namespace queryosity {
  * can be calculated.
  */
 template <typename Me, typename... Obs>
-class column::representation<Me(Obs...)> : public cell<Me> {
+class column::representation<Me(Obs...)> : public valued<Me> {
 
 public:
   using vartuple_type = std::tuple<variable<Obs>...>;

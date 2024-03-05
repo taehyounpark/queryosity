@@ -11,7 +11,7 @@ namespace queryosity {
  * is stored for multiple accesses by downstream actions within the entry.
  * The type `Val` must be *CopyConstructible* and *CopyAssignable*.
  */
-template <typename Val> class column::calculation : public cell<Val> {
+template <typename Val> class column::calculation : public valued<Val> {
 
 public:
   calculation();

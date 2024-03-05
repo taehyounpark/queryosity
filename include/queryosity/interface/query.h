@@ -14,7 +14,7 @@ namespace column {
 
 template <typename T> class view;
 
-template <typename T> class cell;
+template <typename T> class valued;
 
 template <typename T> class variable;
 

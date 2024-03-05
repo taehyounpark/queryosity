@@ -25,7 +25,7 @@ template <typename T> class reader;
 
 template <typename T> struct input;
 
-template <typename T> class opened;
+template <typename T> class loaded;
 
 template <typename T> class column;
 

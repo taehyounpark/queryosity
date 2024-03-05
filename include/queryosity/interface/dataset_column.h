@@ -17,7 +17,7 @@ public:
   column(const std::string &name);
   ~column() = default;
 
-  template <typename DS> auto _read(dataset::opened<DS> &ds) const;
+  template <typename DS> auto _read(dataset::loaded<DS> &ds) const;
 
 protected:
   std::string m_name;
@@ -34,7 +34,7 @@ public:
     return std::make_tuple(this->_read<Vals>(this->m_names[Is])...);
   }
 
-  template <typename DS> auto _read(dataset::opened<DS> &ds) const;
+  template <typename DS> auto _read(dataset::loaded<DS> &ds) const;
 
 protected:
   template <std::size_t... Is>
@@ -44,7 +44,7 @@ protected:
   }
 
   template <typename DS, std::size_t... Is>
-  auto _read(dataset::opened<DS> &ds, std::index_sequence<Is...>) const;
+  auto _read(dataset::loaded<DS> &ds, std::index_sequence<Is...>) const;
 
 protected:
   std::tuple<column<Vals>...> m_columns;
@@ -53,7 +53,7 @@ protected:
 } // namespace queryosity
 
 #include "dataflow.h"
-#include "dataset_opened.h"
+#include "dataset_loaded.h"
 
 template <typename Val>
 queryosity::dataset::column<Val>::column(const std::string &name)
@@ -62,7 +62,7 @@ queryosity::dataset::column<Val>::column(const std::string &name)
 template <typename Val>
 template <typename DS>
 auto queryosity::dataset::column<Val>::_read(
-    queryosity::dataset::opened<DS> &ds) const {
+    queryosity::dataset::loaded<DS> &ds) const {
   return ds.template _read<Val>(this->m_name);
 }
 
@@ -77,13 +77,13 @@ queryosity::dataset::columns<Vals...>::columns(Names const &...names)
 template <typename... Vals>
 template <typename DS>
 auto queryosity::dataset::columns<Vals...>::_read(
-    queryosity::dataset::opened<DS> &ds) const {
+    queryosity::dataset::loaded<DS> &ds) const {
   return this->_read(ds, std::make_index_sequence<sizeof...(Vals)>{});
 }
 
 template <typename... Vals>
 template <typename DS, std::size_t... Is>
 auto queryosity::dataset::columns<Vals...>::_read(
-    queryosity::dataset::opened<DS> &ds, std::index_sequence<Is...>) const {
+    queryosity::dataset::loaded<DS> &ds, std::index_sequence<Is...>) const {
   return std::make_tuple(std::get<Is>(m_columns)._read(ds)...);
 }

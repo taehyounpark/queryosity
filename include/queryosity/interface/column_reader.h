@@ -12,7 +12,7 @@ struct range;
  * @brief Read columns from a dataset.
  * @tparam T column data type.
  */
-template <typename T> class reader : public cell<T> {
+template <typename T> class reader : public valued<T> {
 
 public:
   using const_reference = T const &;

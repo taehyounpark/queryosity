@@ -18,7 +18,7 @@ public:
 
 public:
   template <typename Cnt, typename... Args>
-  std::unique_ptr<query::book<Cnt>> agg(Args &&...args);
+  std::unique_ptr<query::book<Cnt>> get(Args &&...args);
 
   template <typename Cnt>
   auto book(query::book<Cnt> const &bkr, const selection::node &sel)
@@ -48,7 +48,7 @@ inline void queryosity::query::experiment::clear_querys() { m_querys.clear(); }
 
 template <typename Cnt, typename... Args>
 std::unique_ptr<queryosity::query::book<Cnt>>
-queryosity::query::experiment::agg(Args &&...args) {
+queryosity::query::experiment::get(Args &&...args) {
   auto bkr = std::make_unique<query::book<Cnt>>(std::forward<Args>(args)...);
   return bkr;
 }
