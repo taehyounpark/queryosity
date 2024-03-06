@@ -7,7 +7,9 @@
 
 namespace queryosity {
 
-template <typename DS> class dataset::loaded {
+namespace dataset {
+
+template <typename DS> class loaded {
 
 public:
   loaded(dataflow &df, DS &ds);
@@ -33,6 +35,8 @@ protected:
   dataflow *m_df;
   dataset::reader<DS> *m_ds;
 };
+
+} // namespace dataset
 
 } // namespace queryosity
 
