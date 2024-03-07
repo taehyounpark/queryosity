@@ -8,6 +8,10 @@
 
 `queryosity` is powerful row-wise data analysis library written in & for C++.
 
+<p align="center">
+	<strong> <a href="https://taehyounpark.github.io/queryosity/">See full documentation</a></strong>
+</p>
+
 ## Features
 
 - **Clear interface.** The easy-to-learn, self-consistent API has a grand total of *five* main endpoints that can perform even the most complex operations.
@@ -16,10 +20,6 @@
 - **Lazy, but efficient.** An action is performed at most once per-entry only if needed. Traverse the dataset *once* to perform all actions.
 - **Computational performance**. Statically compile the entire analysis. Use multithreading.
 - **Systematic variations.** Perform sensitivity analysis by specifying systematic variations that are automatically propagated and simultaneously processed.
-
-<p align="center">
-	<strong> <a href="https://taehyounpark.github.io/queryosity/">See full documentation</a></strong>
-</p>
 
 ## Installation
 
