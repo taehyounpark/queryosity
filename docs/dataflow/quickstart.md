@@ -20,7 +20,7 @@ auto x0_exists_n_weight = df.filter(
   qty::column::expression([](std::vector<double> const& v){return v.size()}), x
   ).weight(w);
 
-auto hist_x0_weighted = df.get( 
-  qty::query::output<qty::hist<float>>( qty::axis::linear(100,0.0,1.0) ) 
+auto hist_x0_weighted = df.make( 
+  qty::query::plan<qty::hist<float>>( qty::axis::linear(100,0.0,1.0) ) 
   ).fill(x0).book(x0_exists_n_weight).result();
 ```

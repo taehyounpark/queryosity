@@ -87,7 +87,7 @@ x.has_variation("vary_y");  // false
 In accessing query results, the index operator acts as a shortcut to retrieve the varied result:
 ```cpp
 auto w = df.vary( column::constant<double>(1), {"vary_w", 2.0} );
-auto h = df.get( query::output<h1d>(100,0,1.0) ).fill(x).book(w);
+auto h = df.make( query::plan<h1d>(100,0,1.0) ).fill(x).book(w);
 
 auto h_nom = h.nominal().result();
 auto h_xvar = h["vary_x"].result();

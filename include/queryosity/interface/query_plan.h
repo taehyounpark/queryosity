@@ -12,10 +12,10 @@ class dataflow;
 
 namespace query {
 
-template <typename Cntr> class output {
+template <typename Cntr> class plan {
 
 public:
-  template <typename... Args> output(Args const &...args);
+  template <typename... Args> plan(Args const &...args);
 
   auto _aggregate(dataflow &df) const;
 
@@ -31,12 +31,11 @@ protected:
 
 template <typename Cntr>
 template <typename... Args>
-queryosity::query::output<Cntr>::output(Args const &...args)
+queryosity::query::plan<Cntr>::plan(Args const &...args)
     : m_aggregate(
           [args...](dataflow &df) { return df._aggregate<Cntr>(args...); }) {}
 
 template <typename Cntr>
-auto queryosity::query::output<Cntr>::_aggregate(
-    queryosity::dataflow &df) const {
+auto queryosity::query::plan<Cntr>::_aggregate(queryosity::dataflow &df) const {
   return this->m_aggregate(df);
 }

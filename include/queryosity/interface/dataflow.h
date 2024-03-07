@@ -109,7 +109,7 @@ public:
               Cols const &...cols);
 
   template <typename Cntr>
-  auto get(query::output<Cntr> const &cntr) -> todo<query::book<Cntr>>;
+  auto make(query::plan<Cntr> const &cntr) -> todo<query::book<Cntr>>;
 
   template <typename Val, typename... Vars>
   auto vary(column::constant<Val> const &nom, Vars const &...vars);
@@ -220,7 +220,7 @@ protected:
 
 #include "column_constant.h"
 #include "column_expression.h"
-#include "query_output.h"
+#include "query_plan.h"
 
 #include "systematic_nominal.h"
 #include "systematic_resolver.h"
@@ -390,7 +390,7 @@ auto queryosity::dataflow::_aggregate(Args &&...args)
 }
 
 template <typename Cntr>
-auto queryosity::dataflow::get(queryosity::query::output<Cntr> const &cntr)
+auto queryosity::dataflow::make(queryosity::query::plan<Cntr> const &cntr)
     -> todo<query::book<Cntr>> {
   return cntr._aggregate(*this);
 }

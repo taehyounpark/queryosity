@@ -38,7 +38,7 @@ template <typename T> class definition;
 
 template <typename T> class book;
 
-template <typename T> class output;
+template <typename T> class plan;
 
 class node : public action {
 

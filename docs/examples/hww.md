@@ -131,7 +131,7 @@ auto pth_hists = df.get<Hist<1,float>>("pth",100,0,400).fill(pth).at(cut_2los, c
 auto out_file = TFile::Open("hww_hists.root","recreate");
 
 // Folder is user-implemented
-queryosity::output::dump<Folder>(pth_hists, out_file, "hww");
+queryosity::plan::dump<Folder>(pth_hists, out_file, "hww");
 
 delete out_file;
 ```

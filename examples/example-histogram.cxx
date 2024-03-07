@@ -46,8 +46,8 @@ int main() {
 
   auto weighted = df.weight(w);
 
-  auto hx = df.get(queryosity::query::output<queryosity::hist::hist<float>>(
-                       queryosity::hist::axis::regular(50, 120, 130)))
+  auto hx = df.make(queryosity::query::plan<queryosity::hist::hist<float>>(
+                        queryosity::hist::axis::regular(50, 120, 130)))
                 .fill(x)
                 .book(weighted);
 

@@ -69,7 +69,7 @@ std::vector<double> get_queryosity_result(const nlohmann::json &random_data) {
 
   auto weighted = df.weight(w);
 
-  auto wsumx = df.get(query::output<queryosity::wsum>()).fill(x).book(weighted);
+  auto wsumx = df.make(query::plan<queryosity::wsum>()).fill(x).book(weighted);
   auto wsumx_nom = wsumx.nominal().result();
   auto wsumx_xvar = wsumx["vary_x"].result();
   auto wsumx_wvar = wsumx["vary_w"].result();
