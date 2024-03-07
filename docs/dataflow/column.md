@@ -1,6 +1,6 @@
 :heart: [nlohmann::json](https://json.nlohmann.me/)
 
-!!! note 
+!!! note
     - For simplicity, the following examples exclusively use standard C++ types as column data.
     - Reminder that any type or class (as long as it satisfies the requirements below) can be used!
 
@@ -24,7 +24,7 @@ For example, consider the following JSON data:
   {"x": 3, "y": [2.0,0.5], "z": "c"}
 ]
 ```
-```cpp 
+```cpp
 std::ifstream data_file("data.json");
 
 using json = qty::json;
@@ -126,7 +126,7 @@ Reading columns from an input dataset can be done in one line:
 === "More concise"
 
     ```{ .cpp .no-copy }
-    auto [x, y, z] = df.read( 
+    auto [x, y, z] = df.read(
       dataset::input<json>(data_file),
       dataset::column<int>("x"),
       dataset::column<std::vector<float>>("y"),
@@ -137,7 +137,7 @@ Reading columns from an input dataset can be done in one line:
 === "Even more concise"
 
     ```{ .cpp .no-copy }
-    auto [x, y, z] = df.read( 
+    auto [x, y, z] = df.read(
       dataset::input<json>(data_file),
       dataset::columns<int,std::vector<float>,std::string>("x","y","z")
     );
@@ -147,7 +147,7 @@ Reading columns from an input dataset can be done in one line:
 
 The underlying data type `T` must be:
 
-- *DefaultConstructible*, and 
+- *DefaultConstructible*, and
 - *CopyConstructble* and *CopyAssignable*, or
 - *MoveConstructible* and *MoveAssignable*.
 
@@ -178,9 +178,9 @@ auto y0 = y[zero];
 
 - Self-assignment operators (e.g. `+=`) are not supported.
 
-!!! info 
+!!! info
     - No undefined behaviour is invoked from `y0`, even if `y` might be empty in some entries.
-    - Remember: all actions here are lazy, and nothing is actually being computed (yet)! 
+    - Remember: all actions here are lazy, and nothing is actually being computed (yet)!
 
 ### Expression
 
@@ -196,7 +196,7 @@ auto e = df.define( column::expression(/*(1)!*/), /*(2)!*/ );
 ```{.cpp .no-copy }
                            //(1)!
 auto txt_length = [](const std::string& txt){return txt.length();};
-auto len_z = df.define( column::expression(txt_length), z );                    
+auto len_z = df.define( column::expression(txt_length), z );
 ```
 
 1. It is best to pass large data types as `const &` to prevent copies.
@@ -218,7 +218,7 @@ class sum : public column::definition<double(double,double)>
 {                                     //(5)!
 public:
   //(1)!
-  sum() = default; 
+  sum() = default;
   virtual ~sum() = default;
   virtual double evaluate(
     column::observable<double> a,/*(2)!*/
@@ -242,7 +242,7 @@ auto c = df.define( column::definition<sum>(), a, b );
 ```
 
 At first glance, this just looks like a lot of boilerplate code for just doing `auto c = a+b`.
-But there are ample opportunities (via inheritance) to customize the behaviour for more complicated definitions. 
+But there are ample opportunities (via inheritance) to customize the behaviour for more complicated definitions.
 
 !!! tip "Power of observables"
 
@@ -252,7 +252,7 @@ But there are ample opportunities (via inheritance) to customize the behaviour f
 
     Consider a scenario in which there are two methods to compute a quantity:
 
-    1. An approximation, computationally-light, and 
+    1. An approximation, computationally-light, and
     2. The full method, computationally-heavy.
 
     Suppose there is also an per-entry decision that indicates whether or not the accuracy of the approximation is sufficient for it to be used in lieu of the full method.
@@ -261,19 +261,19 @@ But there are ample opportunities (via inheritance) to customize the behaviour f
     ```cpp
     auto x = df.define(
                             /*(1)!*/
-      column::expression([](bool good, double fast, double full){return good ? fast : full;}), 
+      column::expression([](bool good, double fast, double full){return good ? fast : full;}),
       x_fast_is_accurate, x_fast, x_full
       );
     ```
 
-    1. All arguments must be computed before entering the function. 
+    1. All arguments must be computed before entering the function.
 
     As a definition:
     ```cpp
     class OptimalQuantity : public column::definition<double(bool,double,double)>
     {
     public:
-      OptimalQuantity() = default; 
+      OptimalQuantity() = default;
       virtual ~OptimalQuantity() = default;
       virtual double evaluate(
         column::observable<bool> good  /*(1)!*/

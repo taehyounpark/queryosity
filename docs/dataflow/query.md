@@ -1,7 +1,6 @@
 :heart: [`Boost.Histogram`](https://www.boost.org/doc/libs/1_84_0/libs/histogram/doc/html/index.html)
 
-## Make a plan
-
+## Plan a query
 
 ```cpp
 auto q = df.make( query::plan</*(1)!*/>(/*(2)!*/) );
@@ -12,33 +11,40 @@ auto q = df.make( query::plan</*(1)!*/>(/*(2)!*/) );
 
 ```{.cpp .no-copy}
 
-using h1d = qty::hist<float>;
-using h2d = qty::hist<float,float>;
-namespace axis = qty::hist::axis;
+using hist_1d = qty::hist<double>;
+using hist_2d = qty::hist<double,double>;
+using lin_ax = qty::hist::axis::linear;
 
-auto q = df.make( query::plan<h1d>(axis::linear(10,0.0,1.0)) );
+auto q = df.make( query::plan<hist_1d>(lin_ax(10,0.0,1.0)) );
 ```
 
 ## Fill with columns
 
-A query can be populated ed with input columns as many times as needed...
+```cpp
+auto q = df.make(/*(1)!*/).fill(/*(2)!*/);
+```
+
+1. See [Plan a query](#plan-a-query).
+2. Input column(s).
+
+A query can be populated ed with input columns as many times per-entry as desired...
 
 === "Fill 1D histogram twice per-entry"
     ```cpp
-    auto qh_xy = df.make( 
-        query::plan<hist<float>>(
-            axis::linear(10,0,1.0)
-        ),
-     ).fill(x).fill(y);
+    auto q_h1x = df.make( 
+        query::plan<hist_1d>(
+            lin_ax(10,0,1.0)
+            ),
+        ).fill(x).fill(y);
     ```
 === "Fill 2D scatter histogram once per-entry"
     ```cpp
-    auto qs_xy = df.make( 
-        query::plan<hist<float>>(
-            axis::linear(10,0,1.0),
-            axis::linear(10,0,1.0)
-        ),
-     ).fill(x,y);
+    auto q_h2xy = df.make( 
+        query::plan<hist_1d>(
+            lin_ax(10,0,1.0),
+            lin_ax(10,0,1.0)
+            ),
+        ).fill(x,y);
     ```
 
 ... As long as the dimensionality of each fill is appropriate:
@@ -46,79 +52,96 @@ A query can be populated ed with input columns as many times as needed...
 === "Valid"
 
     ```cpp
-    auto qs_xy = df.make( 
-        query::plan<hist<float,float>>(
-            axis::linear(10,0,1.0),
-            axis::linear(10,0,1.0)
-        ),
-     ).fill(x,y);
+    auto q_h2xy = df.make( 
+        query::plan<hist_2d>(
+            lin_ax(10,0,1.0),
+            lin_ax(10,0,1.0)
+            ),
+        ).fill(x,y);
     ```
 === "Not valid"
 
     ```cpp
-    auto qs_xy = df.make( 
-        query::plan<hist<float,float>>(
-            axis::linear(10,0,1.0),
-            axis::linear(10,0,1.0)
+    auto q_h2xy = df.make( 
+        query::plan<hist_2d>(
+            lin_ax(10,0,1.0),
+            lin_ax(10,0,1.0)
         ),
-     ).fill(x,y,z); // no third dimension (z) exists!
+     ).fill(x,y,z);  // compilation error: no third dimension (z) exists.
     ```
 
 ## Book over selections
 
-The query must be "booked" for execution over the set of entries corresponding to a selection cut.
-This also informs the query of the statistical weight of each entry to be taken into account.
+A query must be associated with a selection, which determines the (sub)set of dataset entries over which it is executed.
+The associated selection also informs the query of the statistical weight of each entry to be taken into account.
 
 ```cpp
-// 1.
 auto q = df.make(/*(1)!*/).fill(/*(2)!*/).book(/*(3)!*/);
 ```
 
-1. See [Make](#create)
-2. See [Fill](#fill)
+1. See [Plan a query](#create)
+2. See [Fill with columns](#fill)
 3. Query is executed over the subset of entries for which the selection cut passes.
 
-A query can be booked at (multiple) selection(s):
-
-=== "Single selection"
+The association can be made from a query to a selection, or vice versa:
+=== "Book a query *at* a selection"
     ```cpp
-    auto hx_a = df.make( query::plan<hist<float>>(axis::linear(10,0,1.0)) ).fill(x).book(sel_a);
+    auto q = df.make( query::plan<hist_1d>(lin_ax(10,0,1.0)) ).fill(x);
+    auto h1x_a = q.book(sel_a);
     ```
-=== "Multiple selections"
+=== "Book a query *from* a selection"
     ```cpp
-    auto hx = df.make( query::plan<hist<float>>(axis::linear(10,0,1.0)) ).fill(x);
-    auto [hx_a, hx_b, hx_c] = hx.book(sel_a, sel_b, sel_c);
+    auto q = df.make( query::plan<hist_1d>(lin_ax(10,0,1.0)) ).fill(x);
+    auto h1x_a = sel_a.book(q);
     ```
 
-Conversely, queries can be booked from a selection node:
-
-=== "Single query"
+Multiple selections/queries can be booked at a time:
+=== "Single query at multiple selections"
     ```cpp
-    auto hx = df.make( query::plan<hist<float>>(axis::linear(10,0,1.0)) ).fill(x);
-    auto hx_a = sel_a.book(hx);
+    auto q = df.make( query::plan<hist_1d>(lin_ax(10,0,1.0)) ).fill(x);
+    auto [h1x_a, h1x_b, h1x_c] = q.book(sel_a, sel_b, sel_c);
     ```
-=== "Multiple queries"
+=== "Multiple queries from single selection"
     ```cpp
-    auto qhx = df.make( query::plan<h1d>(axis::linear(10,0,1.0)) ).fill(x);
-    auto qsxy = df.make( 
-        query::plan<h2d>(
-            axis::linear(10,0,1.0),
-            axis::linear(10,0,1.0)
-        ),
-     ).fill(x,y);
-    auto [hx_a, sxy_a] = a.book(qhx, qsxy);
+    auto q_h1x = df.make( query::plan<hist_1d>(lin_ax(10,0,1.0)) ).fill(x);
+    auto q_h2xy = df.make( 
+        query::plan<hist_2d>(
+            lin_ax(10,0,1.0),
+            lin_ax(10,0,1.0)
+            ),
+        ).fill(x,y);
+    auto [h1x_a, h2xy_a] = sel_a.book(q_1, q_2);
     ```
 
 ## Access results
 
-Requesting result of a lazy query turns it eager and triggers the dataset traversal to collect its entries:
 ```cpp
-auto hist_result = hist.result();  // std::shared_ptr to boost::histogram
-```
-For syntactical brevity, the lazy query node can be treated as a pointer to its result:
-```cpp
-hist->at(0);  // equivalent to hist.result()->at(0);
+auto q_result = df.make(/*(1)!*/).fill(/*(2)!*/).book(/*(3)!*/).result();
 ```
 
-!!! info
-    The `result()` of any one query triggers the execution of *all* lazy actions.
+1. See [Plan a query](#plan-a-query).
+2. See [Fill with columns](#fill-with-columns).
+3. See [Book over selections](#book-over-selections).
+
+
+More concisely, if the query definition outputs a pointer-type result, the lazy node itself can be treated as the pointer:
+```cpp
+h1x_a.result();  // std::shared_ptr to boost::histogram
+h1x_a->at(0);    // same as hist.result()->at(0);
+```
+
+!!! info 
+    Requesting result of *any* lazy query trigger the dataset traversal and execution of *all* lazy actions defined up to that point.
+    ```{.cpp .no-copy}
+    auto q_h1x = df.make( query::plan<hist_1d>(lin_ax(10,0,1.0)) ).fill(x);
+    auto q_h2xy = df.make( 
+        query::plan<hist_2d>(
+            lin_ax(10,0,1.0),
+            lin_ax(10,0,1.0)
+            ),
+        ).fill(x,y);
+    auto [h1x_a, h2xy_a] = sel_a.book(q_1, q_2);
+
+    h1x_a.result();   // execute x, sel_a, h1x_a, h2xy_a
+    h2xy_a.result();  // result already available, just being accessed.
+    ```

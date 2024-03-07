@@ -16,13 +16,14 @@ nav:
     - Queries: concepts/query.md
     - Systematic variations: concepts/vary.md
   - User guide: 
-    - Hello World: dataflow/quickstart.md
+    - Cheat sheet: dataflow/cheatsheet.md
     - Dataflow: dataflow/dataflow.md 
     - Columns: dataflow/column.md
     - Selections: dataflow/selection.md
     - Queries:  dataflow/query.md
     - Systematic variations: dataflow/vary.md
   - Examples:
+    - Hello World: example/hello.md
     - Higgs WW: examples/hww.md
   - API:
     - 'dataflow': api/classqueryosity_1_1dataflow.md
