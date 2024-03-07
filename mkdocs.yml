@@ -7,26 +7,23 @@ nav:
   - Home:
     - Welcome: index.md
     - Installation: home/installation.md
-    - Quickstart: home/quick.md
-  - Features:
-      - Basic concepts: features/basic.md
-      - Dataflow: features/dataflow/dataflow.md 
-      - Columns: 
-        - Computation graph: features/column/computation.md
-        - Computing columns: features/column/column.md
-      - Selections: 
-        - Cutflow: features/selection/cutflow.md
-        - Applying selections: features/selection/selection.md
-      - Queries: 
-        - Query: features/query/experiment.md
-        - Creating queries: features/query/query.md
-      - Sensitivity analysis: 
-        - Systematic variation: features/sensitivity/variation.md
-        - Applying variations: features/sensitivity/vary.md
-      - Lazy actions: features/lazy.md
-      - Implicit multithreading: features/multithread.md
-  - Demos:
-    - Higgs WW: demo/hww/notebook.md
+    - Design goals: home/design.md
+  - Concepts:
+    - Overview: concepts/overview.md
+    - Lazy actions: concepts/lazy.md
+    - Columns: concepts/column.md
+    - Selections: concepts/selection.md
+    - Queries: concepts/query.md
+    - Systematic variations: concepts/vary.md
+  - User guide: 
+    - Hello World: dataflow/quickstart.md
+    - Dataflow: dataflow/dataflow.md 
+    - Columns: dataflow/column.md
+    - Selections: dataflow/selection.md
+    - Queries:  dataflow/query.md
+    - Systematic variations: dataflow/vary.md
+  - Examples:
+    - Higgs WW: examples/hww.md
   - API:
     - 'dataflow': api/classqueryosity_1_1dataflow.md
     - 'lazy': api/classqueryosity_1_1lazy.md
@@ -45,7 +42,7 @@ theme:
     text: Inter Tight
     code: JetBrains Mono
   palette:
-    primary: custom
+    primary: light blue
   icon:
     repo: fontawesome/brands/github
   features:
@@ -55,6 +52,8 @@ theme:
     - navigation.footer
     - toc.follow
     - content.tabs.link
+    - content.code.annotate
+    - content.code.copy
 
 plugins:
   - mkdoxy:
@@ -83,6 +82,10 @@ markdown_extensions:
   - pymdownx.details
   - pymdownx.inlinehilite
   - pymdownx.snippets
+  - pymdownx.emoji
+  # - pymdownx.emoji:
+  #     emoji_index: !!python/name:material.extensions.emoji.twemoji
+  #     emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid

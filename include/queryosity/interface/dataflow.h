@@ -53,7 +53,7 @@ public:
    * following:
    *
    *  - `queryosity::multithread::enable(unsigned int)`
-   *  - `queryosity::dataset::limit(unsigned int)`
+   *  - `queryosity::dataset::head(unsigned int)`
    *  - `queryosity::dataset::weight(float)`
    *
    */
@@ -245,7 +245,7 @@ template <typename Kwd>
 void queryosity::dataflow::accept_kwarg(Kwd const &kwarg) {
   constexpr bool is_mt = std::is_same_v<Kwd, multithread::core>;
   constexpr bool is_weight = std::is_same_v<Kwd, dataset::weight>;
-  constexpr bool is_nrows = std::is_same_v<Kwd, dataset::limit>;
+  constexpr bool is_nrows = std::is_same_v<Kwd, dataset::head>;
   if constexpr (is_mt) {
     m_mt = kwarg;
   } else if (is_weight) {
@@ -440,7 +440,7 @@ inline void queryosity::dataflow::analyze() {
 
   // 1. partition the dataset
   auto ds_parts = m_ds->partition();
-  // truncate entries to limit
+  // truncate entries to row limit
   ds_parts = dataset::partition::truncate(ds_parts, m_nrows);
   // merge ds_parts to concurrency limit
   ds_parts = dataset::partition::merge(ds_parts, m_mt.concurrency());

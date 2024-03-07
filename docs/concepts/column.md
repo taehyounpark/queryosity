@@ -13,7 +13,7 @@ Computing quantities of interest out of existing column values in an entry can b
 
 The following properties of the computation graph are guaranteed by the library:
 
-- No circular loops.
+- No circular loops in computation.
 - No values are copied when used as inputs for definitions.
-  - The value *is* copied if an implicit conversion is required.
-- A value is computed at most once per-entry, only if needed.
+    - The value *is* copied if an implicit conversion is required.
+- A value is computed once per-entry, only if needed.

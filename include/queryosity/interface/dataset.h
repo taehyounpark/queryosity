@@ -31,8 +31,8 @@ template <typename T> class column;
 
 template <typename... Ts> class columns;
 
-struct limit {
-  limit(long long nrows) : nrows(nrows) {}
+struct head {
+  head(long long nrows) : nrows(nrows) {}
   long long nrows;
   operator long long() { return nrows; }
 };
