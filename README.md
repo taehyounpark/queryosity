@@ -1,31 +1,25 @@
 # Queryosity
 
 ![Version](https://img.shields.io/badge/Version-0.2.0-blue.svg)
-[![Ubuntu](https://github.com/taehyounpark/queryosity/actions/workflows/ubuntu.yml/badge.svg?branch=master)](https://github.com/taehyounpark/queryosity/actions/workflows/ubuntu.yml)
-[![macOS](https://github.com/taehyounpark/queryosity/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/taehyounpark/queryosity/actions/workflows/macos.yml)
-[![Documentation](https://img.shields.io/badge/Documentation-mkdocs-blue.svg)](https://taehyounpark.github.io/queryosity/home/design/)
+[![Ubuntu](https://github.com/taehyounpark/analogical/actions/workflows/ubuntu.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/ubuntu.yml)
+[![macOS](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml)
+[![Documentation](https://img.shields.io/badge/Documentation-mkdocs-blue.svg)](https://taehyounpark.github.io/analogical/home/design/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`queryosity` is powerful data analysis library written in C++.
+`queryosity` is powerful row-wise data analysis library written in & for C++.
+
+## Features
+
+- **Clear interface.** The easy-to-learn, self-consistent API has a grand total of *five* main endpoints that can perform even the most complex operations.
+- **Arbitrary data types.** Support columns of *any* data structure. Linked lists? Nested trees? No problem.
+- **Arbitrary actions.** Provide customizable ABCs for not just columns, but also input datasets and query outputs. Leave *all* details up to the analyzer as desired.
+- **Lazy, but efficient.** An action is performed at most once per-entry only if needed. Traverse the dataset *once* to perform all actions.
+- **Computational performance**. Statically compile the entire analysis. Use multithreading.
+- **Systematic variations.** Perform sensitivity analysis by specifying systematic variations that are automatically propagated and simultaneously processed.
 
 <p align="center">
 	<strong> <a href="https://taehyounpark.github.io/queryosity/">See full documentation</a></strong>
 </p>
-
-
-## Features
-
-- *Dataflow* interface.
-- Lazy actions.
-- Multithreading.
-- Sensitivity analysis.
-
-## Design goals
-
-- **Clear interface.** Use a clear high-level abstraction layer with modern C++ syntax to specify even the most complex actions.
-- **Customizable actions.** Support for custom datasets and queries, as well as arbitrary computations in-between.
-- **Sensitivity analysis.** Systematic variations within an analysis are automatically propagated and simultaneously processed.
-- **Computational efficiency.** Actions are performed for an entry only when required. Dataset traversal is multithreaded.
 
 ## Installation
 

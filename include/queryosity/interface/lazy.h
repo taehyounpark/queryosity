@@ -66,8 +66,8 @@ public:
   template <typename Derived>
   lazy(dataflow &df, std::vector<std::unique_ptr<Derived>> const &slots);
 
-  lazy(const lazy &) = delete;
-  lazy &operator=(const lazy &) = delete;
+  // lazy(const lazy &) = delete;
+  // lazy &operator=(const lazy &) = delete;
 
   lazy(lazy &&) = default;
   lazy &operator=(lazy &&) = default;
