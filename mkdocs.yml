@@ -23,7 +23,7 @@ nav:
     - Queries:  dataflow/query.md
     - Systematic variations: dataflow/vary.md
   - Examples:
-    - Hello World: example/hello.md
+    - Hello World: examples/hello.md
     - Higgs WW: examples/hww.md
   - API:
     - 'dataflow': api/classqueryosity_1_1dataflow.md
