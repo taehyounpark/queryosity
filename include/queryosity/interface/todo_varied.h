@@ -29,7 +29,7 @@ public:
   virtual todo const &variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
-  virtual std::set<std::string> list_variation_names() const override;
+  virtual std::set<std::string> get_variation_names() const override;
 
 public:
   template <typename... Args, typename V = Bld,
@@ -140,7 +140,7 @@ bool queryosity::todo<Bld>::varied::has_variation(
 
 template <typename Bld>
 std::set<std::string>
-queryosity::todo<Bld>::varied::list_variation_names() const {
+queryosity::todo<Bld>::varied::get_variation_names() const {
   return m_variation_names;
 }
 
@@ -154,8 +154,8 @@ auto queryosity::todo<Bld>::varied::evaluate(Args &&...args) ->
       typename queryosity::lazy<column::template evaluated_t<V>>::varied;
   auto syst = varied_type(
       this->nominal().evaluate(std::forward<Args>(args).nominal()...));
-  for (auto const &var_name : systematic::list_all_variation_names(
-           *this, std::forward<Args>(args)...)) {
+  for (auto const &var_name :
+       systematic::get_variation_names(*this, std::forward<Args>(args)...)) {
     syst.set_variation(var_name,
                        variation(var_name).evaluate(
                            std::forward<Args>(args).variation(var_name)...));
@@ -174,7 +174,7 @@ auto queryosity::todo<Bld>::varied::apply(Nodes const &...columns) ->
   auto syst = varied_type(this->nominal().apply(columns.nominal()...));
 
   for (auto const &var_name :
-       systematic::list_all_variation_names(*this, columns...)) {
+       systematic::get_variation_names(*this, columns...)) {
     syst.set_variation(
         var_name, variation(var_name).apply(columns.variation(var_name)...));
   }
@@ -188,7 +188,7 @@ template <typename... Nodes, typename V,
 auto queryosity::todo<Bld>::varied::fill(Nodes const &...columns) -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
   for (auto const &var_name :
-       systematic::list_all_variation_names(*this, columns...)) {
+       systematic::get_variation_names(*this, columns...)) {
     syst.set_variation(var_name, std::move(variation(var_name).fill(
                                      columns.variation(var_name)...)));
   }
@@ -203,7 +203,7 @@ auto queryosity::todo<Bld>::varied::book(Node const &selection) ->
   using varied_type = typename lazy<query::booked_t<V>>::varied;
   auto syst = varied_type(this->nominal().book(selection.nominal()));
   for (auto const &var_name :
-       systematic::list_all_variation_names(*this, selection)) {
+       systematic::get_variation_names(*this, selection)) {
     syst.set_variation(var_name, this->variation(var_name).book(
                                      selection.variation(var_name)));
   }
@@ -219,7 +219,7 @@ auto queryosity::todo<Bld>::varied::book(Nodes const &...selections)
   using varied_type = typename lazy<query::booked_t<V>>::varied;
   using array_of_varied_type =
       std::array<typename lazy<query::booked_t<V>>::varied, sizeof...(Nodes)>;
-  auto var_names = systematic::list_all_variation_names(*this, selections...);
+  auto var_names = systematic::get_variation_names(*this, selections...);
   auto _book_varied =
       [var_names,
        this](systematic::resolver<lazy<selection::node>> const &sel) {
@@ -247,8 +247,8 @@ auto queryosity::todo<Bld>::varied::operator()(Args &&...args) ->
 
   auto syst = varied_type(
       this->nominal().operator()(std::forward<Args>(args).nominal()...));
-  for (auto const &var_name : systematic::list_all_variation_names(
-           *this, std::forward<Args>(args)...)) {
+  for (auto const &var_name :
+       systematic::get_variation_names(*this, std::forward<Args>(args)...)) {
     syst.set_variation(var_name,
                        variation(var_name).operator()(
                            std::forward<Args>(args).variation(var_name)...));

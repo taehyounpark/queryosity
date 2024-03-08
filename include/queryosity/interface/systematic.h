@@ -13,7 +13,7 @@ template <typename T> class lazy;
 namespace systematic {
 
 template <typename... Nodes>
-auto list_all_variation_names(Nodes const &...nodes) -> std::set<std::string>;
+auto get_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 template <typename Node> class resolver;
 
@@ -41,10 +41,14 @@ protected:
 
 } // namespace queryosity
 
+// #include "lazy.h"
+// #include "lazy_varied.h"
+// #include "column.h"
+
 template <typename... Nodes>
-auto queryosity::systematic::list_all_variation_names(Nodes const &...nodes)
+auto queryosity::systematic::get_variation_names(Nodes const &...nodes)
     -> std::set<std::string> {
   std::set<std::string> variation_names;
-  (variation_names.merge(nodes.list_variation_names()), ...);
+  (variation_names.merge(nodes.get_variation_names()), ...);
   return variation_names;
 }

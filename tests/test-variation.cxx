@@ -64,8 +64,8 @@ std::vector<double> get_queryosity_result(const nlohmann::json &random_data) {
 
   auto one = df.define(column::constant<int>(1));
   auto two = df.define(column::constant<unsigned int>(2));
-  auto test =
-      df.vary(systematic::nominal(one), systematic::variation("two", two));
+  auto test = systematic::vary(systematic::nominal(one),
+                               systematic::variation("two", two));
 
   auto weighted = df.weight(w);
 

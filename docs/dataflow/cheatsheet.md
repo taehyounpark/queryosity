@@ -15,19 +15,44 @@ dataflow df(mulithread::enable(/*(1)!*/));
 
 1. Requested number of (default: system maximum).
 
-```cpp title="Load dataset"
-auto ds = df.load(dataset::input</*(1)!*/>(/*(2)!*/));
-```
+=== "Line-by-line"
+    ```cpp title="Read columns"
+    auto ds = df.load(dataset::input</*(1)!*/>(/*(2)!*/));
+    auto x = ds.read(dataset::column</*(3)!*/>("x"));
+    auto y = ds.read(dataset::column</*(4)!*/>("y"));
+    ```
 
-1. `dataset::reader<Self>` implementation
-1. `dataset::reader<Self>` constructor arguments
+    1. `dataset::reader<Self>` implementation
+    2. `dataset::reader<Self>` constructor arguments
+    3. $x$ Data type
+    4. $y$ Data type
 
-```cpp title="Read columns"
-auto x = ds.read(dataset::column</*(1)!*/>(/*(2)!*/));
-```
+=== "Less lines"
+    ```cpp title="Read columns"
+    auto [x, y] = df.read(
+      dataset::input</*(1)!*/>(/*(2)!*/),
+      dataset::column</*(3)!*/>("x")
+      dataset::column</*(4)!*/>("y")
+      );
+    ```
 
-1. Data type
-2. Column name
+    1. `dataset::reader<Self>` implementation
+    2. `dataset::reader<Self>` constructor arguments
+    3. $x$ Data type
+    4. $y$ Data type
+
+=== "Least lines"
+    ```cpp title="Read columns"
+    auto [x, y] = df.read(
+      dataset::input</*(1)!*/>(/*(2)!*/),
+      dataset::columns</*(3)!*/,/*(4)!*/>("x", "y")
+      );
+    ```
+
+    1. `dataset::reader<Self>` implementation
+    2. `dataset::reader<Self>` constructor arguments
+    3. $x$ Data type
+    4. $y$ Data type
 
 ```cpp title="Define columns"
 auto a = ds.define(column::constant</*(1)!*/>(/*(2)!*/));
@@ -62,16 +87,49 @@ auto q_result = q.result();
 3. Input column(s)
 4. Selection
 
-```cpp title="Apply systematic variations"
-auto z = df.vary(
-  systematic::nominal(/*(1)!*/), 
-  systematic::variation("z_up", /*(2)!*/), 
-  systematic::variation("z_dn", /*(3)!*/)
-  /*(4)!*/
-  );
-```
+=== "Automatic"
+    ```cpp title="Apply systematic variations"
+    auto x = ds.vary(
+      dataset::column("x_nom"),
+      {"vary_x","x_var"}
+      );
 
-1. $z$ column
-2. $z + \Delta z$ column
-3. $z - \Delta z$ column
-4. Any other number of variations
+    auto a = df.vary(
+      column::constant(/*(1)!*/),
+      {"vary_a",/*(2)!*/}
+      );
+
+    auto b = df.vary(
+      column::expression(/*(3)!*/),
+      systematic::variation("vary_b", /*(4)!*/)
+      )(/*(5)!*/);
+
+    auto c = df.vary(
+      column::definition</*(6)!*/>(/*(7)!*/),
+      systematic::variation("vary_c", /*(8)!*/)
+      )(/*(5)!*/);
+    ```
+
+    1. Nominal value
+    2. Alternate value
+    3. Nominal expression
+    4. Alternate expression
+    5. Input columns
+    6. `column::defintion<Ret(Args...)>` implementation
+    7. Nominal constructor arguments
+    8. Alternate constructor arguments
+
+=== "Manual"
+    ```cpp title="Apply systematic variations"
+    auto z = df.vary(
+      systematic::nominal(/*(1)!*/), 
+      systematic::variation("z_up", /*(2)!*/), 
+      systematic::variation("z_dn", /*(3)!*/)
+      /*(4)!*/
+      );
+    ```
+
+    1. $z$ column
+    2. $z + \Delta z$ column
+    3. $z - \Delta z$ column
+    4. Any other number of variations

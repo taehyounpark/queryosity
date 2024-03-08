@@ -113,7 +113,7 @@
         varied(this->nominal().operator op_symbol(                             \
             std::forward<Arg>(b).nominal()));                                  \
     for (auto const &var_name :                                                \
-         systematic::list_all_variation_names(*this, std::forward<Arg>(b))) {  \
+         systematic::get_variation_names(*this, std::forward<Arg>(b))) {       \
       syst.set_variation(var_name,                                             \
                          variation(var_name).operator op_symbol(               \
                              std::forward<Arg>(b).variation(var_name)));       \
@@ -138,7 +138,7 @@
         typename lazy<typename decltype(std::declval<lazy<V>>().               \
                                         operator op_symbol())::action_type>::  \
             varied(this->nominal().operator op_symbol());                      \
-    for (auto const &var_name : systematic::list_all_variation_names(*this)) { \
+    for (auto const &var_name : systematic::get_variation_names(*this)) {      \
       syst.set_variation(var_name, variation(var_name).operator op_symbol());  \
     }                                                                          \
     return syst;                                                               \

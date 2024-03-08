@@ -60,7 +60,7 @@ public:
   virtual todo const &variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
-  virtual std::set<std::string> list_variation_names() const override;
+  virtual std::set<std::string> get_variation_names() const override;
 
   /**
    * Evaluate the column out of existing ones.
@@ -147,8 +147,7 @@ protected:
     auto nom = this->m_df->_evaluate(this, columns.nominal()...);
     auto syst = varied_type(std::move(nom));
 
-    for (auto const &var_name :
-         systematic::list_all_variation_names(columns...)) {
+    for (auto const &var_name : systematic::get_variation_names(columns...)) {
       auto var = this->m_df->_evaluate(*this, columns.variation(var_name)...);
       syst.set_variation(var_name, std::move(var));
     }
@@ -173,7 +172,7 @@ protected:
       typename lazy<query::booked_t<V>>::varied {
     using varied_type = typename lazy<query::booked_t<V>>::varied;
     auto syst = varied_type(this->m_df->_book(*this, sel.nominal()));
-    for (auto const &var_name : systematic::list_all_variation_names(sel)) {
+    for (auto const &var_name : systematic::get_variation_names(sel)) {
       syst.set_variation(var_name,
                          this->m_df->_book(*this, sel.variation(var_name)));
     }
@@ -202,7 +201,7 @@ protected:
     using varied_type = typename lazy<query::booked_t<V>>::varied;
     using array_of_varied_type =
         std::array<typename lazy<query::booked_t<V>>::varied, sizeof...(Nodes)>;
-    auto var_names = systematic::list_all_variation_names(sels...);
+    auto var_names = systematic::get_variation_names(sels...);
     auto _book_varied =
         [var_names,
          this](systematic::resolver<lazy<selection::node>> const &sel) {
@@ -236,8 +235,7 @@ protected:
                              bool> = false>
   auto _fill(Nodes const &...columns) const -> varied {
     auto syst = varied(std::move(this->_fill(columns.nominal()...)));
-    for (auto const &var_name :
-         systematic::list_all_variation_names(columns...)) {
+    for (auto const &var_name : systematic::get_variation_names(columns...)) {
       syst.set_variation(
           var_name, std::move(this->_fill(columns.variation(var_name)...)));
     }
@@ -292,7 +290,7 @@ auto queryosity::todo<Helper>::variation(const std::string &) const
 }
 
 template <typename Helper>
-std::set<std::string> queryosity::todo<Helper>::list_variation_names() const {
+std::set<std::string> queryosity::todo<Helper>::get_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }

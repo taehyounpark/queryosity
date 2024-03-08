@@ -85,7 +85,7 @@ public:
   virtual lazy const &variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
-  virtual std::set<std::string> list_variation_names() const override;
+  virtual std::set<std::string> get_variation_names() const override;
 
   template <typename To, typename V = Action,
             std::enable_if_t<queryosity::is_column_v<V>, bool> = false>
@@ -217,7 +217,7 @@ auto queryosity::lazy<Action>::variation(const std::string &) const
 }
 
 template <typename Action>
-std::set<std::string> queryosity::lazy<Action>::list_variation_names() const {
+std::set<std::string> queryosity::lazy<Action>::get_variation_names() const {
   // no variations to list
   return std::set<std::string>();
 }
@@ -237,7 +237,7 @@ auto queryosity::lazy<Action>::to() const -> lazy<column::valued<To>> {
     return lazy<column::valued<To>>(*this->m_df, this->get_slots());
   } else {
     return lazy<column::valued<To>>(
-        *this->m_df, this->m_df->template _convert<To>(*this).get_slot());
+        *this->m_df, this->m_df->template _convert<To>(*this).get_slots());
   }
 }
 
@@ -269,7 +269,7 @@ auto queryosity::lazy<Action>::filter(Col const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     using varied_type = typename lazy<selection::node>::varied;
     auto syst = varied_type(*this->m_df, this->filter(col.nominal()));
-    for (auto const &var_name : col.list_variation_names()) {
+    for (auto const &var_name : col.get_variation_names()) {
       syst.set_variation(var_name, this->filter(col.variation(var_name)));
     }
     return syst;
@@ -285,7 +285,7 @@ auto queryosity::lazy<Action>::weight(Col const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     using varied_type = typename lazy<selection::node>::varied;
     auto syst = varied_type(*this->m_df, this->weight(col.nominal()));
-    for (auto const &var_name : col.list_variation_names()) {
+    for (auto const &var_name : col.get_variation_names()) {
       syst.set_variation(var_name, this->weight(col.variation(var_name)));
     }
     return syst;

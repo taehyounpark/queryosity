@@ -1,21 +1,20 @@
-To perform a sensitivity analysis means to determine how variations in the input of a system affect its output.
+A sensitivity analysis means to study how changes in the input of a system affect its output. In the context of dataset queries, a **systematic variation** constitutes a __change in a column value that affects the outcome of downstream selections and queries__.
 
-A **systematic variation** constitutes a __change in a column value that affects the outcome of selections and queries__.
-There is built-in support to handle these inside a single dataflow object, which offer the following benefits:
+`queryosity` allows analyzers to *specify a variation once* and have it be *propagated* through the downstream computation graph, which greatly reduces the amount of duplicate code, i.e. room for human-error.
+Furthermore, processing the variations within a single `dataflow` object eliminates the runtime overhead associated with repeated dataset traversals that would otherwise result 
 
-- Guarantee that only one variation is in effect at a time versus a nominal, by construction.
-- Eliminate runtime overhead associated with repeated dataset traversals.
+# Propagation of systematic variations
 
-# Propagation of variations
+Encapsulating the nominal and variations of an action inside a single node, where each variation is mapped by the name of its associated systematic variation, creates a `varied` one.
 
-A varied node, can be treated analogously as a single node, only now that any downstream actions will contain its nominal+variations. *i.e. The rest of the dataflow graph need not be edited!* 
+A varied action can be treated functionally identical to a nominal-only one, with all nominal+variations being propagated under the hood:
 
 - Any column definitions and selections evaluated out of varied input columns will be varied.
 - Any queries performed filled with varied input columns and/or at varied selections will be varied.
 
-The propagation proceeds "in lockstep" and "transparently", meaning:
+The propagation proceeds in the following fashion:
 
-- If two actions each have a variation of the same name, they are in effect together.
-- If one action has a variation while another doesn't, then the nominal is in effect for the latter.
+- **Lockstep.** If two actions each have a variation of the same name, they are in effect together.
+- **Transparent.** If only one action has a given variation, then the nominal is in effect for the other.
 
 ![variation](../../assets/variation.png)

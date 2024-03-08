@@ -37,7 +37,7 @@ public:
   virtual lazy const &variation(const std::string &var_name) const override;
 
   virtual bool has_variation(const std::string &var_name) const override;
-  virtual std::set<std::string> list_variation_names() const override;
+  virtual std::set<std::string> get_variation_names() const override;
 
   /**
    * Apply a filter.
@@ -147,7 +147,7 @@ bool queryosity::lazy<Act>::varied::has_variation(
 
 template <typename Act>
 std::set<std::string>
-queryosity::lazy<Act>::varied::list_variation_names() const {
+queryosity::lazy<Act>::varied::get_variation_names() const {
   return m_var_names;
 }
 
@@ -161,8 +161,7 @@ auto queryosity::lazy<Act>::varied::filter(Col const &col) ->
 
   auto syst = varied_type(this->nominal().filter(col.nominal()));
 
-  for (auto const &var_name :
-       systematic::list_all_variation_names(*this, col)) {
+  for (auto const &var_name : systematic::get_variation_names(*this, col)) {
     syst.set_variation(
         var_name, this->variation(var_name).filter(col.variation(var_name)));
   }
@@ -179,8 +178,7 @@ auto queryosity::lazy<Act>::varied::weight(Col const &col) ->
 
   auto syst = varied_type(this->nominal().weight(col.nominal()));
 
-  for (auto const &var_name :
-       systematic::list_all_variation_names(*this, col)) {
+  for (auto const &var_name : systematic::get_variation_names(*this, col)) {
     syst.set_variation(
         var_name, this->variation(var_name).weight(col.variation(var_name)));
   }
@@ -199,8 +197,8 @@ auto queryosity::lazy<Act>::varied::filter(
   auto syst = varied_type(
       this->nominal().filter(expr, std::forward<Args>(args).nominal()...));
 
-  for (auto const &var_name : systematic::list_all_variation_names(
-           *this, std::forward<Args>(args)...)) {
+  for (auto const &var_name :
+       systematic::get_variation_names(*this, std::forward<Args>(args)...)) {
     syst.set_variation(
         var_name, this->variation(var_name).filter(
                       expr, std::forward<Args>(args).variation(var_name)...));
@@ -220,8 +218,8 @@ auto queryosity::lazy<Act>::varied::weight(
   auto syst = varied_type(
       this->nominal().weight(expr, std::forward<Args>(args).nominal()...));
 
-  for (auto const &var_name : systematic::list_all_variation_names(
-           *this, std::forward<Args>(args)...)) {
+  for (auto const &var_name :
+       systematic::get_variation_names(*this, std::forward<Args>(args)...)) {
     syst.set_variation(
         var_name, this->variation(var_name).weight(
                       expr, std::forward<Args>(args).variation(var_name)...));

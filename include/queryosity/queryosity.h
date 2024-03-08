@@ -16,3 +16,5 @@
 #include "interface/lazy_varied.h"
 #include "interface/todo.h"
 #include "interface/todo_varied.h"
+
+#include "interface/systematic_vary.h"

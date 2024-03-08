@@ -36,7 +36,7 @@ public:
   virtual U const &variation(const std::string &var_name) const = 0;
 
   virtual bool has_variation(const std::string &var_name) const = 0;
-  virtual std::set<std::string> list_variation_names() const = 0;
+  virtual std::set<std::string> get_variation_names() const = 0;
 };
 
 } // namespace queryosity

@@ -120,9 +120,6 @@ public:
   template <typename Defn, typename... Vars>
   auto vary(column::definition<Defn> const &defn, Vars const &...vars);
 
-  template <typename Lzy, typename... Vars>
-  auto vary(systematic::nominal<Lzy> const &nom, Vars const &...vars);
-
   /* public, but not really... */
 
   template <typename Val>
@@ -349,7 +346,7 @@ auto queryosity::dataflow::weight(lazy<Col> const &col)
 template <typename Col> auto queryosity::dataflow::filter(Col const &col) {
   using varied_type = typename lazy<selection::node>::varied;
   varied_type syst(this->filter(col.nominal()));
-  for (auto const &var_name : col.list_variation_names()) {
+  for (auto const &var_name : col.get_variation_names()) {
     syst.set_variation(var_name, this->filter(col.variation(var_name)));
   }
   return syst;
@@ -358,7 +355,7 @@ template <typename Col> auto queryosity::dataflow::filter(Col const &col) {
 template <typename Col> auto queryosity::dataflow::weight(Col const &col) {
   using varied_type = typename lazy<selection::node>::varied;
   varied_type syst(this->weight(col.nominal()));
-  for (auto const &var_name : col.list_variation_names()) {
+  for (auto const &var_name : col.get_variation_names()) {
     syst.set_variation(var_name, this->weight(col.variation(var_name)));
   }
   return syst;
@@ -494,23 +491,6 @@ auto queryosity::dataflow::vary(
   return syst;
 }
 
-template <typename Lzy, typename... Vars>
-auto queryosity::dataflow::vary(systematic::nominal<Lzy> const &nom,
-                                Vars const &...vars) {
-  using action_type = typename Lzy::action_type;
-  using value_type = column::template value_t<action_type>;
-  using nominal_type = lazy<column::valued<value_type>>;
-  using varied_type = typename nominal_type::varied;
-  const auto identity =
-      column::expression([](value_type const &x) { return x; });
-  varied_type syst(nom.get().template to<value_type>());
-  (syst.set_variation(
-       vars.name(),
-       this->define(identity, vars.get()).template to<value_type>()),
-   ...);
-  return syst;
-}
-
 template <typename Action,
           std::enable_if_t<std::is_base_of_v<queryosity::action, Action>, bool>>
 void queryosity::dataflow::add_action(
@@ -551,9 +531,9 @@ auto queryosity::dataflow::_convert(lazy<Col> const &col) -> lazy<
     queryosity::column::conversion<To, queryosity::column::value_t<Col>>> {
   auto act = concurrent::invoke(
       [](dataset::player *plyr, Col const *from) {
-        return plyr->template convert<To>(from);
+        return plyr->template convert<To>(*from);
       },
-      m_dplyrs, col);
+      m_dplyrs, col.get_slots());
   auto lzy = lazy<column::conversion<To, column::value_t<Col>>>(*this, act);
   this->add_action(std::move(act));
   return lzy;
