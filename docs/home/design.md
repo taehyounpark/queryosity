@@ -18,7 +18,7 @@ The result is a bloated and complicated API where careless mixing-and-matching o
 
 Other the other hand, putting row-wise reasoning at the forefront is the intuitive way of thinking about tabular datasets for humans (return to monke...).
 This significantly simplifies the DataFlow API.
-It is also distinguished by its syntactical/representational resemblance to the actual computation graph being performed inside each entry.
+It is also distinguished by its syntax faithfully representing the actual computation graph being performed inside each entry.
 In other words, my analysis code can *actually* readable to you, and vice versa!
 
 ### Technical
