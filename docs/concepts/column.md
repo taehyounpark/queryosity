@@ -1,5 +1,5 @@
-A `column` starts out independent when it is read-in from an input dataset, 
-but user-defined column must be evaluated out existing ones, i.e. are dependent.
+A `column` starts out as independent when it is read-in from the dataset, 
+but user-defined column are evaluated out existing ones, i.e. are dependent.
 So the computation graph forms a tower of input and output columns such as
 
 ```mermaid
