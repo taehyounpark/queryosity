@@ -25,6 +25,6 @@ table th:nth-of-type(4) {
 | | | `define()` | Evaluate a column. |
 | `selection` | A boolean/floating-point decision | `filter()` | Apply a cut. | 
 | | | `weight()` | Apply a statistical significance. |
-| `query` | Perform a query | `get()` | Specify a query and its output. |
-| | | `fill()` | Fill with column value(s) of the entry. |
-| | | `book()` | Count entries that pass the desired selection(s). |
+| `query` | Perform a query | `make()` | Make a query plan. |
+| | | `fill()` | Fill query with column value(s) of the entry. |
+| | | `book()` | Perform query over selected entries. |

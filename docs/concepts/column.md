@@ -1,4 +1,6 @@
-Computing quantities of interest out of existing column values in an entry can become a complicated task.
+A `column` starts out independent when it is read-in from an input dataset, 
+but user-defined column must be evaluated out existing ones, i.e. are dependent.
+So the computation graph forms a tower of input and output columns such as
 
 ```mermaid
   graph BT
@@ -11,9 +13,12 @@ Computing quantities of interest out of existing column values in an entry can b
   B --> Z;
 ```
 
-The following properties of the computation graph are guaranteed by the library:
+where the graph traversal for each entry is top-down in accordance with the columns' laziness:
+only if and when the value of a dependent column needs to be computed are its input columns computed.
+
+The following properties of the computation graph are further guaranteed:
 
 - No circular loops in computation.
-- No values are copied when used as inputs for definitions.
+- No values are copied when used as inputs for dependent columns.
     - The value *is* copied if an implicit conversion is required.
-- A value is computed once per-entry, only if needed.
+- The value is never computed more than once per entry.
