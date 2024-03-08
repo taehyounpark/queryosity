@@ -1,6 +1,6 @@
 :heart: [`Boost.Histogram`](https://www.boost.org/doc/libs/1_84_0/libs/histogram/doc/html/index.html)
 
-## Plan a query
+## Make a plan
 
 ```cpp
 auto q = df.make( query::plan</*(1)!*/>(/*(2)!*/) );
@@ -24,7 +24,7 @@ auto q = df.make( query::plan<hist_1d>(lin_ax(10,0.0,1.0)) );
 auto q = df.make(/*(1)!*/).fill(/*(2)!*/);
 ```
 
-1. See [Plan a query](#plan-a-query).
+1. See [Make a plan](#make-a-plan).
 2. Input column(s).
 
 A query can be populated ed with input columns as many times per-entry as desired...
@@ -79,7 +79,7 @@ The associated selection also informs the query of the statistical weight of eac
 auto q = df.make(/*(1)!*/).fill(/*(2)!*/).book(/*(3)!*/);
 ```
 
-1. See [Plan a query](#create)
+1. See [Make a plan](#create)
 2. See [Fill with columns](#fill)
 3. Query is executed over the subset of entries for which the selection cut passes.
 
@@ -119,12 +119,12 @@ Multiple selections/queries can be booked at a time:
 auto q_result = df.make(/*(1)!*/).fill(/*(2)!*/).book(/*(3)!*/).result();
 ```
 
-1. See [Plan a query](#plan-a-query).
+1. See [Make a plan](#make-a-plan).
 2. See [Fill with columns](#fill-with-columns).
 3. See [Book over selections](#book-over-selections).
 
 
-More concisely, if the query definition outputs a pointer-type result, the lazy node itself can be treated as the pointer:
+If a query definition outputs a pointer to the result, the query itself can be treated as the pointer:
 ```cpp
 h1x_a.result();  // std::shared_ptr to boost::histogram
 h1x_a->at(0);    // same as hist.result()->at(0);

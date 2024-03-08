@@ -16,7 +16,7 @@ dataflow df(mulithread::enable(/*(1)!*/));
 
 1. Requested number of (default: system maximum).
 
-=== "Line-by-line"
+=== "Keep dataset"
     ```cpp title="Read columns"
     auto ds = df.load(dataset::input</*(1)!*/>(/*(2)!*/));
     auto x = ds.read(dataset::column</*(3)!*/>("x"));
@@ -28,11 +28,11 @@ dataflow df(mulithread::enable(/*(1)!*/));
     3. $x$ Data type
     4. $y$ Data type
 
-=== "Less lines"
+=== "Just columns"
     ```cpp title="Read columns"
     auto [x, y] = df.read(
       dataset::input</*(1)!*/>(/*(2)!*/),
-      dataset::column</*(3)!*/>("x")
+      dataset::column</*(3)!*/>("x"),
       dataset::column</*(4)!*/>("y")
       );
     ```
@@ -42,7 +42,7 @@ dataflow df(mulithread::enable(/*(1)!*/));
     3. $x$ Data type
     4. $y$ Data type
 
-=== "Least lines"
+=== "One-liner"
     ```cpp title="Read columns"
     auto [x, y] = df.read(
       dataset::input</*(1)!*/>(/*(2)!*/),
@@ -78,7 +78,7 @@ auto cut_n_wgt = cut.weight(column::expression(/*(2)!*/), /*(3)!*/);
 2. Weight decision expression
 3. Input column argument(s)
 
-```cpp title="Perform queries"
+```cpp title="Make queries"
 auto q = df.make(query::plan</*(1)!*/>(/*(2)!*/)).fill(/*(3)!*/).book(/*(4)!*/);
 auto q_result = q.result();
 ```

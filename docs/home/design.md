@@ -1,25 +1,41 @@
-`queryosity` provides a "dataflow" model of structured data analysis.
-Possible use cases include: 
+`queryosity` provides a "DataFlow", or row-wise, model of structured data analysis.
+Users specify operations as if they are inside for-loop over the entries of the dataset.
+The key is to *specify* without executing the operations on a dataset until they are needed, i.e. create *lazy* actions.
+All lazy actions in a DataFlow are executed together so that the dataset traversal occurs once.
+Each action is executed for a given entry *only if needed* in order maximize CPU usage and efficiency (see also [Lazy actions](../concepts/lazy.md)), which is especially relevant for analysis workflows not limited by I/O bandwidth.
 
-- Data analysis of complex phenomena, e.g. high-energy physics experiments (the author's primary purpose).
-- Data processing pipelines to transform complicated data structures into simpler ones.
-
-Analyzers interact with a row-wise interface; in other words, specify operations as if they were inside the entry-loop of the dataset.
-The keyword here is to *specify* without executing operations that need to be performed on a dataset until they are needed, which are called *lazy* actions.
-All actions specified up in the dataflow are performed together so that the dataset traversal only needs to happen once.
-Inside the multithreaded entry-loop, each action is performed for a given entry *only if needed* in order maximize CPU usage and efficiency; this is especially relevant for analysis workflows not bottle-necked by I/O bandwidth.
+This library has been purposefully developed for high-energy physics experiments.
+It is the author's hope that it can be similarly useful for studying other complex phenomena.
 
 ## Why not DataFrames?
 
-The key distinction between dataflow and DataFrame models is in the layout of the underlying dataset.
-DataFrames typically target a specific layout in which each column can be represented as a numerical or array data type, which also enables vectorized operations on columns.
-This covers a wide majority of data analysis workflows as evident from the widespread use of such libraries; however, it may not be suitable for instances in which columns contain non-trivial and/or highly-nested data.
-Not only are these scenarios are not so uncommon as listed above, trying to shoehorn DataFrame methods to fit their needs are unwieldy at best and could even result in worse performance (single-threaded loops).
-Therefore, `queryosity` foregoes the array-wise approach (along with SIMD) and adopts a row-wise one (return to monke...) in favor of manipulating columns of arbitrary data types.
+Two key distinctions separate the DataFlow against the plethora of DataFrame libraries.
 
-Other variations of the DataFrame model that support more general column data types include (based on author's knowledge and understanding): 
+### Conceptual
 
-- [C++ DataFrame](https://htmlpreview.github.io/?https://github.com/hosseinmoein/DataFrame/blob/master/docs/HTML/DataFrame.html): custom data types up to a certain register size and memory layout (i.e. no pointers!) using custom memory allocators.
-- [Awkward Array](https://awkward-array.org/doc/main/): generalization of the array API to enable key lookups for nested traits while preserving SIMD where possible. 
+DataFrames can do both array-wise and row-wise operations, but the former mode is where it shines, whereas the latter is more of a fallback.
+The result is a bloated and complicated API where careless mixing-and-matching of the two approaches will cost user sanity as well as machine performance (see also [Technical](#technical) point).
 
-While these further enhances the universality of the DataFrame methods, they are not panaceas as long as there is *some* data out there too non-trivial to be manipulated in such fashion.
+Other the other hand, putting row-wise reasoning at the forefront is the intuitive way of thinking about tabular datasets for humans (return to monke...).
+This significantly simplifies the DataFlow API.
+It is also distinguished by its syntactical/representational resemblance to the actual computation graph being performed inside each entry.
+In other words, my analysis code can *actually* readable to you, and vice versa!
+
+### Technical
+
+DataFrames are optimized for a specific dataset structure in which the values in each column can be organized into a contiguous array.
+Operations on these arrays of primitive data types can offer algorithmic (e.g. linear vs. binary search) as well as hardware (e.g. vectorized operations) speedups.
+
+(i.e. If your dataset fits into a DataFrame, you should definitely use it).
+
+While this covers a wide range of data analysis workflows as evident from the widespread use of these libraries, it is not suitable for instances in which columns contain non-trivial and/or highly-nested data.
+This is not so uncommon as listed above.
+"Extensions" to DataFrames to support more complex column data types do exist, but they are not true panaceas as long as there is *some* data out that cannot be vectorized.
+
+<!-- "Extensions" to DataFrames that support more complex column data types include (based on author's understanding): -->
+
+<!-- - [C++ DataFrame](https://htmlpreview.github.io/?https://github.com/hosseinmoein/DataFrame/blob/master/docs/HTML/DataFrame.html): data types satisfying contiguous memory layout using custom memory allocators.
+- [Awkward Array](https://awkward-array.org/doc/main/): generalization of the array API to enable key lookups for nested traits while preserving SIMD for arrays possible.  -->
+
+No such restrictions need exist with DataFlow, as promised to be one of its main features.
+It also does the best it can in terms of performance through lazy actions and multithreading.

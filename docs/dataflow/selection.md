@@ -21,18 +21,15 @@ auto weighted = df.weight( column::expression(/*(1)!*/), /*(1)!*/);
 
 <!--  -->
 
-1. The simplest way to apply a selection is using an existing column.
-2. A syntactic shortcut to first evaluate a column expression is available.
+1. Creating a selection out of an existing column.
+2. A syntactic shortcut use an expression.
 
 ## Compounding selections
 
-Calling a subsequent `filter()` and `weight()` action from an existing selection node compound it on top of the chain.
-Either can be inter-compounded, as in:
+Call a subsequent selection from an existing selection node compounds them.
+Cuts and weights can be inter-compounded:
 ```{.cpp .no-copy}
-auto [c, w] = ds.read(
-    dataset::column<bool>("c"),
-    dataset::column<double>("w")
-)
+auto [c, w] = ds.read(dataset::columns<bool,double>("c","w"));
 
 auto cut_n_weighted = df.filter(c).weight(w);
 // cut_n_weighted.passed_cut() = c.value() && true;
@@ -41,18 +38,14 @@ auto cut_n_weighted = df.filter(c).weight(w);
 
 ## Branching selections
 
-Multiple selections can be compounded from one common node, i.e. selections can branch out:
+Multiple selections can be compounded from one common node:
 ```{.cpp .no-copy}
-auto [a, b] = ds.read(
-    dataset::column<bool>("a"),
-    dataset::column<bool>("b"),
-);
+auto [a, b] = ds.read(dataset::columns<bool,bool>("a","b"));
 
-auto cut_a = df.filter(a);
-auto cut_ab = a.filter(b);
-auto cut_ac = a.filter(c);
+auto cut_a = df.filter(a);  // a
+auto cut_ab = a.filter(b);  // a && b
+auto cut_ac = a.filter(c);  // a && c
 ```
-
 
 ## Merging selections
 
@@ -61,7 +54,7 @@ Consider two selections within a cutflow. Taking the AND/OR of them is commonly 
 - AND: Quantifying overlap between two selections.
 - OR: Consolidating two not-mutually-exclusive selections into one.
 
-```cpp
+```{.cpp .no-copy}
 auto two = df.define( column::constant<unsigned int>(2) );
 auto three = df.define( column::constant<unsigned int>(3) );
 

@@ -92,7 +92,7 @@ Varied columns obtained from either approach can (and should) be used interchang
     !!! tip
 
         1. All variations are put in *manually* using existing columns as the user sees fit.
-        2. The variations propagate in lockstep and transparently otherwise afterwards. 
+        2. The varied node propagates through automatically again afterwards. 
         
         
 

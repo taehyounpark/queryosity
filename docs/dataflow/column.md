@@ -6,8 +6,6 @@
 
 ## Loading the dataset
 
-First, a dataflow must load an input dataset. The signature is as follows:
-
 ```cpp
 auto ds = df.load( dataset::input</*(1)!*/>(/*(2)!*/) );
 ```
@@ -15,19 +13,18 @@ auto ds = df.load( dataset::input</*(1)!*/>(/*(2)!*/) );
 1. `dataset::reader` implementation
 2. Constructor arguments for implementation.
 
-For example, consider the following JSON data:
-
-```{.json .no-copy title="data.json"}
-[
-  {"x": 1, "y": [1.0],     "z": "a"},
-  {"x": 2, "y": [],        "z": "b"},
-  {"x": 3, "y": [2.0,0.5], "z": "c"}
-]
-```
-```cpp
-std::ifstream data_file("data.json");
-
+```{.cpp .no-copy title="data.json"}
 using json = qty::json;
+
+std::fstream data_file("data.json", std::ios::out | std::ios::in | std::ios::trunc);
+data_file << "[\n"
+      << "  {\"x\": 1, \"y\": [1.0],     \"z\": \"a\"},\n"
+      << "  {\"x\": 2, \"y\": [],        \"z\": \"b\"},\n"
+      << "  {\"x\": 3, \"y\": [2.0,0.5], \"z\": \"c\"}\n"
+      << "]";
+data_file.clear(); 
+data_file.seekg(0, std::ios::beg);
+
 auto ds = df.load( dataset::input<json>(data_file) );
 ```
 ??? abstract "qty::json implementation"
@@ -105,8 +102,6 @@ auto ds = df.load( dataset::input<json>(data_file) );
 
 ## Reading columns
 
-The loaded dataset can then read columns contained within it.
-
 ```cpp
 auto x = ds.read( dataset::column</*(1)!*/>(/*(2)!*/) );
 ```
@@ -119,10 +114,6 @@ auto x = ds.read( dataset::column<int>("x") );
 auto y = ds.read( dataset::column<std::vector<float>>("y") );
 auto z = ds.read( dataset::column<std::string>("z") );
 ```
-??? abstract "qty::json::entry implementation"
-
-Reading columns from an input dataset can be done in one line:
-
 === "More concise"
 
     ```{ .cpp .no-copy }
@@ -142,6 +133,8 @@ Reading columns from an input dataset can be done in one line:
       dataset::columns<int,std::vector<float>,std::string>("x","y","z")
     );
     ```
+
+??? abstract "qty::json::entry implementation"
 
 ## Computing columns
 
@@ -179,7 +172,7 @@ auto y0 = y[zero];
 - Self-assignment operators (e.g. `+=`) are not supported.
 
 !!! info
-    - No undefined behaviour is invoked from `y0`, even if `y` might be empty in some entries.
+    - No undefined behaviour is invoked with `y0` (yet), even if `y` might be empty in some entries.
     - Remember: all actions here are lazy, and nothing is actually being computed (yet)!
 
 ### Expression
