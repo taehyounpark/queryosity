@@ -6,6 +6,7 @@ namespace multithread = qty::multithread;
 namespace dataset = qty::dataset;
 namespace column = qty::column;
 namespace query = qty::query;
+namespace systematic = qty::systematic;
 using dataflow = qty::dataflow;
 ```
 
@@ -121,15 +122,13 @@ auto q_result = q.result();
 
 === "Manual"
     ```cpp title="Apply systematic variations"
-    auto z = df.vary(
+    auto z = systematic::vary(
       systematic::nominal(/*(1)!*/), 
       systematic::variation("z_up", /*(2)!*/), 
       systematic::variation("z_dn", /*(3)!*/)
-      /*(4)!*/
       );
     ```
 
     1. $z$ column
     2. $z + \Delta z$ column
     3. $z - \Delta z$ column
-    4. Any other number of variations
