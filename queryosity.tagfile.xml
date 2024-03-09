@@ -147,6 +147,13 @@
     <name>queryosity::column::definition</name>
     <filename>classqueryosity_1_1column_1_1definition.html</filename>
     <templarg></templarg>
+    <member kind="function">
+      <type></type>
+      <name>definition</name>
+      <anchorfile>classqueryosity_1_1column_1_1definition.html</anchorfile>
+      <anchor>a8928bf7dd444903612e9c4da37c48362</anchor>
+      <arglist>(Args const &amp;...args)</arglist>
+    </member>
   </compound>
   <compound kind="class">
     <name>queryosity::column::definition&lt; Out(Ins...)&gt;</name>
@@ -154,6 +161,27 @@
     <templarg></templarg>
     <templarg>Ins</templarg>
     <base>calculation&lt; Out &gt;</base>
+    <member kind="function">
+      <type></type>
+      <name>definition</name>
+      <anchorfile>classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html</anchorfile>
+      <anchor>aaf6f9364d41fed59e503d910f727fb1c</anchor>
+      <arglist>()=default</arglist>
+    </member>
+    <member kind="function" virtualness="virtual">
+      <type>virtual</type>
+      <name>~definition</name>
+      <anchorfile>classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html</anchorfile>
+      <anchor>a9b8d57705af354ae36be7503c95dd471</anchor>
+      <arglist>()=default</arglist>
+    </member>
+    <member kind="function" virtualness="pure">
+      <type>virtual Out</type>
+      <name>evaluate</name>
+      <anchorfile>classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html</anchorfile>
+      <anchor>ad87f322902986b926fa3f9c519fe0245</anchor>
+      <arglist>(observable&lt; Ins &gt;... args) const =0</arglist>
+    </member>
   </compound>
   <compound kind="class">
     <name>queryosity::query::definition&lt; T(Obs...)&gt;</name>
@@ -193,6 +221,13 @@
   <compound kind="class">
     <name>definition&lt; To(From)&gt;</name>
     <filename>classqueryosity_1_1column_1_1definition.html</filename>
+    <member kind="function">
+      <type></type>
+      <name>definition</name>
+      <anchorfile>classqueryosity_1_1column_1_1definition.html</anchorfile>
+      <anchor>a8928bf7dd444903612e9c4da37c48362</anchor>
+      <arglist>(Args const &amp;...args)</arglist>
+    </member>
   </compound>
   <compound kind="class">
     <name>queryosity::column::expression</name>

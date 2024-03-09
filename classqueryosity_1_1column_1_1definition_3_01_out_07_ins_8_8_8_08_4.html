@@ -21,7 +21,7 @@
   <meta content="Poxy v0.16.0" name="generator"/>
   <meta content="strict-origin-when-cross-origin" name="referrer"/>
 </head>
-<body>
+<body class="poxy-has-toc">
 <header><nav id="navigation">
   <div class="m-container">
     <div class="m-row">
@@ -72,10 +72,23 @@
             </tr>
             <tr>
               <td>Ins</td>
-              <td></td>
+              <td>Input column data type(s).</td>
             </tr>
           </tbody>
         </table>
+        <nav class="m-block m-default poxy-toc" id="poxy-toc">
+          <h3>Contents</h3>
+          <ul>
+            <li>
+              Reference
+              <ul>
+                <li><a href="#base-classes">Base classes</a></li>
+                <li><a href="#typeless-methods">Constructors, destructors, conversion operators</a></li>
+                <li><a href="#pub-methods">Public functions</a></li>
+              </ul>
+            </li>
+          </ul>
+        </nav>
         <section id="base-classes">
           <h2><a href="#base-classes">Base classes</a></h2>
           <dl class="m-doc">
@@ -85,6 +98,52 @@
             </dt>
             <dd>Calculate a column value for each dataset entry.</dd>
           </dl>
+        </section>
+        <section id="typeless-methods">
+          <h2><a href="#typeless-methods">Constructors, destructors, conversion operators</a></h2>
+          <dl class="m-doc">
+            <dt id="aaf6f9364d41fed59e503d910f727fb1c">
+              <span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#aaf6f9364d41fed59e503d910f727fb1c">definition</a>(</span><span class="m-doc-wrap">) <span class="m-label m-flat m-info">defaulted</span></span>
+            </dt>
+            <dd>Default constructor.</dd>
+            <dt id="a9b8d57705af354ae36be7503c95dd471">
+              <span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a9b8d57705af354ae36be7503c95dd471">~definition</a>(</span><span class="m-doc-wrap">) <span class="m-label m-flat m-info">defaulted</span> <span class="m-label m-flat m-warning">virtual</span></span>
+            </dt>
+            <dd>Default destructor.</dd>
+          </dl>
+        </section>
+        <section id="pub-methods">
+          <h2><a href="#pub-methods">Public functions</a></h2>
+          <dl class="m-doc">
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#ad87f322902986b926fa3f9c519fe0245">evaluate</a>(</span><span class="m-doc-wrap">observable&lt;Ins&gt;... args) const -&gt; Out <span class="m-label m-flat m-warning">pure virtual</span></span>
+            </dt>
+            <dd>Compute the quantity of interest for the entry.</dd>
+          </dl>
+        </section>
+        <section>
+          <h2>Function documentation</h2>
+          <section class="m-doc-details" id="ad87f322902986b926fa3f9c519fe0245"><div>
+            <h3>
+              <div class="m-doc-template">
+                <span class="m-doc-template-parent">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Out</span>, <span class="m-doc-template-param">typename... Ins</span></span>&gt;</span>
+              </div>
+              <span class="m-doc-wrap-bumper">Out <span class="m-doc-details-prefix">queryosity::column::definition::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#ad87f322902986b926fa3f9c519fe0245">evaluate</a>(</span><span class="m-doc-wrap">observable&lt;Ins&gt;... args) const <span class="m-label m-warning">pure virtual</span></span></span>
+            </h3>
+            <p>Compute the quantity of interest for the entry.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">args</td>
+                  <td>Input observables.</td>
+                </tr>
+              </tbody>
+            </table>
+<aside class="m-note m-info"><h4>Note</h4><p>Columns passed in as observables are not computed until <code>value()</code> is called.</p></aside>
+          </div></section>
         </section>
       </div>
     </div>
