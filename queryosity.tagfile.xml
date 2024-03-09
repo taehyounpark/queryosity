@@ -156,10 +156,6 @@
     <base>calculation&lt; Out &gt;</base>
   </compound>
   <compound kind="class">
-    <name>definition&lt; Ret(Vals...)&gt;</name>
-    <filename>classqueryosity_1_1column_1_1definition.html</filename>
-  </compound>
-  <compound kind="class">
     <name>queryosity::query::definition&lt; T(Obs...)&gt;</name>
     <filename>classqueryosity_1_1query_1_1definition_3_01_t_07_obs_8_8_8_08_4.html</filename>
     <templarg></templarg>
