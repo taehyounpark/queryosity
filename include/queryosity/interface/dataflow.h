@@ -18,6 +18,10 @@
 #include "selection.h"
 #include "systematic.h"
 
+/**
+ * @namespace queryosity
+ * The root namespace of all queryostiy namespaces and classes.
+ */
 namespace queryosity {
 
 template <typename T> class lazy;
@@ -52,6 +56,7 @@ public:
    * @details Each keyword argument should be one of the following:
    *
    *  - `queryosity::multithread::enable(unsigned int)`
+   *  - `queryosity::multithread::disable()`
    *  - `queryosity::dataset::head(unsigned int)`
    *  - `queryosity::dataset::weight(float)`
    *

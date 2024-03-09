@@ -5,10 +5,10 @@
 namespace queryosity {
 
 /**
- * @brief Varied version of a todo node.
- * @details A todo varied action is functionally equivalent to a todo
- * node, except that it contains multiple nodes corresponding to nominal and
- * systematic variations.
+ * @brief Varied version of a todo item.
+ * @details A todo varied item is functionally equivalent to a todo
+ * node with each method being propagated to independent todo nodes
+ * corresponding to nominal and systematic variations.
  */
 template <typename Bld>
 class todo<Bld>::varied : public dataflow::node,

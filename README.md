@@ -6,7 +6,7 @@
 [![Documentation](https://img.shields.io/badge/Documentation-mkdocs-blue.svg)](https://taehyounpark.github.io/analogical/home/design/)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`queryosity` is powerful row-wise data analysis library written in & for C++.
+`queryosity` is row-wise data analysis library written in & for C++.
 
 <p align="center">
 	<strong> <a href="https://taehyounpark.github.io/queryosity/">See full documentation</a></strong>

@@ -1,6 +1,23 @@
 .vscode/
-build/
-site/
 
+build/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+*.xml
+*.xslt
+*.xsd
+*.html
+*.temp
+docs/html
+docs/xml
 
 *.DS_Store
