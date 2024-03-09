@@ -6,20 +6,20 @@
 
 namespace queryosity {
 
-template <typename Ret, typename... Vals>
-class column::equation<Ret(Vals...)> : public column::definition<Ret(Vals...)> {
+template <typename Out, typename... Ins>
+class column::equation<Out(Ins...)> : public column::definition<Out(Ins...)> {
 
 public:
-  using vartuple_type = typename definition<Ret(Vals...)>::vartuple_type;
+  using vartuple_type = typename definition<Out(Ins...)>::vartuple_type;
   using function_type =
-      std::function<std::decay_t<Ret>(std::decay_t<Vals> const &...)>;
+      std::function<std::decay_t<Out>(std::decay_t<Ins> const &...)>;
 
 public:
   template <typename Fn> equation(Fn fn);
   virtual ~equation() = default;
 
 public:
-  virtual Ret evaluate(observable<Vals>... args) const override;
+  virtual Out evaluate(observable<Ins>... args) const override;
 
 protected:
   vartuple_type m_arguments;
@@ -31,13 +31,13 @@ auto make_equation(Fn fn) -> std::unique_ptr<column::template equation_t<Fn>>;
 
 } // namespace queryosity
 
-template <typename Ret, typename... Vals>
+template <typename Out, typename... Ins>
 template <typename Fn>
-queryosity::column::equation<Ret(Vals...)>::equation(Fn fn) : m_evaluate(fn) {}
+queryosity::column::equation<Out(Ins...)>::equation(Fn fn) : m_evaluate(fn) {}
 
-template <typename Ret, typename... Vals>
-Ret queryosity::column::equation<Ret(Vals...)>::evaluate(
-    observable<Vals>... args) const {
+template <typename Out, typename... Ins>
+Out queryosity::column::equation<Out(Ins...)>::evaluate(
+    observable<Ins>... args) const {
   return this->m_evaluate(args.value()...);
 }
 

@@ -9,7 +9,7 @@
  * @namespace queryosity
  * The root namespace of all queryostiy namespaces and classes.
  */
-namespace queryosity;
+namespace queryosity {};
 
 #include "interface/multithread.h"
 

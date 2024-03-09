@@ -33,7 +33,7 @@ public:
   virtual Out calculate() const final override;
   virtual Out evaluate(observable<Ins>... args) const = 0;
 
-  template <typename... Ins> void set_arguments(const view<Ins> &...args);
+  template <typename... Args> void set_arguments(const view<Args> &...args);
 
 protected:
   vartuple_type m_arguments;
@@ -59,12 +59,12 @@ protected:
 #include "dataflow.h"
 
 template <typename Out, typename... Ins>
-template <typename... Ins>
+template <typename... Args>
 void queryosity::column::definition<Out(Ins...)>::set_arguments(
-    view<Ins> const &...args) {
-  static_assert(sizeof...(Ins) == sizeof...(Ins));
+    view<Args> const &...args) {
+  static_assert(sizeof...(Ins) == sizeof...(Args));
   m_arguments = std::make_tuple(std::invoke(
-      [](const view<Ins> &args) -> variable<Ins> {
+      [](const view<Args> &args) -> variable<Ins> {
         return variable<Ins>(args);
       },
       args)...);
