@@ -17,6 +17,9 @@ class node;
 
 }
 
+/**
+ * @brief Define a column evaluated out of an expression.
+ */
 template <typename Expr> class column::expression {
 
 public:

@@ -18,10 +18,6 @@
 #include "selection.h"
 #include "systematic.h"
 
-/**
- * @namespace queryosity
- * The root namespace of all queryostiy namespaces and classes.
- */
 namespace queryosity {
 
 template <typename T> class lazy;
@@ -29,7 +25,8 @@ template <typename T> class lazy;
 template <typename U> class todo;
 
 /**
- * Main data analysis and query graph interface.
+ * @ingroup api
+ * @brief Main dataflow interface.
  */
 class dataflow {
 
@@ -79,22 +76,63 @@ public:
   template <typename DS>
   auto load(dataset::input<DS> &&in) -> dataset::loaded<DS>;
 
+  /**
+   * @brief Read a column from an input dataset.
+   * @attention A dataset should be loaded-in *once*. Use this method only if
+   * you are interested in the requested column, as other columns will not be
+   * readable.
+   * @tparam DS `dataset::reader<Self>` implementation.
+   * @tparam Val Column data type.
+   * @param Column name.
+   * @return Column read from the loaded dataset.
+   */
   template <typename DS, typename Val>
   auto read(dataset::input<DS> in, dataset::column<Val> const &col);
 
+  /**
+   * @brief Read columns from an input dataset.
+   * @attention A dataset should be loaded-in *once*. Use this method only if
+   * you are interested in the requested columns, as other columns will not be
+   * readable.
+   * @tparam DS `dataset::reader<Self>` implementation.
+   * @tparam Vals Column data types.
+   * @param cols Column names.
+   * @return Columns read from the loaded dataset.
+   */
   template <typename DS, typename... Vals>
   auto read(dataset::input<DS> in, dataset::columns<Vals...> const &cols);
 
+  /**
+   * @brief Define a constant column.
+   * @tparam Val Column data type.
+   * @param cnst Constant value.
+   */
   template <typename Val>
   auto define(column::constant<Val> const &cnst) -> lazy<column::fixed<Val>>;
 
-  template <typename Def, typename... Cols>
-  auto define(column::definition<Def> const &defn, lazy<Cols> const &...cols)
-      -> lazy<Def>;
-
+  /**
+   * @brief Define a column using an expression.
+   * @tparam Expr Callable type.
+   * @tparam Cols Input column types.
+   * @param expr C++ function, functor, lambda, or any other callable.
+   * @param cols Input columns.
+   * @return Lazy column.
+   */
   template <typename Expr, typename... Cols>
   auto define(column::expression<Expr> const &expr, lazy<Cols> const &...cols)
       -> lazy<column::equation_t<queryosity::column::expression<Expr>>>;
+
+  /**
+   * @brief Define a custom column.
+   * @tparam Def `column::definition<Out(Ins...)>` implementation.
+   * @tparam Cols Input column types.
+   * @param defn Constructor arguments for `Def`.
+   * @param cols Input columns.
+   * @return Lazy column.
+   */
+  template <typename Def, typename... Cols>
+  auto define(column::definition<Def> const &defn, lazy<Cols> const &...cols)
+      -> lazy<Def>;
 
   template <typename Col>
   auto filter(lazy<Col> const &col) -> lazy<selection::node>;

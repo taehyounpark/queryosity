@@ -30,9 +30,9 @@ protected:
 };
 
 /**
- * A todo node instantiates a lazy action upon inputs from existing lazy
- * actions.
- * @tparam Bkr Helper class that instantiates a lazy action.
+ * @ingroup api
+ * @brief Lazy action over dataset.
+ * @tparam Action Action to be performed.
  */
 template <typename Action>
 class lazy : public dataflow::node,

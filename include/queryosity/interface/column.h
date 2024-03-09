@@ -8,6 +8,9 @@
 
 namespace queryosity {
 
+/**
+ * @brief Compute quantities of interest.
+ */
 namespace column {
 
 class node : public action {};

@@ -12,24 +12,26 @@ namespace queryosity {
 class dataflow;
 
 /**
+ * @ingroup abc
  * @brief Column with user-defined return value type and evaluation
  * dataset.
- * @tparam T return value type.
+ * @tparam Out Output data type.
+ * @tparam Ins... Input column data type(s).
  */
-template <typename Ret, typename... Vals>
-class column::definition<Ret(Vals...)> : public column::calculation<Ret> {
+template <typename Out, typename... Ins>
+class column::definition<Out(Ins...)> : public column::calculation<Out> {
 
 public:
-  using vartuple_type = std::tuple<variable<Vals>...>;
-  using obstuple_type = std::tuple<observable<Vals>...>;
+  using vartuple_type = std::tuple<variable<Ins>...>;
+  using obstuple_type = std::tuple<observable<Ins>...>;
 
 public:
   definition() = default;
   virtual ~definition() = default;
 
 public:
-  virtual Ret calculate() const final override;
-  virtual Ret evaluate(observable<Vals>... args) const = 0;
+  virtual Out calculate() const final override;
+  virtual Out evaluate(observable<Ins>... args) const = 0;
 
   template <typename... Ins> void set_arguments(const view<Ins> &...args);
 
@@ -37,6 +39,10 @@ protected:
   vartuple_type m_arguments;
 };
 
+/**
+ * @ingroup api
+ * @brief Define a custom column in dataflow.
+ */
 template <typename Def> class column::definition {
 
 public:
@@ -52,22 +58,22 @@ protected:
 
 #include "dataflow.h"
 
-template <typename Ret, typename... Vals>
+template <typename Out, typename... Ins>
 template <typename... Ins>
-void queryosity::column::definition<Ret(Vals...)>::set_arguments(
+void queryosity::column::definition<Out(Ins...)>::set_arguments(
     view<Ins> const &...args) {
-  static_assert(sizeof...(Vals) == sizeof...(Ins));
+  static_assert(sizeof...(Ins) == sizeof...(Ins));
   m_arguments = std::make_tuple(std::invoke(
-      [](const view<Ins> &args) -> variable<Vals> {
-        return variable<Vals>(args);
+      [](const view<Ins> &args) -> variable<Ins> {
+        return variable<Ins>(args);
       },
       args)...);
 }
 
-template <typename Ret, typename... Vals>
-Ret queryosity::column::definition<Ret(Vals...)>::calculate() const {
+template <typename Out, typename... Ins>
+Out queryosity::column::definition<Out(Ins...)>::calculate() const {
   return std::apply(
-      [this](const variable<Vals> &...args) { return this->evaluate(args...); },
+      [this](const variable<Ins> &...args) { return this->evaluate(args...); },
       m_arguments);
 }
 

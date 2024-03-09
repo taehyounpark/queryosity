@@ -9,6 +9,9 @@
 
 namespace queryosity {
 
+/**
+ * @brief Apply cuts and weights to entries.
+ */
 namespace selection {
 
 class cutflow;

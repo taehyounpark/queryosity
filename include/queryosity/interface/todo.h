@@ -29,7 +29,8 @@ template <typename... Args>
 static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 /**
- * @brief Instantiates a lazy action upon inputs from existing ones.
+ * @ingroup api
+ * @brief Instantiate a lazy action upon inputs from existing ones.
  * @details A todo helper exists as a middle layer between dataflow calls and
  * the final lazy action output in cases where more than one set of lazy action
  * inputs are required.

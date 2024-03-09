@@ -12,8 +12,11 @@
 namespace queryosity {
 
 /**
- * Variations of a lazy action to be performed in an dataflow.
- * @tparam Action The action.
+ * @ingroup api
+ * @brief Variations of a lazy action.
+ * @details A varied lazy node encapsulates independent nominal and variations
+ * of a lazy action.
+ * @tparam Action Action to be performed.
  */
 template <typename Act>
 class lazy<Act>::varied : public dataflow::node,

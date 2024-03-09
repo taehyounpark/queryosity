@@ -4,10 +4,6 @@
 
 namespace queryosity {
 
-/**
- * @class action
- * @brief abstract base class with initialization, execution, finalization steps
- */
 class action : public systematic::mode {
 
 public:

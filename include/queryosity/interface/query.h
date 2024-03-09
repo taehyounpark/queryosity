@@ -8,6 +8,9 @@
 
 #include "action.h"
 
+/**
+ * @brief Perform queries on the dataset.
+ */
 namespace queryosity {
 
 namespace column {

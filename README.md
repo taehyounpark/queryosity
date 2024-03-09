@@ -19,6 +19,7 @@
 - **Arbitrary actions.** Provide ABCs to let users perform data analysis the way they want to, from input datasets to all the way to query outputs.
 - **Lazy but efficient.** An action is performed for an entry only if needed. All actions are performed in one dataset traversal. Dataset traversal is multithreaded.
 - **Systematic variations.** Perform *automatic* sensitivity analysis by propagating systematic variations through actions.
+- **~~Best-ever performance~~.**
 
 ## Hello World
 ```cpp

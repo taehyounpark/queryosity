@@ -8,6 +8,9 @@ class dataflow;
 
 template <typename Val> class lazy;
 
+/**
+ * @brief Define a constant column in dataflow.
+ */
 template <typename Val> class column::constant {
 
 public:

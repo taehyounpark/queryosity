@@ -9,6 +9,7 @@ namespace column {
 struct range;
 
 /**
+ * @ingroup abc
  * @brief Read columns from a dataset.
  * @tparam T column data type.
  */

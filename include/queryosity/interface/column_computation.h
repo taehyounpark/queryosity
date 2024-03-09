@@ -10,9 +10,6 @@
 
 namespace queryosity {
 
-/**
- * Computation graph of columns.
- */
 class column::computation {
 
 public:

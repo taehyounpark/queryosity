@@ -8,9 +8,6 @@
 
 namespace queryosity {
 
-/**
- * @brief Column definition that converts from one type to another.
- */
 template <typename To, typename From>
 class column::conversion : public column::definition<To(From)> {
 public:

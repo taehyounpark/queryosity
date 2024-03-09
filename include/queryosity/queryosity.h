@@ -1,5 +1,16 @@
 #pragma once
 
+/**
+ * @defgroup api API
+ * @defgroup abc ABCs
+ */
+
+/**
+ * @namespace queryosity
+ * The root namespace of all queryostiy namespaces and classes.
+ */
+namespace queryosity;
+
 #include "interface/multithread.h"
 
 #include "interface/dataset_reader.h"
