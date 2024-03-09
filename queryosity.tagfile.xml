@@ -7,31 +7,37 @@
     <includes id="systematic__resolver_8h" name="systematic_resolver.h" local="yes" imported="no">systematic_resolver.h</includes>
     <includes id="systematic__variation_8h" name="systematic_variation.h" local="yes" imported="no">systematic_variation.h</includes>
     <class kind="class">queryosity::dataflow</class>
+    <namespace>queryosity</namespace>
   </compound>
   <compound kind="file">
     <name>delayed.h</name>
     <filename>delayed_8h.html</filename>
     <includes id="dataflow_8h" name="dataflow.h" local="yes" imported="no">dataflow.h</includes>
     <includes id="systematic__resolver_8h" name="systematic_resolver.h" local="yes" imported="no">systematic_resolver.h</includes>
+    <namespace>queryosity</namespace>
   </compound>
   <compound kind="file">
     <name>systematic.h</name>
     <filename>systematic_8h.html</filename>
+    <namespace>queryosity</namespace>
   </compound>
   <compound kind="file">
     <name>systematic_resolver.h</name>
     <filename>systematic__resolver_8h.html</filename>
     <includes id="systematic_8h" name="systematic.h" local="yes" imported="no">systematic.h</includes>
+    <namespace>queryosity</namespace>
   </compound>
   <compound kind="file">
     <name>systematic_variation.h</name>
     <filename>systematic__variation_8h.html</filename>
     <includes id="dataflow_8h" name="dataflow.h" local="yes" imported="no">dataflow.h</includes>
+    <namespace>queryosity</namespace>
   </compound>
   <compound kind="file">
     <name>systematic_vary.h</name>
     <filename>systematic__vary_8h.html</filename>
     <includes id="systematic_8h" name="systematic.h" local="yes" imported="no">systematic.h</includes>
+    <namespace>queryosity</namespace>
   </compound>
   <compound kind="class">
     <name>queryosity::action</name>
@@ -303,6 +309,14 @@
       <anchor>ae8d15bc069de8bc93913e0f10af194ab</anchor>
       <arglist>(Args &amp;&amp;...args) -&gt; typename lazy&lt; typename decltype(std::declval&lt; todo&lt; Bld &gt;&gt;().operator()(std::forward&lt; Args &gt;(args).nominal()...))::action_type &gt;::varied</arglist>
     </member>
+  </compound>
+  <compound kind="namespace">
+    <name>queryosity</name>
+    <filename>namespacequeryosity.html</filename>
+    <class kind="class">queryosity::action</class>
+    <class kind="class">queryosity::lazy</class>
+    <class kind="class">queryosity::todo</class>
+    <class kind="class">queryosity::dataflow</class>
   </compound>
   <compound kind="page">
     <name>index</name>
