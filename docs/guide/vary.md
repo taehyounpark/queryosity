@@ -2,13 +2,13 @@
 
 ## Varying columns
 
-Systematic variations of a column are simply independent columns themselves whose underlying data types are that of the nominal, but their values turn out to be different.
+Systematic variations are independent instances column nodes whose underlying data types are same as that of the nominal, but their values turn out to be different.
 There are two ways to create a varied column: 
 
 1. **Automatic.** Specify a specific type of column to be instantiated along with the nominal+variations. Always ensures the lockstep+transparent propagation of variations.
-2. **Manual.** Specify existing instances of columns as nominal+variations; any arbitrary column whose output value type is compatible to that of the nominal ca be set as a variation.
+2. **Manual.** Provide existing instances of columns to be nominal+variations; any column whose output value type is compatible to that of the nominal can be set as a variation.
 
-Varied columns obtained from either approach can (and should) be used interchangeably with each other for full control over the creation & propagation of systematic variations through the analysis.
+The two approaches can (and should) be used interchangeably with each other for full control over the creation & propagation of systematic variations through the dataflow.
 
 === "Automatic"
 

@@ -16,12 +16,12 @@ nav:
     - Queries: concepts/query.md
     - Systematic variations: concepts/vary.md
   - User guide: 
-    - Cheat sheet: dataflow/cheatsheet.md
-    - Dataflow: dataflow/dataflow.md 
-    - Columns: dataflow/column.md
-    - Selections: dataflow/selection.md
-    - Queries:  dataflow/query.md
-    - Systematic variations: dataflow/vary.md
+    - Cheat sheet: guide/cheatsheet.md
+    - Dataflow: guide/dataflow.md 
+    - Columns: guide/column.md
+    - Selections: guide/selection.md
+    - Queries:  guide/query.md
+    - Systematic variations: guide/vary.md
   - Examples:
     - Hello World: examples/hello.md
     - Higgs WW: examples/hww.md
@@ -42,8 +42,6 @@ theme:
   font:
     text: Inter Tight
     code: JetBrains Mono
-  palette:
-    primary: light blue
   icon:
     repo: fontawesome/brands/github
   features:
@@ -55,8 +53,33 @@ theme:
     - content.tabs.link
     - content.code.annotate
     - content.code.copy
+  palette:
+    # Palette toggle for automatic mode
+    - media: "(prefers-color-scheme)"
+      primary: light-blue
+      accent: indigo
+      toggle:
+        icon: material/link
+        name: Switch to light mode
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      primary: light-blue
+      accent: indigo
+      toggle:
+        icon: material/toggle-switch
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      primary: light-blue
+      accent: indigo
+      scheme: slate
+      toggle:
+        icon: material/toggle-switch-off-outline
+        name: Switch to system preference
 
 plugins:
+  - search:
+      enabled: true
   - mkdoxy:
       projects:
         api: # name of project must be alphanumeric + numbers (without spaces)

@@ -1,24 +1,17 @@
-A `column` starts out as independent when it is read-in from the dataset, 
-but user-defined column are evaluated out existing ones, i.e. are dependent.
-So the computation graph forms a tower of input and output columns such as
+A `column` contains some data type `T` whose value changes for each entry.
 
-```mermaid
-  graph BT
-  A[column] --> X[definition];
-  B[column] --> X;
-  B --> Y[definition];
-  C[constant] --> Y;
-  X --> Z[definition];
-  Y --> Z;
-  B --> Z;
-```
+The computation graph forms a tower of input and output columns with independent columns (e.g. read-in from the dataset) on the bottom and user-defined ones evaluated out of existing one above.
 
-where the graph traversal for each entry is top-down in accordance with the columns' laziness:
-only if and when the value of a dependent column needs to be computed are its input columns computed.
+<figure markdown="span">
+  ![computation](../assets/computation.png)
+  <figcaption>Computation graph with 4 independent and dependent columns.</figcaption>
+</figure>
 
-The following properties of the computation graph are further guaranteed:
+It is processed top-down in accordance with the columns' laziness:
+A column value is updated for an entry only if it is required as an input column.
 
-- No circular loops in computation.
+The following properties of the computation graph are also guaranteed:
+
 - No values are copied when used as inputs for dependent columns.
     - The value *is* copied if an implicit conversion is required.
 - The value is never computed more than once per entry.

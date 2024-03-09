@@ -72,18 +72,14 @@ A query can be populated ed with input columns as many times per-entry as desire
 
 ## Book over selections
 
-A query must be associated with a selection, which determines the (sub)set of dataset entries over which it is executed.
-The associated selection also informs the query of the statistical weight of each entry to be taken into account.
-
 ```cpp
 auto q = df.make(/*(1)!*/).fill(/*(2)!*/).book(/*(3)!*/);
 ```
 
 1. See [Make a plan](#create)
 2. See [Fill with columns](#fill)
-3. Query is executed over the subset of entries for which the selection cut passes.
+3. Associated selection.
 
-The association can be made from a query to a selection, or vice versa:
 === "Book a query *at* a selection"
     ```cpp
     auto q = df.make( query::plan<hist_1d>(lin_ax(10,0,1.0)) ).fill(x);
@@ -94,8 +90,8 @@ The association can be made from a query to a selection, or vice versa:
     auto q = df.make( query::plan<hist_1d>(lin_ax(10,0,1.0)) ).fill(x);
     auto h1x_a = sel_a.book(q);
     ```
+<!--  -->
 
-Multiple selections/queries can be booked at a time:
 === "Single query at multiple selections"
     ```cpp
     auto q = df.make( query::plan<hist_1d>(lin_ax(10,0,1.0)) ).fill(x);
@@ -123,25 +119,16 @@ auto q_result = df.make(/*(1)!*/).fill(/*(2)!*/).book(/*(3)!*/).result();
 2. See [Fill with columns](#fill-with-columns).
 3. See [Book over selections](#book-over-selections).
 
-
-If a query definition outputs a pointer to the result, the query itself can be treated as the pointer:
-```cpp
-h1x_a.result();  // std::shared_ptr to boost::histogram
-h1x_a->at(0);    // same as hist.result()->at(0);
+```{.cpp .no-copy}
+h1x_a.result();  // slow: dataset must be processed.
+h2x_b.result();  // fast: dataset already processed.
 ```
 
-!!! info 
-    Requesting result of *any* lazy query trigger the dataset traversal and execution of *all* lazy actions defined up to that point.
-    ```{.cpp .no-copy}
-    auto q_h1x = df.make( query::plan<hist_1d>(lin_ax(10,0,1.0)) ).fill(x);
-    auto q_h2xy = df.make( 
-        query::plan<hist_2d>(
-            lin_ax(10,0,1.0),
-            lin_ax(10,0,1.0)
-            ),
-        ).fill(x,y);
-    auto [h1x_a, h2xy_a] = sel_a.book(q_1, q_2);
+!!! tip
 
-    h1x_a.result();   // execute x, sel_a, h1x_a, h2xy_a
-    h2xy_a.result();  // result already available, just being accessed.
+    If a query outputs a pointer, the query itself can be treated as the pointer:
+
+    ```{.cpp .no-copy}
+    h1x_a.result();  // std::shared_ptr to boost::histogram
+    h1x_a->at(0);    // same as hist.result()->at(0);
     ```

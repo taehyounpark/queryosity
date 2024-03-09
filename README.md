@@ -15,10 +15,9 @@
 ## Features
 
 - **Clear interface.** The easy-to-learn, self-consistent API has a grand total of *five* main endpoints that can perform even the most complex operations.
-- **Arbitrary data types.** Support columns of *any* data structure. Navigate linked lists, binary trees, etc.
-- **Arbitrary actions.** The user, not the code, knows best. Provide customizable ABCs for not just columns but also input datasets and query outputs, leaving *all* details up to the implementation.
-- **Lazy, but efficient.** An action is performed at most once per-entry only if needed. Traverse the dataset *once* to perform all actions at once.
-- **Computational performance**. Statically compiled and multithreaded.
+- **Arbitrary data types.** Manipulate columns of *any* data structure.
+- **Arbitrary actions.** Provide ABCs to let users perform data analysis the way they want to, from input datasets to all the way to query outputs.
+- **Lazy but efficient.** An action is performed for an entry only if needed. All actions are performed in one dataset traversal. Dataset traversal is multithreaded.
 - **Systematic variations.** Perform *automatic* sensitivity analysis by propagating systematic variations through actions.
 
 ## Hello World

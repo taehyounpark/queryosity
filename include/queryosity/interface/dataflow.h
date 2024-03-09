@@ -31,7 +31,6 @@ class dataflow {
 
 public:
   template <typename> friend class dataset::loaded;
-
   template <typename> friend class lazy;
   template <typename> friend class todo;
 
@@ -49,8 +48,8 @@ public:
   template <typename Kwd1, typename Kwd2> dataflow(Kwd1 kwarg1, Kwd2 kwarg2);
 
   /**
-   * Constructor with (up to) three keyword arguments, which can be one of the
-   * following:
+   * @brief Constructor with (up to) three keyword arguments.
+   * @details Each keyword argument should be one of the following:
    *
    *  - `queryosity::multithread::enable(unsigned int)`
    *  - `queryosity::dataset::head(unsigned int)`
@@ -67,10 +66,10 @@ public:
   dataflow &operator=(dataflow &&) = default;
 
   /**
-   * Open a dataset input.
-   * @tparam DS Dataset input.
-   * @tparam Args... Dataset input constructor arguments
-   * @return Opened dataset input
+   * @brief Load a dataset input.
+   * @tparam DS `dataset::reader<Self>` implementation.
+   * @tparam Args... Constructor arguments.
+   * @return Loaded dataset.
    */
   template <typename DS>
   auto load(dataset::input<DS> &&in) -> dataset::loaded<DS>;
@@ -143,7 +142,7 @@ public:
       -> lazy<selection::node>;
 
   template <typename Cntr, typename... Args>
-  auto _aggregate(Args &&...args) -> todo<query::book<Cntr>>;
+  auto _make(Args &&...args) -> todo<query::book<Cntr>>;
 
 protected:
   template <typename Kwd> void accept_kwarg(Kwd const &kwarg);
@@ -376,8 +375,7 @@ auto queryosity::dataflow::weight(
 }
 
 template <typename Cntr, typename... Args>
-auto queryosity::dataflow::_aggregate(Args &&...args)
-    -> todo<query::book<Cntr>> {
+auto queryosity::dataflow::_make(Args &&...args) -> todo<query::book<Cntr>> {
   return todo<query::book<Cntr>>(*this, concurrent::invoke(
                                             [&args...](dataset::player *plyr) {
                                               return plyr->template get<Cntr>(
@@ -389,7 +387,7 @@ auto queryosity::dataflow::_aggregate(Args &&...args)
 template <typename Cntr>
 auto queryosity::dataflow::make(queryosity::query::plan<Cntr> const &cntr)
     -> todo<query::book<Cntr>> {
-  return cntr._aggregate(*this);
+  return cntr._make(*this);
 }
 
 template <typename Def, typename... Cols>

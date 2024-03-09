@@ -1,8 +1,8 @@
 :heart: [nlohmann::json](https://json.nlohmann.me/)
 
 !!! note
-    - For simplicity, the following examples exclusively use standard C++ types as column data.
-    - Reminder that any type or class (as long as it satisfies the requirements below) can be used!
+    - The following examples use standard C++ types as column data for simplicity.
+    - Reminder: any type or class (as long as it satisfies the requirements below) can be used!
 
 ## Loading the dataset
 
@@ -16,16 +16,13 @@ auto ds = df.load( dataset::input</*(1)!*/>(/*(2)!*/) );
 ```{.cpp .no-copy title="data.json"}
 using json = qty::json;
 
-std::fstream data_file("data.json", std::ios::out | std::ios::in | std::ios::trunc);
-data_file << "[\n"
-      << "  {\"x\": 1, \"y\": [1.0],     \"z\": \"a\"},\n"
-      << "  {\"x\": 2, \"y\": [],        \"z\": \"b\"},\n"
-      << "  {\"x\": 3, \"y\": [2.0,0.5], \"z\": \"c\"}\n"
-      << "]";
-data_file.clear(); 
-data_file.seekg(0, std::ios::beg);
+std::string json_data = R"([
+    {"x": 1, "y": [1.0],     "z": "a"},
+    {"x": 2, "y": [],        "z": "b"},
+    {"x": 3, "y": [2.0,0.5], "z": "c"}
+    ])";
 
-auto ds = df.load( dataset::input<json>(data_file) );
+auto ds = df.load( dataset::input<json>(json_data) );
 ```
 ??? abstract "qty::json implementation"
     ```cpp
@@ -118,7 +115,7 @@ auto z = ds.read( dataset::column<std::string>("z") );
 
     ```{ .cpp .no-copy }
     auto [x, y, z] = df.read(
-      dataset::input<json>(data_file),
+      dataset::input<json>(json_data),
       dataset::column<int>("x"),
       dataset::column<std::vector<float>>("y"),
       dataset::column<std::string>("z")
@@ -129,7 +126,7 @@ auto z = ds.read( dataset::column<std::string>("z") );
 
     ```{ .cpp .no-copy }
     auto [x, y, z] = df.read(
-      dataset::input<json>(data_file),
+      dataset::input<json>(json_data),
       dataset::columns<int,std::vector<float>,std::string>("x","y","z")
     );
     ```
@@ -166,14 +163,13 @@ Binary and unary operators on underlying data types can be used.
 
 ```{.cpp .no-copy }
 auto one = half + half;
-auto y0 = y[zero];
+auto y0 = y[zero]; //(1)!
 ```
+
+1. What about when `y` is empty? Worry not, undefined behaviour won't be invoked from `y0` (yet). Remember: all actions here are lazy, and nothing is actually being computed (yet)!
 
 - Self-assignment operators (e.g. `+=`) are not supported.
 
-!!! info
-    - No undefined behaviour is invoked with `y0` (yet), even if `y` might be empty in some entries.
-    - Remember: all actions here are lazy, and nothing is actually being computed (yet)!
 
 ### Expression
 
@@ -208,7 +204,7 @@ auto d = df.define( column::definition</*(1)!*/>(/*(2)!*/), /*(3)!*/ );
 
 ```{.cpp .no-copy }
 class sum : public column::definition<double(double,double)>
-{                                     //(5)!
+{                                            //(5)!
 public:
   //(1)!
   sum() = default;
@@ -225,23 +221,23 @@ protected:
 ```
 
 1. Custom constructor arguments.
-2. Each input column is passed as a `column::observable`, which preserves its laziness even within the entry-loop, i.e. it is not computed unless `value()` is called. (see below)
+2. A column "observable" remains lazy even inside the entry-loop, i.e. it is not computed, until `value()` is called (see also below).
 3. Custom member functions.
 4. Custom member variables.
-5. The definition is optimized (no-copy) for `double`, but will still work for all other compatible types (e.g. `float`), which are converted first.
+5. The input arguments are optimized (no-copy) for `double`, but will still work for all convertible types, e.g. `float`.
 
 ```{.cpp .no-copy }
 auto c = df.define( column::definition<sum>(), a, b );
 ```
 
-At first glance, this just looks like a lot of boilerplate code for just doing `auto c = a+b`.
-But there are ample opportunities (via inheritance) to customize the behaviour for more complicated definitions.
+At first glance, this just looks like a lot of boilerplate code for just doing `auto c = a+b;`,
+but there are several options to customize the behaviour for more complicated definitions.
 
 !!! tip "Power of observables"
 
-    Passing an input column as a `column::observable`, which defers its computation until `value()` is invoked, can potentially result in significant performance gains.
-    In general, input columns must be computed prior to evaluating the defined column, always incurs their associated computational costs.
-    With observables, analyzers can pick and choose which ones need to be computed versus which can be ignored to save on unnecessary compute time.
+    Passing an input column as a `column::observable<Val>`, which defers its computation until `value()` is invoked, can be used to optimize the computation graph for performance.
+    In general, input column values need to be computed in order to compute a dependent column, which incurs their associated performance costs.
+    With observables, you can pick and choose which ones are computed versus ignored to save time.
 
     Consider a scenario in which there are two methods to compute a quantity:
 
@@ -251,18 +247,19 @@ But there are ample opportunities (via inheritance) to customize the behaviour f
     Suppose there is also an per-entry decision that indicates whether or not the accuracy of the approximation is sufficient for it to be used in lieu of the full method.
 
     As an expression:
-    ```cpp
+    ```{.cpp .no-copy}
     auto x = df.define(
-                            /*(1)!*/
+                            /*(1)!*/                                  /*(2)!*/
       column::expression([](bool good, double fast, double full){return good ? fast : full;}),
       x_fast_is_accurate, x_fast, x_full
       );
     ```
 
     1. All arguments must be computed before entering the function.
+    2. Time elapsed: $\Delta t_x = \Delta t_{\text{good}}+\Delta t_{\text{fast}}+\Delta t_{\text{slow}}$
 
     As a definition:
-    ```cpp
+    ```{.cpp .no-copy}
     class OptimalQuantity : public column::definition<double(bool,double,double)>
     {
     public:
@@ -280,8 +277,8 @@ But there are ample opportunities (via inheritance) to customize the behaviour f
 
     1. Arguments are not column values: they are not computed yet...
     2. Always computed.
-    3. Small performance gain if `good.value() == false`.
-    4. Big performance gain if `good.value() == true`!
+    3. $\Delta t_x = \Delta t_{\text{good}}+\Delta t_{\text{fast}}$ if `good.value() == true`: big performance gain!
+    4. $\Delta t_x = \Delta t_{\text{good}}+\Delta t_{\text{slow}}$ if `good.value() == false`: small performance gain.
 
 !!! warning "Thread-safety requirements"
 

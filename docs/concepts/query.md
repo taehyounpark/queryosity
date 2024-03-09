@@ -1,14 +1,23 @@
-A `query` node defines:
+A `query` definition specifies an output whose result is obtained from counting entries of the dataset.
 
-- An arbitrary action to be executed under a particular selection, i.e. only if the cut has passed.
-    -  (Optional) Take into account the selection weight.
-- (Optional) Populate the result based on values of input columns of the entry.
-- Output a result once the full dataset has been traversed.
+- How it counts an entry is an *arbitrary action* dictated by the definition:
+- (Optional) The result is populated based on values of inputs columns.
 
-Given a concrete definition of a query, it can be performed for entries passing any specified selections.
+Once a definition is associated with a selection, it is ready to be performed.
 
-![agg_book_sels](../../assets/agg_book_sels.png)
+- The query only counts entries for which the selection has passed the cut.
+- (Optional) The result is populated with the selection weight taken into account.
 
-Conversely, book queries from a selection node:
+For multithreaded runs, the query must also define how results from individual threads will be merged together to output a result representing the full dataset.
 
-![sel_book_aggs](../../assets/sel_book_aggs.png)
+In the interest of efficient bookkeeping, two common workflows exist in associating queries with selections, as shown below.
+
+<figure markdown="span">
+    ![agg_book_sels](../../assets/query_1.png)
+  <figcaption>Running a specific query defintion across multiple selections.</figcaption>
+</figure>
+
+<figure markdown="span">
+    ![sel_book_aggs](../../assets/query_2.png)
+  <figcaption>Running queries of multiple definitions from a single selection.</figcaption>
+</figure>

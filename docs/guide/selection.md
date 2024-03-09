@@ -1,23 +1,23 @@
-# Applying selections
+# Selections
 
-## Cuts and weights
+## Applying cuts and weights
 
 Applying a selection from the `dataflow` object applies it over the inclusive dataset.
 
 ```cpp
 // 1.
-auto filtered = df.filter(/*(1)!*/);
+auto cut = df.filter(/*(1)!*/);
 ```
 
 1. Existing column whose is used as its decision.
 
 ```cpp
 // 2.
-auto weighted = df.weight( column::expression(/*(1)!*/), /*(1)!*/);
+auto wgt = df.weight( column::expression(/*(1)!*/), /*(2)!*/);
 ```
 
 1. See [Expression](./column.md#expression).
-2. See [Expression](./column.md#expression).
+1. See [Expression](./column.md#expression).
 
 <!--  -->
 
@@ -31,9 +31,9 @@ Cuts and weights can be inter-compounded:
 ```{.cpp .no-copy}
 auto [c, w] = ds.read(dataset::columns<bool,double>("c","w"));
 
-auto cut_n_weighted = df.filter(c).weight(w);
-// cut_n_weighted.passed_cut() = c.value() && true;
-// cut_n_weighted.get_weight() = 1.0 * w.value();
+auto cut_n_wgt = df.filter(c).weight(w);
+// cut_n_wgt.passed_cut() = c.value() && true;
+// cut_n_wgt.get_weight() = 1.0 * w.value();
 ```
 
 ## Branching selections
@@ -55,15 +55,19 @@ Consider two selections within a cutflow. Taking the AND/OR of them is commonly 
 - OR: Consolidating two not-mutually-exclusive selections into one.
 
 ```{.cpp .no-copy}
+auto index = df.index();
+
+auto one = df.define( column::constant<unsigned int>(1) );
 auto two = df.define( column::constant<unsigned int>(2) );
 auto three = df.define( column::constant<unsigned int>(3) );
 
-auto even_entries = df.filter(entry_number % two);
-auto odd_entries = df.filter(!even_entries);
-auto third_entries = df.filter(entry_number % three);
+auto even = df.filter(index % two == one);
+auto odd = df.filter(!even);
+auto third = df.filter(index % three == two);
 
-auto all_entries = df.filter(even_entries || odd_entries);
-auto sixth_entries = df.filter(even_entries && third_entries);
+auto all = df.filter(even || odd);
+auto none = df.filter(even && odd);
+auto sixth = df.filter(even && third);
 ```
 
 !!! tip
