@@ -16,7 +16,7 @@ class dataflow;
  * @brief Column with user-defined return value type and evaluation
  * dataset.
  * @tparam Out Output data type.
- * @tparam Ins... Input column data type(s).
+ * @tparam Ins Input column data type(s).
  */
 template <typename Out, typename... Ins>
 class column::definition<Out(Ins...)> : public column::calculation<Out> {
@@ -26,11 +26,24 @@ public:
   using obstuple_type = std::tuple<observable<Ins>...>;
 
 public:
+  /**
+   * @brief Default constructor.
+   */
   definition() = default;
+  /**
+   * @brief Default destructor.
+   */
   virtual ~definition() = default;
 
 public:
   virtual Out calculate() const final override;
+
+  /**
+   * @brief Compute the quantity of interest for the entry
+   * @note Columns passed in as observables are not computed until `value()` is
+   * called.
+   * @param args Input observables.
+   */
   virtual Out evaluate(observable<Ins>... args) const = 0;
 
   template <typename... Args> void set_arguments(const view<Args> &...args);
@@ -46,6 +59,10 @@ protected:
 template <typename Def> class column::definition {
 
 public:
+  /**
+   * @param args Constructor arguments of @p Def.
+   * @brief Define a custom column in dataflow.
+   */
   template <typename... Args> definition(Args const &...args);
 
   auto _define(dataflow &df) const;
