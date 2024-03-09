@@ -1,0 +1,86 @@
+# this is a config file for Poxy - a Doxygen + m.css front-end written in Python.
+# https://github.com/marzer/poxy
+#
+# config reference: https://github.com/marzer/poxy/wiki/Configuration-options
+
+name            = 'queryosity'
+author          = 'Tae Hyoun Park'
+description     = 'Coherent data analysis in C++'
+cpp             = 17
+github          = 'taehyounpark/queryosity'
+license         = [ 'MIT', 'https://github.com/taehyounpark/queryosity/blob/master/LICENSE' ]
+# twitter         = ''
+# sponsor         = ''
+show_includes   = false
+changelog       = true
+# logo            = 'images/logo.svg'
+# favicon         = 'images/favicon.ico'
+navbar          = [ 'namespaces', 'annotated' ]
+theme           = 'dark'
+extra_files     = [
+#    'images/badge-awesome.svg',
+#    'images/badge-TOML.svg',
+#    'images/badge-gitter.svg',
+]
+
+
+
+[warnings]
+enabled         = true
+treat_as_errors = false
+undocumented    = true
+
+
+
+[sources]
+paths           = [ 'pages' ]
+recursive_paths = [ '../include' ]
+patterns        = [ '*.h', '*.hpp', '*.dox', '*.md' ]
+strip_paths     = [ '../include', 'pages' ]
+
+
+
+[images]
+paths           = [ 'images' ]
+
+
+
+# [macros]
+# 'TOML_ASYMMETRICAL_EQUALITY_OPS(...)' = 'static_assert(true)'
+# 'TOML_ABI_NAMESPACE_START(...)'       = 'static_assert(true)'
+# 'TOML_ABI_NAMESPACE_BOOL(...)'        = 'static_assert(true)'
+
+
+
+# [meta_tags]
+# 'google-site-verification' = 'gbtcNgKlNiPSMKkYMw4zWFVWGPH_oU93m9n_-nb4qK8'
+
+
+
+# [code_blocks]
+# macros          = [ 'TOML_[A-Z0-9_]+?', 'print_value' ]
+
+
+
+# [badges]
+# '1. TOML v1.0.0'  = [
+#     'badge-TOML.svg',
+#     'https://toml.io/en/v1.0.0'
+# ]
+# '2. Mentioned in Awesome C++' = [
+#     'badge-awesome.svg',
+#     'https://github.com/fffaraz/awesome-cpp'
+# ]
+# '3. Gitter'        = [
+#     'badge-gitter.svg',
+#     'https://gitter.im/marzer/tomlplusplus'
+#  ]
+
+
+
+[autolinks]
+#'(?:queryosity::)?lazy::varied?' = 'classqueryosity_1_1lazy_1_1varied.html'
+'queryosity::dataflow?'                      = 'classqueryosity_1_1dataflow.html'
+#'toml::keys?'                       = 'classqueryosity_1_1dataflow.html'
+#'toml::times?'                      = 'structtoml_1_1time.html'
+#'toml::values?'                     = 'classtoml_1_1value.html'

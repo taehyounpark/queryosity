@@ -1,9 +1,75 @@
+@mainpage queryosity @tableofcontents
+
+![Version](https://img.shields.io/badge/Version-0.2.0-blue.svg)
+[![Ubuntu](https://github.com/taehyounpark/analogical/actions/workflows/ubuntu.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/ubuntu.yml)
+[![macOS](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml)
+[![Documentation](https://img.shields.io/badge/Documentation-mkdocs-blue.svg)](https://taehyounpark.github.io/analogical/home/design/)
+[![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+`queryosity` is powerful row-wise data analysis library written in & for C++.
+
+@section mainpage-features Features
+
+- **Clear interface.** The easy-to-learn, self-consistent API has a grand total of *five* main endpoints that can perform even the most complex operations.
+- **Arbitrary data types.** Manipulate columns of *any* data structure.
+- **Arbitrary actions.** Provide ABCs to let users perform data analysis the way they want to, from input datasets to all the way to query outputs.
+- **Lazy but efficient.** An action is performed for an entry only if needed. All actions are performed in one dataset traversal. Dataset traversal is multithreaded.
+- **Systematic variations.** Perform *automatic* sensitivity analysis by propagating systematic variations through actions.
+
 `queryosity` provides a "DataFlow", or row-wise, model of structured data analysis.
 Users specify operations as if they are inside for-loop over the entries of the dataset.
 The key is to *specify* without executing the operations on a dataset until they are needed, i.e. create *lazy* actions.
 Each lazy actions in a DataFlow are only if needed in order maximize CPU usage and efficiency (see [Lazy actions](../concepts/lazy.md)), which is especially relevant for analysis workflows not limited by I/O bandwidth.
 
 This library has been purposefully developed for high-energy physics experiments; hopefully, it can be similarly useful for studying other complex phenomena.
+
+@section @mainpage-installation Installation
+
+The following compilers with C++17 support are part of the CI.
+
+| OS | Compiler | Versions |
+|:---|:--|:--|
+| macOS 12 | Clang | 13.1, 13.2.1, 13.3.1, 13.4.1, 14.0, 14.0.1, 14.1 |
+| Ubuntu 22.04 LTS | GCC | 9.4, 10.5, 11.4, 12.3 |
+
+## [Single-header](https://raw.githubusercontent.com/taehyounpark/queryosity/master/queryosity.h)
+```cpp
+#include "queryosity.h"
+```
+## CMake
+```sh
+git clone https://github.com/taehyounpark/queryosity.git
+```
+### External
+```sh
+cd queryosity/ && mkdir build/ && cd build/
+cmake ../
+cmake --build .
+cmake --install .
+```
+```cmake
+find_package(queryosity 0.1.0 REQUIRED)
+...
+add_library(YourProject ...)
+...
+target_link_libraries(YourProject INTERFACE queryosity::queryosity)
+```
+```cpp
+#include "queryosity/queryosity.h"
+```
+### Integrated
+```cmake
+add_subdirectory(queryosity)
+...
+add_library(YourProject ...)
+...
+target_link_libraries(YourProject INTERFACE queryosity::queryosity)
+```
+```cpp
+#include "queryosity/queryosity.h"
+```
+
+@section mainpage-design-goals Design goals
 
 ## Why not DataFrames?
 
