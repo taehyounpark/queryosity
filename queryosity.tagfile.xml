@@ -40,10 +40,6 @@
     <namespace>queryosity</namespace>
   </compound>
   <compound kind="class">
-    <name>queryosity::action</name>
-    <filename>classqueryosity_1_1action.html</filename>
-  </compound>
-  <compound kind="class">
     <name>queryosity::query::aggregation</name>
     <filename>classqueryosity_1_1query_1_1aggregation.html</filename>
     <templarg></templarg>
@@ -79,17 +75,12 @@
     <filename>classqueryosity_1_1column_1_1calculation.html</filename>
   </compound>
   <compound kind="class">
-    <name>calculation&lt; Ret &gt;</name>
+    <name>calculation&lt; Out &gt;</name>
     <filename>classqueryosity_1_1column_1_1calculation.html</filename>
   </compound>
   <compound kind="class">
-    <name>queryosity::column::computation</name>
-    <filename>classqueryosity_1_1column_1_1computation.html</filename>
-  </compound>
-  <compound kind="class">
-    <name>queryosity::column::conversion</name>
-    <filename>classqueryosity_1_1column_1_1conversion.html</filename>
-    <templarg></templarg>
+    <name>queryosity::column::constant</name>
+    <filename>classqueryosity_1_1column_1_1constant.html</filename>
     <templarg></templarg>
   </compound>
   <compound kind="class">
@@ -116,13 +107,57 @@
       <anchor>a89a76c336e2a58437fedef55ed1a59f9</anchor>
       <arglist>(dataset::input&lt; DS &gt; &amp;&amp;in) -&gt; dataset::loaded&lt; DS &gt;</arglist>
     </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>read</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a86b6f7833c50da9936e24d9445a51418</anchor>
+      <arglist>(dataset::input&lt; DS &gt; in, dataset::column&lt; Val &gt; const &amp;col)</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>read</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a190d418f9192612436c5bd287e728e24</anchor>
+      <arglist>(dataset::input&lt; DS &gt; in, dataset::columns&lt; Vals... &gt; const &amp;cols)</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>define</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a726b73d4cab0c7c750e8c970c9b46d12</anchor>
+      <arglist>(column::constant&lt; Val &gt; const &amp;cnst) -&gt; lazy&lt; column::fixed&lt; Val &gt;&gt;</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>define</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a49afa2e3ef76e459c6242673516d5328</anchor>
+      <arglist>(column::expression&lt; Expr &gt; const &amp;expr, lazy&lt; Cols &gt; const &amp;...cols) -&gt; lazy&lt; column::equation_t&lt; queryosity::column::expression&lt; Expr &gt;&gt;&gt;</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>define</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>acafeeaf35486c2080a945b46f1ebbf88</anchor>
+      <arglist>(column::definition&lt; Def &gt; const &amp;defn, lazy&lt; Cols &gt; const &amp;...cols) -&gt; lazy&lt; Def &gt;</arglist>
+    </member>
   </compound>
   <compound kind="class">
-    <name>queryosity::column::definition&lt; Ret(Vals...)&gt;</name>
-    <filename>classqueryosity_1_1column_1_1definition_3_01_ret_07_vals_8_8_8_08_4.html</filename>
+    <name>queryosity::column::definition</name>
+    <filename>classqueryosity_1_1column_1_1definition.html</filename>
     <templarg></templarg>
-    <templarg>Vals</templarg>
-    <base>calculation&lt; Ret &gt;</base>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::column::definition&lt; Out(Ins...)&gt;</name>
+    <filename>classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html</filename>
+    <templarg></templarg>
+    <templarg>Ins</templarg>
+    <base>calculation&lt; Out &gt;</base>
+  </compound>
+  <compound kind="class">
+    <name>definition&lt; Ret(Vals...)&gt;</name>
+    <filename>classqueryosity_1_1column_1_1definition.html</filename>
   </compound>
   <compound kind="class">
     <name>queryosity::query::definition&lt; T(Obs...)&gt;</name>
@@ -158,6 +193,15 @@
       <anchor>a0fb1e59c3fc8617a97d47f1044e7817e</anchor>
       <arglist>() const</arglist>
     </member>
+  </compound>
+  <compound kind="class">
+    <name>definition&lt; To(From)&gt;</name>
+    <filename>classqueryosity_1_1column_1_1definition.html</filename>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::column::expression</name>
+    <filename>classqueryosity_1_1column_1_1expression.html</filename>
+    <templarg></templarg>
   </compound>
   <compound kind="class">
     <name>queryosity::lazy</name>
@@ -313,16 +357,52 @@
   <compound kind="namespace">
     <name>queryosity</name>
     <filename>namespacequeryosity.html</filename>
-    <class kind="class">queryosity::action</class>
+    <namespace>queryosity::column</namespace>
+    <namespace>queryosity::selection</namespace>
     <class kind="class">queryosity::lazy</class>
     <class kind="class">queryosity::todo</class>
     <class kind="class">queryosity::dataflow</class>
   </compound>
+  <compound kind="namespace">
+    <name>queryosity::column</name>
+    <filename>namespacequeryosity_1_1column.html</filename>
+    <class kind="class">queryosity::column::reader</class>
+    <class kind="class">queryosity::column::calculation</class>
+    <class kind="class">queryosity::column::definition</class>
+    <class kind="class">queryosity::column::constant</class>
+    <class kind="class">queryosity::column::expression</class>
+    <class kind="class">queryosity::column::definition&lt; Out(Ins...)&gt;</class>
+    <class kind="class">queryosity::column::representation&lt; Me(Obs...)&gt;</class>
+  </compound>
+  <compound kind="namespace">
+    <name>queryosity::selection</name>
+    <filename>namespacequeryosity_1_1selection.html</filename>
+  </compound>
+  <compound kind="group">
+    <name>abc</name>
+    <title>ABCs</title>
+    <filename>group__abc.html</filename>
+    <class kind="class">queryosity::column::definition&lt; Out(Ins...)&gt;</class>
+    <class kind="class">queryosity::column::reader</class>
+  </compound>
+  <compound kind="group">
+    <name>api</name>
+    <title>API</title>
+    <filename>group__api.html</filename>
+    <class kind="class">queryosity::column::definition</class>
+    <class kind="class">queryosity::dataflow</class>
+    <class kind="class">queryosity::lazy</class>
+    <class kind="class">queryosity::lazy::varied</class>
+    <class kind="class">queryosity::todo</class>
+    <class kind="class">queryosity::todo::varied</class>
+  </compound>
   <compound kind="page">
     <name>index</name>
-    <title>queryosity @tableofcontents</title>
+    <title></title>
     <filename>index.html</filename>
     <docanchor file="index.html" title="Features">mainpage-features</docanchor>
+    <docanchor file="index.html" title="Installation">mainpage-installation</docanchor>
+    <docanchor file="index.html" title="Single-header">mainpage-installation-header</docanchor>
     <docanchor file="index.html" title="Design goals">mainpage-design-goals</docanchor>
   </compound>
 </tagfile>

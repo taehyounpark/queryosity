@@ -36,7 +36,7 @@
       <div class="m-col-t-12 m-show-m m-col-m-none m-right-m" id="m-navbar-collapse">
         <div class="m-row">
           <ol class="m-col-t-6 m-col-m-none">
-            <li><a href="namespaces.html">Namespaces</a></li>
+            <li><a href="modules.html">Modules</a></li>
             <li><a href="annotated.html" id="m-navbar-current">Classes</a></li>
             <li class="poxy-navbar-version-selector"><a href="annotated.html">Version: HEAD</a><ol><li><a href="annotated.html">HEAD</a></li></ol></li>
           </ol>
@@ -59,18 +59,29 @@
         <h1>Classes</h1>
         <ul class="m-doc">
           <li class="m-doc-collapsible">
-            <a href="#" onclick="return toggle(this)">namespace</a> <a class="m-doc" href="namespacequeryosity.html">queryosity</a> 
+            <a href="#" onclick="return toggle(this)">namespace</a> <a class="m-doc" href="namespacequeryosity.html">queryosity</a> <span class="m-doc">Perform queries on the dataset.</span>
             <ul class="m-doc">
-              <li>class <a class="m-doc" href="classqueryosity_1_1action.html">action</a> <span class="m-doc">abstract base class with initialization, execution, finalization steps</span></li>
-              <li>class <a class="m-doc" href="classqueryosity_1_1dataflow.html">dataflow</a> </li>
               <li class="m-doc-collapsible">
-                <a href="#" onclick="return toggle(this)">class</a> <a class="m-doc" href="classqueryosity_1_1lazy.html">lazy</a> 
+                <a href="#" onclick="return toggle(this)">namespace</a> <a class="m-doc" href="namespacequeryosity_1_1column.html">column</a> <span class="m-doc">Compute quantities of interest.</span>
                 <ul class="m-doc">
-                  <li>class <a class="m-doc" href="classqueryosity_1_1lazy_1_1varied.html">varied</a> </li>
+                  <li>class <a class="m-doc" href="classqueryosity_1_1column_1_1calculation.html">calculation</a> <span class="m-doc">Calculate a column value for each dataset entry.</span></li>
+                  <li>class <a class="m-doc" href="classqueryosity_1_1column_1_1constant.html">constant</a> <span class="m-doc">Define a constant column in dataflow.</span></li>
+                  <li>class <a class="m-doc" href="classqueryosity_1_1column_1_1definition.html">definition</a> <span class="m-doc">Define a custom column in dataflow.</span></li>
+                  <li>class <a class="m-doc" href="classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html">definition&lt;Out(Ins...)&gt;</a> <span class="m-doc">Column with user-defined return value type and evaluation dataset.</span></li>
+                  <li>class <a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">expression</a> <span class="m-doc">Define a column evaluated out of an expression.</span></li>
+                  <li>class <a class="m-doc" href="classqueryosity_1_1column_1_1reader.html">reader</a> <span class="m-doc">Read columns from a dataset.</span></li>
+                  <li>class <a class="m-doc" href="classqueryosity_1_1column_1_1representation_3_01_me_07_obs_8_8_8_08_4.html">representation&lt;Me(Obs...)&gt;</a> <span class="m-doc">Representation of multipile columns, out of which derived quantites can be calculated.</span></li>
+                </ul>
+              </li>
+              <li>class <a class="m-doc" href="classqueryosity_1_1dataflow.html">dataflow</a> <span class="m-doc">Main dataflow interface.</span></li>
+              <li class="m-doc-collapsible">
+                <a href="#" onclick="return toggle(this)">class</a> <a class="m-doc" href="classqueryosity_1_1lazy.html">lazy</a> <span class="m-doc">Lazy action over dataset.</span>
+                <ul class="m-doc">
+                  <li>class <a class="m-doc" href="classqueryosity_1_1lazy_1_1varied.html">varied</a> <span class="m-doc">Variations of a lazy action.</span></li>
                 </ul>
               </li>
               <li class="m-doc-collapsible">
-                <a href="#" onclick="return toggle(this)">class</a> <a class="m-doc" href="classqueryosity_1_1todo.html">todo</a> <span class="m-doc">Instantiates a lazy action upon inputs from existing ones.</span>
+                <a href="#" onclick="return toggle(this)">class</a> <a class="m-doc" href="classqueryosity_1_1todo.html">todo</a> <span class="m-doc">Instantiate a lazy action upon inputs from existing ones.</span>
                 <ul class="m-doc">
                   <li>class <a class="m-doc" href="classqueryosity_1_1todo_1_1varied.html">varied</a> <span class="m-doc">Varied version of a todo item.</span></li>
                 </ul>

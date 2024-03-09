@@ -36,7 +36,7 @@
       <div class="m-col-t-12 m-show-m m-col-m-none m-right-m" id="m-navbar-collapse">
         <div class="m-row">
           <ol class="m-col-t-6 m-col-m-none">
-            <li><a href="namespaces.html">Namespaces</a></li>
+            <li><a href="modules.html">Modules</a></li>
             <li><a href="annotated.html">Classes</a></li>
             <li class="poxy-navbar-version-selector"><a href="classqueryosity_1_1dataflow.html">Version: HEAD</a><ol><li><a href="classqueryosity_1_1dataflow.html">HEAD</a></li></ol></li>
           </ol>
@@ -59,6 +59,7 @@
         <h1>
           <span class="m-breadcrumb"><a href="namespacequeryosity.html">queryosity</a>::<wbr/></span>dataflow <span class="m-thin">class</span>
         </h1>
+        <p>Main dataflow interface.</p>
         <nav class="m-block m-default poxy-toc" id="poxy-toc">
           <h3>Contents</h3>
           <ul>
@@ -71,7 +72,6 @@
             </li>
           </ul>
         </nav>
-<p>Main data analysis and query graph interface.</p>
         <section id="typeless-methods">
           <h2><a href="#typeless-methods">Constructors, destructors, conversion operators</a></h2>
           <dl class="m-doc">
@@ -92,10 +92,39 @@
           <h2><a href="#pub-methods">Public functions</a></h2>
           <dl class="m-doc">
             <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Val</span></span>&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a726b73d4cab0c7c750e8c970c9b46d12">define</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1constant.html">column::<wbr/>constant</a>&lt;Val&gt; const&amp; cnst) -&gt; lazy&lt;column::fixed&lt;Val&gt;&gt;</span>
+            </dt>
+            <dd>Define a constant column.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Expr</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a49afa2e3ef76e459c6242673516d5328">define</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">column::<wbr/>expression</a>&lt;Expr&gt; const&amp; expr,
+              <a class="m-doc" href="classqueryosity_1_1lazy.html">lazy</a>&lt;Cols&gt; const&amp;... cols) -&gt; lazy&lt;column::equation_t&lt;queryosity::column::expression&lt;Expr&gt;&gt;&gt;</span>
+            </dt>
+            <dd>Define a column using an expression.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Def</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#acafeeaf35486c2080a945b46f1ebbf88">define</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1definition.html">column::<wbr/>definition</a>&lt;Def&gt; const&amp; defn,
+              <a class="m-doc" href="classqueryosity_1_1lazy.html">lazy</a>&lt;Cols&gt; const&amp;... cols) -&gt; lazy&lt;Def&gt;</span>
+            </dt>
+            <dd>Define a custom column.</dd>
+            <dt>
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename DS</span></span>&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a89a76c336e2a58437fedef55ed1a59f9">load</a>(</span><span class="m-doc-wrap">dataset::input&lt;DS&gt;&amp;&amp; in) -&gt; dataset::loaded&lt;DS&gt;</span>
             </dt>
             <dd>Load a dataset input.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename DS</span>, <span class="m-doc-template-param">typename Val</span></span>&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a86b6f7833c50da9936e24d9445a51418">read</a>(</span><span class="m-doc-wrap">dataset::input&lt;DS&gt; in,
+              dataset::column&lt;Val&gt; const&amp; col) -&gt; auto</span>
+            </dt>
+            <dd>Read a column from an input dataset.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename DS</span>, <span class="m-doc-template-param">typename... Vals</span></span>&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a190d418f9192612436c5bd287e728e24">read</a>(</span><span class="m-doc-wrap">dataset::input&lt;DS&gt; in,
+              dataset::columns&lt;Vals...&gt; const&amp; cols) -&gt; auto</span>
+            </dt>
+            <dd>Read columns from an input dataset.</dd>
           </dl>
         </section>
         <section>
@@ -111,6 +140,123 @@
             </h3>
             <p>Constructor with (up to) three keyword arguments.</p>
 <p>Each keyword argument should be one of the following:</p><ul><li><code>queryosity::multithread::enable(unsigned int)</code></li><li><code>queryosity::multithread::disable()</code></li><li><code>queryosity::dataset::head(unsigned int)</code></li><li><code>queryosity::dataset::weight(float)</code></li></ul>
+          </div></section>
+          <section class="m-doc-details" id="a726b73d4cab0c7c750e8c970c9b46d12"><div>
+            <h3>
+              <div class="m-doc-template">
+                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Val</span></span>&gt;
+              </div>
+              <span class="m-doc-wrap-bumper">lazy&lt;column::fixed&lt;Val&gt;&gt; <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a726b73d4cab0c7c750e8c970c9b46d12">define</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1constant.html">column::<wbr/>constant</a>&lt;Val&gt; const&amp; cnst)</span></span>
+            </h3>
+            <p>Define a constant column.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Template parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">Val</td>
+                  <td>Column data type.</td>
+                </tr>
+              </tbody>
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>cnst</td>
+                  <td>Constant value.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div></section>
+          <section class="m-doc-details" id="a49afa2e3ef76e459c6242673516d5328"><div>
+            <h3>
+              <div class="m-doc-template">
+                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Expr</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;
+              </div>
+              <span class="m-doc-wrap-bumper">lazy&lt;column::equation_t&lt;queryosity::column::expression&lt;Expr&gt;&gt;&gt; <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a49afa2e3ef76e459c6242673516d5328">define</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">column::<wbr/>expression</a>&lt;Expr&gt; const&amp; expr,
+              <a class="m-doc" href="classqueryosity_1_1lazy.html">lazy</a>&lt;Cols&gt; const&amp;... cols)</span></span>
+            </h3>
+            <p>Define a column using an expression.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Template parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">Expr</td>
+                  <td><a class="m-doc poxy-injected poxy-external poxy-cppreference poxy-named-requirement" href="https://en.cppreference.com/w/cpp/named_req/Callable" target="_blank">Callable</a> type.</td>
+                </tr>
+                <tr>
+                  <td>Cols</td>
+                  <td>Input column types.</td>
+                </tr>
+              </tbody>
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>expr</td>
+                  <td>C++ function, functor, lambda, or any other callable.</td>
+                </tr>
+                <tr>
+                  <td>cols</td>
+                  <td>Input columns.</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Returns</th>
+                  <td>Lazy column.</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div></section>
+          <section class="m-doc-details" id="acafeeaf35486c2080a945b46f1ebbf88"><div>
+            <h3>
+              <div class="m-doc-template">
+                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Def</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;
+              </div>
+              <span class="m-doc-wrap-bumper">lazy&lt;Def&gt; <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#acafeeaf35486c2080a945b46f1ebbf88">define</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1definition.html">column::<wbr/>definition</a>&lt;Def&gt; const&amp; defn,
+              <a class="m-doc" href="classqueryosity_1_1lazy.html">lazy</a>&lt;Cols&gt; const&amp;... cols)</span></span>
+            </h3>
+            <p>Define a custom column.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Template parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">Def</td>
+                  <td><code><a class="m-doc" href="classqueryosity_1_1column_1_1definition.html">column::<wbr/>definition</a>&lt;Out(Ins...)&gt;</code> implementation.</td>
+                </tr>
+                <tr>
+                  <td>Cols</td>
+                  <td>Input column types.</td>
+                </tr>
+              </tbody>
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>defn</td>
+                  <td>Constructor arguments for <code>Def</code>.</td>
+                </tr>
+                <tr>
+                  <td>cols</td>
+                  <td>Input columns.</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Returns</th>
+                  <td>Lazy column.</td>
+                </tr>
+              </tfoot>
+            </table>
           </div></section>
           <section class="m-doc-details" id="a89a76c336e2a58437fedef55ed1a59f9"><div>
             <h3>
@@ -137,6 +283,83 @@
                 </tr>
               </tfoot>
             </table>
+          </div></section>
+          <section class="m-doc-details" id="a86b6f7833c50da9936e24d9445a51418"><div>
+            <h3>
+              <div class="m-doc-template">
+                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename DS</span>, <span class="m-doc-template-param">typename Val</span></span>&gt;
+              </div>
+              <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a86b6f7833c50da9936e24d9445a51418">read</a>(</span><span class="m-doc-wrap">dataset::input&lt;DS&gt; in,
+              dataset::column&lt;Val&gt; const&amp; col)</span></span>
+            </h3>
+            <p>Read a column from an input dataset.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Template parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">DS</td>
+                  <td><code>dataset::reader&lt;Self&gt;</code> implementation.</td>
+                </tr>
+                <tr>
+                  <td>Val</td>
+                  <td>Column data type.</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Returns</th>
+                  <td>Column read from the loaded dataset.</td>
+                </tr>
+              </tfoot>
+            </table>
+<aside class="m-note m-warning"><h4>Attention</h4><p>A dataset should be loaded-in <em>once</em>. Use this method only if you are interested in the requested column, as other columns will not be readable.</p></aside>
+          </div></section>
+          <section class="m-doc-details" id="a190d418f9192612436c5bd287e728e24"><div>
+            <h3>
+              <div class="m-doc-template">
+                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename DS</span>, <span class="m-doc-template-param">typename... Vals</span></span>&gt;
+              </div>
+              <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a190d418f9192612436c5bd287e728e24">read</a>(</span><span class="m-doc-wrap">dataset::input&lt;DS&gt; in,
+              dataset::columns&lt;Vals...&gt; const&amp; cols)</span></span>
+            </h3>
+            <p>Read columns from an input dataset.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Template parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">DS</td>
+                  <td><code>dataset::reader&lt;Self&gt;</code> implementation.</td>
+                </tr>
+                <tr>
+                  <td>Vals</td>
+                  <td>Column data types.</td>
+                </tr>
+              </tbody>
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>in</td>
+                  <td></td>
+                </tr>
+                <tr>
+                  <td>cols</td>
+                  <td>Column names.</td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Returns</th>
+                  <td>Columns read from the loaded dataset.</td>
+                </tr>
+              </tfoot>
+            </table>
+<aside class="m-note m-warning"><h4>Attention</h4><p>A dataset should be loaded-in <em>once</em>. Use this method only if you are interested in the requested columns, as other columns will not be readable.</p></aside>
           </div></section>
         </section>
       </div>

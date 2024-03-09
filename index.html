@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head>
   <meta charset="utf-8"/>
-  <title>queryosity @tableofcontents | queryosity Coherent data analysis in C++</title>
+  <title>queryosity Coherent data analysis in C++</title>
   <link href="favicon-dark.png" rel="icon" type="image/png"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <meta content="#22272e" name="theme-color"/>
@@ -21,7 +21,7 @@
   <meta content="Poxy v0.16.0" name="generator"/>
   <meta content="strict-origin-when-cross-origin" name="referrer"/>
 </head>
-<body>
+<body class="poxy-has-toc">
 <header><nav id="navigation">
   <div class="m-container">
     <div class="m-row">
@@ -36,7 +36,7 @@
       <div class="m-col-t-12 m-show-m m-col-m-none m-right-m" id="m-navbar-collapse">
         <div class="m-row">
           <ol class="m-col-t-6 m-col-m-none">
-            <li><a href="namespaces.html">Namespaces</a></li>
+            <li><a href="modules.html">Modules</a></li>
             <li><a href="annotated.html">Classes</a></li>
             <li class="poxy-navbar-version-selector"><a href="index.html">Version: HEAD</a><ol><li><a href="index.html">HEAD</a></li></ol></li>
           </ol>
@@ -57,9 +57,45 @@
     <div class="m-row">
       <div class="m-col-l-10 m-push-l-1">
         <h1>
-          queryosity @tableofcontents
+          queryosity
         </h1>
-<p><code>queryosity</code> is row-wise data analysis library written in &amp; for C++.</p><section id="mainpage-features"><h2><a href="#mainpage-features">Features</a></h2><ul><li><strong>Clear interface.</strong> The easy-to-learn, self-consistent API has a grand total of <em>five</em> main endpoints that can perform even the most complex operations.</li><li><strong>Arbitrary data types.</strong> Manipulate columns of <em>any</em> data structure.</li><li><strong>Arbitrary actions.</strong> Provide ABCs to let users perform data analysis the way they want to, from input datasets to all the way to query outputs.</li><li><strong>Lazy but efficient.</strong> An action is performed for an entry only if needed. All actions are performed in one dataset traversal. Dataset traversal is multithreaded.</li><li><strong>Systematic variations.</strong> Perform <em>automatic</em> sensitivity analysis by propagating systematic variations through actions.</li></ul><p><code>queryosity</code> provides a "DataFlow", or row-wise, model of structured data analysis. Users specify operations as if they are inside for-loop over the entries of the dataset. The key is to <em>specify</em> without executing the operations on a dataset until they are needed, i.e. create <em>lazy</em> actions. Each lazy actions in a DataFlow are only if needed in order maximize CPU usage and efficiency (see Lazy actions), which is especially relevant for analysis workflows not limited by I/O bandwidth.</p><p>This library has been purposefully developed for high-energy physics experiments; hopefully, it can be similarly useful for studying other complex phenomena.</p></section>
+        <nav class="m-block m-default poxy-toc" id="poxy-toc">
+          <h3>Contents</h3>
+          <ul>
+            <li><a href="#mainpage-features">Features</a></li>
+            <li>
+              <a href="#mainpage-installation">Installation</a>
+              <ul>
+                <li><a href="#mainpage-installation-header">Single-header</a></li>
+                <li>
+                  <a href="#mainpage-installation-header">Single-header</a>
+                  <ul>
+                    <li><a href="#autotoc_md0">Standalone</a></li>
+                    <li><a href="#autotoc_md1">Integrated</a></li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+            <li>
+              <a href="#mainpage-design-goals">Design goals</a>
+              <ul>
+                <li><a href="#autotoc_md2">Why not DataFrames?</a></li>
+              </ul>
+            </li>
+          </ul>
+        </nav>
+<p><code>queryosity</code> is row-wise data analysis library written in &amp; for C++.</p><section id="mainpage-features"><h2><a href="#mainpage-features">Features</a></h2><ul><li><strong>Dead simple.</strong> The easy-to-learn, self-consistent API has a grand total of <em>five</em> endpoints to perform even the most complex operations.</li><li><strong>Arbitrary actions.</strong> Work with datasets/columns/queries of <em>any</em> data structure the way <em>you</em> want to.</li><li><strong>Lazy but efficient.</strong> An action is performed for an entry only if needed. All actions are performed in one dataset traversal. Dataset traversal is multithreaded.</li><li><strong>Systematic variations.</strong> Perform <em>automatic</em> sensitivity analysis by propagating systematic variations through actions.</li></ul></section><section id="mainpage-installation"><h2><a href="#mainpage-installation">Installation</a></h2><p>The following compilers with C++17 support are part of the CI.</p><table class="m-table"><thead><tr><th>OS</th><th>Compiler</th><th>Versions</th></tr></thead><tbody><tr><td>macOS 12</td><td>Clang</td><td>13.1, 13.2.1, 13.3.1, 13.4.1, 14.0, 14.0.1, 14.1</td></tr><tr><td>Ubuntu 22.04 LTS</td><td>GCC</td><td>9.4, 10.5, 11.4, 12.3</td></tr></tbody></table><section id="mainpage-installation-header"><h3><a href="#mainpage-installation-header">Single-header</a></h3><pre class="m-code"><span class="cp">#include</span> <span class="cpf">"queryosity.h"</span></pre></section><section id="mainpage-installation-header"><h3><a href="#mainpage-installation-header">Single-header</a></h3><pre class="m-code">git clone https://github.com/taehyounpark/queryosity.git</pre><section id="autotoc_md0"><h4><a href="#autotoc_md0">Standalone</a></h4><pre class="m-code"><span class="nb">cd</span> queryosity/ <span class="o">&amp;&amp;</span> mkdir build/ <span class="o">&amp;&amp;</span> <span class="nb">cd</span> build/
+cmake ../
+cmake --build .
+cmake --install .</pre><pre class="m-code"><span class="nb">find_package</span><span class="p">(</span><span class="s">queryosity</span> <span class="s">0.1.0</span> <span class="s">REQUIRED</span><span class="p">)</span>
+<span class="err">...</span>
+<span class="nb">add_library</span><span class="p">(</span><span class="s">YourProject</span> <span class="s">...</span><span class="p">)</span>
+<span class="err">...</span>
+<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">YourProject</span> <span class="s">INTERFACE</span> <span class="s">queryosity::queryosity</span><span class="p">)</span></pre><pre class="m-code"><span class="cp">#include</span> <span class="cpf">"queryosity/queryosity.h"</span></pre></section><section id="autotoc_md1"><h4><a href="#autotoc_md1">Integrated</a></h4><pre class="m-code"><span class="nb">add_subdirectory</span><span class="p">(</span><span class="s">queryosity</span><span class="p">)</span>
+<span class="err">...</span>
+<span class="nb">add_library</span><span class="p">(</span><span class="s">YourProject</span> <span class="s">...</span><span class="p">)</span>
+<span class="err">...</span>
+<span class="nb">target_link_libraries</span><span class="p">(</span><span class="s">YourProject</span> <span class="s">INTERFACE</span> <span class="s">queryosity::queryosity</span><span class="p">)</span></pre><pre class="m-code"><span class="cp">#include</span> <span class="cpf">"queryosity/queryosity.h"</span></pre></section></section></section><section id="mainpage-design-goals"><h2><a href="#mainpage-design-goals">Design goals</a></h2><p><code>queryosity</code> provides a "dataflow", or row-wise, model of structured data analysis. Users specify operations as if they are inside for-loop over the entries of the dataset. The key is to <em>specify</em> without executing the operations on a dataset until they are needed, i.e. create <em>lazy</em> actions. Each lazy actions in a dataflow are only if needed in order maximize CPU usage and efficiency (see Lazy actions), which is especially relevant for analysis workflows not limited by I/O bandwidth.</p><p>This library has been purposefully developed for high-energy physics experiments; hopefully, it can be similarly useful for studying other complex phenomena.</p><section id="autotoc_md2"><h4><a href="#autotoc_md2">Why not DataFrames?</a></h4><p>Two key distinctions separate the dataflow against the plethora of DataFrame libraries.</p><h5>Conceptual</h5><p>DataFrames can do both array-wise and row-wise operations, but the former mode is where it shines, whereas the latter is more of a fallback. The result is a complicated API where careless mixing-and-matching of the two approaches will cost the user their sanity.</p><p>Other the other hand, putting row-wise reasoning at the forefront is the intuitive way of thinking about tabular datasets for humans (return to monke...). This greatly simplifies the dataflow API, which is also distinguished by its syntax faithfully representing the actual computation graph being performed inside each entry. In other words, Alice's analysis code can <em>actually</em> be readable to Bob, and vice versa!</p><h5>Technical</h5><p>DataFrames are optimized for a specific dataset structure in which the values in each column can be organized into a contiguous array. Operations on these arrays of primitive data types can offer algorithmic (e.g. linear vs. binary search) as well as hardware (e.g. vectorized operations) speedups.</p><p>(i.e. If a dataset fits into a DataFrame, it will almost always be better for the job).</p><p>While this covers a wide range of data analysis workflows as evident from the widespread use of these libraries, it is not suitable for instances in which columns contain non-trivial and/or highly-nested data. This is not so uncommon as listed above. "Extensions" to DataFrames to support more complex column data types do exist, but they are not true panaceas as long as there is <em>some</em> data out that cannot be vectorized.</p><p>No such restrictions need exist with dataflow, as promised to be one of its main features. It also does the best it can in terms of performance through lazy actions and multithreading.</p></section></section>
       </div>
     </div>
   </div>

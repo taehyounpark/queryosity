@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head>
   <meta charset="utf-8"/>
-  <title>queryosity::column::computation class | queryosity Coherent data analysis in C++</title>
+  <title>queryosity::column namespace | queryosity Coherent data analysis in C++</title>
   <link href="favicon-dark.png" rel="icon" type="image/png"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <meta content="#22272e" name="theme-color"/>
@@ -21,7 +21,7 @@
   <meta content="Poxy v0.16.0" name="generator"/>
   <meta content="strict-origin-when-cross-origin" name="referrer"/>
 </head>
-<body>
+<body class="poxy-has-toc">
 <header><nav id="navigation">
   <div class="m-container">
     <div class="m-row">
@@ -36,9 +36,9 @@
       <div class="m-col-t-12 m-show-m m-col-m-none m-right-m" id="m-navbar-collapse">
         <div class="m-row">
           <ol class="m-col-t-6 m-col-m-none">
-            <li><a href="namespaces.html">Namespaces</a></li>
+            <li><a href="modules.html">Modules</a></li>
             <li><a href="annotated.html">Classes</a></li>
-            <li class="poxy-navbar-version-selector"><a href="classqueryosity_1_1column_1_1computation.html">Version: HEAD</a><ol><li><a href="classqueryosity_1_1column_1_1computation.html">HEAD</a></li></ol></li>
+            <li class="poxy-navbar-version-selector"><a href="namespacequeryosity_1_1column.html">Version: HEAD</a><ol><li><a href="namespacequeryosity_1_1column.html">HEAD</a></li></ol></li>
           </ol>
           <ol class="m-col-t-6 m-col-m-none" start="4">
             <li><a class="poxy-icon repo github poxy-external" href="https://github.com/taehyounpark/queryosity" target="_blank" title="View on GitHub"><svg id="poxy-icon-repo" version="1.1" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><path d="M25,1.23a24.37,24.37,0,0,0-7.7,47.5C18.51,49,19,48.2,19,47.56s0-2.12,0-4.15c-6.78,1.47-8.21-3.27-8.21-3.27C9.61,37.33,8,36.58,8,36.58c-2.21-1.51.17-1.48.17-1.48a5.12,5.12,0,0,1,3.73,2.51c2.17,3.72,5.7,2.65,7.09,2a5.25,5.25,0,0,1,1.55-3.26c-5.41-.61-11.1-2.7-11.1-12A9.41,9.41,0,0,1,12,17.79a8.75,8.75,0,0,1,.24-6.45s2-.66,6.7,2.49a23.1,23.1,0,0,1,12.2,0c4.66-3.15,6.7-2.49,6.7-2.49A8.75,8.75,0,0,1,38,17.79a9.41,9.41,0,0,1,2.51,6.54c0,9.36-5.7,11.42-11.13,12a5.83,5.83,0,0,1,1.65,4.51c0,3.26,0,5.89,0,6.69,0,.65.44,1.41,1.68,1.17A24.38,24.38,0,0,0,25,1.23Z" fill="currentColor"></path></svg></a></li>
@@ -57,9 +57,60 @@
     <div class="m-row">
       <div class="m-col-l-10 m-push-l-1">
         <h1>
-          <span class="m-breadcrumb"><a href="namespacequeryosity.html">queryosity</a>::<wbr/></span><span class="m-breadcrumb"><span class="poxy-dead-link">column</span>::<wbr/></span>computation <span class="m-thin">class</span>
+          <span class="m-breadcrumb"><a href="namespacequeryosity.html">queryosity</a>::<wbr/></span>column <span class="m-thin">namespace</span>
         </h1>
-<p>Computation graph of columns.</p>
+        <p>Compute quantities of interest.</p>
+        <nav class="m-block m-default poxy-toc" id="poxy-toc">
+          <h3>Contents</h3>
+          <ul>
+            <li>
+              Reference
+              <ul>
+                <li><a href="#nested-classes">Classes</a></li>
+              </ul>
+            </li>
+          </ul>
+        </nav>
+        <section id="nested-classes">
+          <h2><a href="#nested-classes">Classes</a></h2>
+          <dl class="m-doc">
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Val</span></span>&gt;</div>
+              class <a class="m-doc" href="classqueryosity_1_1column_1_1calculation.html">calculation</a>
+            </dt>
+            <dd>Calculate a column value for each dataset entry.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Val</span></span>&gt;</div>
+              class <a class="m-doc" href="classqueryosity_1_1column_1_1constant.html">constant</a>
+            </dt>
+            <dd>Define a constant column in dataflow.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Def</span></span>&gt;</div>
+              class <a class="m-doc" href="classqueryosity_1_1column_1_1definition.html">definition</a>
+            </dt>
+            <dd>Define a custom column in dataflow.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Out</span>, <span class="m-doc-template-param">typename... Ins</span></span>&gt;</div>
+              class <a class="m-doc" href="classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html">definition&lt;Out(Ins...)&gt;</a>
+            </dt>
+            <dd>Column with user-defined return value type and evaluation dataset.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Expr</span></span>&gt;</div>
+              class <a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">expression</a>
+            </dt>
+            <dd>Define a column evaluated out of an expression.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename T</span></span>&gt;</div>
+              class <a class="m-doc" href="classqueryosity_1_1column_1_1reader.html">reader</a>
+            </dt>
+            <dd>Read columns from a dataset.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Me</span>, <span class="m-doc-template-param">typename... Obs</span></span>&gt;</div>
+              class <a class="m-doc" href="classqueryosity_1_1column_1_1representation_3_01_me_07_obs_8_8_8_08_4.html">representation&lt;Me(Obs...)&gt;</a>
+            </dt>
+            <dd>Representation of multipile columns, out of which derived quantites can be calculated.</dd>
+          </dl>
+        </section>
       </div>
     </div>
   </div>

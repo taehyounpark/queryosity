@@ -36,7 +36,7 @@
       <div class="m-col-t-12 m-show-m m-col-m-none m-right-m" id="m-navbar-collapse">
         <div class="m-row">
           <ol class="m-col-t-6 m-col-m-none">
-            <li><a href="namespaces.html">Namespaces</a></li>
+            <li><a href="modules.html">Modules</a></li>
             <li><a href="annotated.html">Classes</a></li>
             <li class="poxy-navbar-version-selector"><a href="namespacequeryosity.html">Version: HEAD</a><ol><li><a href="namespacequeryosity.html">HEAD</a></li></ol></li>
           </ol>
@@ -59,39 +59,46 @@
         <h1>
           queryosity <span class="m-thin">namespace</span>
         </h1>
+        <p>Perform queries on the dataset.</p>
         <nav class="m-block m-default poxy-toc" id="poxy-toc">
           <h3>Contents</h3>
           <ul>
             <li>
               Reference
               <ul>
+                <li><a href="#namespaces">Namespaces</a></li>
                 <li><a href="#nested-classes">Classes</a></li>
               </ul>
             </li>
           </ul>
         </nav>
 <p>The root namespace of all queryostiy namespaces and classes.</p>
+        <section id="namespaces">
+          <h2><a href="#namespaces">Namespaces</a></h2>
+          <dl class="m-doc">
+            <dt>namespace <a class="m-doc" href="namespacequeryosity_1_1column.html">column</a></dt>
+            <dd>Compute quantities of interest.</dd>
+            <dt>namespace <a class="m-doc" href="namespacequeryosity_1_1selection.html">selection</a></dt>
+            <dd>Apply cuts and weights to entries.</dd>
+          </dl>
+        </section>
         <section id="nested-classes">
           <h2><a href="#nested-classes">Classes</a></h2>
           <dl class="m-doc">
             <dt>
-              class <a class="m-doc" href="classqueryosity_1_1action.html">action</a>
-            </dt>
-            <dd>abstract base class with initialization, execution, finalization steps</dd>
-            <dt>
               class <a class="m-doc" href="classqueryosity_1_1dataflow.html">dataflow</a>
             </dt>
-            <dd></dd>
+            <dd>Main dataflow interface.</dd>
             <dt>
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Action</span></span>&gt;</div>
               class <a class="m-doc" href="classqueryosity_1_1lazy.html">lazy</a>
             </dt>
-            <dd></dd>
+            <dd>Lazy action over dataset.</dd>
             <dt>
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Helper</span></span>&gt;</div>
               class <a class="m-doc" href="classqueryosity_1_1todo.html">todo</a>
             </dt>
-            <dd>Instantiates a lazy action upon inputs from existing ones.</dd>
+            <dd>Instantiate a lazy action upon inputs from existing ones.</dd>
           </dl>
         </section>
       </div>
