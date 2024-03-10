@@ -428,12 +428,44 @@
     <class kind="class">queryosity::todo::varied</class>
   </compound>
   <compound kind="page">
+    <name>conceptual</name>
+    <title>Conceptual guide</title>
+    <filename>conceptual.html</filename>
+    <docanchor file="conceptual.html" title="Dataflow">conceptual-dataflow</docanchor>
+    <docanchor file="conceptual.html" title="Lazy actions">conceptual-lazy</docanchor>
+    <docanchor file="conceptual.html" title="Columns">conceptual-columns</docanchor>
+    <docanchor file="conceptual.html" title="Selections">conceptual-selections</docanchor>
+    <docanchor file="conceptual.html" title="Queries">conceptual-query</docanchor>
+    <docanchor file="conceptual.html" title="Systematic variations">conceptual-variations</docanchor>
+  </compound>
+  <compound kind="page">
+    <name>design</name>
+    <title>Design goals</title>
+    <filename>design.html</filename>
+    <docanchor file="design.html" title="Why not DataFrames?">design-df</docanchor>
+    <docanchor file="design.html" title="Conceptual">design-df-conceptual</docanchor>
+    <docanchor file="design.html" title="Technical">design-df-technical</docanchor>
+  </compound>
+  <compound kind="page">
+    <name>guide</name>
+    <title>User guide</title>
+    <filename>guide.html</filename>
+    <docanchor file="guide.html" title="Cheat sheet">guide-cheatsheet</docanchor>
+  </compound>
+  <compound kind="page">
+    <name>install</name>
+    <title>Installation</title>
+    <filename>install.html</filename>
+    <docanchor file="install.html" title="Single-header">install-header</docanchor>
+    <docanchor file="install.html" title="CMake">install-cmake</docanchor>
+    <docanchor file="install.html" title="Standalone">install-cmake-standalone</docanchor>
+    <docanchor file="install.html" title="Integrated">install-cmake-integrated</docanchor>
+  </compound>
+  <compound kind="page">
     <name>index</name>
     <title></title>
     <filename>index.html</filename>
     <docanchor file="index.html" title="Features">mainpage-features</docanchor>
-    <docanchor file="index.html" title="Installation">mainpage-installation</docanchor>
-    <docanchor file="index.html" title="Single-header">mainpage-installation-header</docanchor>
-    <docanchor file="index.html" title="Design goals">mainpage-design-goals</docanchor>
+    <docanchor file="index.html" title="Documentation">mainpage-documentation</docanchor>
   </compound>
 </tagfile>

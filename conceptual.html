@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head>
   <meta charset="utf-8"/>
-  <title>queryosity Coherent data analysis in C++</title>
+  <title>Conceptual guide | queryosity Coherent data analysis in C++</title>
   <link href="favicon-dark.png" rel="icon" type="image/png"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <meta content="#22272e" name="theme-color"/>
@@ -21,7 +21,7 @@
   <meta content="Poxy v0.16.0" name="generator"/>
   <meta content="strict-origin-when-cross-origin" name="referrer"/>
 </head>
-<body>
+<body class="poxy-has-toc">
 <header><nav id="navigation">
   <div class="m-container">
     <div class="m-row">
@@ -41,7 +41,7 @@
             <li><a href="annotated.html">Classes</a></li>
           </ol>
           <ol class="m-col-t-6 m-col-m-none" start="4">
-            <li class="poxy-navbar-version-selector"><a href="namespaces.html">Version: HEAD</a><ol><li><a href="namespaces.html">HEAD</a></li></ol></li>
+            <li class="poxy-navbar-version-selector"><a href="conceptual.html">Version: HEAD</a><ol><li><a href="conceptual.html">HEAD</a></li></ol></li>
             <li><a class="poxy-icon repo github poxy-external" href="https://github.com/taehyounpark/queryosity" target="_blank" title="View on GitHub"><svg id="poxy-icon-repo" version="1.1" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><path d="M25,1.23a24.37,24.37,0,0,0-7.7,47.5C18.51,49,19,48.2,19,47.56s0-2.12,0-4.15c-6.78,1.47-8.21-3.27-8.21-3.27C9.61,37.33,8,36.58,8,36.58c-2.21-1.51.17-1.48.17-1.48a5.12,5.12,0,0,1,3.73,2.51c2.17,3.72,5.7,2.65,7.09,2a5.25,5.25,0,0,1,1.55-3.26c-5.41-.61-11.1-2.7-11.1-12A9.41,9.41,0,0,1,12,17.79a8.75,8.75,0,0,1,.24-6.45s2-.66,6.7,2.49a23.1,23.1,0,0,1,12.2,0c4.66-3.15,6.7-2.49,6.7-2.49A8.75,8.75,0,0,1,38,17.79a9.41,9.41,0,0,1,2.51,6.54c0,9.36-5.7,11.42-11.13,12a5.83,5.83,0,0,1,1.65,4.51c0,3.26,0,5.89,0,6.69,0,.65.44,1.41,1.68,1.17A24.38,24.38,0,0,0,25,1.23Z" fill="currentColor"></path></svg></a></li>
             <li><a class="poxy-icon theme" href="javascript:void(null);" id="poxy-theme-switch" onclick="toggle_theme(); return false;" role="button" title="Toggle dark and light themes"><svg id="poxy-theme-switch-img" version="1.1" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><circle cx="185.6708" cy="183.8122" fill="currentColor" r="65.625"></circle><path d="M185.6708,87.5622a13.1256,13.1256,0,0,0,13.125-13.125V52.5622a13.125,13.125,0,1,0-26.25,0v21.875A13.1257,13.1257,0,0,0,185.6708,87.5622Z" fill="currentColor"></path><path d="M99.051,115.7519a13.1236,13.1236,0,1,0,18.56-18.56L102.1442,81.726a13.1236,13.1236,0,0,0-18.5595,18.56Z" fill="currentColor"></path><path d="M89.4208,183.8122a13.1257,13.1257,0,0,0-13.125-13.125H54.4208a13.125,13.125,0,0,0,0,26.25h21.875A13.1256,13.1256,0,0,0,89.4208,183.8122Z" fill="currentColor"></path><path d="M99.051,251.8725,83.5847,267.3431a13.1236,13.1236,0,1,0,18.56,18.56l15.4663-15.4706a13.1236,13.1236,0,1,0-18.5595-18.56Z" fill="currentColor"></path><path d="M185.6708,280.0622a13.1258,13.1258,0,0,0-13.125,13.125v21.875a13.125,13.125,0,0,0,26.25,0v-21.875A13.1257,13.1257,0,0,0,185.6708,280.0622Z" fill="currentColor"></path><path d="M272.2907,251.8725a13.1236,13.1236,0,1,0-18.56,18.56l15.4663,15.4706a13.1236,13.1236,0,1,0,18.56-18.56Z" fill="currentColor"></path><path d="M330.0458,183.8122a13.1257,13.1257,0,0,0-13.125-13.125h-21.875a13.125,13.125,0,0,0,0,26.25h21.875A13.1256,13.1256,0,0,0,330.0458,183.8122Z" fill="currentColor"></path><path d="M263.0109,119.5971a13.0824,13.0824,0,0,0,9.28-3.8452l15.4663-15.4663a13.1236,13.1236,0,1,0-18.56-18.56L253.7312,97.1923a13.125,13.125,0,0,0,9.28,22.4048Z" fill="currentColor"></path><path d="M456.9379,401.6714a63.97,63.97,0,0,1-14.9963,7.2055c-19.6448,6.5283-41.8787,2.9566-58.1439-9.8523a68.9311,68.9311,0,0,1-10.835-10.8339c-12.8088-16.2663-16.3806-38.5-9.8523-58.1471a63.8444,63.8444,0,0,1,7.2077-14.9931,8.8036,8.8036,0,0,0-10.1172-13.3034,87.5188,87.5188,0,1,0,110.0372,110.04A8.8,8.8,0,0,0,456.9379,401.6714Z" fill="currentColor"></path></svg></a></li>
             <li class="m-show-m"><a class="m-doc-search-icon" href="#search" onclick="return showSearch()" title="Search"><svg style="height: 0.9rem;" viewBox="0 0 16 16">
@@ -57,32 +57,21 @@
   <div class="m-container m-container-inflatable">
     <div class="m-row">
       <div class="m-col-l-10 m-push-l-1">
-        <h1>Namespaces</h1>
-        <ul class="m-doc">
-          <li class="m-doc-collapsible">
-            <a href="#" onclick="return toggle(this)">namespace</a> <a class="m-doc" href="namespacequeryosity.html">queryosity</a> <span class="m-doc">Perform queries on the dataset.</span>
-            <ul class="m-doc">
-              <li>namespace <a class="m-doc" href="namespacequeryosity_1_1column.html">column</a> <span class="m-doc">Compute quantities of interest.</span></li>
-              <li>namespace <a class="m-doc" href="namespacequeryosity_1_1selection.html">selection</a> <span class="m-doc">Apply cuts and weights to entries.</span></li>
-            </ul>
-          </li>
-        </ul>
-        <script>
-        function toggle(e) {
-            e.parentElement.className = e.parentElement.className == 'm-doc-collapsible' ?
-                'm-doc-expansible' : 'm-doc-collapsible';
-            return false;
-        }
-        /* Collapse all nodes marked as such. Doing it via JS instead of
-           directly in markup so disabling it doesn't harm usability. The list
-           is somehow regenerated on every iteration and shrinks as I change
-           the classes. It's not documented anywhere and I'm not sure if this
-           is the same across browsers, so I am going backwards in that list to
-           be sure. */
-        var collapsed = document.getElementsByClassName("collapsed");
-        for(var i = collapsed.length - 1; i >= 0; --i)
-            collapsed[i].className = 'm-doc-expansible';
-        </script>
+        <h1>
+          Conceptual guide
+        </h1>
+        <nav class="m-block m-default poxy-toc" id="poxy-toc">
+          <h3>Contents</h3>
+          <ul>
+            <li><a href="#conceptual-dataflow">Dataflow</a></li>
+            <li><a href="#conceptual-lazy">Lazy actions</a></li>
+            <li><a href="#conceptual-columns">Columns</a></li>
+            <li><a href="#conceptual-selections">Selections</a></li>
+            <li><a href="#conceptual-query">Queries</a></li>
+            <li><a href="#conceptual-variations">Systematic variations</a></li>
+          </ul>
+        </nav>
+<section id="conceptual-dataflow"><h2><a href="#conceptual-dataflow">Dataflow</a></h2><p>A <code>dataflow</code> consists of a directed, acyclic graph of tasks performed for each entry.</p><img alt="Image" class="m-image" src="../images/dataflow.png"/><p>An action falls into one of three types that reflect the nature of the task and are uniquely associated with a set of applicable methods. Each type forms a sub-graphs of tasks, which receive actions of the previous types as inputs:</p><table class="m-table"><thead><tr><th>Action</th><th>Description</th><th>Methods</th><th>Description</th><th>Task Graph</th><th>Input actions</th></tr></thead><tbody><tr><td><code>column</code></td><td>Quantity of interest</td><td><code>read()</code></td><td>Read a column.</td><td>Computation</td><td>–</td></tr><tr><td></td><td></td><td><code>define()</code></td><td>Evaluate a column.</td><td></td><td></td></tr><tr><td><code>selection</code></td><td>Boolean decision</td><td><code>filter()</code></td><td>Apply a cut.</td><td>Cutflow</td><td><code>column</code></td></tr><tr><td></td><td>Floating-point decision</td><td><code>weight()</code></td><td>Apply a statistical significance.</td><td></td><td></td></tr><tr><td><code>query</code></td><td>Perform a query</td><td><code>make()</code></td><td>Make a query plan.</td><td>Experiment</td><td><code>column</code> &amp; <code>selection</code></td></tr><tr><td></td><td></td><td><code>fill()</code></td><td>Populate with column value(s).</td><td></td><td></td></tr><tr><td></td><td></td><td><code>book()</code></td><td>Perform over selected entries.</td><td></td><td></td></tr></tbody></table></section><section id="conceptual-lazy"><h2><a href="#conceptual-lazy">Lazy actions</a></h2><p>All actions are "lazy", meaning they are not executed them unless required. Accessing the result of any query, which requires any of its associated actions to be performed over the entire dataset, turns them "eager". Once the dataset traversal is underway for any one query, all existing queries for the dataflow up to that point are also processed. The eagerness of actions in each entry are as follows:</p><ol><li>A query is executed only if its associated selection passes its selection.</li><li>A selection is evaluated only if all of its prior selections in the cutflow have passed.</li><li>A column is evaluated only if it is needed to determine any of the above.</li></ol></section><section id="conceptual-columns"><h2><a href="#conceptual-columns">Columns</a></h2><p>A <code>column</code> contains some data type <code>T</code> whose value changes, i.e. must be updated, for each entry. The computation graph only needs to perform the least number of updates possible:</p><ul><li>A column value is updated for an entry only if its computation is required.<ul><li>Once updated, the value is cached and never re-computed.</li></ul></li><li>A column value is not copied when used as an input for dependent columns.<ul><li>It <em>is</em> copied a conversion is required.</li></ul></li></ul><img alt="Image" class="m-image" src="../images/computation.png"/></section><section id="conceptual-selections"><h2><a href="#conceptual-selections">Selections</a></h2><p>A <code>selection</code> is a specific type of scalar-valued columns representing a decision made on an entry:</p><ul><li>A boolean as a <code>cut</code> to determine if the entry should be counted in a query or not.<ul><li>A series of two or more cuts is equivalent to their intersection, <code>&amp;&amp;</code>.</li></ul></li><li>A floating-point value as a <code>weight</code> to assign a statistical significance to the entry.<ul><li>A series of two or more weights is equivalent to their product, <code>*</code>.</li></ul></li></ul><p>A cutflow can have from the following types connections between nodes:</p><img alt="Image" class="m-image" src="../images/cutflow.png"/><ul><li>Applying a selection from an existing node, which determines the order in which they are compounded.</li><li>Branching selections by applying more than one selection from a common node.</li><li>Merging two selections, e.g. taking the union/intersection of two cuts.</li></ul><h5>Algorithmic guarantees</h5><ul><li>The cut at a node will first check to see if its previous cut has passed.</li><li>The weight at a selection node is not evaluated unless the cut has passed.</li><li>Once a decision is evaluated at a node,</li></ul></section><section id="conceptual-query"><h2><a href="#conceptual-query">Queries</a></h2><p>A <code>query</code> definition specifies an output whose result is obtained from counting entries of the dataset.</p><ul><li>The query definition dictates how an entry is to be counted, i.e. it is an arbitrary action:<ul><li>(Optional) The result is populated based on values of inputs columns.</li><li>In multithreaded runs, it must also merge outputs from individual threads to yield a result representative of the full dataset.</li></ul></li><li>A query definition must be associated with a selection whose cut determines which entries to count.<ul><li>(Optional) The result is populated with the weight taken into account.</li></ul></li></ul><p>Two common workflows exist in associating queries with selections:</p><ul><li>Running a single query at multiple selections:</li></ul><img alt="Image" class="m-image" src="../images/query_1.png"/><ul><li>Running multiple queries at a selection:</li></ul><img alt="Image" class="m-image" src="../images/query_2.png"/></section><section id="conceptual-variations"><h2><a href="#conceptual-variations">Systematic variations</a></h2><p>A sensitivity analysis means to study how changes in the input of a system affect its output. In the context of dataset queries, a <strong>systematic variation</strong> constitutes a <strong>change in a column value that affects the outcome of selections and queries</strong>.</p><p>In a dataflow, variations in a column need only be specified <em>once</em>. Then, they are <em>propagated</em> through all relevant task graphs. This reduces code redundancy i.e. room for human error, and ensures that all variations run in a single run, eliminating the runtime overhead associated with repeated dataset traversals.</p><p>This is done by encapsulating the nominal and variations of a column to create a <code>varied</code> node in which each variation is mapped by the name of its associated systematic variation. A varied node can be treated functionally identical to a nominal-only one, with all nominal+variations being propagated underneath:</p><ul><li>Any column definitions and selections evaluated out of varied input columns will be varied.</li><li>Any queries performed filled with varied input columns and/or at varied selections will be varied.</li></ul><p>The propagation proceeds in the following fashion:</p><ul><li><strong>Lockstep.</strong> If two actions each have a variation of the same name, they are in effect together.</li><li><strong>Transparent.</strong> If only one action has a given variation, then the nominal is in effect for the other.</li></ul><img alt="Image" class="m-image" src="../images/variation.png"/></section>
       </div>
     </div>
   </div>
