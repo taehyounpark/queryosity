@@ -135,7 +135,7 @@ queryosity::plan::dump<Folder>(pth_hists, out_file, "hww");
 
 delete out_file;
 ```
-![pth_hists](../../assets/hww_hists.png)
+![pth_hists](../../images/hww_hists.png)
 
 ## Systematic variations
 
@@ -171,7 +171,7 @@ mll_vars.has_variation("sf_var"); // true : mll nominal & cut_2los varied
 mll_vars.nominal()->Draw();
 mll_vars["lp4_up"]->Draw("same");
 ```
-![mll_varied](../../assets/mll_varied.png)
+![mll_varied](../../images/mll_varied.png)
 
 ```cpp title="Booking multiple selections and variations at once"
 // mll contains variations = {lp4_up, sf_var}

@@ -1,4 +1,9 @@
-```cpp title="Includes"
+@page guide User guide
+@tableofcontents
+
+@section guide-cheatsheet Cheat sheet
+
+```cpp
 #include "queryosity/queryosity.h"
 
 namespace qty = queryosity;
@@ -16,8 +21,7 @@ dataflow df(mulithread::enable(/*(1)!*/));
 
 1. Requested number of (default: system maximum).
 
-=== "Keep dataset"
-    ```cpp title="Read columns"
+    ```cpp
     auto ds = df.load(dataset::input</*(1)!*/>(/*(2)!*/));
     auto x = ds.read(dataset::column</*(3)!*/>("x"));
     auto y = ds.read(dataset::column</*(4)!*/>("y"));
