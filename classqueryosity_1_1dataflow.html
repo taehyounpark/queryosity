@@ -82,9 +82,9 @@
             <dd>Default constructor.</dd>
             <dt>
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename Kwd1</span>, <span class="m-doc-template-param">typename Kwd2</span>, <span class="m-doc-template-param">typename Kwd3</span></span>&gt;</div>
-              <span class="m-doc-wrap-bumper"><a class="m-doc" href="#a6291acb8458b61a839c57a33ec279e0e">dataflow</a>(</span><span class="m-doc-wrap">Kwd1 kwarg1,
-              Kwd2 kwarg2,
-              Kwd3 kwarg3)</span>
+              <span class="m-doc-wrap-bumper"><a class="m-doc" href="#a4cec7f2b99eb673cfe74f5492a9318b7">dataflow</a>(</span><span class="m-doc-wrap">Kwd1&amp;&amp; kwarg1,
+              Kwd2&amp;&amp; kwarg2,
+              Kwd3&amp;&amp; kwarg3)</span>
             </dt>
             <dd>Constructor with (up to) three keyword arguments.</dd>
           </dl>
@@ -130,14 +130,14 @@
         </section>
         <section>
           <h2>Function documentation</h2>
-          <section class="m-doc-details" id="a6291acb8458b61a839c57a33ec279e0e"><div>
+          <section class="m-doc-details" id="a4cec7f2b99eb673cfe74f5492a9318b7"><div>
             <h3>
               <div class="m-doc-template">
                 template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename Kwd1</span>, <span class="m-doc-template-param">typename Kwd2</span>, <span class="m-doc-template-param">typename Kwd3</span></span>&gt;
               </div>
-              <span class="m-doc-wrap-bumper"> <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a6291acb8458b61a839c57a33ec279e0e">dataflow</a>(</span><span class="m-doc-wrap">Kwd1 kwarg1,
-              Kwd2 kwarg2,
-              Kwd3 kwarg3)</span></span>
+              <span class="m-doc-wrap-bumper"> <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a4cec7f2b99eb673cfe74f5492a9318b7">dataflow</a>(</span><span class="m-doc-wrap">Kwd1&amp;&amp; kwarg1,
+              Kwd2&amp;&amp; kwarg2,
+              Kwd3&amp;&amp; kwarg3)</span></span>
             </h3>
             <p>Constructor with (up to) three keyword arguments.</p>
 <p>Each keyword argument should be one of the following:</p><ul><li><code>queryosity::multithread::enable(unsigned int)</code></li><li><code>queryosity::multithread::disable()</code></li><li><code>queryosity::dataset::head(unsigned int)</code></li><li><code>queryosity::dataset::weight(float)</code></li></ul>
@@ -165,7 +165,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>cnst</td>
+                  <td>cnst <span class="m-label m-flat m-info">in</span></td>
                   <td>Constant value.</td>
                 </tr>
               </tbody>
@@ -199,11 +199,11 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>expr</td>
+                  <td>expr <span class="m-label m-flat m-info">in</span></td>
                   <td>C++ function, functor, lambda, or any other callable.</td>
                 </tr>
                 <tr>
-                  <td>cols</td>
+                  <td>cols <span class="m-label m-flat m-info">in</span></td>
                   <td>Input columns.</td>
                 </tr>
               </tbody>
@@ -243,11 +243,11 @@
               </thead>
               <tbody>
                 <tr>
-                  <td>defn</td>
+                  <td>defn <span class="m-label m-flat m-info">in</span></td>
                   <td>Constructor arguments for <code>Def</code>.</td>
                 </tr>
                 <tr>
-                  <td>cols</td>
+                  <td>cols <span class="m-label m-flat m-info">in</span></td>
                   <td>Input columns.</td>
                 </tr>
               </tbody>
@@ -349,7 +349,7 @@
                   <td></td>
                 </tr>
                 <tr>
-                  <td>cols</td>
+                  <td>cols <span class="m-label m-flat m-info">in</span></td>
                   <td>Column names.</td>
                 </tr>
               </tbody>

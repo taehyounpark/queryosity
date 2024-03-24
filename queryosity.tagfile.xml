@@ -97,8 +97,8 @@
       <type></type>
       <name>dataflow</name>
       <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
-      <anchor>a6291acb8458b61a839c57a33ec279e0e</anchor>
-      <arglist>(Kwd1 kwarg1, Kwd2 kwarg2, Kwd3 kwarg3)</arglist>
+      <anchor>a4cec7f2b99eb673cfe74f5492a9318b7</anchor>
+      <arglist>(Kwd1 &amp;&amp;kwarg1, Kwd2 &amp;&amp;kwarg2, Kwd3 &amp;&amp;kwarg3)</arglist>
     </member>
     <member kind="function">
       <type>auto</type>
@@ -451,6 +451,7 @@
     <title>User guide</title>
     <filename>guide.html</filename>
     <docanchor file="guide.html" title="Cheat sheet">guide-cheatsheet</docanchor>
+    <docanchor file="guide.html" title="Dataflow">guide-dataflow</docanchor>
   </compound>
   <compound kind="page">
     <name>install</name>
