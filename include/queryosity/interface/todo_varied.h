@@ -46,7 +46,7 @@ public:
 
   /**
    * @brief Fill the query with input columns.
-   * @param columns... Input columns to fill the query with.
+   * @param[in] columns... Input columns to fill the query with.
    * @return A new todo query node with input columns filled.
    */
   template <typename... Nodes, typename V = Bld,
@@ -56,7 +56,7 @@ public:
 
   /**
    * @brief Book the query logic at a selection.
-   * @param selection Lazy selection to book query at.
+   * @param[in] selection Lazy selection to book query at.
    * @return Lazy query booked at selection.
    */
   template <typename Node, typename V = Bld,
@@ -66,8 +66,8 @@ public:
 
   /**
    * @brief Book the query logic at multiple selections.
-   * @param selection Lazy selection to book querys at.
-   * @return Delayed query containing booked lazy querys.
+   * @param[in] selection Lazy selection to book queries at.
+   * @return Delayed query containing booked lazy queries.
    */
   template <typename... Nodes, typename V = Bld,
             std::enable_if_t<queryosity::query::template is_bookable_v<V>,
@@ -78,7 +78,7 @@ public:
 
   /**
    * @brief Evaluate/apply the column definition/selection with input columns.
-   * @param args... Lazy input columns
+   * @param[in] args... Lazy input columns
    * @return Lazy column definition
    */
   template <typename... Args>

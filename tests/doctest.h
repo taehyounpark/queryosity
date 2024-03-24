@@ -3968,7 +3968,7 @@ struct ContextState : ContextOptions, TestRunStats, CurrentTestCaseStats {
   void finalizeTestCaseData() {
     seconds = timer.getElapsedSeconds();
 
-    // update the non-atomic querys
+    // update the non-atomic counters
     numAsserts += numAssertsCurrentTest_atomic;
     numAssertsFailed += numAssertsFailedCurrentTest_atomic;
     numAssertsCurrentTest = numAssertsCurrentTest_atomic;
@@ -7581,7 +7581,7 @@ int Context::run() {
       p->failure_flags = TestCaseFailureReason::None;
       p->seconds = 0;
 
-      // reset atomic querys
+      // reset atomic queries
       p->numAssertsFailedCurrentTest_atomic = 0;
       p->numAssertsCurrentTest_atomic = 0;
 

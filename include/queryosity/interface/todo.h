@@ -38,23 +38,20 @@ static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
  */
 template <typename Helper>
 class todo : public dataflow::node,
-             public concurrent::slotted<Helper>,
+             public ensemble::slotted<Helper>,
              public systematic::resolver<todo<Helper>> {
 
 public:
   class varied;
 
 public:
-  todo(dataflow &df, std::vector<std::unique_ptr<Helper>> bkr)
-      : dataflow::node(df), m_slots(std::move(bkr)) {}
-
+  todo(dataflow &df, std::vector<std::unique_ptr<Helper>> bkr);
   virtual ~todo() = default;
 
   todo(todo &&) = default;
   todo &operator=(todo &&) = default;
 
-  virtual Helper *get_slot(unsigned int islot) const override;
-  virtual unsigned int concurrency() const override;
+  virtual std::vector<Helper *> const &get_slots() const override;
 
   virtual void set_variation(const std::string &var_name, todo var) override;
 
@@ -68,8 +65,8 @@ public:
 
   /**
    * Evaluate the column out of existing ones.
-   * @param columns Input columns.
-   * @return Evaluated column.
+   * @param[in] columns Input columns.
+   * @param[in][out] Evaluated column.
    */
   template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::column::template is_evaluatable_v<V>,
@@ -82,8 +79,8 @@ public:
 
   /**
    * Fill query with input columns per-entry.
-   * @param columns Input columns.
-   * @return Query filled with input columns.
+   * @param[in] columns Input columns.
+   * @returns Updated query plan filled with input columns.
    */
   template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::query::template is_bookable_v<V>,
@@ -95,7 +92,7 @@ public:
 
   /**
    * Book the query at a selection.
-   * @param sel Selection node at which query is counted/filled.
+   * @param[in] sel Selection node at which query is counted/filled.
    * @return The query booked at the selection.
    */
   template <typename Node> auto book(Node &&selection) const {
@@ -105,7 +102,7 @@ public:
   /**
    * Book multiple query at multiple selections.
    * @tparam Sels... Selections.
-   * @param sels... selection nodes.
+   * @param[in] sels... selection nodes.
    * @return `std::tuple` of queries booked at each selection.
    */
   template <typename... Sels> auto book(Sels &&...sels) const {
@@ -116,7 +113,7 @@ public:
   /**
    * Shorthand for `evaluate()`.
    * @tparam Args... Input column types.
-   * @param columns... Input columns.
+   * @param[in] columns... Input columns.
    * @return Evaluated column.
    */
   template <typename... Args, typename V = Helper,
@@ -226,7 +223,7 @@ protected:
   auto _fill(Nodes const &...columns) const -> todo<V> {
     // nominal
     return todo<V>(*this->m_df,
-                   concurrent::invoke(
+                   ensemble::invoke(
                        [](V *fillable, typename Nodes::action_type *...cols) {
                          return fillable->book_fill(*cols...);
                        },
@@ -248,18 +245,24 @@ protected:
 
 protected:
   std::vector<std::unique_ptr<Helper>> m_slots;
+  std::vector<Helper *> m_ptrs;
 };
 
 } // namespace queryosity
 
-template <typename Action>
-Action *queryosity::todo<Action>::get_slot(unsigned int islot) const {
-  return this->m_slots[islot].get();
+template <typename Helper>
+queryosity::todo<Helper>::todo(queryosity::dataflow &df,
+                               std::vector<std::unique_ptr<Helper>> bkr)
+    : dataflow::node(df), m_slots(std::move(bkr)) {
+  m_ptrs.reserve(m_slots.size());
+  for (auto const &slot : m_slots) {
+    m_ptrs.push_back(slot.get());
+  }
 }
 
-template <typename Action>
-unsigned int queryosity::todo<Action>::concurrency() const {
-  return this->m_slots.size();
+template <typename Helper>
+std::vector<Helper *> const &queryosity::todo<Helper>::get_slots() const {
+  return m_ptrs;
 }
 
 template <typename Helper>

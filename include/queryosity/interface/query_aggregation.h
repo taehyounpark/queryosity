@@ -29,7 +29,7 @@ public:
   /**
    * Merge the results from concurrent slots into one representing the full
    * dataset.
-   * @param results Partial result from each thread.
+   * @param[in] results Partial result from each thread.
    * @return Merged result.
    */
   virtual T merge(std::vector<T> const &results) const = 0;

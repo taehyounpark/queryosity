@@ -15,124 +15,100 @@ namespace systematic = qty::systematic;
 using dataflow = qty::dataflow;
 ```
 
-```cpp title="Create a dataflow"
-dataflow df(mulithread::enable(/*(1)!*/));
+```cpp
+dataflow df(mulithread::enable(nthreads));
 ```
 
-1. Requested number of (default: system maximum).
+```cpp
+// (1)
+auto ds = df.load(dataset::input</* DS */>(/* input_arguments */));
+auto x = ds.read(dataset::column<>("x"));
+auto y = ds.read(dataset::column<>("y"));
 
-    ```cpp
-    auto ds = df.load(dataset::input</*(1)!*/>(/*(2)!*/));
-    auto x = ds.read(dataset::column</*(3)!*/>("x"));
-    auto y = ds.read(dataset::column</*(4)!*/>("y"));
-    ```
+// (2)
+auto [x, y] = df.read(
+  dataset::input</* DS */>(/* input_arguments */),
+  dataset::column<>("x"),
+  dataset::column<>("y")
+  );
 
-    1. `dataset::reader<Self>` implementation
-    2. `dataset::reader<Self>` constructor arguments
-    3. $x$ Data type
-    4. $y$ Data type
-
-=== "Just columns"
-    ```cpp title="Read columns"
-    auto [x, y] = df.read(
-      dataset::input</*(1)!*/>(/*(2)!*/),
-      dataset::column</*(3)!*/>("x"),
-      dataset::column</*(4)!*/>("y")
-      );
-    ```
-
-    1. `dataset::reader<Self>` implementation
-    2. `dataset::reader<Self>` constructor arguments
-    3. $x$ Data type
-    4. $y$ Data type
-
-=== "One-liner"
-    ```cpp title="Read columns"
-    auto [x, y] = df.read(
-      dataset::input</*(1)!*/>(/*(2)!*/),
-      dataset::columns</*(3)!*/,/*(4)!*/>("x", "y")
-      );
-    ```
-
-    1. `dataset::reader<Self>` implementation
-    2. `dataset::reader<Self>` constructor arguments
-    3. $x$ Data type
-    4. $y$ Data type
-
-```cpp title="Define columns"
-auto a = ds.define(column::constant</*(1)!*/>(/*(2)!*/));
-auto b = ds.define(column::expression(/*(3)!*/), /*(4)!*/);
-auto c = ds.define(column::definition</*(5)!*/>(/*(6)!*/), /*(7)!*/);
+// (3)
+auto [x, y] = df.read(
+  dataset::input</* DS */>(/* input_arguments */),
+  dataset::columns<>("x", "y")
+  );
 ```
 
-1. Data type (optional)
-2. Data value
-3. Function/functor/lambda
-4. Input column argument(s)
-5. `column::definition<Ret(Args...)>` implementation
-5. `column::definition<Ret(Args...)>` constructor arguments
-7. Input column argument(s)
-
-```cpp title="Apply selections"
-auto cut = df.filter(/*(1)!*/);
-auto cut_n_wgt = cut.weight(column::expression(/*(2)!*/), /*(3)!*/);
+```cpp
+auto a = ds.define(column::constant<>());
+auto b = ds.define(column::expression(), );
+auto c = ds.define(column::definition<>(), );
 ```
 
-1. Cut decision column
-2. Weight decision expression
-3. Input column argument(s)
+```cpp
+auto cut = df.filter();
+auto cut_n_wgt = cut.weight(column::expression(), );
+```
 
-```cpp title="Make queries"
-auto q = df.make(query::plan</*(1)!*/>(/*(2)!*/)).fill(/*(3)!*/).book(/*(4)!*/);
+```cpp
+auto q = df.make(query::plan<>()).fill().book();
 auto q_result = q.result();
 ```
 
-1. `query::definition<Out(Cols...)>` implementation
-2. `query::definition<Out(Cols...)>` constructor arguments
-3. Input column(s)
-4. Selection
+```cpp
+// (1)
+auto x = ds.vary(
+  dataset::column("x_nom"),
+  {"vary_x","x_var"}
+  );
 
-=== "Automatic"
-    ```cpp title="Apply systematic variations"
-    auto x = ds.vary(
-      dataset::column("x_nom"),
-      {"vary_x","x_var"}
-      );
+auto a = df.vary(
+  column::constant(),
+  {"vary_a",}
+  );
 
-    auto a = df.vary(
-      column::constant(/*(1)!*/),
-      {"vary_a",/*(2)!*/}
-      );
+auto b = df.vary(
+  column::expression(),
+  systematic::variation("vary_b", )
+  )();
 
-    auto b = df.vary(
-      column::expression(/*(3)!*/),
-      systematic::variation("vary_b", /*(4)!*/)
-      )(/*(5)!*/);
+auto c = df.vary(
+  column::definition<>(),
+  systematic::variation("vary_c", /*(8)!*/)
+  )();
 
-    auto c = df.vary(
-      column::definition</*(6)!*/>(/*(7)!*/),
-      systematic::variation("vary_c", /*(8)!*/)
-      )(/*(5)!*/);
-    ```
+// (2)
+auto z_nom = df.define();
+auto z_up = df.define();
+auto z_dn = df.define();
 
-    1. Nominal value
-    2. Alternate value
-    3. Nominal expression
-    4. Alternate expression
-    5. Input columns
-    6. `column::defintion<Ret(Args...)>` implementation
-    7. Nominal constructor arguments
-    8. Alternate constructor arguments
+auto z = systematic::vary(
+  systematic::nominal(), 
+  systematic::variation("z_up", ), 
+  systematic::variation("z_dn", )
+  );
 
-=== "Manual"
-    ```cpp title="Apply systematic variations"
-    auto z = systematic::vary(
-      systematic::nominal(/*(1)!*/), 
-      systematic::variation("z_up", /*(2)!*/), 
-      systematic::variation("z_dn", /*(3)!*/)
-      );
-    ```
+```
 
-    1. $z$ column
-    2. $z + \Delta z$ column
-    3. $z - \Delta z$ column
+@section guide-dataflow Dataflow
+
+```cpp
+dataflow df;
+```
+
+```cpp
+dataflow df(multithread::enable(4), dataset::weight(0.123), dataset::head(100));
+```
+
+In order for the multithreading to be supported, developers must ensure the following:
+
+1. `dataset::reader` must partition the dataset for parallel processing.
+2. `dataset::reader` and `column::reader` must access the underlying dataset in a thread-safe way.
+3. `column::definition` and `query::definition` must be thread-safe.
+
+| Keyword Argument | Description |
+| :--- | :--- |
+| `multithread::enable(nthreads)` | Enable multithreading up to `nthreads`. |
+| `multithread::disable()` | Disable multithreading. |
+| `dataset::head(nrows)` | Process only the first `nrows` of the dataset. |
+| `dataset::weight(scale)` | Apply a global `scale` to all weights. |

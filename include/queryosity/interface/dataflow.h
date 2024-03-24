@@ -13,6 +13,7 @@
 #include "dataset.h"
 #include "dataset_partition.h"
 #include "dataset_player.h"
+#include "dataset_processor.h"
 #include "multithread.h"
 #include "query.h"
 #include "selection.h"
@@ -45,8 +46,9 @@ public:
   dataflow();
   ~dataflow() = default;
 
-  template <typename Kwd> dataflow(Kwd kwarg);
-  template <typename Kwd1, typename Kwd2> dataflow(Kwd1 kwarg1, Kwd2 kwarg2);
+  template <typename Kwd> dataflow(Kwd &&kwarg);
+  template <typename Kwd1, typename Kwd2>
+  dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2);
 
   /**
    * @brief Constructor with (up to) three keyword arguments.
@@ -59,7 +61,7 @@ public:
    *
    */
   template <typename Kwd1, typename Kwd2, typename Kwd3>
-  dataflow(Kwd1 kwarg1, Kwd2 kwarg2, Kwd3 kwarg3);
+  dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2, Kwd3 &&kwarg3);
 
   dataflow(dataflow const &) = delete;
   dataflow &operator=(dataflow const &) = delete;
@@ -83,7 +85,7 @@ public:
    * readable.
    * @tparam DS `dataset::reader<Self>` implementation.
    * @tparam Val Column data type.
-   * @param Column name.
+   * @param[in] Column name.
    * @return Column read from the loaded dataset.
    */
   template <typename DS, typename Val>
@@ -96,7 +98,7 @@ public:
    * readable.
    * @tparam DS `dataset::reader<Self>` implementation.
    * @tparam Vals Column data types.
-   * @param cols Column names.
+   * @param[in] cols Column names.
    * @return Columns read from the loaded dataset.
    */
   template <typename DS, typename... Vals>
@@ -105,7 +107,7 @@ public:
   /**
    * @brief Define a constant column.
    * @tparam Val Column data type.
-   * @param cnst Constant value.
+   * @param[in] cnst Constant value.
    */
   template <typename Val>
   auto define(column::constant<Val> const &cnst) -> lazy<column::fixed<Val>>;
@@ -114,8 +116,8 @@ public:
    * @brief Define a column using an expression.
    * @tparam Expr Callable type.
    * @tparam Cols Input column types.
-   * @param expr C++ function, functor, lambda, or any other callable.
-   * @param cols Input columns.
+   * @param[in] expr C++ function, functor, lambda, or any other callable.
+   * @param[in] cols Input columns.
    * @return Lazy column.
    */
   template <typename Expr, typename... Cols>
@@ -126,8 +128,8 @@ public:
    * @brief Define a custom column.
    * @tparam Def `column::definition<Out(Ins...)>` implementation.
    * @tparam Cols Input column types.
-   * @param defn Constructor arguments for `Def`.
-   * @param cols Input columns.
+   * @param[in] defn Constructor arguments for `Def`.
+   * @param[in] cols Input columns.
    * @return Lazy column.
    */
   template <typename Def, typename... Cols>
@@ -188,7 +190,7 @@ public:
   auto _make(Args &&...args) -> todo<query::book<Cntr>>;
 
 protected:
-  template <typename Kwd> void accept_kwarg(Kwd const &kwarg);
+  template <typename Kwd> void accept_kwarg(Kwd &&kwarg);
 
   void analyze();
   void reset();
@@ -216,21 +218,14 @@ protected:
   void _vary(Syst &syst, const std::string &name,
              column::expression<Expr> const &expr);
 
-  template <typename Action,
-            std::enable_if_t<std::is_base_of_v<action, Action>, bool> = false>
-  void add_action(std::vector<std::unique_ptr<Action>> slots);
-
 protected:
-  multithread::core m_mt;
-  long long m_nrows;
+  dataset::processor m_processor;
   dataset::weight m_weight;
+  long long m_nrows;
 
-  std::unique_ptr<dataset::source> m_ds;
+  std::vector<std::unique_ptr<dataset::source>> m_sources;
   std::vector<unsigned int> m_dslots;
-  std::vector<std::unique_ptr<dataset::player>> m_dplyrs_owned;
-  std::vector<dataset::player *> m_dplyrs;
 
-  std::vector<std::unique_ptr<action>> m_actions;
   bool m_analyzed;
 };
 
@@ -266,76 +261,58 @@ protected:
 #include "systematic_variation.h"
 
 inline queryosity::dataflow::dataflow()
-    : m_mt(queryosity::multithread::disable()), m_nrows(-1), m_weight(1.0),
-      m_ds(nullptr), m_analyzed(false) {}
+    : m_processor(multithread::disable()), m_weight(1.0), m_nrows(-1),
+      m_analyzed(false) {}
 
-template <typename Kwd> queryosity::dataflow::dataflow(Kwd kwarg) : dataflow() {
-  this->accept_kwarg<Kwd>(kwarg);
+template <typename Kwd>
+queryosity::dataflow::dataflow(Kwd &&kwarg) : dataflow() {
+  this->accept_kwarg(std::forward<Kwd>(kwarg));
 }
 
 template <typename Kwd1, typename Kwd2>
-queryosity::dataflow::dataflow(Kwd1 kwarg1, Kwd2 kwarg2) : dataflow() {
+queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2) : dataflow() {
   static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
-  this->accept_kwarg<Kwd1>(kwarg1);
-  this->accept_kwarg<Kwd2>(kwarg2);
+  this->accept_kwarg(std::forward<Kwd1>(kwarg1));
+  this->accept_kwarg(std::forward<Kwd2>(kwarg2));
 }
 
-template <typename Kwd>
-void queryosity::dataflow::accept_kwarg(Kwd const &kwarg) {
-  constexpr bool is_mt = std::is_same_v<Kwd, multithread::core>;
+template <typename Kwd1, typename Kwd2, typename Kwd3>
+queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2, Kwd3 &&kwarg3)
+    : dataflow() {
+  static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<Kwd1, Kwd3>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<Kwd2, Kwd3>, "repeated keyword arguments.");
+  this->accept_kwarg(std::forward<Kwd1>(kwarg1));
+  this->accept_kwarg(std::forward<Kwd2>(kwarg2));
+  this->accept_kwarg(std::forward<Kwd3>(kwarg3));
+}
+
+template <typename Kwd> void queryosity::dataflow::accept_kwarg(Kwd &&kwarg) {
+  constexpr bool is_mt = std::is_same_v<Kwd, dataset::processor>;
   constexpr bool is_weight = std::is_same_v<Kwd, dataset::weight>;
   constexpr bool is_nrows = std::is_same_v<Kwd, dataset::head>;
   if constexpr (is_mt) {
-    m_mt = kwarg;
+    m_processor = std::move(kwarg);
   } else if (is_weight) {
     m_weight = kwarg;
   } else if (is_nrows) {
-    m_nrows = kwarg.nrows;
+    m_nrows = kwarg;
   } else {
     static_assert(is_mt || is_weight || is_nrows,
                   "unrecognized keyword argument");
   }
 }
 
-template <typename Kwd1, typename Kwd2, typename Kwd3>
-queryosity::dataflow::dataflow(Kwd1 kwarg1, Kwd2 kwarg2, Kwd3 kwarg3)
-    : dataflow() {
-  static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
-  static_assert(!std::is_same_v<Kwd1, Kwd3>, "repeated keyword arguments.");
-  static_assert(!std::is_same_v<Kwd2, Kwd3>, "repeated keyword arguments.");
-  this->accept_kwarg<Kwd1>(kwarg1);
-  this->accept_kwarg<Kwd2>(kwarg2);
-  this->accept_kwarg<Kwd3>(kwarg3);
-}
-
 template <typename DS>
 auto queryosity::dataflow::load(queryosity::dataset::input<DS> &&in)
     -> queryosity::dataset::loaded<DS> {
 
-  if (m_ds) {
-    throw std::runtime_error(
-        "opening multiple datasets is not (yet) supported.");
-  }
-  // !!! must get raw address before moving the unique_ptr
-  auto ds_rdr = in.ds.get();
-  m_ds = std::move(in.ds);
+  auto ds = in.ds.get();
 
-  auto nslots = m_mt.concurrency();
-  m_ds->parallelize(nslots);
-  m_dplyrs_owned.resize(nslots);
-  m_dplyrs.resize(nslots);
-  for (unsigned int islot = 0; islot < nslots; ++islot) {
-    m_dplyrs_owned[islot] =
-        std::make_unique<dataset::player>(*ds_rdr, m_weight);
-    m_dplyrs[islot] = m_dplyrs_owned[islot].get();
-  }
-  // same for slot numbers
-  m_dslots = std::vector<unsigned int>(nslots);
-  for (unsigned int i = 0; i < m_dslots.size(); ++i) {
-    m_dslots[i] = i;
-  }
+  m_sources.emplace_back(std::move(in.ds));
+  m_sources.back()->parallelize(m_processor.concurrency());
 
-  return dataset::loaded<DS>(*this, *ds_rdr);
+  return dataset::loaded<DS>(*this, *ds);
 }
 
 template <typename DS, typename Val>
@@ -419,12 +396,12 @@ auto queryosity::dataflow::weight(
 
 template <typename Cntr, typename... Args>
 auto queryosity::dataflow::_make(Args &&...args) -> todo<query::book<Cntr>> {
-  return todo<query::book<Cntr>>(*this, concurrent::invoke(
+  return todo<query::book<Cntr>>(*this, ensemble::invoke(
                                             [&args...](dataset::player *plyr) {
-                                              return plyr->template get<Cntr>(
+                                              return plyr->template make<Cntr>(
                                                   std::forward<Args>(args)...);
                                             },
-                                            m_dplyrs));
+                                            m_processor.get_slots()));
 }
 
 template <typename Cntr>
@@ -437,14 +414,13 @@ template <typename Def, typename... Cols>
 auto queryosity::dataflow::_evaluate(todo<column::evaluate<Def>> const &calc,
                                      lazy<Cols> const &...columns)
     -> lazy<Def> {
-  auto act = concurrent::invoke(
+  auto act = ensemble::invoke(
       [](dataset::player *plyr, column::evaluate<Def> *calc,
          Cols const *...cols) {
         return plyr->template evaluate(*calc, *cols...);
       },
-      m_dplyrs, calc.get_slots(), columns.get_slots()...);
+      m_processor.get_slots(), calc.get_slots(), columns.get_slots()...);
   auto lzy = lazy<Def>(*this, act);
-  this->add_action(std::move(act));
   return lzy;
 }
 
@@ -454,12 +430,11 @@ auto queryosity::dataflow::_book(todo<query::book<Cntr>> const &bkr,
     -> lazy<Cntr> {
   // new query booked: dataset will need to be analyzed
   this->reset();
-  auto act = concurrent::invoke(
+  auto act = ensemble::invoke(
       [](dataset::player *plyr, query::book<Cntr> *bkr,
          const selection::node *sel) { return plyr->book(*bkr, *sel); },
-      m_dplyrs, bkr.get_slots(), sel.get_slots());
+      m_processor.get_slots(), bkr.get_slots(), sel.get_slots());
   auto lzy = lazy<Cntr>(*this, act);
-  this->add_action(std::move(act));
   return lzy;
 }
 
@@ -471,37 +446,10 @@ auto queryosity::dataflow::_book(todo<query::book<Cntr>> const &bkr,
 }
 
 inline void queryosity::dataflow::analyze() {
-
-  // 0. do not analyze if already done
   if (m_analyzed)
     return;
 
-  // 1. partition the dataset
-  auto ds_parts = m_ds->partition();
-  // truncate entries to row limit
-  ds_parts = dataset::partition::truncate(ds_parts, m_nrows);
-  // merge ds_parts to concurrency limit
-  ds_parts = dataset::partition::merge(ds_parts, m_mt.concurrency());
-
-  // dataset players should match partition
-  m_dplyrs.resize(ds_parts.size());
-  m_dslots.resize(ds_parts.size());
-
-  // 3. event loop is starting
-  m_ds->initialize();
-
-  // 4. enter event loop
-  m_mt.run(
-      [](dataset::player *plyr, unsigned int slot,
-         std::pair<unsigned long long, unsigned long long> part) {
-        plyr->play(slot, part.first, part.second);
-      },
-      m_dplyrs, m_dslots, ds_parts);
-
-  // 5. event loop has finished
-  m_ds->finalize();
-
-  // done
+  m_processor.process(m_sources, m_weight, m_nrows);
   m_analyzed = true;
 }
 
@@ -532,51 +480,34 @@ auto queryosity::dataflow::vary(
   return syst;
 }
 
-template <typename Action,
-          std::enable_if_t<std::is_base_of_v<queryosity::action, Action>, bool>>
-void queryosity::dataflow::add_action(
-    std::vector<std::unique_ptr<Action>> slots) {
-  m_actions.reserve(m_actions.size() + slots.size());
-  for (unsigned int i = 0; i < slots.size(); ++i) {
-    m_actions.push_back(std::move(slots[i]));
-  }
-}
-
 template <typename DS, typename Val>
 auto queryosity::dataflow::_read(dataset::reader<DS> &ds,
-                                 const std::string &name)
+                                 const std::string &column_name)
     -> lazy<read_column_t<DS, Val>> {
-  auto act = concurrent::invoke(
-      [name, &ds](dataset::player *plyr, unsigned int slot) {
-        return plyr->template read<DS, Val>(ds, slot, name);
-      },
-      m_dplyrs, m_dslots);
+  auto act = m_processor.read<DS, Val>(ds, column_name);
   auto lzy = lazy<read_column_t<DS, Val>>(*this, act);
-  this->add_action(std::move(act));
   return lzy;
 }
 
 template <typename Val>
 auto queryosity::dataflow::_assign(Val const &val)
     -> lazy<queryosity::column::fixed<Val>> {
-  auto act = concurrent::invoke(
+  auto act = ensemble::invoke(
       [&val](dataset::player *plyr) { return plyr->template assign<Val>(val); },
-      m_dplyrs);
+      m_processor.get_slots());
   auto lzy = lazy<column::fixed<Val>>(*this, act);
-  this->add_action(std::move(act));
   return lzy;
 }
 
 template <typename To, typename Col>
 auto queryosity::dataflow::_convert(lazy<Col> const &col) -> lazy<
     queryosity::column::conversion<To, queryosity::column::value_t<Col>>> {
-  auto act = concurrent::invoke(
+  auto act = ensemble::invoke(
       [](dataset::player *plyr, Col const *from) {
         return plyr->template convert<To>(*from);
       },
-      m_dplyrs, col.get_slots());
+      m_processor.get_slots(), col.get_slots());
   auto lzy = lazy<column::conversion<To, column::value_t<Col>>>(*this, act);
-  this->add_action(std::move(act));
   return lzy;
 }
 
@@ -584,11 +515,11 @@ template <typename Def, typename... Args>
 auto queryosity::dataflow::_define(Args &&...args) {
   return todo<queryosity::column::template evaluate_t<Def>>(
       *this,
-      concurrent::invoke(
+      ensemble::invoke(
           [&args...](dataset::player *plyr) {
             return plyr->template define<Def>(std::forward<Args>(args)...);
           },
-          m_dplyrs));
+          m_processor.get_slots()));
 }
 
 template <typename Def>
@@ -600,9 +531,9 @@ auto queryosity::dataflow::_define(
 template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
   return todo<queryosity::column::template evaluate_t<Fn>>(
       *this,
-      concurrent::invoke(
+      ensemble::invoke(
           [fn](dataset::player *plyr) { return plyr->template equate(fn); },
-          m_dplyrs));
+          m_processor.get_slots()));
 }
 
 template <typename Expr>
@@ -614,13 +545,12 @@ auto queryosity::dataflow::_equate(
 template <typename Sel, typename Col>
 auto queryosity::dataflow::_select(lazy<Col> const &dec)
     -> lazy<selection::node> {
-  auto act = concurrent::invoke(
+  auto act = ensemble::invoke(
       [](dataset::player *plyr, Col *col) {
         return plyr->template select<Sel>(nullptr, *col);
       },
-      m_dplyrs, dec.get_slots());
+      m_processor.get_slots(), dec.get_slots());
   auto lzy = lazy<selection::node>(*this, act);
-  this->add_action(std::move(act));
   return lzy;
 }
 
@@ -628,13 +558,12 @@ template <typename Sel, typename Col>
 auto queryosity::dataflow::_select(lazy<selection::node> const &prev,
                                    lazy<Col> const &dec)
     -> lazy<selection::node> {
-  auto act = concurrent::invoke(
+  auto act = ensemble::invoke(
       [](dataset::player *plyr, selection::node *prev, Col *col) {
         return plyr->template select<Sel>(prev, *col);
       },
-      m_dplyrs, prev.get_slots(), dec.get_slots());
+      m_processor.get_slots(), prev.get_slots(), dec.get_slots());
   auto lzy = lazy<selection::node>(*this, act);
-  this->add_action(std::move(act));
   return lzy;
 }
 

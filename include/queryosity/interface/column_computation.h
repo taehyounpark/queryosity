@@ -19,13 +19,12 @@ public:
 public:
   template <typename DS, typename Val>
   auto read(dataset::reader<DS> &ds, unsigned int slot, const std::string &name)
-      -> std::unique_ptr<read_column_t<DS, Val>>;
+      -> read_column_t<DS, Val> *;
 
-  template <typename Val>
-  auto assign(Val const &val) -> std::unique_ptr<fixed<Val>>;
+  template <typename Val> auto assign(Val const &val) -> fixed<Val> *;
 
   template <typename To, typename Col>
-  auto convert(Col const &col) -> std::unique_ptr<conversion<To, value_t<Col>>>;
+  auto convert(Col const &col) -> conversion<To, value_t<Col>> *;
 
   template <typename Def, typename... Args>
   auto define(Args const &...vars) const
@@ -36,14 +35,13 @@ public:
       queryosity::column::template evaluate_t<std::function<Ret(Args...)>>>;
 
   template <typename Def, typename... Cols>
-  auto evaluate(column::evaluate<Def> &calc, Cols const &...cols)
-      -> std::unique_ptr<Def>;
+  auto evaluate(column::evaluate<Def> &calc, Cols const &...cols) -> Def *;
 
 protected:
-  void add_column(column::node &column);
+  template <typename Col> auto add_column(std::unique_ptr<Col> col) -> Col *;
 
 protected:
-  std::vector<column::node *> m_columns;
+  std::vector<std::unique_ptr<column::node>> m_columns;
 };
 
 } // namespace queryosity
@@ -58,25 +56,23 @@ template <typename DS, typename Val>
 auto queryosity::column::computation::read(dataset::reader<DS> &ds,
                                            unsigned int slot,
                                            const std::string &name)
-    -> std::unique_ptr<read_column_t<DS, Val>> {
+    -> read_column_t<DS, Val> * {
   auto rdr = ds.template read_column<Val>(slot, name);
-  this->add_column(*rdr);
-  return rdr;
+  return this->add_column(std::move(rdr));
 }
 
 template <typename Val>
-auto queryosity::column::computation::assign(Val const &val)
-    -> std::unique_ptr<queryosity::column::fixed<Val>> {
-  return std::make_unique<typename column::fixed<Val>>(val);
+auto queryosity::column::computation::assign(Val const &val) -> fixed<Val> * {
+  auto cnst = std::make_unique<typename column::fixed<Val>>(val);
+  return this->add_column(std::move(cnst));
 }
 
 template <typename To, typename Col>
 auto queryosity::column::computation::convert(Col const &col)
-    -> std::unique_ptr<column::conversion<To, value_t<Col>>> {
+    -> conversion<To, value_t<Col>> * {
   auto cnv = std::make_unique<conversion<To, value_t<Col>>>(col);
   cnv->set_arguments(col);
-  this->add_column(*cnv);
-  return cnv;
+  return this->add_column(std::move(cnv));
 }
 
 template <typename Def, typename... Args>
@@ -95,13 +91,15 @@ auto queryosity::column::computation::equate(std::function<Ret(Args...)> fn)
 
 template <typename Def, typename... Cols>
 auto queryosity::column::computation::evaluate(column::evaluate<Def> &calc,
-                                               Cols const &...cols)
-    -> std::unique_ptr<Def> {
+                                               Cols const &...cols) -> Def * {
   auto defn = calc._evaluate(cols...);
-  this->add_column(*defn);
-  return defn;
+  return this->add_column(std::move(defn));
 }
 
-inline void queryosity::column::computation::add_column(column::node &column) {
-  m_columns.push_back(&column);
+template <typename Col>
+auto queryosity::column::computation::add_column(std::unique_ptr<Col> col)
+    -> Col * {
+  auto out = col.get();
+  m_columns.push_back(std::move(col));
+  return out;
 }

@@ -98,7 +98,7 @@ TEST_CASE("correctness & consistency of selections") {
   auto sumw_one2 = df.make(qty::query::plan<qty::sumw>()).book(cut_a2, cut_b2);
 
   std::cout << "hi" << std::endl;
-  std::cout << cut_a2.concurrency() << std::endl;
+  std::cout << cut_a2.size() << std::endl;
 
   SUBCASE("basic results") {
     CHECK(sumw_a.result() == correct_sumw_a);

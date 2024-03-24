@@ -13,7 +13,7 @@
 namespace queryosity {
 
 template <typename Action>
-class delayed : public dataflow::node, public concurrent::slotted<Action> {
+class delayed : public dataflow::node, public ensemble::slotted<Action> {
 
 public:
   using action_type = Action;

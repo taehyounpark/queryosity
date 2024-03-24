@@ -15,11 +15,13 @@ namespace queryosity {
 
 namespace dataset {
 
-using range = std::pair<unsigned long long, unsigned long long>;
+using part_t = std::pair<unsigned long long, unsigned long long>;
 
 class source;
 
 class player;
+
+class processor;
 
 template <typename T> class reader;
 

@@ -10,7 +10,7 @@
 
 namespace queryosity {
 
-namespace concurrent {
+namespace ensemble {
 
 template <typename T> class slotted {
 public:
@@ -18,9 +18,12 @@ public:
   virtual ~slotted() = default;
 
 public:
-  virtual T *get_slot(unsigned int i) const = 0;
-  virtual unsigned int concurrency() const = 0;
-  std::vector<T *> get_slots() const;
+  virtual std::vector<T *> const &get_slots() const = 0;
+  T *get_slot(unsigned int i) const;
+
+  operator std::vector<T *> const &() const { return this->get_slots(); }
+
+  unsigned int size() const;
 };
 
 template <typename T, typename... Args>
@@ -34,7 +37,7 @@ template <typename Fn, typename... Args>
 auto invoke(Fn const &fn, std::vector<Args> const &...args)
     -> std::vector<typename std::invoke_result_t<Fn, Args...>>;
 
-} // namespace concurrent
+} // namespace ensemble
 
 namespace multithread {
 
@@ -42,65 +45,52 @@ class core {
 
 public:
   core(int suggestion);
-  ~core() = default;
 
-  bool is_enabled() const;
-  unsigned int concurrency() const;
+  core(const core &) = default;
+  core &operator=(const core &) = default;
+
+  ~core() = default;
 
   /**
    * @brief Run the function on the underlying slots, multi-threading if
    * enabled.
-   * @param fn Function to be called.
-   * @param args (Optional) arguments applied per-slot to function.
+   * @param[in] fn Function to be called.
+   * @param[in] args (Optional) arguments applied per-slot to function.
    * @details The methods are called on each slot, and the model is left
    * untouched.
    */
   template <typename Fn, typename... Args>
   void run(Fn const &fn, std::vector<Args> const &...args) const;
 
-protected:
-  int m_suggestion;
-};
+  bool is_enabled() const { return m_enabled; }
+  unsigned int concurrency() const { return m_concurrency; }
 
-core enable(int suggestion = -1);
-core disable();
+protected:
+  bool m_enabled;
+  unsigned int m_concurrency;
+};
 
 } // namespace multithread
 
 } // namespace queryosity
 
 inline queryosity::multithread::core::core(int suggestion)
-    : m_suggestion(suggestion) {}
-
-inline queryosity::multithread::core
-queryosity::multithread::enable(int suggestion) {
-  return core(suggestion);
-}
-
-inline queryosity::multithread::core queryosity::multithread::disable() {
-  return core(false);
-}
-
-inline bool queryosity::multithread::core::is_enabled() const {
-  return m_suggestion;
-}
-
-inline unsigned int queryosity::multithread::core::concurrency() const {
-  if (!m_suggestion)
-    return 1;
-  if (m_suggestion < 0)
-    return std::thread::hardware_concurrency();
-  else
-    return std::min<unsigned int>(std::thread::hardware_concurrency(),
-                                  m_suggestion);
+    : m_enabled(suggestion) {
+  if (!suggestion) // single-threaded
+    m_concurrency = 1;
+  else if (suggestion < 0) // maximum thread count
+    m_concurrency = std::thread::hardware_concurrency();
+  else // (up to maximum) requested thread count
+    m_concurrency =
+        std::min<unsigned int>(std::thread::hardware_concurrency(), suggestion);
 }
 
 template <typename Fn, typename... Args>
 void queryosity::multithread::core::run(
     Fn const &fn, std::vector<Args> const &...args) const {
-  auto nslots = concurrent::check(args...);
+  auto nslots = ensemble::check(args...);
 
-  if (m_suggestion) {
+  if (this->is_enabled()) {
     // enabled
     std::vector<std::thread> pool;
     pool.reserve(nslots);
@@ -120,15 +110,15 @@ void queryosity::multithread::core::run(
 
 template <typename T, typename... Args>
 inline unsigned int
-queryosity::concurrent::check(std::vector<T> const &first,
-                              std::vector<Args> const &...args) {
+queryosity::ensemble::check(std::vector<T> const &first,
+                            std::vector<Args> const &...args) {
   assert(((first.size() == args.size()) && ...));
   return first.size();
 }
 
 template <typename Fn, typename... Args>
-inline void queryosity::concurrent::call(Fn const &fn,
-                                         std::vector<Args> const &...args) {
+inline void queryosity::ensemble::call(Fn const &fn,
+                                       std::vector<Args> const &...args) {
   const auto nslots = check(args...);
   for (size_t i = 0; i < nslots; ++i) {
     fn(args.at(i)...);
@@ -136,8 +126,8 @@ inline void queryosity::concurrent::call(Fn const &fn,
 }
 
 template <typename Fn, typename... Args>
-inline auto queryosity::concurrent::invoke(Fn const &fn,
-                                           std::vector<Args> const &...args)
+inline auto queryosity::ensemble::invoke(Fn const &fn,
+                                         std::vector<Args> const &...args)
     -> std::vector<typename std::invoke_result_t<Fn, Args...>> {
   auto nslots = check(args...);
   typename std::vector<typename std::invoke_result_t<Fn, Args...>> invoked;
@@ -149,12 +139,11 @@ inline auto queryosity::concurrent::invoke(Fn const &fn,
 }
 
 template <typename T>
-std::vector<T *> queryosity::concurrent::slotted<T>::get_slots() const {
-  std::vector<T *> slots;
-  const auto nslots = this->concurrency();
-  slots.reserve(nslots);
-  for (unsigned int i = 0; i < nslots; ++i) {
-    slots.push_back(this->get_slot(i));
-  }
-  return slots;
+T *queryosity::ensemble::slotted<T>::get_slot(unsigned int islot) const {
+  return this->get_slots().at(islot);
+}
+
+template <typename T>
+unsigned int queryosity::ensemble::slotted<T>::size() const {
+  return this->get_slots().size();
 }

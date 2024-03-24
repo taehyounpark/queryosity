@@ -36,7 +36,7 @@ protected:
  */
 template <typename Action>
 class lazy : public dataflow::node,
-             public concurrent::slotted<Action>,
+             public ensemble::slotted<Action>,
              public systematic::resolver<lazy<Action>>,
              public result_if_aggregation<Action> {
 
@@ -53,13 +53,6 @@ public:
 public:
   lazy(dataflow &df, std::vector<Action *> const &slots)
       : dataflow::node(df), m_slots(slots) {}
-  lazy(dataflow &df, std::vector<std::unique_ptr<Action>> const &slots)
-      : dataflow::node(df) {
-    this->m_slots.reserve(slots.size());
-    for (auto const &slot : slots) {
-      this->m_slots.push_back(slot.get());
-    }
-  }
 
   template <typename Derived>
   lazy(dataflow &df, std::vector<Derived *> const &slots);
@@ -74,8 +67,7 @@ public:
 
   virtual ~lazy() = default;
 
-  virtual Action *get_slot(unsigned int islot) const override;
-  virtual unsigned int concurrency() const override;
+  virtual std::vector<Action *> const &get_slots() const override;
 
   virtual void set_variation(const std::string &var_name, lazy var) override;
 
@@ -177,13 +169,8 @@ queryosity::lazy<Action>::lazy(
 }
 
 template <typename Action>
-Action *queryosity::lazy<Action>::get_slot(unsigned int islot) const {
-  return this->m_slots[islot];
-}
-
-template <typename Action>
-unsigned int queryosity::lazy<Action>::concurrency() const {
-  return this->m_slots.size();
+std::vector<Action *> const &queryosity::lazy<Action>::get_slots() const {
+  return this->m_slots;
 }
 
 template <typename Action>
@@ -359,7 +346,7 @@ void queryosity::lazy<Action>::merge_results() {
     return;
   auto model = this->get_slot(0);
   using result_type = decltype(model->result());
-  const auto nslots = this->concurrency();
+  const auto nslots = this->size();
   if (nslots == 1) {
     this->m_result = model->result();
   } else {

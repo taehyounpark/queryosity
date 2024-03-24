@@ -22,8 +22,8 @@ public:
 
   /**
    * @brief Perform the counting action for an entry.
-   * @param observables The `observable` of each input column.
-   * @param weight The weight value of the booked selection for the passed
+   * @param[in] observables The `observable` of each input column.
+   * @param[in] weight The weight value of the booked selection for the passed
    * entry.
    * @details This action is performed N times for a passed entry, where N is
    * the number of `fill` calls made during its `todo` configuration.

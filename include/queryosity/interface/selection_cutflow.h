@@ -17,13 +17,14 @@ public:
 public:
   template <typename Sel, typename Val>
   auto select(selection::node const *prev, column::valued<Val> const &dec)
-      -> std::unique_ptr<selection::node>;
+      -> selection::node *;
 
 protected:
-  void add_selection(selection::node &selection);
+  template <typename Sel>
+  auto add_selection(std::unique_ptr<Sel> selection) -> Sel *;
 
 protected:
-  std::vector<selection::node *> m_selections;
+  std::vector<std::unique_ptr<selection::node>> m_selections;
 };
 
 } // namespace queryosity
@@ -35,13 +36,15 @@ protected:
 template <typename Sel, typename Val>
 auto queryosity::selection::cutflow::select(selection::node const *prev,
                                             column::valued<Val> const &dec)
-    -> std::unique_ptr<selection::node> {
+    -> selection::node * {
   auto sel = std::make_unique<Sel>(prev, column::variable<double>(dec));
-  this->add_selection(*sel);
-  return sel;
+  return this->add_selection(std::move(sel));
 }
 
-inline void queryosity::selection::cutflow::add_selection(
-    queryosity::selection::node &sel) {
-  m_selections.push_back(&sel);
+template <typename Sel>
+auto queryosity::selection::cutflow::add_selection(std::unique_ptr<Sel> sel)
+    -> Sel * {
+  auto out = sel.get();
+  m_selections.push_back(std::move(sel));
+  return out;
 }

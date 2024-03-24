@@ -71,7 +71,6 @@ queryosity::json::partition() {
   for (unsigned int islot = 0; islot < m_nslots; ++islot) {
     parts.emplace_back(islot * nentries_per_slot,
                        (islot + 1) * nentries_per_slot);
-    std::cout << parts.back().second << std::endl;
   }
   // add remaining entries to last part
   parts.back().second += nentries_remainder;
