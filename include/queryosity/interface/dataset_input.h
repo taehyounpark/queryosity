@@ -10,11 +10,15 @@ namespace dataset {
 
 /**
  * @ingroup api
- * @brief Dataset input argument for dataflow.
+ * @brief Argument for queryosity::dataflow::load().
  * @tparam DS queryosity::dataset::reader implementation.
- * @tparam Args Constructor arguments for `DS`.
  */
 template <typename DS> struct input {
+  /**
+   * @brief Constructor.
+   * @tparam Args `DS` constructor argument types.
+   * @param[in] args Constructor arguments for `DS`.
+   */
   template <typename... Args> input(Args &&...args);
   virtual ~input() = default;
   std::unique_ptr<DS> ds;

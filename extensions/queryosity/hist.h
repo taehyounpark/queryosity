@@ -37,13 +37,13 @@ using hist_t = boost::histogram::histogram<axes_t>;
 /**
  * @ingroup ext
  * @brief N-dimensional histogram query for queryosity.
- * @tparam Cols Input column data types.
+ * @tparam Vals Input column data types.
  * @details The number of columns data types provided determines the
  * dimensionality of the histogram.
  */
-template <typename... Cols>
+template <typename... Vals>
 class hist
-    : public queryosity::query::definition<std::shared_ptr<hist_t>(Cols...)> {
+    : public queryosity::query::definition<std::shared_ptr<hist_t>(Vals...)> {
 
 public:
 public:
@@ -61,7 +61,7 @@ public:
    * @param columns Input column observables.
    * @param weight Selection weight value.
    */
-  virtual void fill(queryosity::column::observable<Cols>... columns,
+  virtual void fill(queryosity::column::observable<Vals>... columns,
                     double weight) override;
 
   /**
@@ -86,28 +86,28 @@ protected:
 
 } // namespace queryosity
 
-template <typename... Cols>
+template <typename... Vals>
 template <typename... Axes>
-queryosity::hist::hist<Cols...>::hist(Axes &&...axes) {
+queryosity::hist::hist<Vals...>::hist(Axes &&...axes) {
   m_hist = std::make_shared<hist_t>(std::move(
       boost::histogram::make_weighted_histogram(std::forward<Axes>(axes)...)));
 }
 
-template <typename... Cols>
-void queryosity::hist::hist<Cols...>::fill(
-    queryosity::column::observable<Cols>... columns, double w) {
+template <typename... Vals>
+void queryosity::hist::hist<Vals...>::fill(
+    queryosity::column::observable<Vals>... columns, double w) {
   (*m_hist)(columns.value()..., boost::histogram::weight(w));
 }
 
-template <typename... Cols>
+template <typename... Vals>
 std::shared_ptr<queryosity::hist::hist_t>
-queryosity::hist::hist<Cols...>::result() const {
+queryosity::hist::hist<Vals...>::result() const {
   return m_hist;
 }
 
-template <typename... Cols>
+template <typename... Vals>
 std::shared_ptr<queryosity::hist::hist_t>
-queryosity::hist::hist<Cols...>::merge(
+queryosity::hist::hist<Vals...>::merge(
     std::vector<std::shared_ptr<hist_t>> const &results) const {
   auto sum = std::make_shared<hist_t>(*results[0]);
   sum->reset();

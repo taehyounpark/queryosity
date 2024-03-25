@@ -11,10 +11,19 @@ namespace queryosity {
 
 class dataflow;
 
+/**
+ * @ingroup api
+ * @brief Argument for queryosity::dataflow::read().
+ * @tparam Val Column data type.
+ */
 template <typename Val> class dataset::column {
 
 public:
-  column(const std::string &name);
+  /**
+   * @brief Constructor.
+   * @param[in] column_name Name of column.
+   */
+  column(const std::string &column_name);
   ~column() = default;
 
   template <typename DS> auto _read(dataset::loaded<DS> &ds) const;

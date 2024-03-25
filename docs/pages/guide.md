@@ -75,9 +75,13 @@ auto [s, v] = df.read(
 @endcpp
 
 @see 
-- queryosity::json (Extension)
-- queryosity::dataset::reader (ABC)
-- queryosity::dataset::source (ABC)
+- queryosity::dataset::input (API)
+  - queryosity::dataset::source (ABC)
+  - queryosity::dataset::reader (ABC)
+  - queryosity::json (Extension)
+- queryosity::dataset::column (API)
+  - queryosity::column::reader (ABC)
+  - queryosity::json::item (Extension)
 
 @section guide-column Computing quantities
 
@@ -97,7 +101,7 @@ auto v_selected = df.define(column::definition<>(), v);
 
 @see 
 - queryosity::column::definition (API)
-- queryosity::column::definition<Out(Ins...)> (ABC)
+  - queryosity::column::definition<Out(Ins...)> (ABC)
 
 @section guide-selection Applying selections
 
@@ -126,15 +130,36 @@ auto cut_b_or_c = df.filter(cut_b || cut_c);
 @section guide-query Making queries
 
 Call queryosity::dataflow::make() with a queryosity::query::plan (specifying the query definition and its constructor arguments).
-Calling todo::fill() populates the query with input columns, and todo::book() instantiates the lazy query.
+The plan can be filled with input columns, then booked at a selection to instantiate the query.
 
 @cpp
-auto q = df.make(query::plan<>()).fill().book();
-auto q_result = q.result();
+using h1d = qty::hist::hist<double>;
+using h2d = qty::hist::hist<double,double>;
+using linax = qty::hist::axis::linear;
+
+// instantiate a 1d histogram query filled with x over all entries
+auto q = df.make(query::plan<h1d>(linax(100,0.0,1.0))).fill(x).book(inclusive);
+
+// a plan can book multiple queries at a selection
+auto [q_a, q_b] = df.make(query::plan<h1d>(linax(100,0.0,1.0))).fill(x).book(cut_a, cut_b);
+
+// a selection can book multiple queries (of different types)
+auto qp_1d = df.make(query::plan<h1d>(linax(100,0.0,1.0))).fill(x);
+auto qp_2d = df.make(query::plan<hist2d>(linax(100,0.0,1.0),linax(100,0.0,1.0))).fill(x,y);
+auto [q_1d, q_2d] = sel.book(qp_1d, qp_2d);
+@endcpp
+
+Accessing the result of any one query triggers the dataset processing for *all* actions.
+
+@cpp
+auto hx_a = q_a.result();  // takes a while -- dataset needs to be processed
+auto hxy_sel = q_2d.result();  // instantaneous -- already completed
 @endcpp
 
 @see 
-- queryosity::query::definition<T(Obs...)>
+- queryosity::query::plan (API)
+- queryosity::query::definition<T(Obs...)> (ABC)
+- queryosity::hist::hist (Extension)
 
 @section guide-vary Systematic variations
 

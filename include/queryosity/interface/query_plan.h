@@ -12,15 +12,25 @@ class dataflow;
 
 namespace query {
 
-template <typename Cntr> class plan {
+/**
+ * @brief Plan a query
+ * @tparam Qry Concrete implementation of
+ * queryosity::query::definition<T(Obs...)>.
+ */
+template <typename Qry> class plan {
 
 public:
+  /**
+   * @brief Constructor.
+   * @tparam Args `Qry` constructor argument types.
+   * @param args Constructor arguments.
+   */
   template <typename... Args> plan(Args const &...args);
 
   auto _make(dataflow &df) const;
 
 protected:
-  std::function<todo<query::book<Cntr>>(dataflow &)> m_make;
+  std::function<todo<query::book<Qry>>(dataflow &)> m_make;
 };
 
 } // namespace query
@@ -29,12 +39,12 @@ protected:
 
 #include "dataflow.h"
 
-template <typename Cntr>
+template <typename Qry>
 template <typename... Args>
-queryosity::query::plan<Cntr>::plan(Args const &...args)
-    : m_make([args...](dataflow &df) { return df._make<Cntr>(args...); }) {}
+queryosity::query::plan<Qry>::plan(Args const &...args)
+    : m_make([args...](dataflow &df) { return df._make<Qry>(args...); }) {}
 
-template <typename Cntr>
-auto queryosity::query::plan<Cntr>::_make(queryosity::dataflow &df) const {
+template <typename Qry>
+auto queryosity::query::plan<Qry>::_make(queryosity::dataflow &df) const {
   return this->m_make(df);
 }

@@ -17,6 +17,7 @@
 - @ref install
 - @ref conceptual
 - @ref guide
+- @ref example
 @see Modules (top right corner) for references.
 
 <!-- --------------------------------------------------------------------------------------------------------------- -->
