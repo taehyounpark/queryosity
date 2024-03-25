@@ -15,7 +15,7 @@ show_includes   = false
 changelog       = true
 # logo            = 'images/logo.svg'
 # favicon         = 'images/favicon.ico'
-navbar          = [ 'pages', 'modules', 'annotated' ]
+navbar          = [ 'modules', 'annotated' ]
 theme           = 'dark'
 extra_files     = [
 #    'images/badge-awesome.svg',
@@ -34,9 +34,9 @@ undocumented    = true
 
 [sources]
 paths           = [ 'pages' ]
-recursive_paths = [ '../include' ]
+recursive_paths = [ '../include', '../extensions' ]
 patterns        = [ '*.h', '*.hpp', '*.dox', '*.md' ]
-strip_paths     = [ '../include', 'pages' ]
+strip_paths     = [ '../include', '../extensions', 'pages' ]
 
 
 
@@ -80,7 +80,14 @@ paths           = [ 'images' ]
 
 [autolinks]
 #'(?:queryosity::)?lazy::varied?' = 'classqueryosity_1_1lazy_1_1varied.html'
-'queryosity::dataflow?'                      = 'classqueryosity_1_1dataflow.html'
-#'toml::keys?'                       = 'classqueryosity_1_1dataflow.html'
-#'toml::times?'                      = 'structtoml_1_1time.html'
-#'toml::values?'                     = 'classtoml_1_1value.html'
+'queryosity::dataflow?'           = 'classqueryosity_1_1dataflow.html'
+'queryosity::dataset::input?'    = 'classqueryosity_1_1dataset_1_1reader.html'
+'queryosity::dataset::reader?'    = 'classqueryosity_1_1dataset_1_1reader.html'
+'queryosity::dataset::source?'    = 'classqueryosity_1_1dataset_1_1source.html'
+'queryosity::todo?'               = 'classqueryosity_1_1todo.html'
+'queryosity::todo::varied?'       = 'classqueryosity_1_1todo_1_1varied.html'
+'queryosity::column::definition<Out(Ins...)>?'       = 'classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html'
+'queryosity::query::definition<T(Obs...)>?'       = 'classqueryosity_1_1query_1_1definition_3_01_t_07_obs_8_8_8_08_4.html'
+#'toml::keys?'                    = 'classqueryosity_1_1dataflow.html'
+#'toml::times?'                   = 'structtoml_1_1time.html'
+#'toml::values?'                  = 'classtoml_1_1value.html'

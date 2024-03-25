@@ -10,8 +10,6 @@ This library has been purposefully developed for high-energy physics experiments
 
 @section design-df Why not DataFrames?
 
-Two key distinctions separate the dataflow from the plethora of DataFrame libraries.
-
 @subsection design-df-conceptual Conceptual
 
 DataFrames can do both array-wise and row-wise operations, but the former mode is where it shines, whereas the latter is more of a fallback.

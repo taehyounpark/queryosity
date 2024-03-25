@@ -7,6 +7,10 @@
 
 namespace queryosity {
 
+/**
+ * @ingroup ext
+ * @brief JSON dataset for queryosity.
+ */
 class json : public queryosity::dataset::reader<json> {
 
 public:
@@ -17,25 +21,56 @@ public:
   json(std::ifstream &data);
   ~json() = default;
 
+  /**
+   * @brief Parallelize the dataset for parallel processing.
+   * @param[in] nslots Requested concurrency.
+   */
   virtual void parallelize(unsigned int nslots) override;
+
+  /**
+   * @brief Partition the dataset for parallel processing.
+   * @returns Dataset partition.
+   */
   virtual std::vector<std::pair<unsigned long long, unsigned long long>>
   partition() override;
 
+  /**
+   * @brief Read a column.
+   * @tparam T Column data type.
+   * @param[in] slot Multithreading slot index.
+   * @param[in] column_name Column name.
+   */
   template <typename T>
-  std::unique_ptr<item<T>> read(unsigned int, const std::string &name) const;
+  std::unique_ptr<item<T>> read(unsigned int slot,
+                                const std::string &column_name) const;
 
 protected:
   nlohmann::json const m_data;
   unsigned int m_nslots;
 };
 
+/**
+ * @ingroup ext
+ * @brief JSON item as "column" data.
+ * @tparam T data type.
+ */
 template <typename T> class json::item : public queryosity::column::reader<T> {
 
 public:
-  item(const nlohmann::json &data, const std::string &name);
+  /**
+   * @param[in] data JSON data.
+   * @param[in] key Object key.
+   */
+  item(const nlohmann::json &data, const std::string &key);
   ~item() = default;
 
-  virtual const T &read(unsigned int, unsigned long long item) const override;
+  /**
+   * @brief Read-in the data value.
+   * @param[in] slot Thread index.
+   * @param[in] entry Entry number.
+   */
+  virtual const T &read(unsigned int slot,
+                        unsigned long long entry) const override;
 
 protected:
   mutable T m_value;
@@ -45,10 +80,10 @@ protected:
 
 } // namespace queryosity
 
+queryosity::json::json(nlohmann::json const &data) : m_data(data) {}
+
 queryosity::json::json(std::ifstream &data)
     : m_data(nlohmann::json::parse(data)) {}
-
-queryosity::json::json(nlohmann::json const &data) : m_data(data) {}
 
 template <typename T>
 queryosity::json::item<T>::item(nlohmann::json const &data,

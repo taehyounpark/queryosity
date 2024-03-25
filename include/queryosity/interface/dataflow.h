@@ -74,6 +74,9 @@ public:
    * @tparam DS `dataset::reader<Self>` implementation.
    * @tparam Args... Constructor arguments.
    * @return Loaded dataset.
+   * @warning A dataset should *not* be loaded in more than once. Doing so
+   * incurs an I/O overhead at best, and a potential thread-unsafe data race at
+   * worst(as an entry will be read out multiple times concurrently).
    */
   template <typename DS>
   auto load(dataset::input<DS> &&in) -> dataset::loaded<DS>;
@@ -136,24 +139,70 @@ public:
   auto define(column::definition<Def> const &defn, lazy<Cols> const &...cols)
       -> lazy<Def>;
 
+  /**
+   * @brief Initiate a cutflow.
+   * @tparam Col Column type.
+   * @param[in] column Input column value used as cut decision.
+   * @return Lazy selection.
+   */
   template <typename Col>
-  auto filter(lazy<Col> const &col) -> lazy<selection::node>;
-  template <typename Col>
-  auto weight(lazy<Col> const &col) -> lazy<selection::node>;
+  auto filter(lazy<Col> const &column) -> lazy<selection::node>;
 
+  /**
+   * @brief Initiate a cutflow.
+   * @tparam Col Column type.
+   * @param[in] column Input column value used as weight decision.
+   * @return Lazy selection.
+   */
+  template <typename Col>
+  auto weight(lazy<Col> const &column) -> lazy<selection::node>;
+
+  /**
+   * @brief Initiate a cutflow.
+   * @tparam Col Lazy varied column.
+   * @param[in] column Input column value used as cut decision.
+   * @return Lazy varied selection.
+   */
   template <typename Col> auto filter(Col const &col);
+
+  /**
+   * @brief Initiate a cutflow.
+   * @tparam Col Lazy varied column.
+   * @param[in] column Input column value used as weight decision.
+   * @return Lazy varied selection.
+   */
   template <typename Col> auto weight(Col const &col);
 
+  /**
+   * @brief Initiate a cutflow.
+   * @tparam Expr C++ Callable object.
+   * @tparam Cols Column types.
+   * @param[in] Input (varied) columns used to evaluate cut decision.
+   * @return Lazy (varied) selection.
+   */
   template <typename Expr, typename... Cols>
   auto filter(queryosity::column::expression<Expr> const &expr,
               Cols const &...cols);
 
+  /**
+   * @brief Initiate a cutflow.
+   * @tparam Expr C++ Callable object.
+   * @tparam Cols Column types.
+   * @param[in] Input (varied) columns used to evaluate weight decision.
+   * @return Lazy (varied) selection.
+   */
   template <typename Expr, typename... Cols>
   auto weight(queryosity::column::expression<Expr> const &expr,
               Cols const &...cols);
 
-  template <typename Cntr>
-  auto make(query::plan<Cntr> const &cntr) -> todo<query::book<Cntr>>;
+  /**
+   * @brief Plan a query.
+   * @tparam Qry Concrete queryosity::query::definition implementation.
+   * @param[in] plan Query plan (constructor arguments).
+   * @return queryosity::todo query booker.
+   */
+  template <typename Qry>
+  auto make(query::plan<Qry> const &plan) -> todo<query::book<Qry>>;
 
   template <typename Val, typename... Vars>
   auto vary(column::constant<Val> const &nom, Vars const &...vars);
@@ -186,8 +235,8 @@ public:
   auto _select(lazy<selection::node> const &prev, lazy<Col> const &col)
       -> lazy<selection::node>;
 
-  template <typename Cntr, typename... Args>
-  auto _make(Args &&...args) -> todo<query::book<Cntr>>;
+  template <typename Qry, typename... Args>
+  auto _make(Args &&...args) -> todo<query::book<Qry>>;
 
 protected:
   template <typename Kwd> void accept_kwarg(Kwd &&kwarg);
@@ -203,12 +252,12 @@ protected:
   auto _evaluate(todo<column::evaluate<Def>> const &calc,
                  lazy<Cols> const &...columns) -> lazy<Def>;
 
-  template <typename Cntr>
-  auto _book(todo<query::book<Cntr>> const &bkr,
-             lazy<selection::node> const &sel) -> lazy<Cntr>;
-  template <typename Cntr, typename... Sels>
-  auto _book(todo<query::book<Cntr>> const &bkr, lazy<Sels> const &...sels)
-      -> std::array<lazy<Cntr>, sizeof...(Sels)>;
+  template <typename Qry>
+  auto _book(todo<query::book<Qry>> const &bkr,
+             lazy<selection::node> const &sel) -> lazy<Qry>;
+  template <typename Qry, typename... Sels>
+  auto _book(todo<query::book<Qry>> const &bkr, lazy<Sels> const &...sels)
+      -> std::array<lazy<Qry>, sizeof...(Sels)>;
 
   template <typename Syst, typename Val>
   void _vary(Syst &syst, const std::string &name,
@@ -394,19 +443,19 @@ auto queryosity::dataflow::weight(
   return this->weight(dec);
 }
 
-template <typename Cntr, typename... Args>
-auto queryosity::dataflow::_make(Args &&...args) -> todo<query::book<Cntr>> {
-  return todo<query::book<Cntr>>(*this, ensemble::invoke(
-                                            [&args...](dataset::player *plyr) {
-                                              return plyr->template make<Cntr>(
-                                                  std::forward<Args>(args)...);
-                                            },
-                                            m_processor.get_slots()));
+template <typename Qry, typename... Args>
+auto queryosity::dataflow::_make(Args &&...args) -> todo<query::book<Qry>> {
+  return todo<query::book<Qry>>(*this, ensemble::invoke(
+                                           [&args...](dataset::player *plyr) {
+                                             return plyr->template make<Qry>(
+                                                 std::forward<Args>(args)...);
+                                           },
+                                           m_processor.get_slots()));
 }
 
-template <typename Cntr>
-auto queryosity::dataflow::make(queryosity::query::plan<Cntr> const &cntr)
-    -> todo<query::book<Cntr>> {
+template <typename Qry>
+auto queryosity::dataflow::make(queryosity::query::plan<Qry> const &cntr)
+    -> todo<query::book<Qry>> {
   return cntr._make(*this);
 }
 
@@ -424,25 +473,25 @@ auto queryosity::dataflow::_evaluate(todo<column::evaluate<Def>> const &calc,
   return lzy;
 }
 
-template <typename Cntr>
-auto queryosity::dataflow::_book(todo<query::book<Cntr>> const &bkr,
+template <typename Qry>
+auto queryosity::dataflow::_book(todo<query::book<Qry>> const &bkr,
                                  lazy<selection::node> const &sel)
-    -> lazy<Cntr> {
+    -> lazy<Qry> {
   // new query booked: dataset will need to be analyzed
   this->reset();
   auto act = ensemble::invoke(
-      [](dataset::player *plyr, query::book<Cntr> *bkr,
+      [](dataset::player *plyr, query::book<Qry> *bkr,
          const selection::node *sel) { return plyr->book(*bkr, *sel); },
       m_processor.get_slots(), bkr.get_slots(), sel.get_slots());
-  auto lzy = lazy<Cntr>(*this, act);
+  auto lzy = lazy<Qry>(*this, act);
   return lzy;
 }
 
-template <typename Cntr, typename... Sels>
-auto queryosity::dataflow::_book(todo<query::book<Cntr>> const &bkr,
+template <typename Qry, typename... Sels>
+auto queryosity::dataflow::_book(todo<query::book<Qry>> const &bkr,
                                  lazy<Sels> const &...sels)
-    -> std::array<lazy<Cntr>, sizeof...(Sels)> {
-  return std::array<lazy<Cntr>, sizeof...(Sels)>{this->_book(bkr, sels)...};
+    -> std::array<lazy<Qry>, sizeof...(Sels)> {
+  return std::array<lazy<Qry>, sizeof...(Sels)>{this->_book(bkr, sels)...};
 }
 
 inline void queryosity::dataflow::analyze() {

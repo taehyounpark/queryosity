@@ -7,15 +7,46 @@ namespace queryosity {
 
 namespace dataset {
 
+/**
+ * @ingroup abc
+ * @brief Custom dataset source
+ */
 class source : public action {
 public:
   source() = default;
   virtual ~source() = default;
+
   virtual void parallelize(unsigned int concurrency) = 0;
+
   virtual double normalize();
   virtual void initialize();
+
+  /**
+   * @brief Determine dataset partition for parallel processing.
+   * @return Dataset entry partition
+   *
+   * @details
+   *
+   * - The dataflow *must* load at least one dataset with a valid partition.
+   * - A valid partition *must* begin at 0 and be in sorted contiguous order,
+   * e.g. `{{0,100},{100,200}}`.
+   * - If a dataset returns an empty partition, it relinquishes the control to
+   * another dataset in the dataflow.
+   * @attention The empty-partition dataset *must* be able to fulfill
+   * @code{.cpp}execute(entry)@endcode calls for any `entry` as
+   * requested by the other datasets in the dataflow.
+   *
+   * Valid partitions reported by loaded datasets undergo the following changes:
+   * 1. A common alignment partition is calculated across all loaded datasets.
+   * @attention All non-empty partitions in the dataflow *must* have the same
+   * total number of entries in order them to be alignable.
+   * 2. Entries past the maximum to be processed are truncated.
+   * 3. Neighbouring ranges are merged to match thread concurrency.
+   *
+   */
   virtual std::vector<std::pair<unsigned long long, unsigned long long>>
   partition() = 0;
+
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) override;
   virtual void execute(unsigned int slot, unsigned long long entry) override;
@@ -23,6 +54,10 @@ public:
   virtual void finalize();
 };
 
+/**
+ * @ingroup abc
+ * @brief Custom dataset reader
+ */
 template <typename DS> class reader : public source {
 
 public:

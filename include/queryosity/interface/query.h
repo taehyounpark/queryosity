@@ -9,7 +9,7 @@
 #include "action.h"
 
 /**
- * @brief Perform queries on the dataset.
+ * @brief All queryosity namespaces and classes.
  */
 namespace queryosity {
 
@@ -31,6 +31,9 @@ class node;
 
 }
 
+/**
+ * @brief Perform a query.
+ */
 namespace query {
 
 class experiment;

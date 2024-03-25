@@ -8,7 +8,7 @@ namespace queryosity {
 /**
  * @brief Query filled with column value(s) per-entry.
  * @tparam T Output result type.
- * @tparam Obs... Input column data types.
+ * @tparam Obs Input column data types.
  */
 template <typename T, typename... Obs>
 class query::definition<T(Obs...)> : public query::aggregation<T> {

@@ -1,15 +1,10 @@
 #pragma once
 
 /**
+ * @defgroup ext Extensions
  * @defgroup api API
  * @defgroup abc ABCs
  */
-
-/**
- * @namespace queryosity
- * The root namespace of all queryostiy namespaces and classes.
- */
-namespace queryosity {};
 
 #include "interface/multithread.h"
 

@@ -1,9 +1,9 @@
 @page guide User guide
 @tableofcontents
 
-@section guide-cheatsheet Cheat sheet
+@section guide-dataflow Dataflow
 
-```cpp
+@cpp
 #include "queryosity/queryosity.h"
 
 namespace qty = queryosity;
@@ -13,102 +13,200 @@ namespace column = qty::column;
 namespace query = qty::query;
 namespace systematic = qty::systematic;
 using dataflow = qty::dataflow;
-```
 
-```cpp
-dataflow df(mulithread::enable(nthreads));
-```
+int main() {
 
-```cpp
-// (1)
-auto ds = df.load(dataset::input</* DS */>(/* input_arguments */));
-auto x = ds.read(dataset::column<>("x"));
-auto y = ds.read(dataset::column<>("y"));
+  dataflow df;
 
-// (2)
-auto [x, y] = df.read(
-  dataset::input</* DS */>(/* input_arguments */),
-  dataset::column<>("x"),
-  dataset::column<>("y")
+  // your analysis here...
+
+}
+@endcpp
+
+The dataflow accepts several options to configure the dataset processing. 
+Up to three keyword arguments can be provided in any order.
+
+@cpp
+// multithreaded run with a custom weight over the first 100 entries
+dataflow df(multithread::enable(), dataset::weight(1.234), dataset::head(100));
+@endcpp
+
+| Option | Description | Default |
+| :--- | :--- | :--- |
+| `multithread::enable(nthreads)` | Enable multithreading up to `nthreads`. | `-1` (system maximum) |
+| `multithread::disable()` | Disable multithreading. | |
+| `dataset::weight(scale)` | Apply a global `scale` to all weights. | `1.0` |
+| `dataset::head(nrows)` | Process the first `nrows` of the dataset. | `-1` (all entries) |
+
+@section guide-dataset-reader Reading a dataset
+
+Call queryosity::dataflow::load() with a queryosity::dataset::input (specifying the dataset reader and its constructor arguments).
+The loaded dataset can then read queryosity::dataset::column (specifying the column data type and name).
+
+@cpp
+using json = qty::json;
+
+// load a dataset
+std::ifstream data("data.json");
+auto ds = df.load(dataset::input<json>(data));
+
+// read a dataset column
+auto x = ds.read(dataset::column<double>("x"));
+@endcpp
+
+A dataflow can load multiple datasets, as long as all valid partitions reported by queryosity::dataset::source::partition() have the same number of total entries.
+Or, a dataset can report an empty partition, which signals that it relinquishes the control to the other datasets.
+
+@cpp
+// no need to be another json -- whatever else!
+std::ifstream more_data("more_data.json");
+auto ds_another = df.load(dataset::input<json>(more_data));
+
+// no need to be another double -- whatever else!
+auto y = ds_another.read(dataset::column<double>("y"));
+
+// syntactical shortcut: implicitly load a dataset and read out all columns at once.
+std::ifstream even_more_data("even_more_data.json");
+auto [s, v] = df.read(
+  dataset::input<json>(even_more_data),
+  dataset::column<std::string>("s"),
+  dataset::column<std::vector<double>>("v")
   );
+@endcpp
 
-// (3)
-auto [x, y] = df.read(
-  dataset::input</* DS */>(/* input_arguments */),
-  dataset::columns<>("x", "y")
-  );
-```
+@see 
+- queryosity::json (Extension)
+- queryosity::dataset::reader (ABC)
+- queryosity::dataset::source (ABC)
 
-```cpp
-auto a = ds.define(column::constant<>());
-auto b = ds.define(column::expression(), );
-auto c = ds.define(column::definition<>(), );
-```
+@section guide-column Computing quantities
 
-```cpp
-auto cut = df.filter();
-auto cut_n_wgt = cut.weight(column::expression(), );
-```
+Call queryosity::dataflow::define() with the appropriate argument.
 
-```cpp
+@cpp
+// Constant value across all entries
+auto zero = df.define(column::constant(0));
+
+// Callable (C++ funciton, functor, lambda, etc.) evaluated out of input columns
+// use const& for non-trivial data types to prevent expensive copies
+auto s_length = df.define(column::expression([](const std::string& txt){return txt.length();}), s);
+
+// Custom definition evaluated out of input columns
+auto v_selected = df.define(column::definition<>(), v);
+@endcpp
+
+@see 
+- queryosity::column::definition (API)
+- queryosity::column::definition<Out(Ins...)> (ABC)
+
+@section guide-selection Applying selections
+
+Call queryosity::dataflow::filter() or queryosity::dataflow::weight() to initiate a selection in the cutflow, and apply subsequent selections from existing nodes to compound them. 
+
+@cpp
+// initiate a cutflow 
+auto inclusive = df.filter(c); // using an existing column as the decision
+
+// selections can be compounded regardless of their type (cut or weight)
+auto weighted = cut.weight(
+  column::expression([](double w){return (w<0 ? 0.0: w);}), w
+  ); // using an exprssion evaluated out of input columns
+
+// compounding multiple selections from a common node creates a branching point
+auto cut_a = weighted.filter(a);
+auto cut_b = weighted.filter(b);
+auto cut_c = weighted.filter(c);
+
+// selections are columns whose values are their decisions along the cutflow,
+// which can also be used to evaluate new selections.
+auto cut_a_and_b = df.filter(cut_a && cut_b);
+auto cut_b_or_c = df.filter(cut_b || cut_c);
+@endcpp
+
+@section guide-query Making queries
+
+Call queryosity::dataflow::make() with a queryosity::query::plan (specifying the query definition and its constructor arguments).
+Calling todo::fill() populates the query with input columns, and todo::book() instantiates the lazy query.
+
+@cpp
 auto q = df.make(query::plan<>()).fill().book();
 auto q_result = q.result();
-```
+@endcpp
 
-```cpp
-// (1)
+@see 
+- queryosity::query::definition<T(Obs...)>
+
+@section guide-vary Systematic variations
+
+Call queryosity::dataflow::vary() to create queryosity::lazy::varied columns. 
+There are two ways in which variations can be specified:
+
+1. **Automatic.** Specify a specific type of column to be instantiated along with the nominal+variations. Always ensures the lockstep+transparent propagation of variations.
+2. **Manual.** Provide existing instances of columns to be nominal+variations; any column whose output value type is compatible to that of the nominal can be set as a variation.
+
+The two approaches can (and should) be used interchangeably with each other for full control over the creation & propagation of systematic variations.
+
+@cpp
+// automatic -- set and forget
+
+// dataset columns are varied by different column names
 auto x = ds.vary(
   dataset::column("x_nom"),
   {"vary_x","x_var"}
   );
 
-auto a = df.vary(
-  column::constant(),
-  {"vary_a",}
+// constants are varied by alternate values
+auto yes_or_no = df.vary(
+  column::constant(true),
+  {"no", false}
   );
 
+// expressions are varied by alternate expression+input columns
 auto b = df.vary(
   column::expression(),
   systematic::variation("vary_b", )
   )();
 
-auto c = df.vary(
+// definitions are varied by alternate constructor arguments+input columns
+auto defn = df.vary(
   column::definition<>(),
-  systematic::variation("vary_c", /*(8)!*/)
+  systematic::variation("vary_c", )
   )();
 
-// (2)
-auto z_nom = df.define();
-auto z_up = df.define();
-auto z_dn = df.define();
+// manual method -- man-handle as you see fit
 
+// note:
+// - different column types (column, constant, definition)
+// - different data types (double, int, float)
+auto z_nom = ds.read(dataset::column<double>("z"));
+auto z_fixed = df.define(column::constant<int>(100.0));
+auto z_half = df.define([](float z){return z*0.5;}, z_nom);
+
+// as long as their output values are compatible, any set of columns can be used
 auto z = systematic::vary(
-  systematic::nominal(), 
-  systematic::variation("z_up", ), 
-  systematic::variation("z_dn", )
+  systematic::nominal(z_nom), 
+  systematic::variation("z_fixed", f_fixed), 
+  systematic::variation("z_half", z_half)
   );
 
-```
+// systematic variations are propagated through selections...
+auto sel = df.filter(yes_or_no);
 
-@section guide-dataflow Dataflow
+// ... and queries
+auto q = df.make(query::plan<>()).fill(x).book(yes_or_no);
+q.has_variation("vary_x"); // true, filled with x_var for all entries
+q.has_variation("no"); // true, filled with x_nom for no entries
 
-```cpp
-dataflow df;
-```
+// other variations play no role here.
+q.has_variation("vary_b"); // false
 
-```cpp
-dataflow df(multithread::enable(4), dataset::weight(0.123), dataset::head(100));
-```
+// nominal & varied results can be separately accessed
+auto q_nom_res = q.nominal().result();
+auto q_varx_res = q.["vary_x"].result();
+auto q_none_res = q.["no"].result();
 
-In order for the multithreading to be supported, developers must ensure the following:
+@endcpp
 
-1. `dataset::reader` must partition the dataset for parallel processing.
-2. `dataset::reader` and `column::reader` must access the underlying dataset in a thread-safe way.
-3. `column::definition` and `query::definition` must be thread-safe.
-
-| Keyword Argument | Description |
-| :--- | :--- |
-| `multithread::enable(nthreads)` | Enable multithreading up to `nthreads`. |
-| `multithread::disable()` | Disable multithreading. |
-| `dataset::head(nrows)` | Process only the first `nrows` of the dataset. |
-| `dataset::weight(scale)` | Apply a global `scale` to all weights. |
+@see 
+- queryosity::lazy::varied
+- queryosity::todo::varied

@@ -13,6 +13,9 @@
 
 namespace queryosity {
 
+/**
+ * @brief Process a dataset.
+ */
 namespace dataset {
 
 using part_t = std::pair<unsigned long long, unsigned long long>;

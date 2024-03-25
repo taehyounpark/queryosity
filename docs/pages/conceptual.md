@@ -1,4 +1,4 @@
-@page conceptual Conceptual guide
+@page conceptual Conceptual overview
 @tableofcontents
 
 @section conceptual-dataflow Dataflow
@@ -34,14 +34,15 @@ The eagerness of actions in each entry are as follows:
 @section conceptual-columns Columns
 
 A `column` contains some data type `T` whose value changes, i.e. must be updated, for each entry.
-The computation graph only needs to perform the least number of updates possible:
-
-- A column value is updated for an entry only if its computation is required.
-    - Once updated, the value is cached and never re-computed.
-- A column value is not copied when used as an input for dependent columns.
-    - It *is* copied a conversion is required.
+Columns that are read-in from a dataset or defined as constants are *independent*, i.e. their values do not depend on others.
+A tower of dependent columns evaluated out of others as inputs forms the computation graph:
 
 ![Example computation graph](../images/computation.png)
+
+@paragraph conceptual-columns-lazy Lazy optimizations
+- If and when a column value is computed for an entry, it is cached and never re-computed.
+- A column value is not copied when used as an input for dependent columns.
+    - It *is* copied a conversion is required.
 
 @section conceptual-selections Selections
 
@@ -60,11 +61,10 @@ A cutflow can have from the following types connections between nodes:
 - Branching selections by applying more than one selection from a common node.
 - Merging two selections, e.g. taking the union/intersection of two cuts.
 
-#### Algorithmic guarantees
-
-- The cut at a node will first check to see if its previous cut has passed.
-- The weight at a selection node is not evaluated unless the cut has passed.
-- Once a decision is evaluated at a node,
+@paragraph conceptual-selections-lazy Lazy optimizations
+- A selection decision is cached for each entry (because they are also columns).
+- The cut decision is evaluated only if of its previous cut has passed.
+- The weight decision is evaluated only if the cut has passed.
 
 @section conceptual-query Queries
 
@@ -91,12 +91,10 @@ Two common workflows exist in associating queries with selections:
 
 A sensitivity analysis means to study how changes in the input of a system affect its output. In the context of dataset queries, a **systematic variation** constitutes a __change in a column value that affects the outcome of selections and queries__.
 
-In a dataflow, variations in a column need only be specified *once*. 
-Then, they are *propagated* through all relevant task graphs.
-This reduces code redundancy i.e. room for human error, and ensures that all variations run in a single run, eliminating the runtime overhead associated with repeated dataset traversals.
-
-This is done by encapsulating the nominal and variations of a column to create a `varied` node in which each variation is mapped by the name of its associated systematic variation.
-A varied node can be treated functionally identical to a nominal-only one, with all nominal+variations being propagated underneath:
+In a dataflow, encapsulating the nominal and variations of a column to create a `varied` node in which each variation is mapped by the name of its associated systematic variation.
+A varied node can be treated functionally identical to a non-varied one, with all nominal+variations being propagated underneath:
+Then, the variations are automatically propagated through all relevant task graphs.
+This ensures that the variations are processed in a single dataset traversal, eliminating the runtime overhead associated with repeated runs.
 
 - Any column definitions and selections evaluated out of varied input columns will be varied.
 - Any queries performed filled with varied input columns and/or at varied selections will be varied.

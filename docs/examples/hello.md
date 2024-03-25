@@ -22,7 +22,7 @@ using lin_ax = qty::hist::axis::linear;
 
 int main() {
 
-	dataflow df( multithread::enable(10) );
+	dataflow df( multithread::enable() );
 
 	std::ifstream data("data.json");
 	auto [x, w] = df.read( 

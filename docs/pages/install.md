@@ -1,7 +1,9 @@
 @page install Installation
 @tableofcontents
 
-- Requirement: C++17
+- Core prerequisites: C++17
+- Extension dependencies: [nlohmann::json](https://json.nlohmann.me), [boost::histogram](https://www.boost.org/doc/libs/1_84_0/libs/histogram/doc/html/index.html)
+- The following environments are included in CI:
 
 | OS | Compiler | Versions |
 | :--- | :--- | :--- |
@@ -50,6 +52,7 @@ add_library(YourProject ...)
 ...
 target_link_libraries(YourProject INTERFACE queryosity::queryosity)
 ~~~
+
 ~~~{.cpp}
 #include "queryosity/queryosity.h"
 ~~~

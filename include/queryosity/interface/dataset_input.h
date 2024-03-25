@@ -5,8 +5,15 @@
 #include "dataset.h"
 
 namespace queryosity {
+
 namespace dataset {
 
+/**
+ * @ingroup api
+ * @brief Dataset input argument for dataflow.
+ * @tparam DS queryosity::dataset::reader implementation.
+ * @tparam Args Constructor arguments for `DS`.
+ */
 template <typename DS> struct input {
   template <typename... Args> input(Args &&...args);
   virtual ~input() = default;

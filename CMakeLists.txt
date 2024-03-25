@@ -85,7 +85,7 @@ if (QUERYOSITY_INSTALL)
 endif()
 
 if (QUERYOSITY_TESTS OR QUERYOSITY_EXAMPLES)
-  add_subdirectory("plugins")
+  add_subdirectory("extensions")
   if (QUERYOSITY_TESTS)
     enable_testing()
     add_subdirectory("tests")

@@ -30,10 +30,10 @@ static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 /**
  * @ingroup api
- * @brief Instantiate a lazy action upon inputs from existing ones.
- * @details A todo helper exists as a middle layer between dataflow calls and
- * the final lazy action output in cases where more than one set of lazy action
- * inputs are required.
+ * @brief Complete the instantiation of a lazy action.
+ * @details A todo node is an intermediate state between the dataflow graph and
+ * a lazy node, when additional methods must be chained in order to instantiate
+ * the action.
  * @tparam Helper Helper class to instantiate the lazy action.
  */
 template <typename Helper>

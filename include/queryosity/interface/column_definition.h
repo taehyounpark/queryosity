@@ -55,6 +55,8 @@ protected:
 /**
  * @ingroup api
  * @brief Define a custom column in dataflow.
+ * @tparam Def Concrete queryosity::column::definition<Out(Ins...)>
+ * implementation
  */
 template <typename Def> class column::definition {
 
