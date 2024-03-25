@@ -5,7 +5,7 @@
 
 A `dataflow` consists of a directed, acyclic graph of tasks performed for each entry.
 
-@image html dataflow.png
+@image html dataflow.png "The dataflow"
 
 An action falls into one of three types that reflect the nature of the task and are uniquely associated with a set of applicable methods.
 Each type forms a sub-graphs of tasks, which receive actions of the previous types as inputs:
@@ -37,7 +37,7 @@ A `column` contains some data type `T` whose value changes, i.e. must be updated
 Columns that are read-in from a dataset or defined as constants are *independent*, i.e. their values do not depend on others.
 A tower of dependent columns evaluated out of others as inputs forms the computation graph:
 
-![Example computation graph](./computation.png)
+@image html computation.png "Example computation graph"
 
 @paragraph conceptual-columns-lazy Lazy optimizations
 - If and when a column value is computed for an entry, it is cached and never re-computed.
@@ -55,7 +55,7 @@ A `selection` is a specific type of scalar-valued columns representing a decisio
 
 A cutflow can have from the following types connections between nodes:
 
-![cutflow](./cutflow.png)
+@image html cutflow.png "Example cutflow structure"
 
 - Applying a selection from an existing node, which determines the order in which they are compounded.
 - Branching selections by applying more than one selection from a common node.
@@ -79,13 +79,9 @@ A `query` definition specifies an output whose result is obtained from counting 
 
 Two common workflows exist in associating queries with selections:
 
-- Running a single query at multiple selections:
+@image html query_1.png "Running a single query at multiple selections"
 
-@image html query_1.png
-
-- Running multiple queries at a selection:
-
-@image html query_2.png
+@image html query_2.png "Running multiple queries at a selection"
 
 @section conceptual-variations Systematic variations
 
@@ -104,4 +100,4 @@ The propagation proceeds in the following fashion:
 - **Lockstep.** If two actions each have a variation of the same name, they are in effect together.
 - **Transparent.** If only one action has a given variation, then the nominal is in effect for the other.
 
-@image html variation.png
+@image html variation.png "Propagation of systematic variations for z=x+y."
