@@ -39,8 +39,8 @@ namespace column = qty::column;
 namespace query = qty::query;
 
 using json = qty::json;
-using hist_1d = qty::hist::hist<double>;
-using lin_ax = qty::hist::axis::linear;
+using h1d = qty::hist::hist<double>;
+using linax = qty::hist::axis::linear;
 
 int main() {
 
@@ -60,7 +60,7 @@ int main() {
 		);
 
 	auto h_x0_w = df.make( 
-		query::plan<hist_1d>( lin_ax(100,0.0,1.0) ) 
+		query::plan<h1d>( linax(100,0.0,1.0) ) 
 		).fill(x0).book(sel).result();
 
 	std::ostringstream os;
