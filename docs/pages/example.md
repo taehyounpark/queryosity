@@ -161,7 +161,7 @@ auto mll_vars = df.get<Hist<1,float>>("mll",50,0,100).fill(mll).book(cut_2los);
 mll_vars.nominal()->Draw();
 mll_vars["lp4_up"]->Draw("same");
 ```
-![mll_varied](../images/mll_varied.png)
+![mll_varied](.//mll_varied.png)
 
 @section example-phys DAOD_PHYS
 
@@ -267,7 +267,7 @@ int main() {
 }
 @endcpp
 
-![muons_pt](../images/muons_pt.png)
+![muons_pt](.//muons_pt.png)
 
 @section example-task7 IRIS-HEP ADL benchmark
 
@@ -412,4 +412,4 @@ int main(int argc, char **argv) {
             << std::endl;
 }
 @endcpp
-![task_7](../images/task_7.png)
+![task_7](.//task_7.png)

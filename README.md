@@ -19,7 +19,7 @@
 - **Lazy but efficient.** An action is performed for an entry only if needed. All actions are performed in one dataset traversal. Dataset traversal is multithreaded.
 - **Systematic variations.** Perform *automatic* sensitivity analysis by applying systematic variations on actions.
 
-## Hello World
+## At a glance
 ```cpp
 #include "queryosity/json.h"
 #include "queryosity/hist.h"
