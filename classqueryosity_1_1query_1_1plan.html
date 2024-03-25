@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head>
   <meta charset="utf-8"/>
-  <title>queryosity::hist namespace | queryosity Coherent data analysis in C++</title>
+  <title>queryosity::query::plan class | queryosity Coherent data analysis in C++</title>
   <link href="favicon-dark.png" rel="icon" type="image/png"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <meta content="#22272e" name="theme-color"/>
@@ -38,7 +38,7 @@
           <ol class="m-col-t-6 m-col-m-none">
             <li><a href="modules.html">Modules</a></li>
             <li><a href="annotated.html">Classes</a></li>
-            <li class="poxy-navbar-version-selector"><a href="namespacequeryosity_1_1hist.html">Version: HEAD</a><ol><li><a href="namespacequeryosity_1_1hist.html">HEAD</a></li></ol></li>
+            <li class="poxy-navbar-version-selector"><a href="classqueryosity_1_1query_1_1plan.html">Version: HEAD</a><ol><li><a href="classqueryosity_1_1query_1_1plan.html">HEAD</a></li></ol></li>
           </ol>
           <ol class="m-col-t-6 m-col-m-none" start="4">
             <li><a class="poxy-icon repo github poxy-external" href="https://github.com/taehyounpark/queryosity" target="_blank" title="View on GitHub"><svg id="poxy-icon-repo" version="1.1" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><path d="M25,1.23a24.37,24.37,0,0,0-7.7,47.5C18.51,49,19,48.2,19,47.56s0-2.12,0-4.15c-6.78,1.47-8.21-3.27-8.21-3.27C9.61,37.33,8,36.58,8,36.58c-2.21-1.51.17-1.48.17-1.48a5.12,5.12,0,0,1,3.73,2.51c2.17,3.72,5.7,2.65,7.09,2a5.25,5.25,0,0,1,1.55-3.26c-5.41-.61-11.1-2.7-11.1-12A9.41,9.41,0,0,1,12,17.79a8.75,8.75,0,0,1,.24-6.45s2-.66,6.7,2.49a23.1,23.1,0,0,1,12.2,0c4.66-3.15,6.7-2.49,6.7-2.49A8.75,8.75,0,0,1,38,17.79a9.41,9.41,0,0,1,2.51,6.54c0,9.36-5.7,11.42-11.13,12a5.83,5.83,0,0,1,1.65,4.51c0,3.26,0,5.89,0,6.69,0,.65.44,1.41,1.68,1.17A24.38,24.38,0,0,0,25,1.23Z" fill="currentColor"></path></svg></a></li>
@@ -57,37 +57,75 @@
     <div class="m-row">
       <div class="m-col-l-10 m-push-l-1">
         <h1>
-          <span class="m-breadcrumb"><a href="namespacequeryosity.html">queryosity</a>::<wbr/></span>hist <span class="m-thin">namespace</span>
+          <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Qry</span></span>&gt;</div>
+          <span class="m-breadcrumb"><a href="namespacequeryosity.html">queryosity</a>::<wbr/></span><span class="m-breadcrumb"><a href="namespacequeryosity_1_1query.html">query</a>::<wbr/></span>plan <span class="m-thin">class</span>
         </h1>
-        <p><code>boost::histogram</code> extension for queryosity</p>
+        <p>Plan a query.</p>
+        <table class="m-table m-fullwidth m-flat">
+          <thead>
+            <tr><th colspan="2">Template parameters</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="width: 1%">Qry</td>
+              <td>Concrete implementation of <a class="m-doc" href="classqueryosity_1_1query_1_1definition_3_01_t_07_obs_8_8_8_08_4.html">queryosity::<wbr/>query::<wbr/>definition&lt;T(Obs...)&gt;</a>.</td>
+            </tr>
+          </tbody>
+        </table>
         <nav class="m-block m-default poxy-toc" id="poxy-toc">
           <h3>Contents</h3>
           <ul>
             <li>
               Reference
               <ul>
-                <li><a href="#namespaces">Namespaces</a></li>
-                <li><a href="#nested-classes">Classes</a></li>
+                <li><a href="#typeless-methods">Constructors, destructors, conversion operators</a></li>
               </ul>
             </li>
           </ul>
         </nav>
-        <section id="namespaces">
-          <h2><a href="#namespaces">Namespaces</a></h2>
-          <dl class="m-doc">
-            <dt>namespace <a class="m-doc" href="namespacequeryosity_1_1hist_1_1axis.html">axis</a></dt>
-            <dd>Histogram axes for queryosity.</dd>
-          </dl>
-        </section>
-        <section id="nested-classes">
-          <h2><a href="#nested-classes">Classes</a></h2>
+        <section id="typeless-methods">
+          <h2><a href="#typeless-methods">Constructors, destructors, conversion operators</a></h2>
           <dl class="m-doc">
             <dt>
-              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Vals</span></span>&gt;</div>
-              class <a class="m-doc" href="classqueryosity_1_1hist_1_1hist.html">hist</a>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Args</span></span>&gt;</div>
+              <span class="m-doc-wrap-bumper"><a class="m-doc" href="#ac79abe622340d20da78e8eacf91914e7">plan</a>(</span><span class="m-doc-wrap">Args const&amp;... args)</span>
             </dt>
-            <dd>N-dimensional histogram query for queryosity.</dd>
+            <dd>Constructor.</dd>
           </dl>
+        </section>
+        <section>
+          <h2>Function documentation</h2>
+          <section class="m-doc-details" id="ac79abe622340d20da78e8eacf91914e7"><div>
+            <h3>
+              <div class="m-doc-template">
+                <span class="m-doc-template-parent">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Qry</span></span>&gt;</span>
+                <br/>
+                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Args</span></span>&gt;
+              </div>
+              <span class="m-doc-wrap-bumper"> <span class="m-doc-details-prefix">queryosity::query::plan::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#ac79abe622340d20da78e8eacf91914e7">plan</a>(</span><span class="m-doc-wrap">Args const&amp;... args)</span></span>
+            </h3>
+            <p>Constructor.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <thead>
+                <tr><th colspan="2">Template parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="width: 1%">Args</td>
+                  <td><code>Qry</code> constructor argument types.</td>
+                </tr>
+              </tbody>
+              <thead>
+                <tr><th colspan="2">Parameters</th></tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>args</td>
+                  <td>Constructor arguments.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div></section>
         </section>
       </div>
     </div>

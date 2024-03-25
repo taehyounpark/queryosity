@@ -57,7 +57,7 @@
     <div class="m-row">
       <div class="m-col-l-10 m-push-l-1">
         <h1>
-          <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Cols</span></span>&gt;</div>
+          <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Vals</span></span>&gt;</div>
           <span class="m-breadcrumb"><a href="namespacequeryosity.html">queryosity</a>::<wbr/></span><span class="m-breadcrumb"><a href="namespacequeryosity_1_1hist.html">hist</a>::<wbr/></span>hist <span class="m-thin">class</span>
         </h1>
         <p>N-dimensional histogram query for queryosity.</p>
@@ -67,7 +67,7 @@
           </thead>
           <tbody>
             <tr>
-              <td style="width: 1%">Cols</td>
+              <td style="width: 1%">Vals</td>
               <td>Input column data types.</td>
             </tr>
           </tbody>
@@ -90,7 +90,7 @@
           <dl class="m-doc">
             <dt>
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Axes</span></span>&gt;</div>
-              <span class="m-doc-wrap-bumper"><a class="m-doc" href="#adf038101abdb6eda4b9e71acd5049396">hist</a>(</span><span class="m-doc-wrap">Axes &amp;&amp; ... axes)</span>
+              <span class="m-doc-wrap-bumper"><a class="m-doc" href="#a01c48f8f5b47238962432ab3bb96045a">hist</a>(</span><span class="m-doc-wrap">Axes &amp;&amp; ... axes)</span>
             </dt>
             <dd>Constructor with axis configurations.</dd>
           </dl>
@@ -99,30 +99,30 @@
           <h2><a href="#pub-methods">Public functions</a></h2>
           <dl class="m-doc">
             <dt>
-              <span class="m-doc-wrap-bumper">void <a class="m-doc" href="#a573d2f467dc87829fc3cd24e77600ee5">fill</a>(</span><span class="m-doc-wrap">queryosity::column::observable&lt;Cols&gt;... columns,
+              <span class="m-doc-wrap-bumper">void <a class="m-doc" href="#a80ae1af26eebb9219453f207f7564b5d">fill</a>(</span><span class="m-doc-wrap">queryosity::column::observable&lt;Vals&gt;... columns,
               double weight) <span class="m-label m-flat m-warning">override</span></span>
             </dt>
             <dd>Fill histogram with input columns.</dd>
             <dt>
-              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#aaa81bc92f34d800a32dee48c7fc48a30">merge</a>(</span><span class="m-doc-wrap"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/container/vector.html" target="_blank">std::<wbr/>vector</a>&lt;<a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt;&gt; const&amp; results) const -&gt; <a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt; <span class="m-label m-flat m-warning">override</span></span>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#ac201c837cd9a4633fba0d430df9a1028">merge</a>(</span><span class="m-doc-wrap"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/container/vector.html" target="_blank">std::<wbr/>vector</a>&lt;<a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt;&gt; const&amp; results) const -&gt; <a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt; <span class="m-label m-flat m-warning">override</span></span>
             </dt>
             <dd>Merge results from multithreaded runs.</dd>
             <dt>
-              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a95f743478b2fb46b7b59e53a15e22388">result</a>(</span><span class="m-doc-wrap">) const -&gt; <a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt; <span class="m-label m-flat m-warning">override</span></span>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#ae98807f5a326ff00d786922394e3c7c7">result</a>(</span><span class="m-doc-wrap">) const -&gt; <a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt; <span class="m-label m-flat m-warning">override</span></span>
             </dt>
             <dd>Retrieve the result.</dd>
           </dl>
         </section>
         <section>
           <h2>Function documentation</h2>
-          <section class="m-doc-details" id="adf038101abdb6eda4b9e71acd5049396"><div>
+          <section class="m-doc-details" id="a01c48f8f5b47238962432ab3bb96045a"><div>
             <h3>
               <div class="m-doc-template">
-                <span class="m-doc-template-parent">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Cols</span></span>&gt;</span>
+                <span class="m-doc-template-parent">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Vals</span></span>&gt;</span>
                 <br/>
                 template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Axes</span></span>&gt;
               </div>
-              <span class="m-doc-wrap-bumper"> <span class="m-doc-details-prefix">queryosity::hist::hist::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#adf038101abdb6eda4b9e71acd5049396">hist</a>(</span><span class="m-doc-wrap">Axes &amp;&amp; ... axes)</span></span>
+              <span class="m-doc-wrap-bumper"> <span class="m-doc-details-prefix">queryosity::hist::hist::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a01c48f8f5b47238962432ab3bb96045a">hist</a>(</span><span class="m-doc-wrap">Axes &amp;&amp; ... axes)</span></span>
             </h3>
             <p>Constructor with axis configurations.</p>
             <table class="m-table m-fullwidth m-flat">
@@ -138,12 +138,12 @@
             </table>
 <p>The number of axis arguments provided must match the dimensionality of the histogram.</p>
           </div></section>
-          <section class="m-doc-details" id="a573d2f467dc87829fc3cd24e77600ee5"><div>
+          <section class="m-doc-details" id="a80ae1af26eebb9219453f207f7564b5d"><div>
             <h3>
               <div class="m-doc-template">
-                <span class="m-doc-template-parent">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Cols</span></span>&gt;</span>
+                <span class="m-doc-template-parent">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Vals</span></span>&gt;</span>
               </div>
-              <span class="m-doc-wrap-bumper">void <span class="m-doc-details-prefix">queryosity::hist::hist::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a573d2f467dc87829fc3cd24e77600ee5">fill</a>(</span><span class="m-doc-wrap">queryosity::column::observable&lt;Cols&gt;... columns,
+              <span class="m-doc-wrap-bumper">void <span class="m-doc-details-prefix">queryosity::hist::hist::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a80ae1af26eebb9219453f207f7564b5d">fill</a>(</span><span class="m-doc-wrap">queryosity::column::observable&lt;Vals&gt;... columns,
               double weight) <span class="m-label m-warning">override</span></span></span>
             </h3>
             <p>Fill histogram with input columns.</p>
@@ -163,12 +163,12 @@
               </tbody>
             </table>
           </div></section>
-          <section class="m-doc-details" id="aaa81bc92f34d800a32dee48c7fc48a30"><div>
+          <section class="m-doc-details" id="ac201c837cd9a4633fba0d430df9a1028"><div>
             <h3>
               <div class="m-doc-template">
-                <span class="m-doc-template-parent">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Cols</span></span>&gt;</span>
+                <span class="m-doc-template-parent">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Vals</span></span>&gt;</span>
               </div>
-              <span class="m-doc-wrap-bumper"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt; <span class="m-doc-details-prefix">queryosity::hist::hist::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#aaa81bc92f34d800a32dee48c7fc48a30">merge</a>(</span><span class="m-doc-wrap"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/container/vector.html" target="_blank">std::<wbr/>vector</a>&lt;<a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt;&gt; const&amp; results) const <span class="m-label m-warning">override</span></span></span>
+              <span class="m-doc-wrap-bumper"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt; <span class="m-doc-details-prefix">queryosity::hist::hist::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#ac201c837cd9a4633fba0d430df9a1028">merge</a>(</span><span class="m-doc-wrap"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/container/vector.html" target="_blank">std::<wbr/>vector</a>&lt;<a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt;&gt; const&amp; results) const <span class="m-label m-warning">override</span></span></span>
             </h3>
             <p>Merge results from multithreaded runs.</p>
             <table class="m-table m-fullwidth m-flat">
@@ -189,12 +189,12 @@
               </tfoot>
             </table>
           </div></section>
-          <section class="m-doc-details" id="a95f743478b2fb46b7b59e53a15e22388"><div>
+          <section class="m-doc-details" id="ae98807f5a326ff00d786922394e3c7c7"><div>
             <h3>
               <div class="m-doc-template">
-                <span class="m-doc-template-parent">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Cols</span></span>&gt;</span>
+                <span class="m-doc-template-parent">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Vals</span></span>&gt;</span>
               </div>
-              <span class="m-doc-wrap-bumper"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt; <span class="m-doc-details-prefix">queryosity::hist::hist::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a95f743478b2fb46b7b59e53a15e22388">result</a>(</span><span class="m-doc-wrap">) const <span class="m-label m-warning">override</span></span></span>
+              <span class="m-doc-wrap-bumper"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/memory/shared_ptr.html" target="_blank">std::<wbr/>shared_ptr</a>&lt;hist_t&gt; <span class="m-doc-details-prefix">queryosity::hist::hist::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#ae98807f5a326ff00d786922394e3c7c7">result</a>(</span><span class="m-doc-wrap">) const <span class="m-label m-warning">override</span></span></span>
             </h3>
             <p>Retrieve the result.</p>
             <table class="m-table m-fullwidth m-flat">

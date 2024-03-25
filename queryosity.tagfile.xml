@@ -104,6 +104,18 @@
     <filename>classqueryosity_1_1column_1_1calculation.html</filename>
   </compound>
   <compound kind="class">
+    <name>queryosity::dataset::column</name>
+    <filename>classqueryosity_1_1dataset_1_1column.html</filename>
+    <templarg></templarg>
+    <member kind="function">
+      <type></type>
+      <name>column</name>
+      <anchorfile>classqueryosity_1_1dataset_1_1column.html</anchorfile>
+      <anchor>a359892e3e0d91e886b16c5f24d4d04ba</anchor>
+      <arglist>(const std::string &amp;column_name)</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
     <name>queryosity::column::constant</name>
     <filename>classqueryosity_1_1column_1_1constant.html</filename>
     <templarg></templarg>
@@ -311,33 +323,33 @@
   <compound kind="class">
     <name>queryosity::hist::hist</name>
     <filename>classqueryosity_1_1hist_1_1hist.html</filename>
-    <templarg>Cols</templarg>
+    <templarg>Vals</templarg>
     <member kind="function">
       <type></type>
       <name>hist</name>
       <anchorfile>classqueryosity_1_1hist_1_1hist.html</anchorfile>
-      <anchor>adf038101abdb6eda4b9e71acd5049396</anchor>
+      <anchor>a01c48f8f5b47238962432ab3bb96045a</anchor>
       <arglist>(Axes &amp;&amp;...axes)</arglist>
     </member>
     <member kind="function" virtualness="virtual">
       <type>virtual void</type>
       <name>fill</name>
       <anchorfile>classqueryosity_1_1hist_1_1hist.html</anchorfile>
-      <anchor>a573d2f467dc87829fc3cd24e77600ee5</anchor>
-      <arglist>(queryosity::column::observable&lt; Cols &gt;... columns, double weight) override</arglist>
+      <anchor>a80ae1af26eebb9219453f207f7564b5d</anchor>
+      <arglist>(queryosity::column::observable&lt; Vals &gt;... columns, double weight) override</arglist>
     </member>
     <member kind="function" virtualness="virtual">
       <type>virtual std::shared_ptr&lt; hist_t &gt;</type>
       <name>result</name>
       <anchorfile>classqueryosity_1_1hist_1_1hist.html</anchorfile>
-      <anchor>a95f743478b2fb46b7b59e53a15e22388</anchor>
+      <anchor>ae98807f5a326ff00d786922394e3c7c7</anchor>
       <arglist>() const override</arglist>
     </member>
     <member kind="function" virtualness="virtual">
       <type>virtual std::shared_ptr&lt; hist_t &gt;</type>
       <name>merge</name>
       <anchorfile>classqueryosity_1_1hist_1_1hist.html</anchorfile>
-      <anchor>aaa81bc92f34d800a32dee48c7fc48a30</anchor>
+      <anchor>ac201c837cd9a4633fba0d430df9a1028</anchor>
       <arglist>(std::vector&lt; std::shared_ptr&lt; hist_t &gt;&gt; const &amp;results) const override</arglist>
     </member>
   </compound>
@@ -345,6 +357,13 @@
     <name>queryosity::dataset::input</name>
     <filename>structqueryosity_1_1dataset_1_1input.html</filename>
     <templarg></templarg>
+    <member kind="function">
+      <type></type>
+      <name>input</name>
+      <anchorfile>structqueryosity_1_1dataset_1_1input.html</anchorfile>
+      <anchor>a2d5c4d9161a55095c7ea77699b8154ac</anchor>
+      <arglist>(Args &amp;&amp;...args)</arglist>
+    </member>
   </compound>
   <compound kind="class">
     <name>queryosity::json::item</name>
@@ -402,6 +421,18 @@
   <compound kind="class">
     <name>lazy&lt; Act &gt;</name>
     <filename>classqueryosity_1_1lazy.html</filename>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::query::plan</name>
+    <filename>classqueryosity_1_1query_1_1plan.html</filename>
+    <templarg></templarg>
+    <member kind="function">
+      <type></type>
+      <name>plan</name>
+      <anchorfile>classqueryosity_1_1query_1_1plan.html</anchorfile>
+      <anchor>ac79abe622340d20da78e8eacf91914e7</anchor>
+      <arglist>(Args const &amp;...args)</arglist>
+    </member>
   </compound>
   <compound kind="class">
     <name>queryosity::column::reader</name>
@@ -609,6 +640,7 @@
     <filename>namespacequeryosity_1_1dataset.html</filename>
     <class kind="class">queryosity::dataset::reader</class>
     <class kind="struct">queryosity::dataset::input</class>
+    <class kind="class">queryosity::dataset::column</class>
     <class kind="class">queryosity::dataset::source</class>
   </compound>
   <compound kind="namespace">
@@ -653,6 +685,7 @@
     <name>queryosity::query</name>
     <filename>namespacequeryosity_1_1query.html</filename>
     <class kind="class">queryosity::query::aggregation</class>
+    <class kind="class">queryosity::query::plan</class>
     <class kind="class">queryosity::query::definition&lt; T(Obs...)&gt;</class>
   </compound>
   <compound kind="namespace">
@@ -674,6 +707,7 @@
     <filename>group__api.html</filename>
     <class kind="class">queryosity::column::definition</class>
     <class kind="class">queryosity::dataflow</class>
+    <class kind="class">queryosity::dataset::column</class>
     <class kind="struct">queryosity::dataset::input</class>
     <class kind="class">queryosity::lazy</class>
     <class kind="class">queryosity::lazy::varied</class>
@@ -708,6 +742,15 @@
     <docanchor file="design.html" title="Why not DataFrames?">design-df</docanchor>
     <docanchor file="design.html" title="Conceptual">design-df-conceptual</docanchor>
     <docanchor file="design.html" title="Technical">design-df-technical</docanchor>
+  </compound>
+  <compound kind="page">
+    <name>example</name>
+    <title>Examples</title>
+    <filename>example.html</filename>
+    <docanchor file="example.html" title="Hello World">example-hello-world</docanchor>
+    <docanchor file="example.html" title="ggF HWW* (with systematic variations)">example-hww</docanchor>
+    <docanchor file="example.html" title="DAOD_PHYS">example-phys</docanchor>
+    <docanchor file="example.html" title="IRIS-HEP ADL benchmark">example-task7</docanchor>
   </compound>
   <compound kind="page">
     <name>guide</name>
