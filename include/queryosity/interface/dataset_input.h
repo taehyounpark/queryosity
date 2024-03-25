@@ -19,9 +19,10 @@ template <typename DS> struct input {
    * @tparam Args `DS` constructor argument types.
    * @param[in] args Constructor arguments for `DS`.
    */
+  input() = default;
   template <typename... Args> input(Args &&...args);
   virtual ~input() = default;
-  std::unique_ptr<DS> ds;
+  std::unique_ptr<DS> ds; //!
 };
 
 } // namespace dataset

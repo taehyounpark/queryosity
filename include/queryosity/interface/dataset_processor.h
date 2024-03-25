@@ -58,12 +58,10 @@ inline queryosity::dataset::processor queryosity::multithread::disable() {
 inline queryosity::dataset::processor::processor(int suggestion)
     : multithread::core::core(suggestion) {
   const auto nslots = this->concurrency();
-  std::cout << nslots << std::endl;
   m_players = std::vector<player>(nslots);
   m_player_ptrs = std::vector<player *>(nslots, nullptr);
   std::transform(m_players.begin(), m_players.end(), m_player_ptrs.begin(),
                  [](player &plyr) -> player * { return &plyr; });
-  std::cout << m_player_ptrs.size() << std::endl;
   m_range_slots.clear();
   m_range_slots.reserve(nslots);
   for (unsigned int i = 0; i < nslots; ++i) {
