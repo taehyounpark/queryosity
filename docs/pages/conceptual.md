@@ -5,7 +5,7 @@
 
 A `dataflow` consists of a directed, acyclic graph of tasks performed for each entry.
 
-![dataflow](./dataflow.png)
+@image html dataflow.png
 
 An action falls into one of three types that reflect the nature of the task and are uniquely associated with a set of applicable methods.
 Each type forms a sub-graphs of tasks, which receive actions of the previous types as inputs:
@@ -81,11 +81,11 @@ Two common workflows exist in associating queries with selections:
 
 - Running a single query at multiple selections:
 
-![agg_book_sels](./query_1.png)
+@image html query_1.png
 
 - Running multiple queries at a selection:
 
-![sel_book_aggs](./query_2.png)
+@image html query_2.png
 
 @section conceptual-variations Systematic variations
 
@@ -104,4 +104,4 @@ The propagation proceeds in the following fashion:
 - **Lockstep.** If two actions each have a variation of the same name, they are in effect together.
 - **Transparent.** If only one action has a given variation, then the nominal is in effect for the other.
 
-![variation](./variation.png)
+@image html variation.png
