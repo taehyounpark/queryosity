@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head>
   <meta charset="utf-8"/>
-  <title>queryosity Coherent data analysis in C++</title>
+  <title>queryosity::dataset::input struct | queryosity Coherent data analysis in C++</title>
   <link href="favicon-dark.png" rel="icon" type="image/png"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <meta content="#22272e" name="theme-color"/>
@@ -38,7 +38,7 @@
           <ol class="m-col-t-6 m-col-m-none">
             <li><a href="modules.html">Modules</a></li>
             <li><a href="annotated.html">Classes</a></li>
-            <li class="poxy-navbar-version-selector"><a href="namespaces.html">Version: HEAD</a><ol><li><a href="namespaces.html">HEAD</a></li></ol></li>
+            <li class="poxy-navbar-version-selector"><a href="structqueryosity_1_1dataset_1_1input.html">Version: HEAD</a><ol><li><a href="structqueryosity_1_1dataset_1_1input.html">HEAD</a></li></ol></li>
           </ol>
           <ol class="m-col-t-6 m-col-m-none" start="4">
             <li><a class="poxy-icon repo github poxy-external" href="https://github.com/taehyounpark/queryosity" target="_blank" title="View on GitHub"><svg id="poxy-icon-repo" version="1.1" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><path d="M25,1.23a24.37,24.37,0,0,0-7.7,47.5C18.51,49,19,48.2,19,47.56s0-2.12,0-4.15c-6.78,1.47-8.21-3.27-8.21-3.27C9.61,37.33,8,36.58,8,36.58c-2.21-1.51.17-1.48.17-1.48a5.12,5.12,0,0,1,3.73,2.51c2.17,3.72,5.7,2.65,7.09,2a5.25,5.25,0,0,1,1.55-3.26c-5.41-.61-11.1-2.7-11.1-12A9.41,9.41,0,0,1,12,17.79a8.75,8.75,0,0,1,.24-6.45s2-.66,6.7,2.49a23.1,23.1,0,0,1,12.2,0c4.66-3.15,6.7-2.49,6.7-2.49A8.75,8.75,0,0,1,38,17.79a9.41,9.41,0,0,1,2.51,6.54c0,9.36-5.7,11.42-11.13,12a5.83,5.83,0,0,1,1.65,4.51c0,3.26,0,5.89,0,6.69,0,.65.44,1.41,1.68,1.17A24.38,24.38,0,0,0,25,1.23Z" fill="currentColor"></path></svg></a></li>
@@ -56,40 +56,22 @@
   <div class="m-container m-container-inflatable">
     <div class="m-row">
       <div class="m-col-l-10 m-push-l-1">
-        <h1>Namespaces</h1>
-        <ul class="m-doc">
-          <li class="m-doc-collapsible">
-            <a href="#" onclick="return toggle(this)">namespace</a> <a class="m-doc" href="namespacequeryosity.html">queryosity</a> <span class="m-doc">All queryosity namespaces and classes.</span>
-            <ul class="m-doc">
-              <li>namespace <a class="m-doc" href="namespacequeryosity_1_1column.html">column</a> <span class="m-doc">Compute quantities of interest.</span></li>
-              <li>namespace <a class="m-doc" href="namespacequeryosity_1_1dataset.html">dataset</a> <span class="m-doc">Process a dataset.</span></li>
-              <li class="m-doc-collapsible">
-                <a href="#" onclick="return toggle(this)">namespace</a> <a class="m-doc" href="namespacequeryosity_1_1hist.html">hist</a> <span class="m-doc"><code>boost::histogram</code> extension for queryosity</span>
-                <ul class="m-doc">
-                  <li>namespace <a class="m-doc" href="namespacequeryosity_1_1hist_1_1axis.html">axis</a> <span class="m-doc">Histogram axes for queryosity.</span></li>
-                </ul>
-              </li>
-              <li>namespace <a class="m-doc" href="namespacequeryosity_1_1query.html">query</a> <span class="m-doc">Perform a query.</span></li>
-              <li>namespace <a class="m-doc" href="namespacequeryosity_1_1selection.html">selection</a> <span class="m-doc">Apply cuts and weights to entries.</span></li>
-            </ul>
-          </li>
-        </ul>
-        <script>
-        function toggle(e) {
-            e.parentElement.className = e.parentElement.className == 'm-doc-collapsible' ?
-                'm-doc-expansible' : 'm-doc-collapsible';
-            return false;
-        }
-        /* Collapse all nodes marked as such. Doing it via JS instead of
-           directly in markup so disabling it doesn't harm usability. The list
-           is somehow regenerated on every iteration and shrinks as I change
-           the classes. It's not documented anywhere and I'm not sure if this
-           is the same across browsers, so I am going backwards in that list to
-           be sure. */
-        var collapsed = document.getElementsByClassName("collapsed");
-        for(var i = collapsed.length - 1; i >= 0; --i)
-            collapsed[i].className = 'm-doc-expansible';
-        </script>
+        <h1>
+          <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename DS</span></span>&gt;</div>
+          <span class="m-breadcrumb"><a href="namespacequeryosity.html">queryosity</a>::<wbr/></span><span class="m-breadcrumb"><a href="namespacequeryosity_1_1dataset.html">dataset</a>::<wbr/></span>input <span class="m-thin">struct</span>
+        </h1>
+        <p>Dataset input argument for dataflow.</p>
+        <table class="m-table m-fullwidth m-flat">
+          <thead>
+            <tr><th colspan="2">Template parameters</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="width: 1%">DS</td>
+              <td><a class="m-doc" href="classqueryosity_1_1dataset_1_1reader.html">queryosity::<wbr/>dataset::<wbr/>reader</a> implementation.</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>

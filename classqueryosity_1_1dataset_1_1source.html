@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head>
   <meta charset="utf-8"/>
-  <title>queryosity Coherent data analysis in C++</title>
+  <title>queryosity::dataset::source class | queryosity Coherent data analysis in C++</title>
   <link href="favicon-dark.png" rel="icon" type="image/png"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <meta content="#22272e" name="theme-color"/>
@@ -21,7 +21,7 @@
   <meta content="Poxy v0.16.0" name="generator"/>
   <meta content="strict-origin-when-cross-origin" name="referrer"/>
 </head>
-<body>
+<body class="poxy-has-toc">
 <header><nav id="navigation">
   <div class="m-container">
     <div class="m-row">
@@ -38,7 +38,7 @@
           <ol class="m-col-t-6 m-col-m-none">
             <li><a href="modules.html">Modules</a></li>
             <li><a href="annotated.html">Classes</a></li>
-            <li class="poxy-navbar-version-selector"><a href="namespaces.html">Version: HEAD</a><ol><li><a href="namespaces.html">HEAD</a></li></ol></li>
+            <li class="poxy-navbar-version-selector"><a href="classqueryosity_1_1dataset_1_1source.html">Version: HEAD</a><ol><li><a href="classqueryosity_1_1dataset_1_1source.html">HEAD</a></li></ol></li>
           </ol>
           <ol class="m-col-t-6 m-col-m-none" start="4">
             <li><a class="poxy-icon repo github poxy-external" href="https://github.com/taehyounpark/queryosity" target="_blank" title="View on GitHub"><svg id="poxy-icon-repo" version="1.1" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><path d="M25,1.23a24.37,24.37,0,0,0-7.7,47.5C18.51,49,19,48.2,19,47.56s0-2.12,0-4.15c-6.78,1.47-8.21-3.27-8.21-3.27C9.61,37.33,8,36.58,8,36.58c-2.21-1.51.17-1.48.17-1.48a5.12,5.12,0,0,1,3.73,2.51c2.17,3.72,5.7,2.65,7.09,2a5.25,5.25,0,0,1,1.55-3.26c-5.41-.61-11.1-2.7-11.1-12A9.41,9.41,0,0,1,12,17.79a8.75,8.75,0,0,1,.24-6.45s2-.66,6.7,2.49a23.1,23.1,0,0,1,12.2,0c4.66-3.15,6.7-2.49,6.7-2.49A8.75,8.75,0,0,1,38,17.79a9.41,9.41,0,0,1,2.51,6.54c0,9.36-5.7,11.42-11.13,12a5.83,5.83,0,0,1,1.65,4.51c0,3.26,0,5.89,0,6.69,0,.65.44,1.41,1.68,1.17A24.38,24.38,0,0,0,25,1.23Z" fill="currentColor"></path></svg></a></li>
@@ -56,40 +56,64 @@
   <div class="m-container m-container-inflatable">
     <div class="m-row">
       <div class="m-col-l-10 m-push-l-1">
-        <h1>Namespaces</h1>
-        <ul class="m-doc">
-          <li class="m-doc-collapsible">
-            <a href="#" onclick="return toggle(this)">namespace</a> <a class="m-doc" href="namespacequeryosity.html">queryosity</a> <span class="m-doc">All queryosity namespaces and classes.</span>
-            <ul class="m-doc">
-              <li>namespace <a class="m-doc" href="namespacequeryosity_1_1column.html">column</a> <span class="m-doc">Compute quantities of interest.</span></li>
-              <li>namespace <a class="m-doc" href="namespacequeryosity_1_1dataset.html">dataset</a> <span class="m-doc">Process a dataset.</span></li>
-              <li class="m-doc-collapsible">
-                <a href="#" onclick="return toggle(this)">namespace</a> <a class="m-doc" href="namespacequeryosity_1_1hist.html">hist</a> <span class="m-doc"><code>boost::histogram</code> extension for queryosity</span>
-                <ul class="m-doc">
-                  <li>namespace <a class="m-doc" href="namespacequeryosity_1_1hist_1_1axis.html">axis</a> <span class="m-doc">Histogram axes for queryosity.</span></li>
-                </ul>
-              </li>
-              <li>namespace <a class="m-doc" href="namespacequeryosity_1_1query.html">query</a> <span class="m-doc">Perform a query.</span></li>
-              <li>namespace <a class="m-doc" href="namespacequeryosity_1_1selection.html">selection</a> <span class="m-doc">Apply cuts and weights to entries.</span></li>
-            </ul>
-          </li>
-        </ul>
-        <script>
-        function toggle(e) {
-            e.parentElement.className = e.parentElement.className == 'm-doc-collapsible' ?
-                'm-doc-expansible' : 'm-doc-collapsible';
-            return false;
-        }
-        /* Collapse all nodes marked as such. Doing it via JS instead of
-           directly in markup so disabling it doesn't harm usability. The list
-           is somehow regenerated on every iteration and shrinks as I change
-           the classes. It's not documented anywhere and I'm not sure if this
-           is the same across browsers, so I am going backwards in that list to
-           be sure. */
-        var collapsed = document.getElementsByClassName("collapsed");
-        for(var i = collapsed.length - 1; i >= 0; --i)
-            collapsed[i].className = 'm-doc-expansible';
-        </script>
+        <h1>
+          <span class="m-breadcrumb"><a href="namespacequeryosity.html">queryosity</a>::<wbr/></span><span class="m-breadcrumb"><a href="namespacequeryosity_1_1dataset.html">dataset</a>::<wbr/></span>source <span class="m-thin">class</span>
+        </h1>
+        <p>Custom dataset source.</p>
+        <nav class="m-block m-default poxy-toc" id="poxy-toc">
+          <h3>Contents</h3>
+          <ul>
+            <li>
+              Reference
+              <ul>
+                <li><a href="#derived-classes">Derived classes</a></li>
+                <li><a href="#pub-methods">Public functions</a></li>
+              </ul>
+            </li>
+          </ul>
+        </nav>
+        <section id="derived-classes">
+          <h2><a href="#derived-classes">Derived classes</a></h2>
+          <dl class="m-doc">
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename DS</span></span>&gt;</div>
+              class <a class="m-doc" href="classqueryosity_1_1dataset_1_1reader.html">reader</a>
+            </dt>
+            <dd>Custom dataset reader.</dd>
+            <dt>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename DS</span></span>&gt;</div>
+              class <a class="m-doc" href="classqueryosity_1_1dataset_1_1reader.html">reader</a>
+            </dt>
+            <dd>Custom dataset reader.</dd>
+          </dl>
+        </section>
+        <section id="pub-methods">
+          <h2><a href="#pub-methods">Public functions</a></h2>
+          <dl class="m-doc">
+            <dt>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a4ed39552c2a5f0c8cafb3e1a5294cddf">partition</a>(</span><span class="m-doc-wrap">) -&gt; <a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/container/vector.html" target="_blank">std::<wbr/>vector</a>&lt;<a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/utility/pair.html" target="_blank">std::<wbr/>pair</a>&lt;unsigned long long, unsigned long long&gt;&gt; <span class="m-label m-flat m-warning">pure virtual</span></span>
+            </dt>
+            <dd>Determine dataset partition for parallel processing.</dd>
+          </dl>
+        </section>
+        <section>
+          <h2>Function documentation</h2>
+          <section class="m-doc-details" id="a4ed39552c2a5f0c8cafb3e1a5294cddf"><div>
+            <h3>
+              <span class="m-doc-wrap-bumper"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/container/vector.html" target="_blank">std::<wbr/>vector</a>&lt;<a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/utility/pair.html" target="_blank">std::<wbr/>pair</a>&lt;unsigned long long, unsigned long long&gt;&gt; <span class="m-doc-details-prefix">queryosity::<wbr/>dataset::<wbr/>source::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a4ed39552c2a5f0c8cafb3e1a5294cddf">partition</a>(</span><span class="m-doc-wrap">) <span class="m-label m-warning">pure virtual</span></span></span>
+            </h3>
+            <p>Determine dataset partition for parallel processing.</p>
+            <table class="m-table m-fullwidth m-flat">
+              <tfoot>
+                <tr>
+                  <th style="width: 1%">Returns</th>
+                  <td>Dataset entry partition</td>
+                </tr>
+              </tfoot>
+            </table>
+<ul><li>The dataflow <em>must</em> load at least one dataset with a valid partition.</li><li>A valid partition <em>must</em> begin at 0 and be in sorted contiguous order, e.g. <code>{{0,100},{100,200}}</code>.</li><li><p>If a dataset returns an empty partition, it relinquishes the control to another dataset in the dataflow.</p><aside class="m-note m-warning"><h4>Attention</h4><p>The empty-partition dataset <em>must</em> be able to fulfill <code class="m-code"><span class="nf">execute</span><span class="p">(</span><span class="n">entry</span><span class="p">)</span></code> calls for any <code>entry</code> as requested by the other datasets in the dataflow.</p></aside><p>Valid partitions reported by loaded datasets undergo the following changes:</p></li></ul><ol><li><p>A common alignment partition is calculated across all loaded datasets.</p><aside class="m-note m-warning"><h4>Attention</h4><p>All non-empty partitions in the dataflow <em>must</em> have the same total number of entries in order them to be alignable.</p></aside></li><li>Entries past the maximum to be processed are truncated.</li><li>Neighbouring ranges are merged to match thread concurrency.</li></ol>
+          </div></section>
+        </section>
       </div>
     </div>
   </div>
