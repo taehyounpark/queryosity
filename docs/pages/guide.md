@@ -205,7 +205,7 @@ auto defn = df.vary(
 // - different data types (double, int, float)
 auto z_nom = ds.read(dataset::column<double>("z"));
 auto z_fixed = df.define(column::constant<int>(100.0));
-auto z_half = df.define([](float z){return z*0.5;}, z_nom);
+auto z_half = df.define(column::expression([](float z){return z*0.5;}), z_nom);
 
 // as long as their output values are compatible, any set of columns can be used
 auto z = systematic::vary(
