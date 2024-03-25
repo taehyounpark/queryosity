@@ -361,8 +361,8 @@
       <type></type>
       <name>input</name>
       <anchorfile>structqueryosity_1_1dataset_1_1input.html</anchorfile>
-      <anchor>a2d5c4d9161a55095c7ea77699b8154ac</anchor>
-      <arglist>(Args &amp;&amp;...args)</arglist>
+      <anchor>aad988d28b5a8d900308bac1f2aea793b</anchor>
+      <arglist>()=default</arglist>
     </member>
   </compound>
   <compound kind="class">
