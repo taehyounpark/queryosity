@@ -14,12 +14,10 @@
 
 ## Features
 
-- **Clear interface.** The easy-to-learn, self-consistent API has a grand total of *five* main endpoints that can perform even the most complex operations.
-- **Arbitrary data types.** Manipulate columns of *any* data structure.
-- **Arbitrary actions.** Provide ABCs to let users perform data analysis the way they want to, from input datasets to all the way to query outputs.
+- **Super simple.** The easy-to-learn API has a grand total of *five* endpoints.
+- **Arbitrary actions.** Work with datasets/columns/queries of *any* data structure the way *you* want to.
 - **Lazy but efficient.** An action is performed for an entry only if needed. All actions are performed in one dataset traversal. Dataset traversal is multithreaded.
-- **Systematic variations.** Perform *automatic* sensitivity analysis by propagating systematic variations through actions.
-- **~~Best-ever performance~~.**
+- **Systematic variations.** Perform *automatic* sensitivity analysis by applying systematic variations on actions.
 
 ## Hello World
 ```cpp
