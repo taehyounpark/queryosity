@@ -166,4 +166,5 @@ CHECK_FOR_BINARY_OP(logical_or, ||)
 CHECK_FOR_INDEX_OP()
 
 } // namespace detail
+
 } // namespace queryosity

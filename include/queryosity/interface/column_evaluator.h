@@ -8,14 +8,14 @@
 
 namespace queryosity {
 
-template <typename T> class column::evaluate {
+template <typename T> class column::evaluator {
 
 public:
   using evaluated_type = T;
 
 public:
-  template <typename... Args> evaluate(Args const &...args);
-  ~evaluate() = default;
+  template <typename... Args> evaluator(Args const &...args);
+  ~evaluator() = default;
 
   template <typename... Vals>
   std::unique_ptr<T> _evaluate(view<Vals> const &...cols) const;
@@ -28,15 +28,15 @@ protected:
 
 template <typename T>
 template <typename... Args>
-queryosity::column::evaluate<T>::evaluate(Args const &...args)
+queryosity::column::evaluator<T>::evaluator(Args const &...args)
     : m_make_unique(std::bind(
           [](Args const &...args) { return std::make_unique<T>(args...); },
           args...)) {}
 
 template <typename T>
 template <typename... Vals>
-std::unique_ptr<T>
-queryosity::column::evaluate<T>::_evaluate(view<Vals> const &...columns) const {
+std::unique_ptr<T> queryosity::column::evaluator<T>::_evaluate(
+    view<Vals> const &...columns) const {
   auto defn = m_make_unique();
 
   defn->set_arguments(columns...);

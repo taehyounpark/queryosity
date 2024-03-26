@@ -146,7 +146,7 @@ template <typename T> class constant;
 
 template <typename T> class expression;
 
-template <typename T> class evaluate;
+template <typename T> class evaluator;
 
 template <typename T>
 constexpr std::true_type check_reader(typename column::reader<T> const &);
@@ -190,50 +190,44 @@ template <typename T>
 constexpr bool is_representation_v = decltype(check_representation(
     std::declval<std::decay_t<T> const &>()))::value;
 
-template <typename T> struct is_evaluate : std::false_type {};
+template <typename T> struct is_evaluator : std::false_type {};
 template <typename T>
-struct is_evaluate<column::evaluate<T>> : std::true_type {};
+struct is_evaluator<column::evaluator<T>> : std::true_type {};
 
-template <typename T> constexpr bool is_evaluatable_v = is_evaluate<T>::value;
+template <typename T> constexpr bool is_evaluatable_v = is_evaluator<T>::value;
 
-// equation traits
-
-template <typename F> struct equation_traits;
+template <typename Fn> struct deduce_equation;
 
 template <typename Ret, typename... Args>
-struct equation_traits<std::function<Ret(Args...)>> {
-  using equation_type =
-      column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
+struct deduce_equation<std::function<Ret(Args...)>> {
+  using type = column::equation<std::decay_t<Ret>(
+      std::remove_const_t<std::remove_reference_t<Args>>...)>;
 };
 
-template <typename Expr> struct equation_traits<expression<Expr>> {
-  using function_type = typename expression<Expr>::function_type;
-  using equation_type = typename equation_traits<function_type>::equation_type;
-};
-
-template <typename F>
-using equation_t = typename equation_traits<F>::equation_type;
+template <typename Fn>
+using equation_t = typename deduce_equation<
+    typename column::expression<Fn>::function_type>::type;
 
 // evaluate traits
-template <typename T, typename = void> struct evaluate_traits;
+template <typename T, typename = void> struct evaluator_traits;
 
 template <typename T>
-struct evaluate_traits<T,
-                       typename std::enable_if_t<
-                           queryosity::column::template is_definition_v<T>>> {
-  using evaluate_type = typename column::template evaluate<T>;
+struct evaluator_traits<T,
+                        typename std::enable_if_t<
+                            queryosity::column::template is_definition_v<T>>> {
+  using evaluator_type = typename column::template evaluator<T>;
 };
 
-template <typename F>
-struct evaluate_traits<F,
-                       typename std::enable_if_t<
-                           !queryosity::column::template is_definition_v<F>>> {
-  using evaluate_type = typename queryosity::column::template evaluate<
-      queryosity::column::template equation_t<F>>;
+template <typename Fn>
+struct evaluator_traits<
+    Fn, typename std::enable_if_t<
+            !queryosity::column::template is_definition_v<Fn>>> {
+  using evaluator_type = typename queryosity::column::template evaluator<
+      queryosity::column::template equation_t<Fn>>;
 };
 
 template <typename T>
-using evaluate_t = typename evaluate_traits<T>::evaluate_type;
+using evaluator_t = typename evaluator_traits<T>::evaluator_type;
 
 template <typename T> using evaluated_t = typename T::evaluated_type;
 

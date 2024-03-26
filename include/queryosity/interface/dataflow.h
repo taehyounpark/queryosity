@@ -117,15 +117,15 @@ public:
 
   /**
    * @brief Define a column using an expression.
-   * @tparam Expr Callable type.
+   * @tparam Fn Callable type.
    * @tparam Cols Input column types.
    * @param[in] expr C++ function, functor, lambda, or any other callable.
    * @param[in] cols Input columns.
    * @return Lazy column.
    */
-  template <typename Expr, typename... Cols>
-  auto define(column::expression<Expr> const &expr, lazy<Cols> const &...cols)
-      -> lazy<column::equation_t<queryosity::column::expression<Expr>>>;
+  template <typename Fn, typename... Cols>
+  auto define(column::expression<Fn> const &expr, lazy<Cols> const &...cols)
+      -> lazy<column::equation_t<Fn>>;
 
   /**
    * @brief Define a custom column.
@@ -175,24 +175,24 @@ public:
 
   /**
    * @brief Initiate a cutflow.
-   * @tparam Expr C++ Callable object.
+   * @tparam Fn C++ Callable object.
    * @tparam Cols Column types.
    * @param[in] Input (varied) columns used to evaluate cut decision.
    * @return Lazy (varied) selection.
    */
-  template <typename Expr, typename... Cols>
-  auto filter(queryosity::column::expression<Expr> const &expr,
+  template <typename Fn, typename... Cols>
+  auto filter(queryosity::column::expression<Fn> const &expr,
               Cols const &...cols);
 
   /**
    * @brief Initiate a cutflow.
-   * @tparam Expr C++ Callable object.
+   * @tparam Fn C++ Callable object.
    * @tparam Cols Column types.
    * @param[in] Input (varied) columns used to evaluate weight decision.
    * @return Lazy (varied) selection.
    */
-  template <typename Expr, typename... Cols>
-  auto weight(queryosity::column::expression<Expr> const &expr,
+  template <typename Fn, typename... Cols>
+  auto weight(queryosity::column::expression<Fn> const &expr,
               Cols const &...cols);
 
   /**
@@ -207,8 +207,8 @@ public:
   template <typename Val, typename... Vars>
   auto vary(column::constant<Val> const &nom, Vars const &...vars);
 
-  template <typename Expr, typename... Vars>
-  auto vary(column::expression<Expr> const &expr, Vars const &...vars);
+  template <typename Fn, typename... Vars>
+  auto vary(column::expression<Fn> const &expr, Vars const &...vars);
 
   template <typename Defn, typename... Vars>
   auto vary(column::definition<Defn> const &defn, Vars const &...vars);
@@ -226,7 +226,7 @@ public:
   template <typename Def> auto _define(column::definition<Def> const &defn);
 
   template <typename Fn> auto _equate(Fn fn);
-  template <typename Expr> auto _equate(column::expression<Expr> const &expr);
+  template <typename Fn> auto _equate(column::expression<Fn> const &expr);
 
   template <typename Sel, typename Col>
   auto _select(lazy<Col> const &col) -> lazy<selection::node>;
@@ -249,7 +249,7 @@ protected:
       -> lazy<read_column_t<DS, Val>>;
 
   template <typename Def, typename... Cols>
-  auto _evaluate(todo<column::evaluate<Def>> const &calc,
+  auto _evaluate(todo<column::evaluator<Def>> const &calc,
                  lazy<Cols> const &...columns) -> lazy<Def>;
 
   template <typename Qry>
@@ -263,9 +263,9 @@ protected:
   void _vary(Syst &syst, const std::string &name,
              column::constant<Val> const &cnst);
 
-  template <typename Syst, typename Expr>
+  template <typename Syst, typename Fn>
   void _vary(Syst &syst, const std::string &name,
-             column::expression<Expr> const &expr);
+             column::expression<Fn> const &expr);
 
 protected:
   dataset::processor m_processor;
@@ -392,10 +392,10 @@ auto queryosity::dataflow::define(
   return this->_define(defn).template evaluate(cols...);
 }
 
-template <typename Expr, typename... Cols>
+template <typename Fn, typename... Cols>
 auto queryosity::dataflow::define(
-    queryosity::column::expression<Expr> const &expr, lazy<Cols> const &...cols)
-    -> lazy<column::equation_t<queryosity::column::expression<Expr>>> {
+    queryosity::column::expression<Fn> const &expr, lazy<Cols> const &...cols)
+    -> lazy<column::equation_t<Fn>> {
   return this->_equate(expr).template evaluate(cols...);
 }
 
@@ -429,16 +429,16 @@ template <typename Col> auto queryosity::dataflow::weight(Col const &col) {
   return syst;
 }
 
-template <typename Expr, typename... Cols>
+template <typename Fn, typename... Cols>
 auto queryosity::dataflow::filter(
-    queryosity::column::expression<Expr> const &expr, Cols const &...cols) {
+    queryosity::column::expression<Fn> const &expr, Cols const &...cols) {
   auto dec = this->define(expr, cols...);
   return this->filter(dec);
 }
 
-template <typename Expr, typename... Cols>
+template <typename Fn, typename... Cols>
 auto queryosity::dataflow::weight(
-    queryosity::column::expression<Expr> const &expr, Cols const &...cols) {
+    queryosity::column::expression<Fn> const &expr, Cols const &...cols) {
   auto dec = this->define(expr, cols...);
   return this->weight(dec);
 }
@@ -460,11 +460,11 @@ auto queryosity::dataflow::make(queryosity::query::plan<Qry> const &cntr)
 }
 
 template <typename Def, typename... Cols>
-auto queryosity::dataflow::_evaluate(todo<column::evaluate<Def>> const &calc,
+auto queryosity::dataflow::_evaluate(todo<column::evaluator<Def>> const &calc,
                                      lazy<Cols> const &...columns)
     -> lazy<Def> {
   auto act = ensemble::invoke(
-      [](dataset::player *plyr, column::evaluate<Def> *calc,
+      [](dataset::player *plyr, column::evaluator<Def> *calc,
          Cols const *...cols) {
         return plyr->template evaluate(*calc, *cols...);
       },
@@ -516,12 +516,12 @@ auto queryosity::dataflow::vary(queryosity::column::constant<Val> const &cnst,
   return syst;
 }
 
-template <typename Expr, typename... Vars>
-auto queryosity::dataflow::vary(
-    queryosity::column::expression<Expr> const &expr, Vars const &...vars) {
+template <typename Fn, typename... Vars>
+auto queryosity::dataflow::vary(queryosity::column::expression<Fn> const &expr,
+                                Vars const &...vars) {
   auto nom = this->_equate(expr);
   using varied_type = typename decltype(nom)::varied;
-  using function_type = typename column::expression<Expr>::function_type;
+  using function_type = typename column::expression<Fn>::function_type;
   varied_type syst(std::move(nom));
   ((this->_vary(syst, vars.name(),
                 column::expression(function_type(std::get<0>(vars.args()))))),
@@ -562,7 +562,7 @@ auto queryosity::dataflow::_convert(lazy<Col> const &col) -> lazy<
 
 template <typename Def, typename... Args>
 auto queryosity::dataflow::_define(Args &&...args) {
-  return todo<queryosity::column::template evaluate_t<Def>>(
+  return todo<queryosity::column::template evaluator_t<Def>>(
       *this,
       ensemble::invoke(
           [&args...](dataset::player *plyr) {
@@ -578,16 +578,16 @@ auto queryosity::dataflow::_define(
 }
 
 template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
-  return todo<queryosity::column::template evaluate_t<Fn>>(
+  return todo<queryosity::column::template evaluator_t<Fn>>(
       *this,
       ensemble::invoke(
           [fn](dataset::player *plyr) { return plyr->template equate(fn); },
           m_processor.get_slots()));
 }
 
-template <typename Expr>
+template <typename Fn>
 auto queryosity::dataflow::_equate(
-    queryosity::column::expression<Expr> const &expr) {
+    queryosity::column::expression<Fn> const &expr) {
   return expr._equate(*this);
 }
 
@@ -623,9 +623,9 @@ void queryosity::dataflow::_vary(
   syst.set_variation(name, this->define(cnst));
 }
 
-template <typename Syst, typename Expr>
+template <typename Syst, typename Fn>
 void queryosity::dataflow::_vary(
     Syst &syst, const std::string &name,
-    queryosity::column::expression<Expr> const &expr) {
+    queryosity::column::expression<Fn> const &expr) {
   syst.set_variation(name, this->_equate(expr));
 }
