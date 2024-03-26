@@ -12,10 +12,10 @@ template <typename T> class todo;
 
 template <typename U>
 static constexpr std::true_type check_lazy(lazy<U> const &);
-static constexpr std::false_type check_lazy(...);
+static constexpr std::false_type check_lazy(...) {return std::false_type{};}
 template <typename U>
 static constexpr std::true_type check_todo(todo<U> const &);
-static constexpr std::false_type check_todo(...);
+static constexpr std::false_type check_todo(...) {return std::false_type{};}
 
 template <typename V>
 static constexpr bool is_nominal_v =
