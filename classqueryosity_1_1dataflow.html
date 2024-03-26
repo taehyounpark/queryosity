@@ -97,9 +97,9 @@
             </dt>
             <dd>Define a constant column.</dd>
             <dt>
-              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Expr</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;</div>
-              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a49afa2e3ef76e459c6242673516d5328">define</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">column::<wbr/>expression</a>&lt;Expr&gt; const&amp; expr,
-              <a class="m-doc" href="classqueryosity_1_1lazy.html">lazy</a>&lt;Cols&gt; const&amp;... cols) -&gt; lazy&lt;column::equation_t&lt;queryosity::column::expression&lt;Expr&gt;&gt;&gt;</span>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Fn</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a00d3c5b09a09bee7e45f64412beaeac8">define</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">column::<wbr/>expression</a>&lt;Fn&gt; const&amp; expr,
+              <a class="m-doc" href="classqueryosity_1_1lazy.html">lazy</a>&lt;Cols&gt; const&amp;... cols) -&gt; lazy&lt;column::equation_t&lt;Fn&gt;&gt;</span>
             </dt>
             <dd>Define a column using an expression.</dd>
             <dt>
@@ -119,8 +119,8 @@
             </dt>
             <dd>Initiate a cutflow.</dd>
             <dt>
-              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Expr</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;</div>
-              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a9fff70304a2c111e624a10fe1164e6eb">filter</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">queryosity::<wbr/>column::<wbr/>expression</a>&lt;Expr&gt; const&amp; expr,
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Fn</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a651b6c540ca65d37a70906570298b9b1">filter</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">queryosity::<wbr/>column::<wbr/>expression</a>&lt;Fn&gt; const&amp; expr,
               Cols const&amp;... cols) -&gt; auto</span>
             </dt>
             <dd>Initiate a cutflow.</dd>
@@ -157,8 +157,8 @@
             </dt>
             <dd>Initiate a cutflow.</dd>
             <dt>
-              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Expr</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;</div>
-              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#ac1b4a9a2f548d32c3e534e6dcf646724">weight</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">queryosity::<wbr/>column::<wbr/>expression</a>&lt;Expr&gt; const&amp; expr,
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Fn</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;</div>
+              <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a0cc070f2983e17b6cdb7c0e81c3c3e71">weight</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">queryosity::<wbr/>column::<wbr/>expression</a>&lt;Fn&gt; const&amp; expr,
               Cols const&amp;... cols) -&gt; auto</span>
             </dt>
             <dd>Initiate a cutflow.</dd>
@@ -207,12 +207,12 @@
               </tbody>
             </table>
           </div></section>
-          <section class="m-doc-details" id="a49afa2e3ef76e459c6242673516d5328"><div>
+          <section class="m-doc-details" id="a00d3c5b09a09bee7e45f64412beaeac8"><div>
             <h3>
               <div class="m-doc-template">
-                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Expr</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;
+                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Fn</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;
               </div>
-              <span class="m-doc-wrap-bumper">lazy&lt;column::equation_t&lt;queryosity::column::expression&lt;Expr&gt;&gt;&gt; <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a49afa2e3ef76e459c6242673516d5328">define</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">column::<wbr/>expression</a>&lt;Expr&gt; const&amp; expr,
+              <span class="m-doc-wrap-bumper">lazy&lt;column::equation_t&lt;Fn&gt;&gt; <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a00d3c5b09a09bee7e45f64412beaeac8">define</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">column::<wbr/>expression</a>&lt;Fn&gt; const&amp; expr,
               <a class="m-doc" href="classqueryosity_1_1lazy.html">lazy</a>&lt;Cols&gt; const&amp;... cols)</span></span>
             </h3>
             <p>Define a column using an expression.</p>
@@ -222,7 +222,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td style="width: 1%">Expr</td>
+                  <td style="width: 1%">Fn</td>
                   <td><a class="m-doc poxy-injected poxy-external poxy-cppreference poxy-named-requirement" href="https://en.cppreference.com/w/cpp/named_req/Callable" target="_blank">Callable</a> type.</td>
                 </tr>
                 <tr>
@@ -356,12 +356,12 @@
               </tfoot>
             </table>
           </div></section>
-          <section class="m-doc-details" id="a9fff70304a2c111e624a10fe1164e6eb"><div>
+          <section class="m-doc-details" id="a651b6c540ca65d37a70906570298b9b1"><div>
             <h3>
               <div class="m-doc-template">
-                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Expr</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;
+                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Fn</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;
               </div>
-              <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a9fff70304a2c111e624a10fe1164e6eb">filter</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">queryosity::<wbr/>column::<wbr/>expression</a>&lt;Expr&gt; const&amp; expr,
+              <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a651b6c540ca65d37a70906570298b9b1">filter</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">queryosity::<wbr/>column::<wbr/>expression</a>&lt;Fn&gt; const&amp; expr,
               Cols const&amp;... cols)</span></span>
             </h3>
             <p>Initiate a cutflow.</p>
@@ -371,7 +371,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td style="width: 1%">Expr</td>
+                  <td style="width: 1%">Fn</td>
                   <td>C++ <a class="m-doc poxy-injected poxy-external poxy-cppreference poxy-named-requirement" href="https://en.cppreference.com/w/cpp/named_req/Callable" target="_blank">Callable</a> object.</td>
                 </tr>
                 <tr>
@@ -587,12 +587,12 @@
               </tfoot>
             </table>
           </div></section>
-          <section class="m-doc-details" id="ac1b4a9a2f548d32c3e534e6dcf646724"><div>
+          <section class="m-doc-details" id="a0cc070f2983e17b6cdb7c0e81c3c3e71"><div>
             <h3>
               <div class="m-doc-template">
-                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Expr</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;
+                template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Fn</span>, <span class="m-doc-template-param">typename... Cols</span></span>&gt;
               </div>
-              <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#ac1b4a9a2f548d32c3e534e6dcf646724">weight</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">queryosity::<wbr/>column::<wbr/>expression</a>&lt;Expr&gt; const&amp; expr,
+              <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::<wbr/>dataflow::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a0cc070f2983e17b6cdb7c0e81c3c3e71">weight</a>(</span><span class="m-doc-wrap"><a class="m-doc" href="classqueryosity_1_1column_1_1expression.html">queryosity::<wbr/>column::<wbr/>expression</a>&lt;Fn&gt; const&amp; expr,
               Cols const&amp;... cols)</span></span>
             </h3>
             <p>Initiate a cutflow.</p>
@@ -602,7 +602,7 @@
               </thead>
               <tbody>
                 <tr>
-                  <td style="width: 1%">Expr</td>
+                  <td style="width: 1%">Fn</td>
                   <td>C++ <a class="m-doc poxy-injected poxy-external poxy-cppreference poxy-named-requirement" href="https://en.cppreference.com/w/cpp/named_req/Callable" target="_blank">Callable</a> object.</td>
                 </tr>
                 <tr>

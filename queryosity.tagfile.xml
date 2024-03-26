@@ -169,8 +169,8 @@
       <type>auto</type>
       <name>define</name>
       <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
-      <anchor>a49afa2e3ef76e459c6242673516d5328</anchor>
-      <arglist>(column::expression&lt; Expr &gt; const &amp;expr, lazy&lt; Cols &gt; const &amp;...cols) -&gt; lazy&lt; column::equation_t&lt; queryosity::column::expression&lt; Expr &gt;&gt;&gt;</arglist>
+      <anchor>a00d3c5b09a09bee7e45f64412beaeac8</anchor>
+      <arglist>(column::expression&lt; Fn &gt; const &amp;expr, lazy&lt; Cols &gt; const &amp;...cols) -&gt; lazy&lt; column::equation_t&lt; Fn &gt;&gt;</arglist>
     </member>
     <member kind="function">
       <type>auto</type>
@@ -211,15 +211,15 @@
       <type>auto</type>
       <name>filter</name>
       <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
-      <anchor>a9fff70304a2c111e624a10fe1164e6eb</anchor>
-      <arglist>(queryosity::column::expression&lt; Expr &gt; const &amp;expr, Cols const &amp;...cols)</arglist>
+      <anchor>a651b6c540ca65d37a70906570298b9b1</anchor>
+      <arglist>(queryosity::column::expression&lt; Fn &gt; const &amp;expr, Cols const &amp;...cols)</arglist>
     </member>
     <member kind="function">
       <type>auto</type>
       <name>weight</name>
       <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
-      <anchor>ac1b4a9a2f548d32c3e534e6dcf646724</anchor>
-      <arglist>(queryosity::column::expression&lt; Expr &gt; const &amp;expr, Cols const &amp;...cols)</arglist>
+      <anchor>a0cc070f2983e17b6cdb7c0e81c3c3e71</anchor>
+      <arglist>(queryosity::column::expression&lt; Fn &gt; const &amp;expr, Cols const &amp;...cols)</arglist>
     </member>
     <member kind="function">
       <type>auto</type>
