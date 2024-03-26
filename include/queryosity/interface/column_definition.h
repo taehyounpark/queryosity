@@ -4,7 +4,7 @@
 #include <tuple>
 
 #include "column_calculation.h"
-#include "column_evaluate.h"
+#include "column_evaluator.h"
 #include "todo.h"
 
 namespace queryosity {
@@ -70,7 +70,7 @@ public:
   auto _define(dataflow &df) const;
 
 protected:
-  std::function<todo<evaluate_t<Def>>(dataflow &)> m_define;
+  std::function<todo<evaluator_t<Def>>(dataflow &)> m_define;
 };
 
 } // namespace queryosity

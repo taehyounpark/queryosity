@@ -4,6 +4,7 @@
 #include <tuple>
 
 #include "column.h"
+#include "column_equation.h"
 
 namespace queryosity {
 
@@ -17,13 +18,16 @@ class node;
 
 }
 
+namespace column {
+
 /**
  * @brief Define a column evaluated out of an expression.
  */
-template <typename Expr> class column::expression {
+template <typename Expr> class expression {
 
 public:
   using function_type = decltype(std::function(std::declval<Expr>()));
+  using equation_type = equation_t<Expr>;
 
 public:
   expression(Expr expr);
@@ -39,6 +43,8 @@ public:
 protected:
   function_type m_expression;
 };
+
+} // namespace column
 
 } // namespace queryosity
 

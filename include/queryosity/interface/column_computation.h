@@ -28,14 +28,14 @@ public:
 
   template <typename Def, typename... Args>
   auto define(Args const &...vars) const
-      -> std::unique_ptr<queryosity::column::template evaluate_t<Def>>;
+      -> std::unique_ptr<queryosity::column::template evaluator_t<Def>>;
 
   template <typename Ret, typename... Args>
   auto equate(std::function<Ret(Args...)> fn) const -> std::unique_ptr<
-      queryosity::column::template evaluate_t<std::function<Ret(Args...)>>>;
+      queryosity::column::template evaluator_t<std::function<Ret(Args...)>>>;
 
   template <typename Def, typename... Cols>
-  auto evaluate(column::evaluate<Def> &calc, Cols const &...cols) -> Def *;
+  auto evaluate(column::evaluator<Def> &calc, Cols const &...cols) -> Def *;
 
 protected:
   template <typename Col> auto add_column(std::unique_ptr<Col> col) -> Col *;
@@ -48,7 +48,7 @@ protected:
 
 #include "column_conversion.h"
 #include "column_equation.h"
-#include "column_evaluate.h"
+#include "column_evaluator.h"
 #include "column_fixed.h"
 #include "dataset_reader.h"
 
@@ -77,20 +77,21 @@ auto queryosity::column::computation::convert(Col const &col)
 
 template <typename Def, typename... Args>
 auto queryosity::column::computation::define(Args const &...args) const
-    -> std::unique_ptr<queryosity::column::template evaluate_t<Def>> {
-  return std::make_unique<column::evaluate<Def>>(args...);
+    -> std::unique_ptr<queryosity::column::template evaluator_t<Def>> {
+  return std::make_unique<column::evaluator<Def>>(args...);
 }
 
 template <typename Ret, typename... Args>
 auto queryosity::column::computation::equate(std::function<Ret(Args...)> fn)
     const -> std::unique_ptr<
-        queryosity::column::template evaluate_t<std::function<Ret(Args...)>>> {
+        queryosity::column::template evaluator_t<std::function<Ret(Args...)>>> {
   return std::make_unique<
-      queryosity::column::template evaluate_t<std::function<Ret(Args...)>>>(fn);
+      queryosity::column::template evaluator_t<std::function<Ret(Args...)>>>(
+      fn);
 }
 
 template <typename Def, typename... Cols>
-auto queryosity::column::computation::evaluate(column::evaluate<Def> &calc,
+auto queryosity::column::computation::evaluate(column::evaluator<Def> &calc,
                                                Cols const &...cols) -> Def * {
   auto defn = calc._evaluate(cols...);
   return this->add_column(std::move(defn));

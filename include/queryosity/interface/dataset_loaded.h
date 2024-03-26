@@ -19,7 +19,8 @@ public:
     return m_df->_read<DS, Val>(*m_ds, name);
   }
 
-  template <typename Val> decltype(auto) read(dataset::column<Val> const &col);
+  template <typename Val>
+  auto read(dataset::column<Val> const &col) -> lazy<read_column_t<DS, Val>>;
 
   template <typename... Vals> auto read(dataset::columns<Vals...> const &cols);
 
@@ -51,8 +52,8 @@ queryosity::dataset::loaded<DS>::loaded(queryosity::dataflow &df, DS &ds)
 
 template <typename DS>
 template <typename Val>
-decltype(auto)
-queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col) {
+auto queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col)
+    -> lazy<read_column_t<DS, Val>> {
   return col.template _read(*this);
 }
 

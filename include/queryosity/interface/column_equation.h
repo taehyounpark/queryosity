@@ -6,8 +6,10 @@
 
 namespace queryosity {
 
+namespace column {
+
 template <typename Out, typename... Ins>
-class column::equation<Out(Ins...)> : public column::definition<Out(Ins...)> {
+class equation<Out(Ins...)> : public definition<Out(Ins...)> {
 
 public:
   using vartuple_type = typename definition<Out(Ins...)>::vartuple_type;
@@ -29,6 +31,8 @@ protected:
 template <typename Fn>
 auto make_equation(Fn fn) -> std::unique_ptr<column::template equation_t<Fn>>;
 
+} // namespace column
+
 } // namespace queryosity
 
 template <typename Out, typename... Ins>
@@ -42,7 +46,7 @@ Out queryosity::column::equation<Out(Ins...)>::evaluate(
 }
 
 template <typename Fn>
-auto queryosity::make_equation(Fn fn)
+auto queryosity::column::make_equation(Fn fn)
     -> std::unique_ptr<queryosity::column::template equation_t<Fn>> {
   return std::make_unique<queryosity::column::template equation_t<Fn>>(fn);
 }
