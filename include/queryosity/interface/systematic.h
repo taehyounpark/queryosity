@@ -1,7 +1,5 @@
 #pragma once
 
-/** @file */
-
 #include <set>
 #include <string>
 #include <type_traits>
@@ -40,10 +38,6 @@ protected:
 } // namespace systematic
 
 } // namespace queryosity
-
-// #include "lazy.h"
-// #include "lazy_varied.h"
-// #include "column.h"
 
 template <typename... Nodes>
 auto queryosity::systematic::get_variation_names(Nodes const &...nodes)

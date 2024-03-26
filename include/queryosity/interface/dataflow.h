@@ -1,7 +1,5 @@
 #pragma once
 
-/** @file */
-
 #include <memory>
 #include <set>
 #include <string>

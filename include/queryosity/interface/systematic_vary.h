@@ -1,7 +1,5 @@
 #pragma once
 
-/** @file */
-
 #include "systematic.h"
 
 #include <string>

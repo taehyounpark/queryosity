@@ -1,7 +1,5 @@
 #pragma once
 
-/** @file */
-
 #include <iostream>
 #include <memory>
 #include <type_traits>
