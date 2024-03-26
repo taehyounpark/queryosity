@@ -1,7 +1,11 @@
 @mainpage
+
+
+
+
 @tableofcontents
 
-`queryosity` is row-wise data analysis library written in & for C++.
+`queryosity` is a row-wise semi-structured data analysis library.
 
 <!-- --------------------------------------------------------------------------------------------------------------- -->
 
@@ -18,6 +22,6 @@
 - @ref conceptual
 - @ref guide
 - @ref example
-@see Modules (top right corner) for references.
+@see Modules and Classes references.
 
 <!-- --------------------------------------------------------------------------------------------------------------- -->

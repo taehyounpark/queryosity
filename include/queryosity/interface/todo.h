@@ -12,10 +12,10 @@ template <typename T> class todo;
 
 template <typename U>
 static constexpr std::true_type check_lazy(lazy<U> const &);
-static constexpr std::false_type check_lazy(...) {return std::false_type{};}
+static constexpr std::false_type check_lazy(...) { return std::false_type{}; }
 template <typename U>
 static constexpr std::true_type check_todo(todo<U> const &);
-static constexpr std::false_type check_todo(...) {return std::false_type{};}
+static constexpr std::false_type check_todo(...) { return std::false_type{}; }
 
 template <typename V>
 static constexpr bool is_nominal_v =
@@ -64,7 +64,7 @@ public:
   virtual std::set<std::string> get_variation_names() const override;
 
   /**
-   * Evaluate the column out of existing ones.
+   * @brief Evaluate the column definition with input columns.
    * @param[in] columns Input columns.
    * @param[in][out] Evaluated column.
    */
@@ -78,7 +78,7 @@ public:
   }
 
   /**
-   * Fill query with input columns per-entry.
+   * @brief Fill query with input columns per-entry.
    * @param[in] columns Input columns.
    * @returns Updated query plan filled with input columns.
    */
@@ -91,7 +91,7 @@ public:
   }
 
   /**
-   * Book the query at a selection.
+   * @brief Book a query at a selection.
    * @param[in] sel Selection node at which query is counted/filled.
    * @return The query booked at the selection.
    */
@@ -100,7 +100,7 @@ public:
   }
 
   /**
-   * Book multiple query at multiple selections.
+   * @brief Book a query at multiple selections.
    * @tparam Sels... Selections.
    * @param[in] sels... selection nodes.
    * @return `std::tuple` of queries booked at each selection.
@@ -111,7 +111,7 @@ public:
   }
 
   /**
-   * Shorthand for `evaluate()`.
+   * @brief Shorthand for `evaluate()`.
    * @tparam Args... Input column types.
    * @param[in] columns... Input columns.
    * @return Evaluated column.
@@ -161,7 +161,6 @@ protected:
                                  queryosity::is_nominal_v<Node>,
                              bool> = false>
   auto _book(Node const &sel) const -> lazy<query::booked_t<V>> {
-    // nominal
     return this->m_df->_book(*this, sel);
   }
 
@@ -186,7 +185,6 @@ protected:
                              bool> = false>
   auto _book(Nodes const &...sels) const
       -> std::array<lazy<query::booked_t<V>>, sizeof...(Nodes)> {
-    // nominal
     return std::array<lazy<query::booked_t<V>>, sizeof...(Nodes)>{
         this->m_df->_book(*this, sels)...};
   }
@@ -198,7 +196,6 @@ protected:
   auto _book(Nodes const &...sels) const
       -> std::array<typename lazy<query::booked_t<V>>::varied,
                     sizeof...(Nodes)> {
-    // variations
     using varied_type = typename lazy<query::booked_t<V>>::varied;
     using array_of_varied_type =
         std::array<typename lazy<query::booked_t<V>>::varied, sizeof...(Nodes)>;
@@ -221,7 +218,6 @@ protected:
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto _fill(Nodes const &...columns) const -> todo<V> {
-    // nominal
     return todo<V>(*this->m_df,
                    ensemble::invoke(
                        [](V *fillable, typename Nodes::action_type *...cols) {
