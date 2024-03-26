@@ -1,44 +1,5 @@
 <?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
 <tagfile doxygen_version="1.9.1">
-  <compound kind="file">
-    <name>dataflow.h</name>
-    <filename>dataflow_8h.html</filename>
-    <includes id="systematic_8h" name="systematic.h" local="yes" imported="no">systematic.h</includes>
-    <includes id="systematic__resolver_8h" name="systematic_resolver.h" local="yes" imported="no">systematic_resolver.h</includes>
-    <includes id="systematic__variation_8h" name="systematic_variation.h" local="yes" imported="no">systematic_variation.h</includes>
-    <class kind="class">queryosity::dataflow</class>
-    <namespace>queryosity</namespace>
-  </compound>
-  <compound kind="file">
-    <name>delayed.h</name>
-    <filename>delayed_8h.html</filename>
-    <includes id="dataflow_8h" name="dataflow.h" local="yes" imported="no">dataflow.h</includes>
-    <includes id="systematic__resolver_8h" name="systematic_resolver.h" local="yes" imported="no">systematic_resolver.h</includes>
-    <namespace>queryosity</namespace>
-  </compound>
-  <compound kind="file">
-    <name>systematic.h</name>
-    <filename>systematic_8h.html</filename>
-    <namespace>queryosity</namespace>
-  </compound>
-  <compound kind="file">
-    <name>systematic_resolver.h</name>
-    <filename>systematic__resolver_8h.html</filename>
-    <includes id="systematic_8h" name="systematic.h" local="yes" imported="no">systematic.h</includes>
-    <namespace>queryosity</namespace>
-  </compound>
-  <compound kind="file">
-    <name>systematic_variation.h</name>
-    <filename>systematic__variation_8h.html</filename>
-    <includes id="dataflow_8h" name="dataflow.h" local="yes" imported="no">dataflow.h</includes>
-    <namespace>queryosity</namespace>
-  </compound>
-  <compound kind="file">
-    <name>systematic_vary.h</name>
-    <filename>systematic__vary_8h.html</filename>
-    <includes id="systematic_8h" name="systematic.h" local="yes" imported="no">systematic.h</includes>
-    <namespace>queryosity</namespace>
-  </compound>
   <compound kind="class">
     <name>queryosity::query::aggregation</name>
     <filename>classqueryosity_1_1query_1_1aggregation.html</filename>

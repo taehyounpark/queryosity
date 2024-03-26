@@ -101,27 +101,27 @@
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename Node</span></span>&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#ab408fc871f94be3944f1565cfce390da">book</a>(</span><span class="m-doc-wrap">Node&amp;&amp; selection) const -&gt; auto</span>
             </dt>
-            <dd></dd>
+            <dd>Book a query at a selection.</dd>
             <dt>
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Sels</span></span>&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#aa84a995ae9dfcc2366956c75145dbc3c">book</a>(</span><span class="m-doc-wrap">Sels &amp;&amp; ... sels) const -&gt; auto</span>
             </dt>
-            <dd></dd>
+            <dd>Book a query at multiple selections.</dd>
             <dt>
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Nodes</span>, <span class="m-doc-template-param">typename V = Helper</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::column::template is_evaluatable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#acc29e258a6f57c83d697c8738bbcf9b2">evaluate</a>(</span><span class="m-doc-wrap">Nodes &amp;&amp; ... columns) -&gt; auto</span>
             </dt>
-            <dd></dd>
+            <dd>Evaluate the column definition with input columns.</dd>
             <dt>
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Nodes</span>, <span class="m-doc-template-param">typename V = Helper</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::template is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a1b395c8101ddfefbd7b7566bcc38c519">fill</a>(</span><span class="m-doc-wrap">Nodes &amp;&amp; ... columns) -&gt; auto</span>
             </dt>
-            <dd></dd>
+            <dd>Fill query with input columns per-entry.</dd>
             <dt>
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Args</span>, <span class="m-doc-template-param">typename V = Helper</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;column::template is_evaluatable_v&lt;V&gt;||selection::template is_applicable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a4770f7c7436f708aa2974b28cd4ec014">operator()</a>(</span><span class="m-doc-wrap">Args &amp;&amp; ... columns) -&gt; auto</span>
             </dt>
-            <dd></dd>
+            <dd>Shorthand for <code><a class="m-doc" href="#acc29e258a6f57c83d697c8738bbcf9b2">evaluate()</a></code>.</dd>
           </dl>
         </section>
         <section>
@@ -135,6 +135,7 @@
               </div>
               <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::todo::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#ab408fc871f94be3944f1565cfce390da">book</a>(</span><span class="m-doc-wrap">Node&amp;&amp; selection) const</span></span>
             </h3>
+            <p>Book a query at a selection.</p>
             <table class="m-table m-fullwidth m-flat">
               <tfoot>
                 <tr>
@@ -143,7 +144,6 @@
                 </tr>
               </tfoot>
             </table>
-<p>Book the query at a selection.</p>
           </div></section>
           <section class="m-doc-details" id="aa84a995ae9dfcc2366956c75145dbc3c"><div>
             <h3>
@@ -154,6 +154,7 @@
               </div>
               <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::todo::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#aa84a995ae9dfcc2366956c75145dbc3c">book</a>(</span><span class="m-doc-wrap">Sels &amp;&amp; ... sels) const</span></span>
             </h3>
+            <p>Book a query at multiple selections.</p>
             <table class="m-table m-fullwidth m-flat">
               <tfoot>
                 <tr>
@@ -162,7 +163,6 @@
                 </tr>
               </tfoot>
             </table>
-<p>Book multiple query at multiple selections.</p>
           </div></section>
           <section class="m-doc-details" id="acc29e258a6f57c83d697c8738bbcf9b2"><div>
             <h3>
@@ -173,6 +173,7 @@
               </div>
               <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::todo::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#acc29e258a6f57c83d697c8738bbcf9b2">evaluate</a>(</span><span class="m-doc-wrap">Nodes &amp;&amp; ... columns)</span></span>
             </h3>
+            <p>Evaluate the column definition with input columns.</p>
             <table class="m-table m-fullwidth m-flat">
               <thead>
                 <tr><th colspan="2">Parameters</th></tr>
@@ -184,7 +185,6 @@
                 </tr>
               </tbody>
             </table>
-<p>Evaluate the column out of existing ones.</p>
           </div></section>
           <section class="m-doc-details" id="a1b395c8101ddfefbd7b7566bcc38c519"><div>
             <h3>
@@ -195,6 +195,7 @@
               </div>
               <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::todo::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a1b395c8101ddfefbd7b7566bcc38c519">fill</a>(</span><span class="m-doc-wrap">Nodes &amp;&amp; ... columns)</span></span>
             </h3>
+            <p>Fill query with input columns per-entry.</p>
             <table class="m-table m-fullwidth m-flat">
               <thead>
                 <tr><th colspan="2">Parameters</th></tr>
@@ -212,7 +213,6 @@
                 </tr>
               </tfoot>
             </table>
-<p>Fill query with input columns per-entry.</p>
           </div></section>
           <section class="m-doc-details" id="a4770f7c7436f708aa2974b28cd4ec014"><div>
             <h3>
@@ -223,6 +223,7 @@
               </div>
               <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::todo::</span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a4770f7c7436f708aa2974b28cd4ec014">operator()</a>(</span><span class="m-doc-wrap">Args &amp;&amp; ... columns)</span></span>
             </h3>
+            <p>Shorthand for <code><a class="m-doc" href="#acc29e258a6f57c83d697c8738bbcf9b2">evaluate()</a></code>.</p>
             <table class="m-table m-fullwidth m-flat">
               <tfoot>
                 <tr>
@@ -231,7 +232,6 @@
                 </tr>
               </tfoot>
             </table>
-<p>Shorthand for <code><a class="m-doc" href="#acc29e258a6f57c83d697c8738bbcf9b2">evaluate()</a></code>.</p>
           </div></section>
         </section>
       </div>
