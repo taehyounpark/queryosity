@@ -1,0 +1,743 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<tagfile doxygen_version="1.9.1">
+  <compound kind="class">
+    <name>queryosity::query::aggregation</name>
+    <filename>classqueryosity_1_1query_1_1aggregation.html</filename>
+    <templarg></templarg>
+    <member kind="function" virtualness="pure">
+      <type>virtual T</type>
+      <name>result</name>
+      <anchorfile>classqueryosity_1_1query_1_1aggregation.html</anchorfile>
+      <anchor>ac8cc9d444cb04b87aeb66f1d26691db1</anchor>
+      <arglist>() const =0</arglist>
+    </member>
+    <member kind="function" virtualness="pure">
+      <type>virtual T</type>
+      <name>merge</name>
+      <anchorfile>classqueryosity_1_1query_1_1aggregation.html</anchorfile>
+      <anchor>a0d438e6c0f7f0fd6afa09e443b39244b</anchor>
+      <arglist>(std::vector&lt; T &gt; const &amp;results) const =0</arglist>
+    </member>
+    <member kind="function">
+      <type>T</type>
+      <name>operator-&gt;</name>
+      <anchorfile>classqueryosity_1_1query_1_1aggregation.html</anchorfile>
+      <anchor>a0fb1e59c3fc8617a97d47f1044e7817e</anchor>
+      <arglist>() const</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>aggregation&lt; double &gt;</name>
+    <filename>classqueryosity_1_1query_1_1aggregation.html</filename>
+    <member kind="function" virtualness="pure">
+      <type>virtual double</type>
+      <name>result</name>
+      <anchorfile>classqueryosity_1_1query_1_1aggregation.html</anchorfile>
+      <anchor>ac8cc9d444cb04b87aeb66f1d26691db1</anchor>
+      <arglist>() const=0</arglist>
+    </member>
+    <member kind="function" virtualness="pure">
+      <type>virtual double</type>
+      <name>merge</name>
+      <anchorfile>classqueryosity_1_1query_1_1aggregation.html</anchorfile>
+      <anchor>a0d438e6c0f7f0fd6afa09e443b39244b</anchor>
+      <arglist>(std::vector&lt; double &gt; const &amp;results) const=0</arglist>
+    </member>
+    <member kind="function">
+      <type>double</type>
+      <name>operator-&gt;</name>
+      <anchorfile>classqueryosity_1_1query_1_1aggregation.html</anchorfile>
+      <anchor>a0fb1e59c3fc8617a97d47f1044e7817e</anchor>
+      <arglist>() const</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::column::calculation</name>
+    <filename>classqueryosity_1_1column_1_1calculation.html</filename>
+    <templarg></templarg>
+  </compound>
+  <compound kind="class">
+    <name>calculation&lt; double &gt;</name>
+    <filename>classqueryosity_1_1column_1_1calculation.html</filename>
+  </compound>
+  <compound kind="class">
+    <name>calculation&lt; Out &gt;</name>
+    <filename>classqueryosity_1_1column_1_1calculation.html</filename>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::dataset::column</name>
+    <filename>classqueryosity_1_1dataset_1_1column.html</filename>
+    <templarg></templarg>
+    <member kind="function">
+      <type></type>
+      <name>column</name>
+      <anchorfile>classqueryosity_1_1dataset_1_1column.html</anchorfile>
+      <anchor>a359892e3e0d91e886b16c5f24d4d04ba</anchor>
+      <arglist>(const std::string &amp;column_name)</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::column::constant</name>
+    <filename>classqueryosity_1_1column_1_1constant.html</filename>
+    <templarg></templarg>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::dataflow</name>
+    <filename>classqueryosity_1_1dataflow.html</filename>
+    <member kind="function">
+      <type></type>
+      <name>dataflow</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a97766cdd4b8b19ae821e4ac487b2cb6a</anchor>
+      <arglist>()</arglist>
+    </member>
+    <member kind="function">
+      <type></type>
+      <name>dataflow</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a4cec7f2b99eb673cfe74f5492a9318b7</anchor>
+      <arglist>(Kwd1 &amp;&amp;kwarg1, Kwd2 &amp;&amp;kwarg2, Kwd3 &amp;&amp;kwarg3)</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>load</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a89a76c336e2a58437fedef55ed1a59f9</anchor>
+      <arglist>(dataset::input&lt; DS &gt; &amp;&amp;in) -&gt; dataset::loaded&lt; DS &gt;</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>read</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a86b6f7833c50da9936e24d9445a51418</anchor>
+      <arglist>(dataset::input&lt; DS &gt; in, dataset::column&lt; Val &gt; const &amp;col)</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>read</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a190d418f9192612436c5bd287e728e24</anchor>
+      <arglist>(dataset::input&lt; DS &gt; in, dataset::columns&lt; Vals... &gt; const &amp;cols)</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>define</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a726b73d4cab0c7c750e8c970c9b46d12</anchor>
+      <arglist>(column::constant&lt; Val &gt; const &amp;cnst) -&gt; lazy&lt; column::fixed&lt; Val &gt;&gt;</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>define</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a00d3c5b09a09bee7e45f64412beaeac8</anchor>
+      <arglist>(column::expression&lt; Fn &gt; const &amp;expr, lazy&lt; Cols &gt; const &amp;...cols) -&gt; lazy&lt; column::equation_t&lt; Fn &gt;&gt;</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>define</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>acafeeaf35486c2080a945b46f1ebbf88</anchor>
+      <arglist>(column::definition&lt; Def &gt; const &amp;defn, lazy&lt; Cols &gt; const &amp;...cols) -&gt; lazy&lt; Def &gt;</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>filter</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a6f83a9a493a6266694bd071bf20c3ddd</anchor>
+      <arglist>(lazy&lt; Col &gt; const &amp;column) -&gt; lazy&lt; selection::node &gt;</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>weight</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>ad4f75c99a3d0b161f1afa1e97c6a3c24</anchor>
+      <arglist>(lazy&lt; Col &gt; const &amp;column) -&gt; lazy&lt; selection::node &gt;</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>filter</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>ab636cf2b7d8f54f22f038a55c70cea21</anchor>
+      <arglist>(Col const &amp;col)</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>weight</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a2a9ec2904fa6ea1ad8d63175453780a6</anchor>
+      <arglist>(Col const &amp;col)</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>filter</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a651b6c540ca65d37a70906570298b9b1</anchor>
+      <arglist>(queryosity::column::expression&lt; Fn &gt; const &amp;expr, Cols const &amp;...cols)</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>weight</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a0cc070f2983e17b6cdb7c0e81c3c3e71</anchor>
+      <arglist>(queryosity::column::expression&lt; Fn &gt; const &amp;expr, Cols const &amp;...cols)</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>make</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a2dd1a0d952f554aa90c8ab1438706f40</anchor>
+      <arglist>(query::plan&lt; Qry &gt; const &amp;plan) -&gt; todo&lt; query::book&lt; Qry &gt;&gt;</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::column::definition</name>
+    <filename>classqueryosity_1_1column_1_1definition.html</filename>
+    <templarg></templarg>
+    <member kind="function">
+      <type></type>
+      <name>definition</name>
+      <anchorfile>classqueryosity_1_1column_1_1definition.html</anchorfile>
+      <anchor>a8928bf7dd444903612e9c4da37c48362</anchor>
+      <arglist>(Args const &amp;...args)</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::column::definition&lt; Out(Ins...)&gt;</name>
+    <filename>classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html</filename>
+    <templarg></templarg>
+    <templarg>Ins</templarg>
+    <base>calculation&lt; Out &gt;</base>
+    <member kind="function">
+      <type></type>
+      <name>definition</name>
+      <anchorfile>classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html</anchorfile>
+      <anchor>aaf6f9364d41fed59e503d910f727fb1c</anchor>
+      <arglist>()=default</arglist>
+    </member>
+    <member kind="function" virtualness="virtual">
+      <type>virtual</type>
+      <name>~definition</name>
+      <anchorfile>classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html</anchorfile>
+      <anchor>a9b8d57705af354ae36be7503c95dd471</anchor>
+      <arglist>()=default</arglist>
+    </member>
+    <member kind="function" virtualness="pure">
+      <type>virtual Out</type>
+      <name>evaluate</name>
+      <anchorfile>classqueryosity_1_1column_1_1definition_3_01_out_07_ins_8_8_8_08_4.html</anchorfile>
+      <anchor>ad87f322902986b926fa3f9c519fe0245</anchor>
+      <arglist>(observable&lt; Ins &gt;... args) const =0</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::query::definition&lt; T(Obs...)&gt;</name>
+    <filename>classqueryosity_1_1query_1_1definition_3_01_t_07_obs_8_8_8_08_4.html</filename>
+    <templarg></templarg>
+    <templarg>Obs</templarg>
+    <base>queryosity::query::aggregation</base>
+    <member kind="function" virtualness="pure">
+      <type>virtual void</type>
+      <name>fill</name>
+      <anchorfile>classqueryosity_1_1query_1_1definition_3_01_t_07_obs_8_8_8_08_4.html</anchorfile>
+      <anchor>a358d19438693b0d2250f8fa94dbd10fe</anchor>
+      <arglist>(column::observable&lt; Obs &gt;... observables, double w)=0</arglist>
+    </member>
+    <member kind="function" virtualness="pure">
+      <type>virtual T</type>
+      <name>result</name>
+      <anchorfile>classqueryosity_1_1query_1_1aggregation.html</anchorfile>
+      <anchor>ac8cc9d444cb04b87aeb66f1d26691db1</anchor>
+      <arglist>() const =0</arglist>
+    </member>
+    <member kind="function" virtualness="pure">
+      <type>virtual T</type>
+      <name>merge</name>
+      <anchorfile>classqueryosity_1_1query_1_1aggregation.html</anchorfile>
+      <anchor>a0d438e6c0f7f0fd6afa09e443b39244b</anchor>
+      <arglist>(std::vector&lt; T &gt; const &amp;results) const =0</arglist>
+    </member>
+    <member kind="function">
+      <type>T</type>
+      <name>operator-&gt;</name>
+      <anchorfile>classqueryosity_1_1query_1_1aggregation.html</anchorfile>
+      <anchor>a0fb1e59c3fc8617a97d47f1044e7817e</anchor>
+      <arglist>() const</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>definition&lt; To(From)&gt;</name>
+    <filename>classqueryosity_1_1column_1_1definition.html</filename>
+    <member kind="function">
+      <type></type>
+      <name>definition</name>
+      <anchorfile>classqueryosity_1_1column_1_1definition.html</anchorfile>
+      <anchor>a8928bf7dd444903612e9c4da37c48362</anchor>
+      <arglist>(Args const &amp;...args)</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::column::expression</name>
+    <filename>classqueryosity_1_1column_1_1expression.html</filename>
+    <templarg></templarg>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::hist::hist</name>
+    <filename>classqueryosity_1_1hist_1_1hist.html</filename>
+    <templarg>Vals</templarg>
+    <member kind="function">
+      <type></type>
+      <name>hist</name>
+      <anchorfile>classqueryosity_1_1hist_1_1hist.html</anchorfile>
+      <anchor>a01c48f8f5b47238962432ab3bb96045a</anchor>
+      <arglist>(Axes &amp;&amp;...axes)</arglist>
+    </member>
+    <member kind="function" virtualness="virtual">
+      <type>virtual void</type>
+      <name>fill</name>
+      <anchorfile>classqueryosity_1_1hist_1_1hist.html</anchorfile>
+      <anchor>a80ae1af26eebb9219453f207f7564b5d</anchor>
+      <arglist>(queryosity::column::observable&lt; Vals &gt;... columns, double weight) override</arglist>
+    </member>
+    <member kind="function" virtualness="virtual">
+      <type>virtual std::shared_ptr&lt; hist_t &gt;</type>
+      <name>result</name>
+      <anchorfile>classqueryosity_1_1hist_1_1hist.html</anchorfile>
+      <anchor>ae98807f5a326ff00d786922394e3c7c7</anchor>
+      <arglist>() const override</arglist>
+    </member>
+    <member kind="function" virtualness="virtual">
+      <type>virtual std::shared_ptr&lt; hist_t &gt;</type>
+      <name>merge</name>
+      <anchorfile>classqueryosity_1_1hist_1_1hist.html</anchorfile>
+      <anchor>ac201c837cd9a4633fba0d430df9a1028</anchor>
+      <arglist>(std::vector&lt; std::shared_ptr&lt; hist_t &gt;&gt; const &amp;results) const override</arglist>
+    </member>
+  </compound>
+  <compound kind="struct">
+    <name>queryosity::dataset::input</name>
+    <filename>structqueryosity_1_1dataset_1_1input.html</filename>
+    <templarg></templarg>
+    <member kind="function">
+      <type></type>
+      <name>input</name>
+      <anchorfile>structqueryosity_1_1dataset_1_1input.html</anchorfile>
+      <anchor>aad988d28b5a8d900308bac1f2aea793b</anchor>
+      <arglist>()=default</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::json::item</name>
+    <filename>classqueryosity_1_1json_1_1item.html</filename>
+    <templarg></templarg>
+    <base>queryosity::column::reader</base>
+    <member kind="function">
+      <type></type>
+      <name>item</name>
+      <anchorfile>classqueryosity_1_1json_1_1item.html</anchorfile>
+      <anchor>a8a8d7e8dab46ab5ad9a87b2361d604ca</anchor>
+      <arglist>(const nlohmann::json &amp;data, const std::string &amp;key)</arglist>
+    </member>
+    <member kind="function" virtualness="virtual">
+      <type>virtual const T &amp;</type>
+      <name>read</name>
+      <anchorfile>classqueryosity_1_1json_1_1item.html</anchorfile>
+      <anchor>a4d5947c7a0f3e8934ef53c4998593506</anchor>
+      <arglist>(unsigned int slot, unsigned long long entry) const override</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::json</name>
+    <filename>classqueryosity_1_1json.html</filename>
+    <base>reader&lt; json &gt;</base>
+    <class kind="class">queryosity::json::item</class>
+    <member kind="function" virtualness="virtual">
+      <type>virtual void</type>
+      <name>parallelize</name>
+      <anchorfile>classqueryosity_1_1json.html</anchorfile>
+      <anchor>ae6480ef8e5427a91f6982e61fe2afaba</anchor>
+      <arglist>(unsigned int nslots) override</arglist>
+    </member>
+    <member kind="function" virtualness="virtual">
+      <type>virtual std::vector&lt; std::pair&lt; unsigned long long, unsigned long long &gt; &gt;</type>
+      <name>partition</name>
+      <anchorfile>classqueryosity_1_1json.html</anchorfile>
+      <anchor>a7b24e9f9cca816b14b268598ccf53109</anchor>
+      <arglist>() override</arglist>
+    </member>
+    <member kind="function">
+      <type>std::unique_ptr&lt; item&lt; T &gt; &gt;</type>
+      <name>read</name>
+      <anchorfile>classqueryosity_1_1json.html</anchorfile>
+      <anchor>aa8e291f50acf97d5c73451d33b7d2a20</anchor>
+      <arglist>(unsigned int slot, const std::string &amp;column_name) const</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::lazy</name>
+    <filename>classqueryosity_1_1lazy.html</filename>
+    <templarg></templarg>
+    <class kind="class">queryosity::lazy::varied</class>
+  </compound>
+  <compound kind="class">
+    <name>lazy&lt; Act &gt;</name>
+    <filename>classqueryosity_1_1lazy.html</filename>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::query::plan</name>
+    <filename>classqueryosity_1_1query_1_1plan.html</filename>
+    <templarg></templarg>
+    <member kind="function">
+      <type></type>
+      <name>plan</name>
+      <anchorfile>classqueryosity_1_1query_1_1plan.html</anchorfile>
+      <anchor>ac79abe622340d20da78e8eacf91914e7</anchor>
+      <arglist>(Args const &amp;...args)</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::column::reader</name>
+    <filename>classqueryosity_1_1column_1_1reader.html</filename>
+    <templarg></templarg>
+    <member kind="function" virtualness="pure">
+      <type>virtual const_reference</type>
+      <name>read</name>
+      <anchorfile>classqueryosity_1_1column_1_1reader.html</anchorfile>
+      <anchor>a0c0af597b6a74092d9ea7a82824c9277</anchor>
+      <arglist>(unsigned int, unsigned long long) const =0</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::dataset::reader</name>
+    <filename>classqueryosity_1_1dataset_1_1reader.html</filename>
+    <templarg></templarg>
+    <base>queryosity::dataset::source</base>
+    <member kind="function" virtualness="pure">
+      <type>virtual std::vector&lt; std::pair&lt; unsigned long long, unsigned long long &gt; &gt;</type>
+      <name>partition</name>
+      <anchorfile>classqueryosity_1_1dataset_1_1source.html</anchorfile>
+      <anchor>a4ed39552c2a5f0c8cafb3e1a5294cddf</anchor>
+      <arglist>()=0</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>reader&lt; json &gt;</name>
+    <filename>classqueryosity_1_1dataset_1_1reader.html</filename>
+    <base>queryosity::dataset::source</base>
+    <member kind="function" virtualness="pure">
+      <type>virtual std::vector&lt; std::pair&lt; unsigned long long, unsigned long long &gt; &gt;</type>
+      <name>partition</name>
+      <anchorfile>classqueryosity_1_1dataset_1_1source.html</anchorfile>
+      <anchor>a4ed39552c2a5f0c8cafb3e1a5294cddf</anchor>
+      <arglist>()=0</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::column::representation&lt; Me(Obs...)&gt;</name>
+    <filename>classqueryosity_1_1column_1_1representation_3_01_me_07_obs_8_8_8_08_4.html</filename>
+    <templarg></templarg>
+    <templarg>Obs</templarg>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::dataset::source</name>
+    <filename>classqueryosity_1_1dataset_1_1source.html</filename>
+    <member kind="function" virtualness="pure">
+      <type>virtual std::vector&lt; std::pair&lt; unsigned long long, unsigned long long &gt; &gt;</type>
+      <name>partition</name>
+      <anchorfile>classqueryosity_1_1dataset_1_1source.html</anchorfile>
+      <anchor>a4ed39552c2a5f0c8cafb3e1a5294cddf</anchor>
+      <arglist>()=0</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::todo</name>
+    <filename>classqueryosity_1_1todo.html</filename>
+    <templarg></templarg>
+    <class kind="class">queryosity::todo::varied</class>
+    <member kind="function">
+      <type>auto</type>
+      <name>evaluate</name>
+      <anchorfile>classqueryosity_1_1todo.html</anchorfile>
+      <anchor>acc29e258a6f57c83d697c8738bbcf9b2</anchor>
+      <arglist>(Nodes &amp;&amp;...columns) const -&gt; decltype(std::declval&lt; todo&lt; V &gt;&gt;()._evaluate(std::forward&lt; Nodes &gt;(columns)...))</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>fill</name>
+      <anchorfile>classqueryosity_1_1todo.html</anchorfile>
+      <anchor>a1b395c8101ddfefbd7b7566bcc38c519</anchor>
+      <arglist>(Nodes &amp;&amp;...columns) const -&gt; decltype(std::declval&lt; todo&lt; V &gt;&gt;()._fill(std::declval&lt; Nodes &gt;()...))</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>book</name>
+      <anchorfile>classqueryosity_1_1todo.html</anchorfile>
+      <anchor>ab408fc871f94be3944f1565cfce390da</anchor>
+      <arglist>(Node &amp;&amp;selection) const</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>book</name>
+      <anchorfile>classqueryosity_1_1todo.html</anchorfile>
+      <anchor>aa84a995ae9dfcc2366956c75145dbc3c</anchor>
+      <arglist>(Sels &amp;&amp;...sels) const</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>operator()</name>
+      <anchorfile>classqueryosity_1_1todo.html</anchorfile>
+      <anchor>a4770f7c7436f708aa2974b28cd4ec014</anchor>
+      <arglist>(Args &amp;&amp;...columns) const -&gt; decltype(std::declval&lt; todo&lt; V &gt;&gt;().evaluate(std::forward&lt; Args &gt;(std::declval&lt; Args &amp;&amp; &gt;())...))</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>todo&lt; Bld &gt;</name>
+    <filename>classqueryosity_1_1todo.html</filename>
+    <member kind="function">
+      <type>auto</type>
+      <name>evaluate</name>
+      <anchorfile>classqueryosity_1_1todo.html</anchorfile>
+      <anchor>acc29e258a6f57c83d697c8738bbcf9b2</anchor>
+      <arglist>(Nodes &amp;&amp;...columns) const -&gt; decltype(std::declval&lt; todo&lt; V &gt;&gt;()._evaluate(std::forward&lt; Nodes &gt;(columns)...))</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>fill</name>
+      <anchorfile>classqueryosity_1_1todo.html</anchorfile>
+      <anchor>a1b395c8101ddfefbd7b7566bcc38c519</anchor>
+      <arglist>(Nodes &amp;&amp;...columns) const -&gt; decltype(std::declval&lt; todo&lt; V &gt;&gt;()._fill(std::declval&lt; Nodes &gt;()...))</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>book</name>
+      <anchorfile>classqueryosity_1_1todo.html</anchorfile>
+      <anchor>ab408fc871f94be3944f1565cfce390da</anchor>
+      <arglist>(Node &amp;&amp;selection) const</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>book</name>
+      <anchorfile>classqueryosity_1_1todo.html</anchorfile>
+      <anchor>aa84a995ae9dfcc2366956c75145dbc3c</anchor>
+      <arglist>(Sels &amp;&amp;...sels) const</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>operator()</name>
+      <anchorfile>classqueryosity_1_1todo.html</anchorfile>
+      <anchor>a4770f7c7436f708aa2974b28cd4ec014</anchor>
+      <arglist>(Args &amp;&amp;...columns) const -&gt; decltype(std::declval&lt; todo&lt; V &gt;&gt;().evaluate(std::forward&lt; Args &gt;(std::declval&lt; Args &amp;&amp; &gt;())...))</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::lazy::varied</name>
+    <filename>classqueryosity_1_1lazy_1_1varied.html</filename>
+    <member kind="function">
+      <type>auto</type>
+      <name>filter</name>
+      <anchorfile>classqueryosity_1_1lazy_1_1varied.html</anchorfile>
+      <anchor>a738c780a8fe7f22498472e191a791fdd</anchor>
+      <arglist>(Col const &amp;col) -&gt; typename lazy&lt; selection::node &gt;::varied</arglist>
+    </member>
+  </compound>
+  <compound kind="class">
+    <name>queryosity::todo::varied</name>
+    <filename>classqueryosity_1_1todo_1_1varied.html</filename>
+    <member kind="function">
+      <type>auto</type>
+      <name>fill</name>
+      <anchorfile>classqueryosity_1_1todo_1_1varied.html</anchorfile>
+      <anchor>af84ea6a6984838cbef03384af31dbcb9</anchor>
+      <arglist>(Nodes const &amp;...columns) -&gt; varied</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>book</name>
+      <anchorfile>classqueryosity_1_1todo_1_1varied.html</anchorfile>
+      <anchor>a01e561402ea6f7550195379be3f9dcf4</anchor>
+      <arglist>(Node const &amp;selection) -&gt; typename lazy&lt; query::booked_t&lt; V &gt;&gt;::varied</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>book</name>
+      <anchorfile>classqueryosity_1_1todo_1_1varied.html</anchorfile>
+      <anchor>acca5f8a4d146f794ac5d41d51bbbe20d</anchor>
+      <arglist>(Nodes const &amp;...selections) -&gt; std::array&lt; typename lazy&lt; query::booked_t&lt; V &gt;&gt;::varied, sizeof...(Nodes)&gt;</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>operator()</name>
+      <anchorfile>classqueryosity_1_1todo_1_1varied.html</anchorfile>
+      <anchor>ae8d15bc069de8bc93913e0f10af194ab</anchor>
+      <arglist>(Args &amp;&amp;...args) -&gt; typename lazy&lt; typename decltype(std::declval&lt; todo&lt; Bld &gt;&gt;().operator()(std::forward&lt; Args &gt;(args).nominal()...))::action_type &gt;::varied</arglist>
+    </member>
+  </compound>
+  <compound kind="namespace">
+    <name>queryosity</name>
+    <filename>namespacequeryosity.html</filename>
+    <namespace>queryosity::column</namespace>
+    <namespace>queryosity::dataset</namespace>
+    <namespace>queryosity::hist</namespace>
+    <namespace>queryosity::query</namespace>
+    <namespace>queryosity::selection</namespace>
+    <class kind="class">queryosity::json</class>
+    <class kind="class">queryosity::lazy</class>
+    <class kind="class">queryosity::todo</class>
+    <class kind="class">queryosity::dataflow</class>
+  </compound>
+  <compound kind="namespace">
+    <name>queryosity::column</name>
+    <filename>namespacequeryosity_1_1column.html</filename>
+    <class kind="class">queryosity::column::reader</class>
+    <class kind="class">queryosity::column::calculation</class>
+    <class kind="class">queryosity::column::definition</class>
+    <class kind="class">queryosity::column::constant</class>
+    <class kind="class">queryosity::column::expression</class>
+    <class kind="class">queryosity::column::definition&lt; Out(Ins...)&gt;</class>
+    <class kind="class">queryosity::column::representation&lt; Me(Obs...)&gt;</class>
+  </compound>
+  <compound kind="namespace">
+    <name>queryosity::dataset</name>
+    <filename>namespacequeryosity_1_1dataset.html</filename>
+    <class kind="class">queryosity::dataset::reader</class>
+    <class kind="struct">queryosity::dataset::input</class>
+    <class kind="class">queryosity::dataset::column</class>
+    <class kind="class">queryosity::dataset::source</class>
+  </compound>
+  <compound kind="namespace">
+    <name>queryosity::hist</name>
+    <filename>namespacequeryosity_1_1hist.html</filename>
+    <namespace>queryosity::hist::axis</namespace>
+    <class kind="class">queryosity::hist::hist</class>
+  </compound>
+  <compound kind="namespace">
+    <name>queryosity::hist::axis</name>
+    <filename>namespacequeryosity_1_1hist_1_1axis.html</filename>
+    <member kind="typedef">
+      <type>boost::histogram::axis::boolean&lt;&gt;</type>
+      <name>boolean</name>
+      <anchorfile>namespacequeryosity_1_1hist_1_1axis.html</anchorfile>
+      <anchor>a0f48473bafab1dc62f92d4c9b9643e8e</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="typedef">
+      <type>boost::histogram::axis::integer&lt;&gt;</type>
+      <name>integer</name>
+      <anchorfile>namespacequeryosity_1_1hist_1_1axis.html</anchorfile>
+      <anchor>af123e9c29ff1fefddad285c479123e19</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="typedef">
+      <type>boost::histogram::axis::regular&lt;&gt;</type>
+      <name>regular</name>
+      <anchorfile>namespacequeryosity_1_1hist_1_1axis.html</anchorfile>
+      <anchor>a4d7aea09dc066a52717798d7386e185f</anchor>
+      <arglist></arglist>
+    </member>
+    <member kind="typedef">
+      <type>boost::histogram::axis::variable&lt;&gt;</type>
+      <name>variable</name>
+      <anchorfile>namespacequeryosity_1_1hist_1_1axis.html</anchorfile>
+      <anchor>a9577b9f04b0ddc0e7723a09f0da112f7</anchor>
+      <arglist></arglist>
+    </member>
+  </compound>
+  <compound kind="namespace">
+    <name>queryosity::query</name>
+    <filename>namespacequeryosity_1_1query.html</filename>
+    <class kind="class">queryosity::query::aggregation</class>
+    <class kind="class">queryosity::query::plan</class>
+    <class kind="class">queryosity::query::definition&lt; T(Obs...)&gt;</class>
+  </compound>
+  <compound kind="namespace">
+    <name>queryosity::selection</name>
+    <filename>namespacequeryosity_1_1selection.html</filename>
+  </compound>
+  <compound kind="group">
+    <name>abc</name>
+    <title>ABCs</title>
+    <filename>group__abc.html</filename>
+    <class kind="class">queryosity::column::definition&lt; Out(Ins...)&gt;</class>
+    <class kind="class">queryosity::column::reader</class>
+    <class kind="class">queryosity::dataset::source</class>
+    <class kind="class">queryosity::dataset::reader</class>
+  </compound>
+  <compound kind="group">
+    <name>api</name>
+    <title>API</title>
+    <filename>group__api.html</filename>
+    <class kind="class">queryosity::column::definition</class>
+    <class kind="class">queryosity::dataflow</class>
+    <class kind="class">queryosity::dataset::column</class>
+    <class kind="struct">queryosity::dataset::input</class>
+    <class kind="class">queryosity::lazy</class>
+    <class kind="class">queryosity::lazy::varied</class>
+    <class kind="class">queryosity::todo</class>
+    <class kind="class">queryosity::todo::varied</class>
+  </compound>
+  <compound kind="group">
+    <name>ext</name>
+    <title>Extensions</title>
+    <filename>group__ext.html</filename>
+    <class kind="class">queryosity::hist::hist</class>
+    <class kind="class">queryosity::json</class>
+    <class kind="class">queryosity::json::item</class>
+  </compound>
+  <compound kind="page">
+    <name>conceptual</name>
+    <title>Conceptual overview</title>
+    <filename>conceptual.html</filename>
+    <docanchor file="conceptual.html" title="Dataflow">conceptual-dataflow</docanchor>
+    <docanchor file="conceptual.html" title="Lazy actions">conceptual-lazy</docanchor>
+    <docanchor file="conceptual.html" title="Columns">conceptual-columns</docanchor>
+    <docanchor file="conceptual.html" title="Lazy optimizations">conceptual-columns-lazy</docanchor>
+    <docanchor file="conceptual.html" title="Selections">conceptual-selections</docanchor>
+    <docanchor file="conceptual.html" title="Lazy optimizations">conceptual-selections-lazy</docanchor>
+    <docanchor file="conceptual.html" title="Queries">conceptual-query</docanchor>
+    <docanchor file="conceptual.html" title="Systematic variations">conceptual-variations</docanchor>
+  </compound>
+  <compound kind="page">
+    <name>design</name>
+    <title>Design goals</title>
+    <filename>design.html</filename>
+    <docanchor file="design.html" title="Why not DataFrames?">design-df</docanchor>
+    <docanchor file="design.html" title="Conceptual">design-df-conceptual</docanchor>
+    <docanchor file="design.html" title="Technical">design-df-technical</docanchor>
+  </compound>
+  <compound kind="page">
+    <name>example</name>
+    <title>Examples</title>
+    <filename>example.html</filename>
+    <docanchor file="example.html" title="Hello World">example-hello-world</docanchor>
+    <docanchor file="example.html" title="ggF HWW* (with systematic variations)">example-hww</docanchor>
+    <docanchor file="example.html" title="DAOD_PHYS">example-phys</docanchor>
+    <docanchor file="example.html" title="IRIS-HEP ADL benchmark">example-task7</docanchor>
+  </compound>
+  <compound kind="page">
+    <name>guide</name>
+    <title>User guide</title>
+    <filename>guide.html</filename>
+    <docanchor file="guide.html" title="Dataflow">guide-dataflow</docanchor>
+    <docanchor file="guide.html" title="Reading a dataset">guide-dataset-reader</docanchor>
+    <docanchor file="guide.html" title="Computing quantities">guide-column</docanchor>
+    <docanchor file="guide.html" title="Applying selections">guide-selection</docanchor>
+    <docanchor file="guide.html" title="Making queries">guide-query</docanchor>
+    <docanchor file="guide.html" title="Systematic variations">guide-vary</docanchor>
+  </compound>
+  <compound kind="page">
+    <name>install</name>
+    <title>Installation</title>
+    <filename>install.html</filename>
+    <docanchor file="install.html" title="Single-header">install-header</docanchor>
+    <docanchor file="install.html" title="CMake">install-cmake</docanchor>
+    <docanchor file="install.html" title="Standalone">install-cmake-standalone</docanchor>
+    <docanchor file="install.html" title="Integrated">install-cmake-integrated</docanchor>
+  </compound>
+  <compound kind="page">
+    <name>index</name>
+    <title></title>
+    <filename>index.html</filename>
+    <docanchor file="index.html" title="Features">mainpage-features</docanchor>
+    <docanchor file="index.html" title="Documentation">mainpage-documentation</docanchor>
+  </compound>
+</tagfile>

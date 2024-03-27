@@ -38,7 +38,7 @@
           <ol class="m-col-t-6 m-col-m-none">
             <li><a href="modules.html">Modules</a></li>
             <li><a href="annotated.html">Classes</a></li>
-            <li class="poxy-navbar-version-selector"><a href="classqueryosity_1_1todo_1_1varied.html">Version: HEAD</a><ol><li><a href="classqueryosity_1_1todo_1_1varied.html">HEAD</a></li></ol></li>
+            <li class="poxy-navbar-version-selector"><a href="classqueryosity_1_1todo_1_1varied.html">Version: HEAD</a><ol><li><a href="classqueryosity_1_1todo_1_1varied.html">HEAD</a></li><li><a href="v0.3.0/classqueryosity_1_1todo_1_1varied.html">v0.3.0</a></li></ol></li>
           </ol>
           <ol class="m-col-t-6 m-col-m-none" start="4">
             <li><a class="poxy-icon repo github poxy-external" href="https://github.com/taehyounpark/queryosity" target="_blank" title="View on GitHub"><svg id="poxy-icon-repo" version="1.1" viewBox="0 0 50 50" xmlns="http://www.w3.org/2000/svg"><path d="M25,1.23a24.37,24.37,0,0,0-7.7,47.5C18.51,49,19,48.2,19,47.56s0-2.12,0-4.15c-6.78,1.47-8.21-3.27-8.21-3.27C9.61,37.33,8,36.58,8,36.58c-2.21-1.51.17-1.48.17-1.48a5.12,5.12,0,0,1,3.73,2.51c2.17,3.72,5.7,2.65,7.09,2a5.25,5.25,0,0,1,1.55-3.26c-5.41-.61-11.1-2.7-11.1-12A9.41,9.41,0,0,1,12,17.79a8.75,8.75,0,0,1,.24-6.45s2-.66,6.7,2.49a23.1,23.1,0,0,1,12.2,0c4.66-3.15,6.7-2.49,6.7-2.49A8.75,8.75,0,0,1,38,17.79a9.41,9.41,0,0,1,2.51,6.54c0,9.36-5.7,11.42-11.13,12a5.83,5.83,0,0,1,1.65,4.51c0,3.26,0,5.89,0,6.69,0,.65.44,1.41,1.68,1.17A24.38,24.38,0,0,0,25,1.23Z" fill="currentColor"></path></svg></a></li>
@@ -76,17 +76,17 @@
           <h2><a href="#pub-methods">Public functions</a></h2>
           <dl class="m-doc">
             <dt>
-              <div class="m-doc-template">template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename Node</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::template is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;</div>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename Node</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#a01e561402ea6f7550195379be3f9dcf4">book</a>(</span><span class="m-doc-wrap">Node const&amp; selection) -&gt; typename lazy&lt;query::booked_t&lt;V&gt;&gt;::varied</span>
             </dt>
             <dd>Book the query logic at a selection.</dd>
             <dt>
-              <div class="m-doc-template">template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Nodes</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::template is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;</div>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Nodes</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#acca5f8a4d146f794ac5d41d51bbbe20d">book</a>(</span><span class="m-doc-wrap">Nodes const&amp;... selections) &gt; -&gt; auto</span>
             </dt>
             <dd>Book the query logic at multiple selections.</dd>
             <dt>
-              <div class="m-doc-template">template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Nodes</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::template is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;</div>
+              <div class="m-doc-template">template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Nodes</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#af84ea6a6984838cbef03384af31dbcb9">fill</a>(</span><span class="m-doc-wrap">Nodes const&amp;... columns) -&gt; varied</span>
             </dt>
             <dd>Fill the query with input columns.</dd>
@@ -94,7 +94,7 @@
               <div class="m-doc-template">template &lt;<span class="m-doc-template-params"><span class="m-doc-template-param">typename... Args</span></span>&gt;</div>
               <span class="m-doc-wrap-bumper">auto <a class="m-doc" href="#ae8d15bc069de8bc93913e0f10af194ab">operator()</a>(</span><span class="m-doc-wrap">Args &amp;&amp; ... args) ::action_type &gt;::varied -&gt; auto</span>
             </dt>
-            <dd>Evaluate/apply the column definition/selection with input columns.</dd>
+            <dd>Evaluate the column definition with input columns.</dd>
           </dl>
         </section>
         <section>
@@ -102,7 +102,7 @@
           <section class="m-doc-details" id="a01e561402ea6f7550195379be3f9dcf4"><div>
             <h3>
               <div class="m-doc-template">
-                template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename Node</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::template is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;
+                template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename Node</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;
               </div>
               <span class="m-doc-wrap-bumper">typename lazy&lt;query::booked_t&lt;V&gt;&gt;::varied <span class="m-doc-details-prefix">queryosity::<wbr/>todo::<wbr/>varied::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#a01e561402ea6f7550195379be3f9dcf4">book</a>(</span><span class="m-doc-wrap">Node const&amp; selection)</span></span>
             </h3>
@@ -128,7 +128,7 @@
           <section class="m-doc-details" id="acca5f8a4d146f794ac5d41d51bbbe20d"><div>
             <h3>
               <div class="m-doc-template">
-                template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Nodes</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::template is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;
+                template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Nodes</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;
               </div>
               <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::<wbr/>todo::<wbr/>varied::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#acca5f8a4d146f794ac5d41d51bbbe20d">book</a>(</span><span class="m-doc-wrap">Nodes const&amp;... selections) &gt;</span></span>
             </h3>
@@ -145,7 +145,7 @@
           <section class="m-doc-details" id="af84ea6a6984838cbef03384af31dbcb9"><div>
             <h3>
               <div class="m-doc-template">
-                template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Nodes</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::template is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;
+                template &lt;<span class="m-doc-template-params m-doc-template-long"><span class="m-doc-template-param">typename... Nodes</span>, <span class="m-doc-template-param">typename V = Bld</span>, <span class="m-doc-template-param"><a class="m-doc-external poxy-cppreference poxy-external" href="http://en.cppreference.com/w/cpp/types/enable_if.html" target="_blank">std::<wbr/>enable_if_t</a>&lt;queryosity::query::is_bookable_v&lt;V&gt;, bool&gt; = false</span></span>&gt;
               </div>
               <span class="m-doc-wrap-bumper">varied <span class="m-doc-details-prefix">queryosity::<wbr/>todo::<wbr/>varied::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#af84ea6a6984838cbef03384af31dbcb9">fill</a>(</span><span class="m-doc-wrap">Nodes const&amp;... columns)</span></span>
             </h3>
@@ -166,7 +166,7 @@
               </div>
               <span class="m-doc-wrap-bumper">auto <span class="m-doc-details-prefix">queryosity::<wbr/>todo::<wbr/>varied::<wbr/></span></span><span class="m-doc-wrap"><span class="m-doc-wrap-bumper"><a class="m-doc-self" href="#ae8d15bc069de8bc93913e0f10af194ab">operator()</a>(</span><span class="m-doc-wrap">Args &amp;&amp; ... args) ::action_type &gt;::varied</span></span>
             </h3>
-            <p>Evaluate/apply the column definition/selection with input columns.</p>
+            <p>Evaluate the column definition with input columns.</p>
             <table class="m-table m-fullwidth m-flat">
               <tfoot>
                 <tr>
