@@ -221,10 +221,10 @@ public:
       -> lazy<column::conversion<To, column::value_t<Col>>>;
 
   template <typename Def, typename... Args> auto _define(Args &&...args);
-  template <typename Def> auto _define(column::definition<Def> const &defn);
+  template <typename Def> auto _define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
 
   template <typename Fn> auto _equate(Fn fn);
-  template <typename Fn> auto _equate(column::expression<Fn> const &expr);
+  template <typename Fn> auto _equate(column::expression<Fn> const &expr) -> todo<column::evaluator<column::equation_t<Fn>>> ;
 
   template <typename Sel, typename Col>
   auto _select(lazy<Col> const &col) -> lazy<selection::node>;
@@ -560,7 +560,7 @@ auto queryosity::dataflow::_convert(lazy<Col> const &col) -> lazy<
 
 template <typename Def, typename... Args>
 auto queryosity::dataflow::_define(Args &&...args) {
-  return todo<queryosity::column::template evaluator_t<Def>>(
+  return todo<queryosity::column::evaluator<Def>>(
       *this,
       ensemble::invoke(
           [&args...](dataset::player *plyr) {
@@ -571,12 +571,13 @@ auto queryosity::dataflow::_define(Args &&...args) {
 
 template <typename Def>
 auto queryosity::dataflow::_define(
-    queryosity::column::definition<Def> const &defn) {
+    queryosity::column::definition<Def> const &defn) -> todo<column::evaluator<Def>>  {
   return defn._define(*this);
 }
 
-template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
-  return todo<queryosity::column::template evaluator_t<Fn>>(
+template <typename Fn> auto queryosity::dataflow::_equate(Fn fn){
+  return todo<column::evaluator<
+      typename column::equation_t<Fn>>>(
       *this,
       ensemble::invoke(
           [fn](dataset::player *plyr) { return plyr->template equate(fn); },
@@ -585,7 +586,7 @@ template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
 
 template <typename Fn>
 auto queryosity::dataflow::_equate(
-    queryosity::column::expression<Fn> const &expr) {
+    queryosity::column::expression<Fn> const &expr) -> todo<column::evaluator<column::equation_t<Fn>>> {
   return expr._equate(*this);
 }
 

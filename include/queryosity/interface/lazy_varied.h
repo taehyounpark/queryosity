@@ -72,11 +72,11 @@ public:
   auto book(Aggs &&...aggs);
 
   template <typename V = Act,
-            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
                              bool> = false>
   auto operator[](const std::string &var_name) -> lazy<V> &;
   template <typename V = Act,
-            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
                              bool> = false>
   auto operator[](const std::string &var_name) const -> lazy<V> const &;
 
@@ -246,7 +246,7 @@ auto queryosity::lazy<Act>::varied::book(Aggs &&...aggs) {
 template <typename Act>
 template <
     typename V,
-    std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool>>
+    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::operator[](const std::string &var_name)
     -> lazy<V> & {
   if (!this->has_variation(var_name)) {
@@ -258,7 +258,7 @@ auto queryosity::lazy<Act>::varied::operator[](const std::string &var_name)
 template <typename Act>
 template <
     typename V,
-    std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool>>
+    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::operator[](
     const std::string &var_name) const -> lazy<V> const & {
   if (!this->has_variation(var_name)) {

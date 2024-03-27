@@ -34,15 +34,10 @@ public:
 
 public:
   template <typename... Args, typename V = Bld,
-            std::enable_if_t<queryosity::column::template is_evaluatable_v<V>,
+            std::enable_if_t<queryosity::column::is_evaluatable_v<V>,
                              bool> = false>
   auto evaluate(Args &&...args) ->
-      typename queryosity::lazy<column::template evaluated_t<V>>::varied;
-
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<queryosity::selection::template is_applicable_v<V>,
-                             bool> = false>
-  auto apply(Nodes const &...columns) -> typename lazy<selection::node>::varied;
+      typename queryosity::lazy<column::evaluated_t<V>>::varied;
 
   /**
    * @brief Fill the query with input columns.
@@ -50,7 +45,7 @@ public:
    * @return A new todo query node with input columns filled.
    */
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V>,
+            std::enable_if_t<queryosity::query::is_bookable_v<V>,
                              bool> = false>
   auto fill(Nodes const &...columns) -> varied;
 
@@ -60,7 +55,7 @@ public:
    * @return Lazy query booked at selection.
    */
   template <typename Node, typename V = Bld,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V>,
+            std::enable_if_t<queryosity::query::is_bookable_v<V>,
                              bool> = false>
   auto book(Node const &selection) -> typename lazy<query::booked_t<V>>::varied;
 
@@ -70,14 +65,14 @@ public:
    * @return Delayed query containing booked lazy queries.
    */
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V>,
+            std::enable_if_t<queryosity::query::is_bookable_v<V>,
                              bool> = false>
   auto book(Nodes const &...selections)
       -> std::array<typename lazy<query::booked_t<V>>::varied,
                     sizeof...(Nodes)>;
 
   /**
-   * @brief Evaluate/apply the column definition/selection with input columns.
+   * @brief Evaluate the column definition with input columns.
    * @param[in] args... Lazy input columns
    * @return Lazy column definition
    */
@@ -148,11 +143,11 @@ queryosity::todo<Bld>::varied::get_variation_names() const {
 template <typename Bld>
 template <
     typename... Args, typename V,
-    std::enable_if_t<queryosity::column::template is_evaluatable_v<V>, bool>>
+    std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::evaluate(Args &&...args) ->
-    typename queryosity::lazy<column::template evaluated_t<V>>::varied {
+    typename queryosity::lazy<column::evaluated_t<V>>::varied {
   using varied_type =
-      typename queryosity::lazy<column::template evaluated_t<V>>::varied;
+      typename queryosity::lazy<column::evaluated_t<V>>::varied;
   auto syst = varied_type(
       this->nominal().evaluate(std::forward<Args>(args).nominal()...));
   for (auto const &var_name :
@@ -165,27 +160,8 @@ auto queryosity::todo<Bld>::varied::evaluate(Args &&...args) ->
 }
 
 template <typename Bld>
-template <
-    typename... Nodes, typename V,
-    std::enable_if_t<queryosity::selection::template is_applicable_v<V>, bool>>
-auto queryosity::todo<Bld>::varied::apply(Nodes const &...columns) ->
-    typename lazy<selection::node>::varied {
-
-  using varied_type = typename lazy<selection::node>::varied;
-  auto syst = varied_type(this->nominal().apply(columns.nominal()...));
-
-  for (auto const &var_name :
-       systematic::get_variation_names(*this, columns...)) {
-    syst.set_variation(
-        var_name, variation(var_name).apply(columns.variation(var_name)...));
-  }
-
-  return syst;
-}
-
-template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<queryosity::query::template is_bookable_v<V>, bool>>
+          std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::fill(Nodes const &...columns) -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
   for (auto const &var_name :
@@ -198,7 +174,7 @@ auto queryosity::todo<Bld>::varied::fill(Nodes const &...columns) -> varied {
 
 template <typename Bld>
 template <typename Node, typename V,
-          std::enable_if_t<queryosity::query::template is_bookable_v<V>, bool>>
+          std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::book(Node const &selection) ->
     typename lazy<query::booked_t<V>>::varied {
   using varied_type = typename lazy<query::booked_t<V>>::varied;
@@ -213,7 +189,7 @@ auto queryosity::todo<Bld>::varied::book(Node const &selection) ->
 
 template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<queryosity::query::template is_bookable_v<V>, bool>>
+          std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::book(Nodes const &...selections)
     -> std::array<typename lazy<query::booked_t<V>>::varied, sizeof...(Nodes)> {
   // variations

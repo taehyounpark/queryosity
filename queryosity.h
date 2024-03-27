@@ -417,34 +417,12 @@ template <typename Fn> struct deduce_equation;
 
 template <typename Ret, typename... Args>
 struct deduce_equation<std::function<Ret(Args...)>> {
-  using type = column::equation<std::decay_t<Ret>(
-      std::remove_const_t<std::remove_reference_t<Args>>...)>;
+  using type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
 };
 
 template <typename Fn>
 using equation_t = typename deduce_equation<
     typename column::expression<Fn>::function_type>::type;
-
-// evaluate traits
-template <typename T, typename = void> struct evaluator_traits;
-
-template <typename T>
-struct evaluator_traits<T,
-                        typename std::enable_if_t<
-                            queryosity::column::template is_definition_v<T>>> {
-  using evaluator_type = typename column::template evaluator<T>;
-};
-
-template <typename Fn>
-struct evaluator_traits<
-    Fn, typename std::enable_if_t<
-            !queryosity::column::template is_definition_v<Fn>>> {
-  using evaluator_type = typename queryosity::column::template evaluator<
-      queryosity::column::template equation_t<Fn>>;
-};
-
-template <typename T>
-using evaluator_t = typename evaluator_traits<T>::evaluator_type;
 
 template <typename T> using evaluated_t = typename T::evaluated_type;
 
@@ -1067,7 +1045,9 @@ queryosity::dataset::partition::truncate(
 
 namespace queryosity {
 
-class column::computation {
+namespace column {
+
+class computation {
 
 public:
   computation() = default;
@@ -1085,14 +1065,14 @@ public:
 
   template <typename Def, typename... Args>
   auto define(Args const &...vars) const
-      -> std::unique_ptr<queryosity::column::template evaluator_t<Def>>;
+      -> std::unique_ptr<evaluator<Def>>;
 
   template <typename Ret, typename... Args>
   auto equate(std::function<Ret(Args...)> fn) const -> std::unique_ptr<
-      queryosity::column::template evaluator_t<std::function<Ret(Args...)>>>;
+      evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>;
 
   template <typename Def, typename... Cols>
-  auto evaluate(column::evaluator<Def> &calc, Cols const &...cols) -> Def *;
+  auto evaluate(evaluator<Def> &calc, Cols const &...cols) -> Def *;
 
 protected:
   template <typename Col> auto add_column(std::unique_ptr<Col> col) -> Col *;
@@ -1100,6 +1080,8 @@ protected:
 protected:
   std::vector<std::unique_ptr<column::node>> m_columns;
 };
+
+}
 
 } // namespace queryosity
 
@@ -1157,7 +1139,7 @@ protected:
 };
 
 template <typename Fn>
-auto make_equation(Fn fn) -> std::unique_ptr<column::template equation_t<Fn>>;
+auto make_equation(Fn fn) -> std::unique_ptr<column::equation_t<Fn>>;
 
 } // namespace column
 
@@ -1175,8 +1157,8 @@ Out queryosity::column::equation<Out(Ins...)>::evaluate(
 
 template <typename Fn>
 auto queryosity::column::make_equation(Fn fn)
-    -> std::unique_ptr<queryosity::column::template equation_t<Fn>> {
-  return std::make_unique<queryosity::column::template equation_t<Fn>>(fn);
+    -> std::unique_ptr<queryosity::column::equation_t<Fn>> {
+  return std::make_unique<queryosity::column::equation_t<Fn>>(fn);
 }
 
 namespace queryosity {
@@ -1237,21 +1219,21 @@ auto queryosity::column::computation::convert(Col const &col)
 
 template <typename Def, typename... Args>
 auto queryosity::column::computation::define(Args const &...args) const
-    -> std::unique_ptr<queryosity::column::template evaluator_t<Def>> {
-  return std::make_unique<column::evaluator<Def>>(args...);
+    -> std::unique_ptr<evaluator<Def>> {
+  return std::make_unique<evaluator<Def>>(args...);
 }
 
 template <typename Ret, typename... Args>
 auto queryosity::column::computation::equate(std::function<Ret(Args...)> fn)
     const -> std::unique_ptr<
-        queryosity::column::template evaluator_t<std::function<Ret(Args...)>>> {
+      evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>> {
   return std::make_unique<
-      queryosity::column::template evaluator_t<std::function<Ret(Args...)>>>(
+      evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>(
       fn);
 }
 
 template <typename Def, typename... Cols>
-auto queryosity::column::computation::evaluate(column::evaluator<Def> &calc,
+auto queryosity::column::computation::evaluate(evaluator<Def> &calc,
                                                Cols const &...cols) -> Def * {
   auto defn = calc._evaluate(cols...);
   return this->add_column(std::move(defn));
@@ -1317,8 +1299,8 @@ template <typename T>
 static constexpr bool is_applicable_v = is_applicable<T>::value;
 
 template <typename F>
-using apply_t = typename selection::template apply<
-    queryosity::column::template equation_t<F>>;
+using apply_t = typename selection::apply<
+    queryosity::column::equation_t<F>>;
 
 } // namespace selection
 
@@ -2143,10 +2125,10 @@ public:
       -> lazy<column::conversion<To, column::value_t<Col>>>;
 
   template <typename Def, typename... Args> auto _define(Args &&...args);
-  template <typename Def> auto _define(column::definition<Def> const &defn);
+  template <typename Def> auto _define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
 
   template <typename Fn> auto _equate(Fn fn);
-  template <typename Fn> auto _equate(column::expression<Fn> const &expr);
+  template <typename Fn> auto _equate(column::expression<Fn> const &expr) -> todo<column::evaluator<column::equation_t<Fn>>> ;
 
   template <typename Sel, typename Col>
   auto _select(lazy<Col> const &col) -> lazy<selection::node>;
@@ -2403,14 +2385,14 @@ auto queryosity::dataset::columns<Vals...>::_read(
                 queryosity::is_column_v<V> &&                                  \
                     queryosity::is_column_v<typename Arg::action_type> &&      \
                     detail::has_##op_name##_v<                                 \
-                        column::template value_t<V>,                           \
-                        column::template value_t<typename Arg::action_type>>,  \
+                        column::value_t<V>,                           \
+                        column::value_t<typename Arg::action_type>>,  \
                 bool> = false>                                                 \
   auto operator op_symbol(Arg const &arg) const {                              \
     return this->m_df->define(                                                 \
         queryosity::column::expression(                                        \
-            [](column::template value_t<V> const &me,                          \
-               column::template value_t<typename Arg::action_type> const       \
+            [](column::value_t<V> const &me,                          \
+               column::value_t<typename Arg::action_type> const       \
                    &you) { return me op_symbol you; }),                        \
         *this, arg);                                                           \
   }
@@ -2431,11 +2413,11 @@ auto queryosity::dataset::columns<Vals...>::_read(
   template <typename V = Action,                                               \
             std::enable_if_t<                                                  \
                 queryosity::is_column_v<V> &&                                  \
-                    detail::has_##op_name##_v<column::template value_t<V>>,    \
+                    detail::has_##op_name##_v<column::value_t<V>>,    \
                 bool> = false>                                                 \
   auto operator op_symbol() const {                                            \
     return this->m_df->define(queryosity::column::expression(                  \
-                                  [](column::template value_t<V> const &me) {  \
+                                  [](column::value_t<V> const &me) {  \
                                     return (op_symbol me);                     \
                                   }),                                          \
                               *this);                                          \
@@ -2462,14 +2444,14 @@ auto queryosity::dataset::columns<Vals...>::_read(
             std::enable_if_t<                                                  \
                 is_column_v<V> &&                                              \
                     detail::has_subscript_v<                                   \
-                        column::template value_t<V>,                           \
-                        column::template value_t<typename Arg::action_type>>,  \
+                        column::value_t<V>,                           \
+                        column::value_t<typename Arg::action_type>>,  \
                 bool> = false>                                                 \
   auto operator[](Arg const &arg) const {                                      \
     return this->m_df->define(                                                 \
         queryosity::column::expression(                                        \
-            [](column::template value_t<V> me,                                 \
-               column::template value_t<typename Arg::action_type> index) {    \
+            [](column::value_t<V> me,                                 \
+               column::value_t<typename Arg::action_type> index) {    \
               return me[index];                                                \
             }),                                                                \
         *this, arg);                                                           \
@@ -2596,7 +2578,7 @@ struct result_if_aggregation {};
 // Specialization for types satisfying is_query
 template <typename Action>
 struct result_if_aggregation<
-    Action, std::enable_if_t<query::template is_aggregation_v<Action>>> {
+    Action, std::enable_if_t<query::is_aggregation_v<Action>>> {
   using result_type = decltype(std::declval<Action>().result());
   result_if_aggregation() : m_merged(false) {}
   virtual ~result_if_aggregation() = default;
@@ -2678,12 +2660,12 @@ public:
   template <typename... Aggs> auto book(Aggs &&...aggs) const;
 
   template <typename V = Action,
-            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
                              bool> = false>
   auto result() -> decltype(std::declval<V>().result());
 
   template <typename V = Action,
-            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
                              bool> = false>
   auto operator->() -> decltype(std::declval<V>().result()) {
     return this->result();
@@ -2707,7 +2689,7 @@ public:
 
 protected:
   template <typename V = Action,
-            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
                              bool> = false>
   void merge_results();
 
@@ -2785,11 +2767,11 @@ public:
   auto book(Aggs &&...aggs);
 
   template <typename V = Act,
-            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
                              bool> = false>
   auto operator[](const std::string &var_name) -> lazy<V> &;
   template <typename V = Act,
-            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
                              bool> = false>
   auto operator[](const std::string &var_name) const -> lazy<V> const &;
 
@@ -2957,7 +2939,7 @@ auto queryosity::lazy<Act>::varied::book(Aggs &&...aggs) {
 template <typename Act>
 template <
     typename V,
-    std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool>>
+    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::operator[](const std::string &var_name)
     -> lazy<V> & {
   if (!this->has_variation(var_name)) {
@@ -2969,7 +2951,7 @@ auto queryosity::lazy<Act>::varied::operator[](const std::string &var_name)
 template <typename Act>
 template <
     typename V,
-    std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool>>
+    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::operator[](
     const std::string &var_name) const -> lazy<V> const & {
   if (!this->has_variation(var_name)) {
@@ -3069,8 +3051,8 @@ template <typename Action>
 template <typename To, typename V,
           std::enable_if_t<queryosity::is_column_v<V>, bool>>
 auto queryosity::lazy<Action>::to() const -> lazy<column::valued<To>> {
-  if constexpr (std::is_same_v<To, column::template value_t<V>> ||
-                std::is_base_of_v<To, column::template value_t<V>>) {
+  if constexpr (std::is_same_v<To, column::value_t<V>> ||
+                std::is_base_of_v<To, column::value_t<V>>) {
     return lazy<column::valued<To>>(*this->m_df, this->get_slots());
   } else {
     return lazy<column::valued<To>>(
@@ -3179,7 +3161,7 @@ auto queryosity::lazy<Action>::book(Aggs &&...aggs) const {
 template <typename Action>
 template <
     typename V,
-    std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool>>
+    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
 auto queryosity::lazy<Action>::result()
     -> decltype(std::declval<V>().result()) {
   this->m_df->analyze();
@@ -3190,7 +3172,7 @@ auto queryosity::lazy<Action>::result()
 template <typename Action>
 template <
     typename V,
-    std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool> e>
+    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> e>
 void queryosity::lazy<Action>::merge_results() {
   if (this->m_merged)
     return;
@@ -3735,7 +3717,7 @@ auto queryosity::dataflow::_convert(lazy<Col> const &col) -> lazy<
 
 template <typename Def, typename... Args>
 auto queryosity::dataflow::_define(Args &&...args) {
-  return todo<queryosity::column::template evaluator_t<Def>>(
+  return todo<queryosity::column::evaluator<Def>>(
       *this,
       ensemble::invoke(
           [&args...](dataset::player *plyr) {
@@ -3746,12 +3728,13 @@ auto queryosity::dataflow::_define(Args &&...args) {
 
 template <typename Def>
 auto queryosity::dataflow::_define(
-    queryosity::column::definition<Def> const &defn) {
+    queryosity::column::definition<Def> const &defn) -> todo<column::evaluator<Def>>  {
   return defn._define(*this);
 }
 
-template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
-  return todo<queryosity::column::template evaluator_t<Fn>>(
+template <typename Fn> auto queryosity::dataflow::_equate(Fn fn){
+  return todo<column::evaluator<
+      typename column::equation_t<Fn>>>(
       *this,
       ensemble::invoke(
           [fn](dataset::player *plyr) { return plyr->template equate(fn); },
@@ -3760,7 +3743,7 @@ template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
 
 template <typename Fn>
 auto queryosity::dataflow::_equate(
-    queryosity::column::expression<Fn> const &expr) {
+    queryosity::column::expression<Fn> const &expr) -> todo<column::evaluator<column::equation_t<Fn>>> {
   return expr._equate(*this);
 }
 
@@ -3866,7 +3849,7 @@ public:
    * @param[in][out] Evaluated column.
    */
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::column::template is_evaluatable_v<V>,
+            std::enable_if_t<queryosity::column::is_evaluatable_v<V>,
                              bool> = false>
   auto evaluate(Nodes &&...columns) const
       -> decltype(std::declval<todo<V>>()._evaluate(
@@ -3880,7 +3863,7 @@ public:
    * @returns Updated query plan filled with input columns.
    */
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V>,
+            std::enable_if_t<queryosity::query::is_bookable_v<V>,
                              bool> = false>
   auto fill(Nodes &&...columns) const
       -> decltype(std::declval<todo<V>>()._fill(std::declval<Nodes>()...)) {
@@ -3903,7 +3886,7 @@ public:
    * @return `std::tuple` of queries booked at each selection.
    */
   template <typename... Sels> auto book(Sels &&...sels) const {
-    static_assert(query::template is_bookable_v<Helper>, "not bookable");
+    static_assert(query::is_bookable_v<Helper>, "not bookable");
     return this->_book(std::forward<Sels>(sels)...);
   }
 
@@ -3914,8 +3897,7 @@ public:
    * @return Evaluated column.
    */
   template <typename... Args, typename V = Helper,
-            std::enable_if_t<column::template is_evaluatable_v<V> ||
-                                 selection::template is_applicable_v<V>,
+            std::enable_if_t<column::is_evaluatable_v<V>,
                              bool> = false>
   auto operator()(Args &&...columns) const
       -> decltype(std::declval<todo<V>>().evaluate(
@@ -3925,22 +3907,22 @@ public:
 
 protected:
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::column::template is_evaluatable_v<V> &&
+            std::enable_if_t<queryosity::column::is_evaluatable_v<V> &&
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto _evaluate(Nodes const &...columns) const
-      -> lazy<column::template evaluated_t<V>> {
+      -> lazy<column::evaluated_t<V>> {
     return this->m_df->_evaluate(*this, columns...);
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::column::template is_evaluatable_v<V> &&
+            std::enable_if_t<queryosity::column::is_evaluatable_v<V> &&
                                  queryosity::has_variation_v<Nodes...>,
                              bool> = false>
   auto _evaluate(Nodes const &...columns) const ->
-      typename lazy<column::template evaluated_t<V>>::varied {
+      typename lazy<column::evaluated_t<V>>::varied {
 
-    using varied_type = typename lazy<column::template evaluated_t<V>>::varied;
+    using varied_type = typename lazy<column::evaluated_t<V>>::varied;
 
     auto nom = this->m_df->_evaluate(this, columns.nominal()...);
     auto syst = varied_type(std::move(nom));
@@ -3954,7 +3936,7 @@ protected:
   }
 
   template <typename Node, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  queryosity::is_nominal_v<Node>,
                              bool> = false>
   auto _book(Node const &sel) const -> lazy<query::booked_t<V>> {
@@ -3962,7 +3944,7 @@ protected:
   }
 
   template <typename Node, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  queryosity::is_varied_v<Node>,
                              bool> = false>
   auto _book(Node const &sel) const ->
@@ -3977,7 +3959,7 @@ protected:
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto _book(Nodes const &...sels) const
@@ -3987,7 +3969,7 @@ protected:
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
   auto _book(Nodes const &...sels) const
@@ -4011,7 +3993,7 @@ protected:
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto _fill(Nodes const &...columns) const -> todo<V> {
@@ -4024,7 +4006,7 @@ protected:
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
   auto _fill(Nodes const &...columns) const -> varied {
@@ -4164,7 +4146,7 @@ public:
   auto _define(dataflow &df) const;
 
 protected:
-  std::function<todo<evaluator_t<Def>>(dataflow &)> m_define;
+  std::function<todo<evaluator<Def>>(dataflow &)> m_define;
 };
 
 } // namespace queryosity
@@ -4333,15 +4315,10 @@ public:
 
 public:
   template <typename... Args, typename V = Bld,
-            std::enable_if_t<queryosity::column::template is_evaluatable_v<V>,
+            std::enable_if_t<queryosity::column::is_evaluatable_v<V>,
                              bool> = false>
   auto evaluate(Args &&...args) ->
-      typename queryosity::lazy<column::template evaluated_t<V>>::varied;
-
-  template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<queryosity::selection::template is_applicable_v<V>,
-                             bool> = false>
-  auto apply(Nodes const &...columns) -> typename lazy<selection::node>::varied;
+      typename queryosity::lazy<column::evaluated_t<V>>::varied;
 
   /**
    * @brief Fill the query with input columns.
@@ -4349,7 +4326,7 @@ public:
    * @return A new todo query node with input columns filled.
    */
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V>,
+            std::enable_if_t<queryosity::query::is_bookable_v<V>,
                              bool> = false>
   auto fill(Nodes const &...columns) -> varied;
 
@@ -4359,7 +4336,7 @@ public:
    * @return Lazy query booked at selection.
    */
   template <typename Node, typename V = Bld,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V>,
+            std::enable_if_t<queryosity::query::is_bookable_v<V>,
                              bool> = false>
   auto book(Node const &selection) -> typename lazy<query::booked_t<V>>::varied;
 
@@ -4369,14 +4346,14 @@ public:
    * @return Delayed query containing booked lazy queries.
    */
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V>,
+            std::enable_if_t<queryosity::query::is_bookable_v<V>,
                              bool> = false>
   auto book(Nodes const &...selections)
       -> std::array<typename lazy<query::booked_t<V>>::varied,
                     sizeof...(Nodes)>;
 
   /**
-   * @brief Evaluate/apply the column definition/selection with input columns.
+   * @brief Evaluate the column definition with input columns.
    * @param[in] args... Lazy input columns
    * @return Lazy column definition
    */
@@ -4443,11 +4420,11 @@ queryosity::todo<Bld>::varied::get_variation_names() const {
 template <typename Bld>
 template <
     typename... Args, typename V,
-    std::enable_if_t<queryosity::column::template is_evaluatable_v<V>, bool>>
+    std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::evaluate(Args &&...args) ->
-    typename queryosity::lazy<column::template evaluated_t<V>>::varied {
+    typename queryosity::lazy<column::evaluated_t<V>>::varied {
   using varied_type =
-      typename queryosity::lazy<column::template evaluated_t<V>>::varied;
+      typename queryosity::lazy<column::evaluated_t<V>>::varied;
   auto syst = varied_type(
       this->nominal().evaluate(std::forward<Args>(args).nominal()...));
   for (auto const &var_name :
@@ -4460,27 +4437,8 @@ auto queryosity::todo<Bld>::varied::evaluate(Args &&...args) ->
 }
 
 template <typename Bld>
-template <
-    typename... Nodes, typename V,
-    std::enable_if_t<queryosity::selection::template is_applicable_v<V>, bool>>
-auto queryosity::todo<Bld>::varied::apply(Nodes const &...columns) ->
-    typename lazy<selection::node>::varied {
-
-  using varied_type = typename lazy<selection::node>::varied;
-  auto syst = varied_type(this->nominal().apply(columns.nominal()...));
-
-  for (auto const &var_name :
-       systematic::get_variation_names(*this, columns...)) {
-    syst.set_variation(
-        var_name, variation(var_name).apply(columns.variation(var_name)...));
-  }
-
-  return syst;
-}
-
-template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<queryosity::query::template is_bookable_v<V>, bool>>
+          std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::fill(Nodes const &...columns) -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
   for (auto const &var_name :
@@ -4493,7 +4451,7 @@ auto queryosity::todo<Bld>::varied::fill(Nodes const &...columns) -> varied {
 
 template <typename Bld>
 template <typename Node, typename V,
-          std::enable_if_t<queryosity::query::template is_bookable_v<V>, bool>>
+          std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::book(Node const &selection) ->
     typename lazy<query::booked_t<V>>::varied {
   using varied_type = typename lazy<query::booked_t<V>>::varied;
@@ -4508,7 +4466,7 @@ auto queryosity::todo<Bld>::varied::book(Node const &selection) ->
 
 template <typename Bld>
 template <typename... Nodes, typename V,
-          std::enable_if_t<queryosity::query::template is_bookable_v<V>, bool>>
+          std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::book(Nodes const &...selections)
     -> std::array<typename lazy<query::booked_t<V>>::varied, sizeof...(Nodes)> {
   // variations
@@ -4572,7 +4530,7 @@ template <typename Lzy, typename... Vars>
 auto queryosity::systematic::vary(systematic::nominal<Lzy> const &nom,
                                   Vars const &...vars) {
   using action_type = typename Lzy::action_type;
-  using value_type = column::template value_t<action_type>;
+  using value_type = column::value_t<action_type>;
   using nominal_type = lazy<column::valued<value_type>>;
   using varied_type = typename nominal_type::varied;
   varied_type syst(nom.get().template to<value_type>());

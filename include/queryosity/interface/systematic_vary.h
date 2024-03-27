@@ -24,7 +24,7 @@ template <typename Lzy, typename... Vars>
 auto queryosity::systematic::vary(systematic::nominal<Lzy> const &nom,
                                   Vars const &...vars) {
   using action_type = typename Lzy::action_type;
-  using value_type = column::template value_t<action_type>;
+  using value_type = column::value_t<action_type>;
   using nominal_type = lazy<column::valued<value_type>>;
   using varied_type = typename nominal_type::varied;
   varied_type syst(nom.get().template to<value_type>());

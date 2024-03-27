@@ -19,7 +19,7 @@ struct result_if_aggregation {};
 // Specialization for types satisfying is_query
 template <typename Action>
 struct result_if_aggregation<
-    Action, std::enable_if_t<query::template is_aggregation_v<Action>>> {
+    Action, std::enable_if_t<query::is_aggregation_v<Action>>> {
   using result_type = decltype(std::declval<Action>().result());
   result_if_aggregation() : m_merged(false) {}
   virtual ~result_if_aggregation() = default;
@@ -101,12 +101,12 @@ public:
   template <typename... Aggs> auto book(Aggs &&...aggs) const;
 
   template <typename V = Action,
-            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
                              bool> = false>
   auto result() -> decltype(std::declval<V>().result());
 
   template <typename V = Action,
-            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
                              bool> = false>
   auto operator->() -> decltype(std::declval<V>().result()) {
     return this->result();
@@ -130,7 +130,7 @@ public:
 
 protected:
   template <typename V = Action,
-            std::enable_if_t<queryosity::query::template is_aggregation_v<V>,
+            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
                              bool> = false>
   void merge_results();
 
@@ -219,8 +219,8 @@ template <typename Action>
 template <typename To, typename V,
           std::enable_if_t<queryosity::is_column_v<V>, bool>>
 auto queryosity::lazy<Action>::to() const -> lazy<column::valued<To>> {
-  if constexpr (std::is_same_v<To, column::template value_t<V>> ||
-                std::is_base_of_v<To, column::template value_t<V>>) {
+  if constexpr (std::is_same_v<To, column::value_t<V>> ||
+                std::is_base_of_v<To, column::value_t<V>>) {
     return lazy<column::valued<To>>(*this->m_df, this->get_slots());
   } else {
     return lazy<column::valued<To>>(
@@ -329,7 +329,7 @@ auto queryosity::lazy<Action>::book(Aggs &&...aggs) const {
 template <typename Action>
 template <
     typename V,
-    std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool>>
+    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
 auto queryosity::lazy<Action>::result()
     -> decltype(std::declval<V>().result()) {
   this->m_df->analyze();
@@ -340,7 +340,7 @@ auto queryosity::lazy<Action>::result()
 template <typename Action>
 template <
     typename V,
-    std::enable_if_t<queryosity::query::template is_aggregation_v<V>, bool> e>
+    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> e>
 void queryosity::lazy<Action>::merge_results() {
   if (this->m_merged)
     return;

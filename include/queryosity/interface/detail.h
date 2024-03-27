@@ -22,14 +22,14 @@
                 queryosity::is_column_v<V> &&                                  \
                     queryosity::is_column_v<typename Arg::action_type> &&      \
                     detail::has_##op_name##_v<                                 \
-                        column::template value_t<V>,                           \
-                        column::template value_t<typename Arg::action_type>>,  \
+                        column::value_t<V>,                           \
+                        column::value_t<typename Arg::action_type>>,  \
                 bool> = false>                                                 \
   auto operator op_symbol(Arg const &arg) const {                              \
     return this->m_df->define(                                                 \
         queryosity::column::expression(                                        \
-            [](column::template value_t<V> const &me,                          \
-               column::template value_t<typename Arg::action_type> const       \
+            [](column::value_t<V> const &me,                          \
+               column::value_t<typename Arg::action_type> const       \
                    &you) { return me op_symbol you; }),                        \
         *this, arg);                                                           \
   }
@@ -50,11 +50,11 @@
   template <typename V = Action,                                               \
             std::enable_if_t<                                                  \
                 queryosity::is_column_v<V> &&                                  \
-                    detail::has_##op_name##_v<column::template value_t<V>>,    \
+                    detail::has_##op_name##_v<column::value_t<V>>,    \
                 bool> = false>                                                 \
   auto operator op_symbol() const {                                            \
     return this->m_df->define(queryosity::column::expression(                  \
-                                  [](column::template value_t<V> const &me) {  \
+                                  [](column::value_t<V> const &me) {  \
                                     return (op_symbol me);                     \
                                   }),                                          \
                               *this);                                          \
@@ -81,14 +81,14 @@
             std::enable_if_t<                                                  \
                 is_column_v<V> &&                                              \
                     detail::has_subscript_v<                                   \
-                        column::template value_t<V>,                           \
-                        column::template value_t<typename Arg::action_type>>,  \
+                        column::value_t<V>,                           \
+                        column::value_t<typename Arg::action_type>>,  \
                 bool> = false>                                                 \
   auto operator[](Arg const &arg) const {                                      \
     return this->m_df->define(                                                 \
         queryosity::column::expression(                                        \
-            [](column::template value_t<V> me,                                 \
-               column::template value_t<typename Arg::action_type> index) {    \
+            [](column::value_t<V> me,                                 \
+               column::value_t<typename Arg::action_type> index) {    \
               return me[index];                                                \
             }),                                                                \
         *this, arg);                                                           \

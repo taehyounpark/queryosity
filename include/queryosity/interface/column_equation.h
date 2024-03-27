@@ -29,7 +29,7 @@ protected:
 };
 
 template <typename Fn>
-auto make_equation(Fn fn) -> std::unique_ptr<column::template equation_t<Fn>>;
+auto make_equation(Fn fn) -> std::unique_ptr<column::equation_t<Fn>>;
 
 } // namespace column
 
@@ -47,6 +47,6 @@ Out queryosity::column::equation<Out(Ins...)>::evaluate(
 
 template <typename Fn>
 auto queryosity::column::make_equation(Fn fn)
-    -> std::unique_ptr<queryosity::column::template equation_t<Fn>> {
-  return std::make_unique<queryosity::column::template equation_t<Fn>>(fn);
+    -> std::unique_ptr<queryosity::column::equation_t<Fn>> {
+  return std::make_unique<queryosity::column::equation_t<Fn>>(fn);
 }

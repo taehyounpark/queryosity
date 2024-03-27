@@ -200,34 +200,12 @@ template <typename Fn> struct deduce_equation;
 
 template <typename Ret, typename... Args>
 struct deduce_equation<std::function<Ret(Args...)>> {
-  using type = column::equation<std::decay_t<Ret>(
-      std::remove_const_t<std::remove_reference_t<Args>>...)>;
+  using type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
 };
 
 template <typename Fn>
 using equation_t = typename deduce_equation<
     typename column::expression<Fn>::function_type>::type;
-
-// evaluate traits
-template <typename T, typename = void> struct evaluator_traits;
-
-template <typename T>
-struct evaluator_traits<T,
-                        typename std::enable_if_t<
-                            queryosity::column::template is_definition_v<T>>> {
-  using evaluator_type = typename column::template evaluator<T>;
-};
-
-template <typename Fn>
-struct evaluator_traits<
-    Fn, typename std::enable_if_t<
-            !queryosity::column::template is_definition_v<Fn>>> {
-  using evaluator_type = typename queryosity::column::template evaluator<
-      queryosity::column::template equation_t<Fn>>;
-};
-
-template <typename T>
-using evaluator_t = typename evaluator_traits<T>::evaluator_type;
 
 template <typename T> using evaluated_t = typename T::evaluated_type;
 

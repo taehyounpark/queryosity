@@ -70,7 +70,7 @@ public:
   auto _define(dataflow &df) const;
 
 protected:
-  std::function<todo<evaluator_t<Def>>(dataflow &)> m_define;
+  std::function<todo<evaluator<Def>>(dataflow &)> m_define;
 };
 
 } // namespace queryosity

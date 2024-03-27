@@ -69,7 +69,7 @@ public:
    * @param[in][out] Evaluated column.
    */
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::column::template is_evaluatable_v<V>,
+            std::enable_if_t<queryosity::column::is_evaluatable_v<V>,
                              bool> = false>
   auto evaluate(Nodes &&...columns) const
       -> decltype(std::declval<todo<V>>()._evaluate(
@@ -83,7 +83,7 @@ public:
    * @returns Updated query plan filled with input columns.
    */
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V>,
+            std::enable_if_t<queryosity::query::is_bookable_v<V>,
                              bool> = false>
   auto fill(Nodes &&...columns) const
       -> decltype(std::declval<todo<V>>()._fill(std::declval<Nodes>()...)) {
@@ -106,7 +106,7 @@ public:
    * @return `std::tuple` of queries booked at each selection.
    */
   template <typename... Sels> auto book(Sels &&...sels) const {
-    static_assert(query::template is_bookable_v<Helper>, "not bookable");
+    static_assert(query::is_bookable_v<Helper>, "not bookable");
     return this->_book(std::forward<Sels>(sels)...);
   }
 
@@ -117,8 +117,7 @@ public:
    * @return Evaluated column.
    */
   template <typename... Args, typename V = Helper,
-            std::enable_if_t<column::template is_evaluatable_v<V> ||
-                                 selection::template is_applicable_v<V>,
+            std::enable_if_t<column::is_evaluatable_v<V>,
                              bool> = false>
   auto operator()(Args &&...columns) const
       -> decltype(std::declval<todo<V>>().evaluate(
@@ -128,22 +127,22 @@ public:
 
 protected:
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::column::template is_evaluatable_v<V> &&
+            std::enable_if_t<queryosity::column::is_evaluatable_v<V> &&
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto _evaluate(Nodes const &...columns) const
-      -> lazy<column::template evaluated_t<V>> {
+      -> lazy<column::evaluated_t<V>> {
     return this->m_df->_evaluate(*this, columns...);
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::column::template is_evaluatable_v<V> &&
+            std::enable_if_t<queryosity::column::is_evaluatable_v<V> &&
                                  queryosity::has_variation_v<Nodes...>,
                              bool> = false>
   auto _evaluate(Nodes const &...columns) const ->
-      typename lazy<column::template evaluated_t<V>>::varied {
+      typename lazy<column::evaluated_t<V>>::varied {
 
-    using varied_type = typename lazy<column::template evaluated_t<V>>::varied;
+    using varied_type = typename lazy<column::evaluated_t<V>>::varied;
 
     auto nom = this->m_df->_evaluate(this, columns.nominal()...);
     auto syst = varied_type(std::move(nom));
@@ -157,7 +156,7 @@ protected:
   }
 
   template <typename Node, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  queryosity::is_nominal_v<Node>,
                              bool> = false>
   auto _book(Node const &sel) const -> lazy<query::booked_t<V>> {
@@ -165,7 +164,7 @@ protected:
   }
 
   template <typename Node, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  queryosity::is_varied_v<Node>,
                              bool> = false>
   auto _book(Node const &sel) const ->
@@ -180,7 +179,7 @@ protected:
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto _book(Nodes const &...sels) const
@@ -190,7 +189,7 @@ protected:
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
   auto _book(Nodes const &...sels) const
@@ -214,7 +213,7 @@ protected:
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto _fill(Nodes const &...columns) const -> todo<V> {
@@ -227,7 +226,7 @@ protected:
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::template is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
   auto _fill(Nodes const &...columns) const -> varied {

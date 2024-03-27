@@ -11,6 +11,7 @@
 #include "interface/dataset_reader.h"
 
 #include "interface/column_definition.h"
+#include "interface/column_equation.h"
 #include "interface/column_reader.h"
 
 #include "interface/query_aggregation.h"

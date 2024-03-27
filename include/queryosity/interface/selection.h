@@ -48,8 +48,8 @@ template <typename T>
 static constexpr bool is_applicable_v = is_applicable<T>::value;
 
 template <typename F>
-using apply_t = typename selection::template apply<
-    queryosity::column::template equation_t<F>>;
+using apply_t = typename selection::apply<
+    queryosity::column::equation_t<F>>;
 
 } // namespace selection
 
