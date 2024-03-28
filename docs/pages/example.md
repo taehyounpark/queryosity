@@ -54,114 +54,213 @@ int main() {
 }
 ```
 
-@section example-hww ROOT TTree
+@section example-hww ROOT TTree with systematic variations
 
 - Simulated ggF HWW* events: [ATLAS open data](https://opendata.cern.ch/record/3825).
-- ROOT extensions for queryosity: [queryosity-hep](https://github.com/taehyounpark/AnalysisPlugins)
+- ROOT extensions for queryosity: [queryosity-hep](https://github.com/taehyounpark/queryosity-hep)
 
 1. Apply the MC event weight.
 2. Select entries for which there are exactly two opposite-sign leptons in the event.
-3. Form a (2, 2) matrix of cut regions:
-	- The leptons are same-/different-flavour.
-	- The dilepton invariant mass is less/greater than 60 GeV.
-4. In each case, plot the distribution of the dilepton+MET transverse momentum.
-	- Scale lepton tranvserse momenta by +/- 2% as systematic variations.
+3. Separate into different/same-flavour cases for electrons and muons.
+4. Apply signal region cuts: <i>E</i><sub>T</sub><sup>miss</sup> > 30 GeV, <i>m</i><sub>ll</sub> < 60 GeV.
+5. Merge back together to form flavour-inclusive opposite-sign signal region.
+6. In each case, plot the distribution of the dilepton+MET transverse momentum.
+	- Scale lepton energy scale by +/- 2% as systematic variations.
 
-(To-do: update example to newer API).
+(The order of selections is needlessly & purposefully convoluted to showcase the cutflow interface)
 
-```cpp
-dataflow df;
+@cpp
+#include "qhep/Hist.h"
+#include "qhep/Tree.h"
 
-auto tree_files = std::vector<std::string>{"hww.root"};
-auto tree_name = "mini";
-auto ds = df.load(dataset::input(tree_files, tree_name));
+#include "queryosity/queryosity.h"
 
-auto [mc_weight, el_sf, mu_sf] = ds.read(
-  dataset::column<float>("mcWeight"),
-  dataset::column<float>("scaleFactor_ELE"),
-  dataset::column<float>("scaleFactor_MUON")
-  );
+namespace qty = queryosity;
+using dataflow = qty::dataflow;
+namespace multithread = qty::multithread;
+namespace dataset = qty::dataset;
+namespace column = qty::column;
+namespace query = qty::query;
+namespace systematic = qty::systematic;
 
-auto [
-  lep_pt_MeV,
-  lep_eta,
-  lep_phi,
-  lep_E_MeV,
-  lep_Q,
-  lep_type
-  ] = ds.read(
-    dataset::column<VecF>("lep_pt"),
-    dataset::column<VecF>("lep_eta"),
-    dataset::column<VecF>("lep_phi"),
-    dataset::column<VecF>("lep_E"),
-    dataset::column<VecF>("lep_E"),
-    dataset::column<VecF>("lep_charge"),
-    dataset::column<VecF>("lep_type")
-    );
+#include "Math/Vector4D.h"
+#include "TCanvas.h"
+#include "TH1F.h"
+#include "TStyle.h"
+#include "TVector2.h"
+#include <ROOT/RVec.hxx>
 
-auto [met_MeV, met_phi] = ds.read(
-  dataset::column<float>("met_et"),
-  dataset::column<float>("met_phi")
-  );
+using VecF = ROOT::RVec<float>;
+using VecD = ROOT::RVec<double>;
+using VecI = ROOT::RVec<int>;
+using VecUI = ROOT::RVec<unsigned int>;
+using P4 = ROOT::Math::PtEtaPhiEVector;
 
-auto MeV = ana.constant(1000.0);
-auto lep_pt = lep_pt_MeV / MeV;
-auto lep_E = lep_pt_MeV / MeV;
-auto met = met_MeV / MeV;
+#include <chrono>
+#include <functional>
+#include <iostream>
+#include <memory>
+#include <sstream>
 
-auto lep_eta_max = df.constant(2.4);
-auto lep_pt_sel = lep_pt[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
+class NthP4 : public column::definition<P4(VecD, VecD, VecD, VecD)> {
 
-auto p4l1 = df.define<NthP4>(0)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
-auto p4l2 = df.define<NthP4>(1)(lep_pt_sel, lep_eta_sel, lep_phi_sel, lep_E_sel);
+public:
+  NthP4(unsigned int index) : m_index(index) {}
+  virtual ~NthP4() = default;
 
-auto p4ll = p4l1+p4l2;
+  virtual P4 evaluate(column::observable<VecD> pt, column::observable<VecD> eta,
+                      column::observable<VecD> phi,
+                      column::observable<VecD> es) const override {
+    return P4(pt->at(m_index), eta->at(m_index), phi->at(m_index),
+              es->at(m_index));
+  }
 
-using P4 = TLorentzVector;
-auto mll = df.define([](const P4& p4){return p4.M();})(p4ll);
+protected:
+  const unsigned int m_index;
+};
 
-auto pth = df.define(
-  [](const P4& p4, float q, float q_phi) {
-    TVector2 p2; p2.SetMagPhi(p4.Pt(), p4.Phi());
-    TVector2 q2; q2.SetMagPhi(q, q_phi);
-    return (p2+q2).Mod();
-  })(p4ll, met, met_phi);
+int main() {
 
-auto n_lep_sel = df.define([](VecF const& lep){return lep.size();},lep_pt_sel);
-auto n_lep_req = df.define(column::constant<unsigned int>(2));
+  // the tree doesn't have enough events to multithread
+  dataflow df(multithread::disable());
 
-auto cut_2l = df.weight(mc_weight * el_sf * mu_sf)\
-                .filter(n_lep_sel == n_lep_req);
+  std::vector<std::string> tree_files{"hww.root"};
+  std::string tree_name = "mini";
+  auto ds = df.load(dataset::input<Tree>(tree_files, tree_name));
 
-auto cut_2los = cut_2l.filter([](const VecI& lep_charge){return lep_charge.book(0)+lep_charge.book(1)==0;},lep_Q);
-auto cut_2ldf = cut_2los.filter([](const VecUI& lep_type){return lep_type.book(0)+lep_type.book(1)==24;},lep_type);
-auto cut_2lsf = cut_2los.filter([](const VecUI& lep_type){return (lep_type.book(0)+lep_type.book(1)==22)||(lep_type.book(0)+lep_type.book(1)==26);},lep_type);
+  // weights
+  auto mc_weight = ds.read(dataset::column<float>("mcWeight"));
+  auto mu_sf = ds.read(dataset::column<float>("scaleFactor_MUON"));
+  auto el_sf = ds.read(dataset::column<float>("scaleFactor_ELE"));
 
-auto mll_cut = df.constant(60.0);
-auto cut_2ldf_sr = cut_2ldf.filter(mll < mll_cut);
-auto cut_2lsf_sr = cut_2lsf.filter(mll < mll_cut);
-auto cut_2ldf_wwcr = cut_2ldf.filter(mll > mll_cut);
-auto cut_2lsf_wwcr = cut_2lsf.filter(mll > mll_cut);
+  // leptons
+  auto [lep_pt_MeV, lep_eta, lep_phi, lep_E_MeV, lep_Q, lep_type] = ds.read(
+      dataset::column<VecF>("lep_pt"), dataset::column<VecF>("lep_eta"),
+      dataset::column<VecF>("lep_phi"), dataset::column<VecF>("lep_E"),
+      dataset::column<VecF>("lep_charge"), dataset::column<VecUI>("lep_type"));
 
-auto pth_hist = df.get<Hist<1,float>>("pth",100,0,400).fill(pth).book(cut_2los);
+  // missing transverse energy
+  auto [met_MeV, met_phi] = ds.read(dataset::column<float>("met_et"),
+                                    dataset::column<float>("met_phi"));
 
-auto l1n2_pt_hists_wwcrs = l1n2_pt_hist.book(cut_2lsf_sr, cut_2lsf_wwcr);
+  // units
+  auto MeV = df.define(column::constant(1000.0));
+  auto lep_pt = lep_pt_MeV / MeV;
+  auto lep_E = lep_E_MeV / MeV;
+  auto met = met_MeV / MeV;
 
-auto Escale = df.define([](VecD E){return E;}).vary("lp4_up",[](VecD E){return E*1.02;}).vary("lp4_dn",[](VecD E){return E*0.98;});
-auto lep_pt_sel = Escale(lep_pt)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
-auto lep_E_sel = Escale(lep_E)[ lep_eta < lep_eta_max && lep_eta > (-lep_eta_max) ];
+  // vary the energy scale by +/-2%
+  auto Escale =
+      df.vary(column::expression([](VecD E) { return E; }),
+              systematic::variation("eg_up", [](VecD E) { return E * 1.02; }),
+              systematic::variation("eg_dn", [](VecD E) { return E * 0.98; }));
 
-auto p4l1 = df.define<NthP4>(0)(lep_pt, lep_eta, lep_phi, lep_E);
-auto p4l2 = df.define<NthP4>(1)(lep_pt, lep_eta, lep_phi, lep_E);
+  // apply the energy scale (uncertainties)
+  // and select ones within acceptance
+  auto lep_pt_min = df.define(column::constant(15.0));
+  auto lep_eta_max = df.define(column::constant(2.4));
+  auto lep_selection = (lep_eta < lep_eta_max) && (lep_eta > (-lep_eta_max)) &&
+                       (lep_pt > lep_pt_min);
+  auto lep_pt_sel = Escale(lep_pt)[lep_selection];
+  auto lep_E_sel = Escale(lep_E)[lep_selection];
+  auto lep_eta_sel = lep_eta[lep_selection];
+  auto lep_phi_sel = lep_phi[lep_selection];
 
-auto cut_2l = df.weight("weight")(mc_weight * el_sf * mu_sf)\
-                .filter("2l")(n_lep_sel == n_lep_req);
+  // put (sub-)leading lepton into four-momentum
+  auto l1p4 = df.define(column::definition<NthP4>(0), lep_pt_sel, lep_eta_sel,
+                        lep_phi_sel, lep_E_sel);
+  auto l2p4 = df.define(column::definition<NthP4>(1), lep_pt_sel, lep_eta_sel,
+                        lep_phi_sel, lep_E_sel);
 
-auto mll_vars = df.get<Hist<1,float>>("mll",50,0,100).fill(mll).book(cut_2los);
+  // compute dilepton invariant mass & higgs transverse momentum
+  auto llp4 = l1p4 + l2p4;
+  auto mll =
+      df.define(column::expression([](const P4 &p4) { return p4.M(); }), llp4);
+  auto higgs_pt =
+      df.define(column::expression([](const P4 &p4, float q, float q_phi) {
+                  TVector2 p2;
+                  p2.SetMagPhi(p4.Pt(), p4.Phi());
+                  TVector2 q2;
+                  q2.SetMagPhi(q, q_phi);
+                  return (p2 + q2).Mod();
+                }),
+                llp4, met, met_phi);
 
-mll_vars.nominal()->Draw();
-mll_vars["lp4_up"]->Draw("same");
-```
+  // compute number of leptons
+  auto nlep_req = df.define(column::constant<unsigned int>(2));
+  auto nlep_sel =
+      df.define(column::expression([](VecD const &lep) { return lep.size(); }),
+                lep_pt_sel);
+
+  // apply cuts & weights
+  auto weighted = df.weight(mc_weight * el_sf * mu_sf);
+  auto cut_2l = weighted.filter(nlep_sel == nlep_req);
+  auto cut_2los =
+      cut_2l.filter(column::expression([](const VecF &lep_charge) {
+                      return lep_charge.at(0) + lep_charge.at(1) == 0;
+                    }),
+                    lep_Q);
+  auto cut_2ldf =
+      cut_2los.filter(column::expression([](const VecI &lep_type) {
+                        return lep_type.at(0) + lep_type.at(1) == 24;
+                      }),
+                      lep_type);
+  auto cut_2lsf =
+      cut_2los.filter(column::expression([](const VecI &lep_type) {
+                        return (lep_type.at(0) + lep_type.at(1) == 22) ||
+                               (lep_type.at(0) + lep_type.at(1) == 26);
+                      }),
+                      lep_type);
+  auto mll_max = df.define(column::constant(80.0));
+  auto met_min = df.define(column::constant(30.0));
+  auto cut_2ldf_sr = cut_2ldf.filter((mll < mll_max) && (met > met_min));
+  auto cut_2lsf_sr = cut_2lsf.filter((mll < mll_max) && (met > met_min));
+  auto cut_2los_sr =
+      df.filter(cut_2ldf_sr || cut_2lsf_sr).weight(mc_weight * el_sf * mu_sf);
+  // once two selections are joined, they "forget" everything upstream
+  // i.e. need to re-apply the event weight!
+
+  // histograms:
+  // - at three regions
+  // - nominal & eg_up & eg_dn
+  auto [pth_2los_sr, pth_2ldf_sr, pth_2lsf_sr] =
+      df.make(query::plan<Hist<1, float>>("pth", 30, 0, 150))
+          .fill(higgs_pt)
+          .book(cut_2los_sr, cut_2ldf_sr, cut_2lsf_sr);
+  // all done at once :)
+
+  Double_t w = 1600;
+  Double_t h = 800;
+  TCanvas c("c", "c", w, h);
+  c.SetWindowSize(w + (w - c.GetWw()), h + (h - c.GetWh()));
+  c.Divide(3, 1);
+  c.cd(1);
+  pth_2los_sr.nominal()->SetLineColor(kBlack);
+  pth_2los_sr.nominal()->Draw("ep");
+  pth_2los_sr["eg_up"]->SetLineColor(kRed);
+  pth_2los_sr["eg_up"]->Draw("same hist");
+  pth_2los_sr["eg_dn"]->SetLineColor(kBlue);
+  pth_2los_sr["eg_dn"]->Draw("same hist");
+  c.cd(2);
+  pth_2ldf_sr.nominal()->SetLineColor(kBlack);
+  pth_2ldf_sr.nominal()->Draw("ep");
+  pth_2ldf_sr["eg_up"]->SetLineColor(kRed);
+  pth_2ldf_sr["eg_up"]->Draw("same hist");
+  pth_2ldf_sr["eg_dn"]->SetLineColor(kBlue);
+  pth_2ldf_sr["eg_dn"]->Draw("same hist");
+  c.cd(3);
+  pth_2lsf_sr.nominal()->SetLineColor(kBlack);
+  pth_2lsf_sr.nominal()->Draw("ep");
+  pth_2lsf_sr["eg_up"]->SetLineColor(kRed);
+  pth_2lsf_sr["eg_up"]->Draw("same hist");
+  pth_2lsf_sr["eg_dn"]->SetLineColor(kBlue);
+  pth_2lsf_sr["eg_dn"]->Draw("same hist");
+  c.SaveAs("pth.png");
+
+  return 0;
+}
+@endcpp
+
 @image html mll_varied.png
 
 @section example-phys ATLAS DAOD_PHYS
