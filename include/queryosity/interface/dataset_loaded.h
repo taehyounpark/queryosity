@@ -22,7 +22,7 @@ public:
   template <typename Val>
   auto read(dataset::column<Val> const &col) -> lazy<read_column_t<DS, Val>>;
 
-  template <typename... Vals> auto read(dataset::columns<Vals...> const &cols);
+  template <typename... Vals> auto read(dataset::column<Vals> const &... cols);
 
   template <typename Val>
   auto vary(dataset::column<Val> const &nom,
@@ -60,8 +60,8 @@ auto queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col)
 template <typename DS>
 template <typename... Vals>
 auto queryosity::dataset::loaded<DS>::read(
-    dataset::columns<Vals...> const &cols) {
-  return cols.template _read(*this);
+    dataset::column<Vals> const &...cols) {
+  return std::make_tuple(cols.template _read(*this)...);
 }
 
 template <typename DS>

@@ -61,7 +61,8 @@ TEST_CASE("correctness & consistency of selections") {
 
   auto [cat, w] =
       df.read(qty::dataset::input<qty::json>(random_data),
-              qty::dataset::columns<std::string, unsigned int>("c", "w"));
+              qty::dataset::column<std::string>("c"),
+              qty::dataset::column<unsigned int>("w"));
 
   auto weighted = df.weight(w);
 

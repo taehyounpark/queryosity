@@ -103,7 +103,7 @@ public:
    * @return Columns read from the loaded dataset.
    */
   template <typename DS, typename... Vals>
-  auto read(dataset::input<DS> in, dataset::columns<Vals...> const &cols);
+  auto read(dataset::input<DS> in, dataset::column<Vals> const &...cols);
 
   /**
    * @brief Define a constant column.
@@ -126,6 +126,18 @@ public:
       -> lazy<column::equation_t<Fn>>;
 
   /**
+   * @brief Define a varied column using an expression.
+   * @tparam Fn Callable type.
+   * @tparam Cols Input column types.
+   * @param[in] expr C++ function, functor, lambda, or any other callable.
+   * @param[in] cols (Varied) input columns.
+   * @return Varied lazy column.
+   */
+  template <typename Fn, typename... Cols>
+  auto define(column::expression<Fn> const &expr, Cols const &...cols)
+      -> typename lazy<column::equation_t<Fn>>::varied;
+
+  /**
    * @brief Define a custom column.
    * @tparam Def `column::definition<Out(Ins...)>` implementation.
    * @tparam Cols Input column types.
@@ -136,6 +148,18 @@ public:
   template <typename Def, typename... Cols>
   auto define(column::definition<Def> const &defn, lazy<Cols> const &...cols)
       -> lazy<Def>;
+
+  /**
+   * @brief Define a custom column.
+   * @tparam Def `column::definition<Out(Ins...)>` implementation.
+   * @tparam Cols Input column types.
+   * @param[in] defn Constructor arguments for `Def`.
+   * @param[in] cols (Varied) input columns.
+   * @return Varied lazy column.
+   */
+  template <typename Def, typename... Cols>
+  auto define(column::definition<Def> const &defn, Cols const &...cols)
+      -> typename lazy<Def>::varied;
 
   /**
    * @brief Initiate a cutflow.
@@ -372,9 +396,9 @@ auto queryosity::dataflow::read(queryosity::dataset::input<DS> in,
 template <typename DS, typename... Vals>
 auto queryosity::dataflow::read(
     queryosity::dataset::input<DS> in,
-    queryosity::dataset::columns<Vals...> const &cols) {
+    queryosity::dataset::column<Vals> const &...cols) {
   auto ds = this->load<DS>(std::move(in));
-  return ds.read(cols);
+  return ds.read(cols...);
 }
 
 template <typename Val>
@@ -390,10 +414,24 @@ auto queryosity::dataflow::define(
   return this->_define(defn).template evaluate(cols...);
 }
 
+template <typename Def, typename... Cols>
+auto queryosity::dataflow::define(
+    queryosity::column::definition<Def> const &defn, Cols const &...cols)
+    -> typename lazy<Def>::varied {
+  return this->_define(defn).template evaluate(cols...);
+}
+
 template <typename Fn, typename... Cols>
 auto queryosity::dataflow::define(
     queryosity::column::expression<Fn> const &expr, lazy<Cols> const &...cols)
     -> lazy<column::equation_t<Fn>> {
+  return this->_equate(expr).template evaluate(cols...);
+}
+
+template <typename Fn, typename... Cols>
+auto queryosity::dataflow::define(
+    queryosity::column::expression<Fn> const &expr, Cols const &...cols)
+    -> typename lazy<column::equation_t<Fn>>::varied {
   return this->_equate(expr).template evaluate(cols...);
 }
 

@@ -255,7 +255,7 @@ template <typename Col>
 auto queryosity::lazy<Action>::filter(Col const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     using varied_type = typename lazy<selection::node>::varied;
-    auto syst = varied_type(*this->m_df, this->filter(col.nominal()));
+    auto syst = varied_type(this->filter(col.nominal()));
     for (auto const &var_name : col.get_variation_names()) {
       syst.set_variation(var_name, this->filter(col.variation(var_name)));
     }
@@ -271,7 +271,7 @@ template <typename Col>
 auto queryosity::lazy<Action>::weight(Col const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     using varied_type = typename lazy<selection::node>::varied;
-    auto syst = varied_type(*this->m_df, this->weight(col.nominal()));
+    auto syst = varied_type(this->weight(col.nominal()));
     for (auto const &var_name : col.get_variation_names()) {
       syst.set_variation(var_name, this->weight(col.variation(var_name)));
     }

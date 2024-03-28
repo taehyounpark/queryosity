@@ -144,7 +144,7 @@ protected:
 
     using varied_type = typename lazy<column::evaluated_t<V>>::varied;
 
-    auto nom = this->m_df->_evaluate(this, columns.nominal()...);
+    auto nom = this->m_df->_evaluate(*this, columns.nominal()...);
     auto syst = varied_type(std::move(nom));
 
     for (auto const &var_name : systematic::get_variation_names(columns...)) {

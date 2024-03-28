@@ -32,7 +32,8 @@ int main() {
 	std::ifstream data("data.json");
 	auto [x, w] = df.read( 
 		dataset::input<json>(data), 
-		dataset::columns<std::vector<double>, double>("x", "w") 
+		dataset::column<std::vector<double>>("x"),
+		dataset::column<double>("w") 
 		);
 
 	auto zero = df.define( column::constant(0) );
