@@ -116,8 +116,8 @@
       <type>auto</type>
       <name>read</name>
       <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
-      <anchor>a190d418f9192612436c5bd287e728e24</anchor>
-      <arglist>(dataset::input&lt; DS &gt; in, dataset::columns&lt; Vals... &gt; const &amp;cols)</arglist>
+      <anchor>a38e6064c6837db40a9a06911d59914dc</anchor>
+      <arglist>(dataset::input&lt; DS &gt; in, dataset::column&lt; Vals &gt; const &amp;...cols)</arglist>
     </member>
     <member kind="function">
       <type>auto</type>
@@ -137,8 +137,22 @@
       <type>auto</type>
       <name>define</name>
       <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>afba38203957210ae8244e4e1083cd4f3</anchor>
+      <arglist>(column::expression&lt; Fn &gt; const &amp;expr, Cols const &amp;...cols) -&gt; typename lazy&lt; column::equation_t&lt; Fn &gt;&gt;::varied</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>define</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
       <anchor>acafeeaf35486c2080a945b46f1ebbf88</anchor>
       <arglist>(column::definition&lt; Def &gt; const &amp;defn, lazy&lt; Cols &gt; const &amp;...cols) -&gt; lazy&lt; Def &gt;</arglist>
+    </member>
+    <member kind="function">
+      <type>auto</type>
+      <name>define</name>
+      <anchorfile>classqueryosity_1_1dataflow.html</anchorfile>
+      <anchor>a4673ad854ac1d25ae40e4c547865149e</anchor>
+      <arglist>(column::definition&lt; Def &gt; const &amp;defn, Cols const &amp;...cols) -&gt; typename lazy&lt; Def &gt;::varied</arglist>
     </member>
     <member kind="function">
       <type>auto</type>
@@ -709,7 +723,7 @@
     <title>Examples</title>
     <filename>example.html</filename>
     <docanchor file="example.html" title="Hello World">example-hello-world</docanchor>
-    <docanchor file="example.html" title="ROOT TTree">example-hww</docanchor>
+    <docanchor file="example.html" title="ROOT TTree with systematic variations">example-hww</docanchor>
     <docanchor file="example.html" title="ATLAS DAOD_PHYS">example-phys</docanchor>
     <docanchor file="example.html" title="IRIS-HEP ADL benchmark">example-task7</docanchor>
   </compound>
