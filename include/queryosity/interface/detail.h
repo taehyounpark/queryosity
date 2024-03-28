@@ -2,37 +2,50 @@
 
 #include <type_traits>
 
+// check for the existence of a native/custom binary operator
 #define CHECK_FOR_BINARY_OP(op_name, op_symbol)                                \
-  struct has_no_##op_name {};                                                  \
-  template <typename T, typename Arg>                                          \
-  has_no_##op_name operator op_symbol(const T &, const Arg &);                 \
-  template <typename T, typename Arg = T> struct has_##op_name {               \
-    enum {                                                                     \
-      value = !std::is_same<decltype(std::declval<T>()                         \
-                                         op_symbol std::declval<Arg>()),       \
-                            has_no_##op_name>::value                           \
-    };                                                                         \
-  };                                                                           \
-  template <typename T, typename Arg = T>                                      \
-  static constexpr bool has_##op_name##_v = has_##op_name<T, Arg>::value;
+template <typename T, typename Arg, typename = void>                           \
+struct has_native_##op_name : std::false_type {};                              \
+                                                                               \
+template <typename T, typename Arg>                                            \
+struct has_native_##op_name<                                                   \
+    T, Arg, std::void_t<decltype(std::declval<T>() op_symbol std::declval<Arg>())>> : std::true_type {}; \
+                                                                               \
+template <typename T, typename Arg>                                            \
+auto operator op_symbol(const T&, const Arg&) -> priority_tag<0>;              \
+                                                                               \
+template <typename T, typename Arg>                                            \
+struct has_custom_only_##op_name {                                             \
+private:                                                                       \
+    template <typename U, typename V>                                          \
+    static auto test(priority_tag<1>) -> decltype(std::declval<U>() op_symbol std::declval<V>(), std::true_type()); \
+                                                                               \
+    template <typename, typename>                                              \
+    static auto test(priority_tag<0>) -> std::false_type;                      \
+                                                                               \
+public:                                                                        \
+    static constexpr bool value = decltype(test<T, Arg>(priority_tag<1>()))::value && !has_native_##op_name<T, Arg>::value; \
+};
 
-#define DEFINE_LAZY_BINARY_OP(op_name, op_symbol)                              \
-  template <typename Arg, typename V = Action,                                 \
-            std::enable_if_t<                                                  \
-                queryosity::is_column_v<V> &&                                  \
-                    queryosity::is_column_v<typename Arg::action_type> &&      \
-                    detail::has_##op_name##_v<                                 \
-                        column::value_t<V>,                           \
-                        column::value_t<typename Arg::action_type>>,  \
-                bool> = false>                                                 \
-  auto operator op_symbol(Arg const &arg) const {                              \
-    return this->m_df->define(                                                 \
-        queryosity::column::expression(                                        \
-            [](column::value_t<V> const &me,                          \
-               column::value_t<typename Arg::action_type> const       \
-                   &you) { return me op_symbol you; }),                        \
-        *this, arg);                                                           \
-  }
+#define DEFINE_LAZY_BINARY_OP(op_name, op_symbol)                                  \
+template <typename Arg, typename V = Action,                                       \
+          typename std::enable_if<                                                 \
+              queryosity::is_column_v<V> &&                                        \
+              queryosity::is_column_v<typename Arg::action_type> &&               \
+              (detail::has_native_##op_name<                                       \
+                  column::value_t<V>, column::value_t<typename Arg::action_type>>::value || \
+               detail::has_custom_only_##op_name<                                  \
+                  column::value_t<V>, column::value_t<typename Arg::action_type>>::value), \
+              bool>::type = true>                                                  \
+auto operator op_symbol(Arg const &arg) const {                                    \
+    return this->m_df->define(                                                     \
+        queryosity::column::expression(                                            \
+            [](column::value_t<V> const &me,                                       \
+               column::value_t<typename Arg::action_type> const &you) {            \
+                return me op_symbol you;                                           \
+            }),                                                                    \
+        *this, arg);                                                               \
+}
 
 #define CHECK_FOR_UNARY_OP(op_name, op_symbol)                                 \
   struct has_no_##op_name {};                                                  \
@@ -147,6 +160,12 @@
 namespace queryosity {
 
 namespace detail {
+
+// https://quuxplusone.github.io/blog/2021/07/09/priority-tag/
+template <int I>
+struct priority_tag : priority_tag<I - 1> {};
+template <>
+struct priority_tag<0> {};
 
 CHECK_FOR_UNARY_OP(logical_not, !)
 CHECK_FOR_UNARY_OP(minus, -)

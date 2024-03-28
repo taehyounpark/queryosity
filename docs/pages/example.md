@@ -61,13 +61,11 @@ int main() {
 
 1. Apply the MC event weight.
 2. Select entries for which there are exactly two opposite-sign leptons in the event.
-3. Separate into different/same-flavour cases for electrons and muons.
-4. Apply signal region cuts: @f$E_{\mathrm{T}}^{\mathrm{miss}} > 30\,\mathrm{GeV}@f$ and @f$m_{\ell\ell}< 60\,\mathrm{GeV}@f$.
-5. Merge back together to form flavour-inclusive opposite-sign signal region.
-6. In each case, plot the distribution of the dilepton+MET transverse momentum.
-	- Scale lepton energy scale by +/- 2% as systematic variations.
-
-(The order of selections is needlessly & purposefully convoluted to showcase the cutflow interface)
+3. Separate into different/same-flavour channel for electrons and muons.
+  - @f$m_{\ell\ell} > 12(10)\,\mathrm{GeV}@f$ for same(different)-flavour.
+5. Merge channels to form flavour-inclusive opposite-sign region.
+6. In each region, plot the distribution of @f$p_{\mathrm{T}}^H = \left| \mathbf{p}_{\mathrm{T}}^{\ell\ell} + \mathbf{p}_{\mathrm{T}}^{\mathrm{miss}} \right|@f$.
+	- Scale lepton energy scale by @f$\pm 2\,\%@f$ as systematic variations.
 
 @cpp
 #include "qhep/Hist.h"
@@ -124,6 +122,10 @@ int main() {
   // the tree doesn't have enough events to multithread
   dataflow df(multithread::disable());
 
+  // ---------------------------------------------------------------------------
+  // read dataset
+  // ---------------------------------------------------------------------------
+
   std::vector<std::string> tree_files{"hww.root"};
   std::string tree_name = "mini";
   auto ds = df.load(dataset::input<Tree>(tree_files, tree_name));
@@ -142,6 +144,10 @@ int main() {
   // missing transverse energy
   auto [met_MeV, met_phi] = ds.read(dataset::column<float>("met_et"),
                                     dataset::column<float>("met_phi"));
+
+  // ---------------------------------------------------------------------------
+  // compute quantities
+  // ---------------------------------------------------------------------------
 
   // units
   auto MeV = df.define(column::constant(1000.0));
@@ -192,14 +198,22 @@ int main() {
       df.define(column::expression([](VecD const &lep) { return lep.size(); }),
                 lep_pt_sel);
 
+  // ---------------------------------------------------------------------------
   // apply cuts & weights
+  // ---------------------------------------------------------------------------
+
+  // MC event weight * electron & muon scale factors
   auto weighted = df.weight(mc_weight * el_sf * mu_sf);
+
+  // 2 opoosite-signed leptons
   auto cut_2l = weighted.filter(nlep_sel == nlep_req);
   auto cut_2los =
       cut_2l.filter(column::expression([](const VecF &lep_charge) {
                       return lep_charge.at(0) + lep_charge.at(1) == 0;
                     }),
                     lep_Q);
+
+  // branch out into df/sf channels
   auto cut_2ldf =
       cut_2los.filter(column::expression([](const VecI &lep_type) {
                         return lep_type.at(0) + lep_type.at(1) == 24;
@@ -211,23 +225,30 @@ int main() {
                                (lep_type.at(0) + lep_type.at(1) == 26);
                       }),
                       lep_type);
-  auto mll_max = df.define(column::constant(80.0));
-  auto met_min = df.define(column::constant(30.0));
-  auto cut_2ldf_sr = cut_2ldf.filter((mll < mll_max) && (met > met_min));
-  auto cut_2lsf_sr = cut_2lsf.filter((mll < mll_max) && (met > met_min));
-  auto cut_2los_sr =
-      df.filter(cut_2ldf_sr || cut_2lsf_sr).weight(mc_weight * el_sf * mu_sf);
+
+  // mll cut is different for df/sf channel
+  auto mll_min_df = df.define(column::constant(10.0));
+  auto cut_2ldf_sr = cut_2ldf.filter(mll > mll_min_df);
+  auto mll_min_sf = df.define(column::constant(12.0));
+  auto cut_2lsf_sr = cut_2lsf.filter(mll > mll_min_sf);
+
   // once two selections are joined, they "forget" everything upstream
   // i.e. need to re-apply the event weight!
+  auto cut_2los_sr =
+      df.filter(cut_2ldf_sr || cut_2lsf_sr).weight(mc_weight * el_sf * mu_sf);
 
-  // histograms:
-  // - at three regions
-  // - nominal & eg_up & eg_dn
+  // ---------------------------------------------------------------------------
+  // perform queries
+  // ---------------------------------------------------------------------------
+  
   auto [pth_2los_sr, pth_2ldf_sr, pth_2lsf_sr] =
       df.make(query::plan<Hist<1, float>>("pth", 30, 0, 150))
           .fill(higgs_pt)
           .book(cut_2los_sr, cut_2ldf_sr, cut_2lsf_sr);
-  // all done at once :)
+
+  // ---------------------------------------------------------------------------
+  // plot results
+  // ---------------------------------------------------------------------------
 
   Double_t w = 1600;
   Double_t h = 800;
