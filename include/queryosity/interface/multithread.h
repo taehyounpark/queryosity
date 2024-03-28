@@ -113,6 +113,7 @@ inline unsigned int
 queryosity::ensemble::check(std::vector<T> const &first,
                             std::vector<Args> const &...args) {
   assert(((first.size() == args.size()) && ...));
+  (args.size(), ...);  // suppress GCC unused parameter warnings
   return first.size();
 }
 

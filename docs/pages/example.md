@@ -165,18 +165,17 @@ mll_vars["lp4_up"]->Draw("same");
 
 @section example-phys DAOD_PHYS
 
-- Note the manipulation of non-trivial data types (`xAOD::EventInfo`, `ConstDataVector<xAOD::MuonContainer>`) as columns!
+- Note the manipulation of non-trivial data types (`xAOD::EventInfo`, `xAOD::MuonContainer`) as columns!
 
 @cpp
-#include "AnalysisPlugins/Event.h"
-#include "AnalysisPlugins/Hist.h"
+#include "qhep/Event.h"
+#include "qhep/Hist.h"
 
 #include <xAODEventInfo/EventInfo.h>
-#include <xAODMuon/MuonContainer.h>
+#include <xAODEgamma/ElectronContainer.h>
 
 using VecF = ROOT::RVec<float>;
 using VecD = ROOT::RVec<double>;
-using TLV = TLorentzVector;
 
 #include "queryosity/queryosity.h"
 
@@ -187,13 +186,9 @@ namespace column = queryosity::column;
 namespace query = queryosity::query;
 namespace systematic = queryosity::systematic;
 
-#include "TFile.h"
 #include "TH1F.h"
-#include "TLorentzVector.h"
 #include "TPad.h"
-#include "TTreeReader.h"
-#include "TTreeReaderValue.h"
-#include "TVector2.h"
+#include "TCanvas.h"
 #include <ROOT/RVec.hxx>
 
 #include <chrono>
@@ -201,69 +196,98 @@ namespace systematic = queryosity::systematic;
 #include <memory>
 #include <sstream>
 
-class MuonSelection
-    : public column::definition<ConstDataVector<xAOD::MuonContainer>(
-          xAOD::MuonContainer)> {
+std::vector<std::string> daodFiles{
+"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000001.pool.root.1",
+"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000002.pool.root.1",
+"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000003.pool.root.1",
+"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000004.pool.root.1",
+"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000005.pool.root.1",
+"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000006.pool.root.1",
+"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000007.pool.root.1",
+"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000008.pool.root.1",
+"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000009.pool.root.1",
+"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000010.pool.root.1"
+};
+std::string treeName = "CollectionTree";
+
+float EventWeight(const xAOD::EventInfo &eventInfo) {
+  return eventInfo.mcEventWeight();
+}
+
+class ElectronSelection
+    : public column::definition<ConstDataVector<xAOD::ElectronContainer>(
+          xAOD::ElectronContainer)> {
 public:
-  MuonSelection(double etaMax) : m_etaMax(etaMax) {}
-  virtual ~MuonSelection() = default;
-  virtual ConstDataVector<xAOD::MuonContainer>
-  evaluate(column::observable<xAOD::MuonContainer> muons) const override {
-    ConstDataVector<xAOD::MuonContainer> selMuons(SG::VIEW_ELEMENTS);
-    for (const xAOD::Muon *mu : *muons) {
-      if (TMath::Abs(mu->eta()) < 1.5) {
-        selMuons.push_back(mu);
-      }
+  ElectronSelection(double pT_min, double eta_max)
+      : m_pT_min(pT_min), m_eta_max(eta_max) {}
+  virtual ~ElectronSelection() = default;
+  virtual ConstDataVector<xAOD::ElectronContainer> evaluate(
+      column::observable<xAOD::ElectronContainer> els) const override {
+    ConstDataVector<xAOD::ElectronContainer> els_sel(
+        SG::VIEW_ELEMENTS);
+    for (const xAOD::Electron *el : *els) {
+      if (el->pt() < m_pT_min)
+        continue;
+      if (TMath::Abs(el->eta()) > m_eta_max)
+        continue;
+      els_sel.push_back(el);
     }
-    return selMuons;
+    return els_sel;
   }
 
 protected:
-  double m_etaMax;
+  double m_pT_min;
+  double m_eta_max;
 };
 
-int main() {
+bool AtLeastTwoElectrons(ConstDataVector<xAOD::ElectronContainer> const &els) {
+  return els.size() >= 2;
+}
 
-  dataflow df;
+float DiElectronsMass(ConstDataVector<xAOD::ElectronContainer> const &els) {
+  return (els[0]->p4() + els[1]->p4()).M();
+};
 
-  std::vector<std::string> evnt_files{
-      "/cvmfs/atlas-nightlies.cern.ch/repo/data/data-art/ASG/DAOD_PHYS/p5169/"
-      "mc20_13TeV.410470.PhPy8EG_A14_ttbar_hdamp258p75_nonallhad.deriv.DAOD_"
-      "PHYS.e6337_s3681_r13167_p5169/DAOD_PHYS.29445530._000001.pool.root.1"};
-  auto ds = df.load(dataset::input<Event>(evnt_files, "CollectionTree"));
+void analyze(unsigned int n) {
+  dataflow df(multithread::enable(n));
 
+  auto ds = df.load(dataset::input<Event>(daodFiles, treeName));
   auto eventInfo = ds.read(dataset::column<xAOD::EventInfo>("EventInfo"));
-  auto allMuons = ds.read(dataset::column<xAOD::MuonContainer>("Muons"));
-  auto selMuons = df.define(column::definition<MuonSelection>(1.5),allMuons);
+  auto allElectrons =
+      ds.read(dataset::column<xAOD::ElectronContainer>("Electrons"));
 
-  auto getPts = [](ConstDataVector<xAOD::MuonContainer> const &muons) {
-    VecD pts; pts.reserve(muons.size());
-    for (const xAOD::Muon *mu : muons) {
-      pts.push_back(mu->pt());
-    }
-    return pts;
-  };
-  auto selMuonsPtMeV =
-      df.define(column::expression(getPts),selMuons);
+  auto selectedElectrons =
+      df.define(column::definition<ElectronSelection>(10.0,1.5), allElectrons);
+  auto diElectronsMassMeV =
+      df.define(column::expression(DiElectronsMass), selectedElectrons);
+  auto toGeV = df.define(column::constant(1.0 / 1000.0));
+  auto diElectronsMassGeV = diElectronsMassMeV * toGeV;
 
-  auto toGeV = df.define(column::constant(1.0/1000.0));
-  auto selMuonsPt = selMuonsPtMeV * toGeV;
+  auto eventWeight = df.define(column::expression(EventWeight), eventInfo);
+  auto atLeastTwoSelectedElectrons =
+      df.weight(eventWeight)
+          .filter(column::expression(AtLeastTwoElectrons), selectedElectrons);
 
-  auto mcEventWeight = df.define(
-    column::expression([](const xAOD::EventInfo &eventInfo) {
-    return eventInfo.mcEventWeight();
-    }),eventInfo
-    );
-  auto mcEventWeighted = df.weight(mcEventWeight);
+  auto selectedElectronsPtHist =
+      df.make(query::plan<Hist<1,float>>("diElectronMass", 100, 0, 500))
+          .fill(diElectronsMassGeV)
+          .book(atLeastTwoSelectedElectrons);
 
-  auto selMuonsPtHist = df.make(query::plan<Hist<1, VecF>>("muons_pt", 100, 0, 100))
-                            .fill(selMuonsPt)
-                            .book(mcEventWeighted);
+  selectedElectronsPtHist->Draw();
+  gPad->SetLogy();
+  gPad->Print("el_pts.pdf");
+}
 
-  selMuonsPtHist->Draw();
-  gPad->Print("muons_pt.pdf");
+int main(int argc, char *argv[]) { 
+  int nthreads = 0;
+  if (argc==2) { nthreads=strtol(argv[1], nullptr, 0); }
 
-  return 0;
+  auto tic = std::chrono::steady_clock::now();
+  analyze(nthreads);
+  auto toc = std::chrono::steady_clock::now();
+  std::chrono::duration<double> elapsed_seconds = toc-tic;
+  std::cout << "elapsed time (" << nthreads << " threads) = " << elapsed_seconds.count() << "s"
+            << std::endl;
 }
 @endcpp
 
