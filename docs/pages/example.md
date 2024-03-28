@@ -261,7 +261,7 @@ int main() {
 }
 @endcpp
 
-@image html mll_varied.png
+@image html pth.png
 
 @section example-phys ATLAS DAOD_PHYS
 
