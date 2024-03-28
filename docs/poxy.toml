@@ -1,11 +1,8 @@
 # this is a config file for Poxy - a Doxygen + m.css front-end written in Python.
-# https://github.com/marzer/poxy
-#
-# config reference: https://github.com/marzer/poxy/wiki/Configuration-options
 
 name            = 'queryosity'
 author          = 'Tae Hyoun Park'
-description     = 'Coherent data analysis in C++'
+description     = 'Coherent analysis description language'
 cpp             = 17
 github          = 'taehyounpark/queryosity'
 license         = [ 'MIT', 'https://github.com/taehyounpark/queryosity/blob/master/LICENSE' ]

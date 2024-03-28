@@ -1,11 +1,8 @@
 @mainpage
 
-
-
-
 @tableofcontents
 
-`queryosity` is a row-wise semi-structured data analysis library.
+`queryosity` is a row-wise analysis description language for semi-structured data.
 
 <!-- --------------------------------------------------------------------------------------------------------------- -->
 

@@ -6,7 +6,7 @@
 [![macOS](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`queryosity` is a row-wise semi-structured data analysis library.
+`queryosity` is a row-wise analysis description language for semi-structured data.
 
 <p align="center">
 	<strong> <a href="https://taehyounpark.github.io/queryosity/">See full documentation</a></strong>
