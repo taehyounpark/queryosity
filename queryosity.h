@@ -119,6 +119,7 @@ inline unsigned int
 queryosity::ensemble::check(std::vector<T> const &first,
                             std::vector<Args> const &...args) {
   assert(((first.size() == args.size()) && ...));
+  (args.size(), ...);  // suppress GCC unused parameter warnings
   return first.size();
 }
 
@@ -2007,7 +2008,7 @@ public:
    * @return Columns read from the loaded dataset.
    */
   template <typename DS, typename... Vals>
-  auto read(dataset::input<DS> in, dataset::columns<Vals...> const &cols);
+  auto read(dataset::input<DS> in, dataset::column<Vals> const &...cols);
 
   /**
    * @brief Define a constant column.
@@ -2030,6 +2031,18 @@ public:
       -> lazy<column::equation_t<Fn>>;
 
   /**
+   * @brief Define a varied column using an expression.
+   * @tparam Fn Callable type.
+   * @tparam Cols Input column types.
+   * @param[in] expr C++ function, functor, lambda, or any other callable.
+   * @param[in] cols (Varied) input columns.
+   * @return Varied lazy column.
+   */
+  template <typename Fn, typename... Cols>
+  auto define(column::expression<Fn> const &expr, Cols const &...cols)
+      -> typename lazy<column::equation_t<Fn>>::varied;
+
+  /**
    * @brief Define a custom column.
    * @tparam Def `column::definition<Out(Ins...)>` implementation.
    * @tparam Cols Input column types.
@@ -2040,6 +2053,18 @@ public:
   template <typename Def, typename... Cols>
   auto define(column::definition<Def> const &defn, lazy<Cols> const &...cols)
       -> lazy<Def>;
+
+  /**
+   * @brief Define a custom column.
+   * @tparam Def `column::definition<Out(Ins...)>` implementation.
+   * @tparam Cols Input column types.
+   * @param[in] defn Constructor arguments for `Def`.
+   * @param[in] cols (Varied) input columns.
+   * @return Varied lazy column.
+   */
+  template <typename Def, typename... Cols>
+  auto define(column::definition<Def> const &defn, Cols const &...cols)
+      -> typename lazy<Def>::varied;
 
   /**
    * @brief Initiate a cutflow.
@@ -2246,7 +2271,7 @@ public:
   template <typename Val>
   auto read(dataset::column<Val> const &col) -> lazy<read_column_t<DS, Val>>;
 
-  template <typename... Vals> auto read(dataset::columns<Vals...> const &cols);
+  template <typename... Vals> auto read(dataset::column<Vals> const &... cols);
 
   template <typename Val>
   auto vary(dataset::column<Val> const &nom,
@@ -2295,33 +2320,6 @@ protected:
   std::string m_name;
 };
 
-template <typename... Vals> class dataset::columns {
-
-public:
-  template <typename... Names> columns(Names const &...names);
-  ~columns() = default;
-
-  template <std::size_t... Is> auto _read(std::index_sequence<Is...>) const {
-    // call _read for each type and name, unpacking the indices
-    return std::make_tuple(this->_read<Vals>(this->m_names[Is])...);
-  }
-
-  template <typename DS> auto _read(dataset::loaded<DS> &ds) const;
-
-protected:
-  template <std::size_t... Is>
-  auto _construct(const std::array<std::string, sizeof...(Vals)> &names,
-                  std::index_sequence<Is...>) {
-    return std::make_tuple(column<Vals>(names[Is])...);
-  }
-
-  template <typename DS, std::size_t... Is>
-  auto _read(dataset::loaded<DS> &ds, std::index_sequence<Is...>) const;
-
-protected:
-  std::tuple<column<Vals>...> m_columns;
-};
-
 } // namespace queryosity
 
 template <typename Val>
@@ -2333,28 +2331,6 @@ template <typename DS>
 auto queryosity::dataset::column<Val>::_read(
     queryosity::dataset::loaded<DS> &ds) const {
   return ds.template _read<Val>(this->m_name);
-}
-
-template <typename... Vals>
-template <typename... Names>
-queryosity::dataset::columns<Vals...>::columns(Names const &...names)
-    : m_columns(_construct(std::array<std::string, sizeof...(Vals)>{names...},
-                           std::make_index_sequence<sizeof...(Vals)>{})) {
-  static_assert(sizeof...(Vals) == sizeof...(Names));
-}
-
-template <typename... Vals>
-template <typename DS>
-auto queryosity::dataset::columns<Vals...>::_read(
-    queryosity::dataset::loaded<DS> &ds) const {
-  return this->_read(ds, std::make_index_sequence<sizeof...(Vals)>{});
-}
-
-template <typename... Vals>
-template <typename DS, std::size_t... Is>
-auto queryosity::dataset::columns<Vals...>::_read(
-    queryosity::dataset::loaded<DS> &ds, std::index_sequence<Is...>) const {
-  return std::make_tuple(std::get<Is>(m_columns)._read(ds)...);
 }
 
 #include <iostream>
@@ -3087,7 +3063,7 @@ template <typename Col>
 auto queryosity::lazy<Action>::filter(Col const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     using varied_type = typename lazy<selection::node>::varied;
-    auto syst = varied_type(*this->m_df, this->filter(col.nominal()));
+    auto syst = varied_type(this->filter(col.nominal()));
     for (auto const &var_name : col.get_variation_names()) {
       syst.set_variation(var_name, this->filter(col.variation(var_name)));
     }
@@ -3103,7 +3079,7 @@ template <typename Col>
 auto queryosity::lazy<Action>::weight(Col const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     using varied_type = typename lazy<selection::node>::varied;
-    auto syst = varied_type(*this->m_df, this->weight(col.nominal()));
+    auto syst = varied_type(this->weight(col.nominal()));
     for (auto const &var_name : col.get_variation_names()) {
       syst.set_variation(var_name, this->weight(col.variation(var_name)));
     }
@@ -3259,8 +3235,8 @@ auto queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col)
 template <typename DS>
 template <typename... Vals>
 auto queryosity::dataset::loaded<DS>::read(
-    dataset::columns<Vals...> const &cols) {
-  return cols.template _read(*this);
+    dataset::column<Vals> const &...cols) {
+  return std::make_tuple(cols.template _read(*this)...);
 }
 
 template <typename DS>
@@ -3492,17 +3468,17 @@ queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2, Kwd3 &&kwarg3)
 }
 
 template <typename Kwd> void queryosity::dataflow::accept_kwarg(Kwd &&kwarg) {
-  constexpr bool is_mt = std::is_same_v<Kwd, dataset::processor>;
-  constexpr bool is_weight = std::is_same_v<Kwd, dataset::weight>;
-  constexpr bool is_nrows = std::is_same_v<Kwd, dataset::head>;
-  if constexpr (is_mt) {
+  constexpr bool is_mt_v = std::is_same_v<Kwd, dataset::processor>;
+  constexpr bool is_weight_v = std::is_same_v<Kwd, dataset::weight>;
+  constexpr bool is_nrows_v = std::is_same_v<Kwd, dataset::head>;
+  if constexpr (is_mt_v) {
     m_processor = std::move(kwarg);
-  } else if (is_weight) {
+  } else if (is_weight_v) {
     m_weight = kwarg;
-  } else if (is_nrows) {
+  } else if (is_nrows_v) {
     m_nrows = kwarg;
   } else {
-    static_assert(is_mt || is_weight || is_nrows,
+    static_assert(is_mt_v || is_weight_v || is_nrows_v,
                   "unrecognized keyword argument");
   }
 }
@@ -3529,9 +3505,9 @@ auto queryosity::dataflow::read(queryosity::dataset::input<DS> in,
 template <typename DS, typename... Vals>
 auto queryosity::dataflow::read(
     queryosity::dataset::input<DS> in,
-    queryosity::dataset::columns<Vals...> const &cols) {
+    queryosity::dataset::column<Vals> const &...cols) {
   auto ds = this->load<DS>(std::move(in));
-  return ds.read(cols);
+  return ds.read(cols...);
 }
 
 template <typename Val>
@@ -3547,10 +3523,24 @@ auto queryosity::dataflow::define(
   return this->_define(defn).template evaluate(cols...);
 }
 
+template <typename Def, typename... Cols>
+auto queryosity::dataflow::define(
+    queryosity::column::definition<Def> const &defn, Cols const &...cols)
+    -> typename lazy<Def>::varied {
+  return this->_define(defn).template evaluate(cols...);
+}
+
 template <typename Fn, typename... Cols>
 auto queryosity::dataflow::define(
     queryosity::column::expression<Fn> const &expr, lazy<Cols> const &...cols)
     -> lazy<column::equation_t<Fn>> {
+  return this->_equate(expr).template evaluate(cols...);
+}
+
+template <typename Fn, typename... Cols>
+auto queryosity::dataflow::define(
+    queryosity::column::expression<Fn> const &expr, Cols const &...cols)
+    -> typename lazy<column::equation_t<Fn>>::varied {
   return this->_equate(expr).template evaluate(cols...);
 }
 
@@ -3924,7 +3914,7 @@ protected:
 
     using varied_type = typename lazy<column::evaluated_t<V>>::varied;
 
-    auto nom = this->m_df->_evaluate(this, columns.nominal()...);
+    auto nom = this->m_df->_evaluate(*this, columns.nominal()...);
     auto syst = varied_type(std::move(nom));
 
     for (auto const &var_name : systematic::get_variation_names(columns...)) {
