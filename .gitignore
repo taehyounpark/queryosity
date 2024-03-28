@@ -12,7 +12,6 @@ bld/
 [Oo]bj/
 [Ll]og/
 
-*.xml
 *.xslt
 *.xsd
 *.html
