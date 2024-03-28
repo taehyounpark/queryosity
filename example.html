@@ -63,8 +63,8 @@
           <h3>Contents</h3>
           <ul>
             <li><a href="#example-hello-world">Hello World</a></li>
-            <li><a href="#example-hww">ggF HWW* (with systematic variations)</a></li>
-            <li><a href="#example-phys">DAOD_PHYS</a></li>
+            <li><a href="#example-hww">ROOT TTree</a></li>
+            <li><a href="#example-phys">ATLAS DAOD_PHYS</a></li>
             <li><a href="#example-task7">IRIS-HEP ADL benchmark</a></li>
           </ul>
         </nav>
@@ -114,7 +114,7 @@
     <span class="n">os</span> <span class="o">&lt;&lt;</span> <span class="o">*</span><span class="n">h_x0_w</span><span class="p">;</span>
     <span class="nn">std</span><span class="o">::</span><span class="nc">cout</span> <span class="o">&lt;&lt;</span> <span class="n">os</span><span class="p">.</span><span class="nf">str</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="nn">std</span><span class="o">::</span><span class="nf">endl</span><span class="p">;</span>
 
-<span class="p">}</span></pre></section><section id="example-hww"><h2><a href="#example-hww">ggF HWW* (with systematic variations)</a></h2><ul><li>Simulated ggF HWW events: <a class="poxy-external" href="https://opendata.cern.ch/record/3825" target="_blank">ATLAS open data</a>.</li><li>ROOT extensions for queryosity: <a class="poxy-external" href="https://github.com/taehyounpark/AnalysisPlugins" target="_blank">AnalysisPlugins</a></li></ul><ol><li>Apply the MC event weight.</li><li>Select entries for which there are exactly two opposite-sign leptons in the event.</li><li>Form a (2, 2) matrix of cut regions:<ul><li>The leptons are same-/different-flavour.</li><li>The dilepton invariant mass is less/greater than 60 GeV.</li></ul></li><li>In each case, plot the distribution of the dilepton+MET transverse momentum.<ul><li>Scale lepton tranvserse momenta by +/- 2% as systematic variations.</li></ul></li></ol><p>(To-do: update example to newer API).</p><pre class="m-code"><span class="n">dataflow</span> <span class="n">df</span><span class="p">;</span>
+<span class="p">}</span></pre></section><section id="example-hww"><h2><a href="#example-hww">ROOT TTree</a></h2><ul><li>Simulated ggF HWW* events: <a class="poxy-external" href="https://opendata.cern.ch/record/3825" target="_blank">ATLAS open data</a>.</li><li>ROOT extensions for queryosity: <a class="poxy-external" href="https://github.com/taehyounpark/AnalysisPlugins" target="_blank">queryosity-hep</a></li></ul><ol><li>Apply the MC event weight.</li><li>Select entries for which there are exactly two opposite-sign leptons in the event.</li><li>Form a (2, 2) matrix of cut regions:<ul><li>The leptons are same-/different-flavour.</li><li>The dilepton invariant mass is less/greater than 60 GeV.</li></ul></li><li>In each case, plot the distribution of the dilepton+MET transverse momentum.<ul><li>Scale lepton tranvserse momenta by +/- 2% as systematic variations.</li></ul></li></ol><p>(To-do: update example to newer API).</p><pre class="m-code"><span class="n">dataflow</span> <span class="n">df</span><span class="p">;</span>
 
 <span class="k">auto</span> <span class="n">tree_files</span> <span class="o">=</span> <span class="nn">std</span><span class="o">::</span><span class="nc">vector</span><span class="o">&lt;</span><span class="nn">std</span><span class="o">::</span><span class="nc">string</span><span class="o">&gt;</span><span class="p">{</span><span class="s">"hww.root"</span><span class="p">};</span>
 <span class="k">auto</span> <span class="n">tree_name</span> <span class="o">=</span> <span class="s">"mini"</span><span class="p">;</span>
@@ -204,7 +204,9 @@
 <span class="k">auto</span> <span class="n">mll_vars</span> <span class="o">=</span> <span class="n">df</span><span class="p">.</span><span class="n">get</span><span class="o">&lt;</span><span class="n">Hist</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">,</span><span class="k">float</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="s">"mll"</span><span class="p">,</span><span class="mi">50</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">100</span><span class="p">).</span><span class="nf">fill</span><span class="p">(</span><span class="n">mll</span><span class="p">).</span><span class="nf">book</span><span class="p">(</span><span class="n">cut_2los</span><span class="p">);</span>
 
 <span class="n">mll_vars</span><span class="p">.</span><span class="nf">nominal</span><span class="p">()</span><span class="o">-&gt;</span><span class="nf">Draw</span><span class="p">();</span>
-<span class="n">mll_vars</span><span class="p">[</span><span class="s">"lp4_up"</span><span class="p">]</span><span class="o">-&gt;</span><span class="nf">Draw</span><span class="p">(</span><span class="s">"same"</span><span class="p">);</span></pre><img alt="Image" class="m-image" src="mll_varied.png"/></section><section id="example-phys"><h2><a href="#example-phys">DAOD_PHYS</a></h2><ul><li>Note the manipulation of non-trivial data types (<code>xAOD::EventInfo</code>, <code>xAOD::MuonContainer</code>) as columns!</li></ul><pre class="m-code"><span class="cp">#include</span> <span class="cpf">"qhep/Event.h"</span>
+<span class="n">mll_vars</span><span class="p">[</span><span class="s">"lp4_up"</span><span class="p">]</span><span class="o">-&gt;</span><span class="nf">Draw</span><span class="p">(</span><span class="s">"same"</span><span class="p">);</span></pre><img alt="Image" class="m-image" src="mll_varied.png"/></section><section id="example-phys"><h2><a href="#example-phys">ATLAS DAOD_PHYS</a></h2><ol><li>Apply the MC event weight.</li><li>Select for events with exactly 2 electrons with <em>p</em>
+								<sub>T</sub> &gt; 10 GeV and <em>η</em> &lt; 2.4.</li><li>Compute &amp; plot their di-invariant mass, <em>m</em>
+								<sub>ee</sub>.</li></ol><pre class="m-code"><span class="cp">#include</span> <span class="cpf">"qhep/Event.h"</span>
 <span class="cp">#include</span> <span class="cpf">"qhep/Hist.h"</span>
 
 <span class="cp">#include</span> <span class="cpf">&lt;xAODEventInfo/EventInfo.h&gt;</span>
@@ -276,8 +278,8 @@
   <span class="k">double</span> <span class="n">m_eta_max</span><span class="p">;</span>
 <span class="p">};</span>
 
-<span class="k">bool</span> <span class="nf">AtLeastTwoElectrons</span><span class="p">(</span><span class="n">ConstDataVector</span><span class="o">&lt;</span><span class="n">xAOD</span><span class="o">::</span><span class="n">ElectronContainer</span><span class="o">&gt;</span> <span class="k">const</span> <span class="o">&amp;</span><span class="n">els</span><span class="p">)</span> <span class="p">{</span>
-  <span class="k">return</span> <span class="n">els</span><span class="p">.</span><span class="nf">size</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="mi">2</span><span class="p">;</span>
+<span class="k">bool</span> <span class="nf">TwoElectrons</span><span class="p">(</span><span class="n">ConstDataVector</span><span class="o">&lt;</span><span class="n">xAOD</span><span class="o">::</span><span class="n">ElectronContainer</span><span class="o">&gt;</span> <span class="k">const</span> <span class="o">&amp;</span><span class="n">els</span><span class="p">)</span> <span class="p">{</span>
+  <span class="k">return</span> <span class="n">els</span><span class="p">.</span><span class="nf">size</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span><span class="p">;</span>
 <span class="p">}</span>
 
 <span class="k">float</span> <span class="nf">DiElectronsMass</span><span class="p">(</span><span class="n">ConstDataVector</span><span class="o">&lt;</span><span class="n">xAOD</span><span class="o">::</span><span class="n">ElectronContainer</span><span class="o">&gt;</span> <span class="k">const</span> <span class="o">&amp;</span><span class="n">els</span><span class="p">)</span> <span class="p">{</span>
@@ -302,7 +304,7 @@
   <span class="k">auto</span> <span class="n">eventWeight</span> <span class="o">=</span> <span class="n">df</span><span class="p">.</span><span class="nf">define</span><span class="p">(</span><span class="n">column</span><span class="o">::</span><span class="nf">expression</span><span class="p">(</span><span class="n">EventWeight</span><span class="p">),</span> <span class="n">eventInfo</span><span class="p">);</span>
   <span class="k">auto</span> <span class="n">atLeastTwoSelectedElectrons</span> <span class="o">=</span>
       <span class="n">df</span><span class="p">.</span><span class="nf">weight</span><span class="p">(</span><span class="n">eventWeight</span><span class="p">)</span>
-          <span class="p">.</span><span class="nf">filter</span><span class="p">(</span><span class="n">column</span><span class="o">::</span><span class="nf">expression</span><span class="p">(</span><span class="n">AtLeastTwoElectrons</span><span class="p">),</span> <span class="n">selectedElectrons</span><span class="p">);</span>
+          <span class="p">.</span><span class="nf">filter</span><span class="p">(</span><span class="n">column</span><span class="o">::</span><span class="nf">expression</span><span class="p">(</span><span class="n">TwoElectrons</span><span class="p">),</span> <span class="n">selectedElectrons</span><span class="p">);</span>
 
   <span class="k">auto</span> <span class="n">selectedElectronsPtHist</span> <span class="o">=</span>
       <span class="n">df</span><span class="p">.</span><span class="nf">make</span><span class="p">(</span><span class="n">query</span><span class="o">::</span><span class="n">plan</span><span class="o">&lt;</span><span class="n">Hist</span><span class="o">&lt;</span><span class="mi">1</span><span class="p">,</span><span class="k">float</span><span class="o">&gt;&gt;</span><span class="p">(</span><span class="s">"diElectronMass"</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">500</span><span class="p">))</span>
@@ -311,7 +313,7 @@
 
   <span class="n">selectedElectronsPtHist</span><span class="o">-&gt;</span><span class="nf">Draw</span><span class="p">();</span>
   <span class="n">gPad</span><span class="o">-&gt;</span><span class="nf">SetLogy</span><span class="p">();</span>
-  <span class="n">gPad</span><span class="o">-&gt;</span><span class="nf">Print</span><span class="p">(</span><span class="s">"el_pts.pdf"</span><span class="p">);</span>
+  <span class="n">gPad</span><span class="o">-&gt;</span><span class="nf">Print</span><span class="p">(</span><span class="s">"mee.pdf"</span><span class="p">);</span>
 <span class="p">}</span>
 
 <span class="k">int</span> <span class="nf">main</span><span class="p">(</span><span class="k">int</span> <span class="n">argc</span><span class="p">,</span> <span class="k">char</span> <span class="o">*</span><span class="n">argv</span><span class="p">[])</span> <span class="p">{</span> 
@@ -324,7 +326,8 @@
   <span class="nn">std::chrono</span><span class="o">::</span><span class="nc">duration</span><span class="o">&lt;</span><span class="k">double</span><span class="o">&gt;</span> <span class="n">elapsed_seconds</span> <span class="o">=</span> <span class="n">toc</span><span class="o">-</span><span class="n">tic</span><span class="p">;</span>
   <span class="nn">std</span><span class="o">::</span><span class="nc">cout</span> <span class="o">&lt;&lt;</span> <span class="s">"elapsed time ("</span> <span class="o">&lt;&lt;</span> <span class="n">nthreads</span> <span class="o">&lt;&lt;</span> <span class="s">" threads) = "</span> <span class="o">&lt;&lt;</span> <span class="n">elapsed_seconds</span><span class="p">.</span><span class="nf">count</span><span class="p">()</span> <span class="o">&lt;&lt;</span> <span class="s">"s"</span>
             <span class="o">&lt;&lt;</span> <span class="nn">std</span><span class="o">::</span><span class="nf">endl</span><span class="p">;</span>
-<span class="p">}</span></pre><img alt="Image" class="m-image" src="muons_pt.png"/></section><section id="example-task7"><h2><a href="#example-task7">IRIS-HEP ADL benchmark</a></h2><ul><li>Collision dataset: <a class="poxy-external" href="http://opendata.cern.ch/record/6021" target="_blank">2012 CMS open data</a> (16 GiB, 53 million events).</li><li>Task 7: plot the scalar sum in each event of the <em>p</em>
+<span class="p">}</span></pre><img alt="Image" class="m-image" src="mee.png"/><pre class="m-console"><span class="go">elapsed time (1 threads) = 63.0538s</span>
+<span class="go">elapsed time (10 threads) = 10.4677s</span></pre></section><section id="example-task7"><h2><a href="#example-task7">IRIS-HEP ADL benchmark</a></h2><ul><li>Collision dataset: <a class="poxy-external" href="http://opendata.cern.ch/record/6021" target="_blank">2012 CMS open data</a> (16 GiB, 53 million events).</li><li>Task 7: plot the scalar sum in each event of the <em>p</em>
 								<sub>T</sub> of jets with <em>p</em>
 								<sub>T</sub> &gt; 30 GeV that are not within 0.4 in Δ<em>R</em> of any light lepton with <em>p</em>
 								<sub>T</sub> &gt; 10 GeV.</li></ul><pre class="m-code"><span class="cp">#include</span> <span class="cpf">&lt;algorithm&gt;</span>

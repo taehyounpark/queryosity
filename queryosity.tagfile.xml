@@ -709,8 +709,8 @@
     <title>Examples</title>
     <filename>example.html</filename>
     <docanchor file="example.html" title="Hello World">example-hello-world</docanchor>
-    <docanchor file="example.html" title="ggF HWW* (with systematic variations)">example-hww</docanchor>
-    <docanchor file="example.html" title="DAOD_PHYS">example-phys</docanchor>
+    <docanchor file="example.html" title="ROOT TTree">example-hww</docanchor>
+    <docanchor file="example.html" title="ATLAS DAOD_PHYS">example-phys</docanchor>
     <docanchor file="example.html" title="IRIS-HEP ADL benchmark">example-task7</docanchor>
   </compound>
   <compound kind="page">
