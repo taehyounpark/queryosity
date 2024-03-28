@@ -53,10 +53,10 @@ int main() {
 }
 ```
 
-@section example-hww ggF HWW* (with systematic variations)
+@section example-hww ROOT TTree
 
-- Simulated ggF HWW events: [ATLAS open data](https://opendata.cern.ch/record/3825).
-- ROOT extensions for queryosity: [AnalysisPlugins](https://github.com/taehyounpark/AnalysisPlugins)
+- Simulated ggF HWW* events: [ATLAS open data](https://opendata.cern.ch/record/3825).
+- ROOT extensions for queryosity: [queryosity-hep](https://github.com/taehyounpark/AnalysisPlugins)
 
 1. Apply the MC event weight.
 2. Select entries for which there are exactly two opposite-sign leptons in the event.
@@ -163,9 +163,11 @@ mll_vars["lp4_up"]->Draw("same");
 ```
 @image html mll_varied.png
 
-@section example-phys DAOD_PHYS
+@section example-phys ATLAS DAOD_PHYS
 
-- Note the manipulation of non-trivial data types (`xAOD::EventInfo`, `xAOD::MuonContainer`) as columns!
+1. Apply the MC event weight.
+2. Select for events with exactly 2 electrons with <i>p</i><sub>T</sub> > 10 GeV and <i>&eta;</i> < 2.4.
+3. Compute & plot their di-invariant mass, <i>m</i><sub>ee</sub>.
 
 @cpp
 #include "qhep/Event.h"
@@ -240,8 +242,8 @@ protected:
   double m_eta_max;
 };
 
-bool AtLeastTwoElectrons(ConstDataVector<xAOD::ElectronContainer> const &els) {
-  return els.size() >= 2;
+bool TwoElectrons(ConstDataVector<xAOD::ElectronContainer> const &els) {
+  return els.size() == 2;
 }
 
 float DiElectronsMass(ConstDataVector<xAOD::ElectronContainer> const &els) {
@@ -266,7 +268,7 @@ void analyze(unsigned int n) {
   auto eventWeight = df.define(column::expression(EventWeight), eventInfo);
   auto atLeastTwoSelectedElectrons =
       df.weight(eventWeight)
-          .filter(column::expression(AtLeastTwoElectrons), selectedElectrons);
+          .filter(column::expression(TwoElectrons), selectedElectrons);
 
   auto selectedElectronsPtHist =
       df.make(query::plan<Hist<1,float>>("diElectronMass", 100, 0, 500))
@@ -275,7 +277,7 @@ void analyze(unsigned int n) {
 
   selectedElectronsPtHist->Draw();
   gPad->SetLogy();
-  gPad->Print("el_pts.pdf");
+  gPad->Print("mee.pdf");
 }
 
 int main(int argc, char *argv[]) { 
@@ -291,7 +293,12 @@ int main(int argc, char *argv[]) {
 }
 @endcpp
 
-@image html muons_pt.png
+@image html mee.png
+
+@out
+elapsed time (1 threads) = 63.0538s
+elapsed time (10 threads) = 10.4677s
+@endout
 
 @section example-task7 IRIS-HEP ADL benchmark
 
