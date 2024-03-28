@@ -371,8 +371,8 @@ float DiElectronsMass(ConstDataVector<xAOD::ElectronContainer> const &els) {
   return (els[0]->p4() + els[1]->p4()).M();
 };
 
-void analyze(unsigned int n) {
-  dataflow df(multithread::enable(n));
+int main(int argc, char *argv[]) {  
+  dataflow df;
 
   auto ds = df.load(dataset::input<Event>(daodFiles, treeName));
   auto eventInfo = ds.read(dataset::column<xAOD::EventInfo>("EventInfo"));
@@ -399,27 +399,12 @@ void analyze(unsigned int n) {
   selectedElectronsPtHist->Draw();
   gPad->SetLogy();
   gPad->Print("mee.pdf");
-}
 
-int main(int argc, char *argv[]) { 
-  int nthreads = 0;
-  if (argc==2) { nthreads=strtol(argv[1], nullptr, 0); }
-
-  auto tic = std::chrono::steady_clock::now();
-  analyze(nthreads);
-  auto toc = std::chrono::steady_clock::now();
-  std::chrono::duration<double> elapsed_seconds = toc-tic;
-  std::cout << "elapsed time (" << nthreads << " threads) = " << elapsed_seconds.count() << "s"
-            << std::endl;
+  return 0;
 }
 @endcpp
 
 @image html mee.png
-
-@out
-elapsed time (1 threads) = 63.0538s
-elapsed time (10 threads) = 10.4677s
-@endout
 
 @section example-task7 IRIS-HEP ADL benchmark
 
