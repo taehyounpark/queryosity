@@ -335,17 +335,17 @@ queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2, Kwd3 &&kwarg3)
 }
 
 template <typename Kwd> void queryosity::dataflow::accept_kwarg(Kwd &&kwarg) {
-  constexpr bool is_mt = std::is_same_v<Kwd, dataset::processor>;
-  constexpr bool is_weight = std::is_same_v<Kwd, dataset::weight>;
-  constexpr bool is_nrows = std::is_same_v<Kwd, dataset::head>;
-  if constexpr (is_mt) {
+  constexpr bool is_mt_v = std::is_same_v<Kwd, dataset::processor>;
+  constexpr bool is_weight_v = std::is_same_v<Kwd, dataset::weight>;
+  constexpr bool is_nrows_v = std::is_same_v<Kwd, dataset::head>;
+  if constexpr (is_mt_v) {
     m_processor = std::move(kwarg);
-  } else if (is_weight) {
+  } else if (is_weight_v) {
     m_weight = kwarg;
-  } else if (is_nrows) {
+  } else if (is_nrows_v) {
     m_nrows = kwarg;
   } else {
-    static_assert(is_mt || is_weight || is_nrows,
+    static_assert(is_mt_v || is_weight_v || is_nrows_v,
                   "unrecognized keyword argument");
   }
 }
