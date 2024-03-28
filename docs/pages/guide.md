@@ -65,7 +65,7 @@ auto ds_another = df.load(dataset::input<json>(more_data));
 // no need to be another double -- whatever else!
 auto y = ds_another.read(dataset::column<double>("y"));
 
-// syntactical shortcut: implicitly load a dataset and read out all columns at once.
+// shortcut: implicitly load a dataset and read out all columns at once.
 std::ifstream even_more_data("even_more_data.json");
 auto [s, v] = df.read(
   dataset::input<json>(even_more_data),
@@ -88,14 +88,42 @@ auto [s, v] = df.read(
 Call queryosity::dataflow::define() with the appropriate argument.
 
 @cpp
-// Constant value across all entries
-auto zero = df.define(column::constant(0));
+// -----------------------------------------------------------------------------
+// constant
+// -----------------------------------------------------------------------------
+// their values will not change per-entry
 
-// Callable (C++ funciton, functor, lambda, etc.) evaluated out of input columns
-// use const& for non-trivial data types to prevent expensive copies
+auto zero = df.define(column::constant(0));
+auto one = df.define(column::constant(1));
+auto two = df.define(column::constant(2));
+
+// -----------------------------------------------------------------------------
+// simple expression
+// -----------------------------------------------------------------------------
+// binary/unary operators between underlying data types
+
+auto three = one + two;
+auto v0 = v[zero];
+
+// one += zero; // self-assignment operators are not possible
+
+// -----------------------------------------------------------------------------
+// custom expression
+// -----------------------------------------------------------------------------
+// (C++ funciton, functor, lambda, etc.) evaluated out of input columns
+
+// pass large values by const reference to prevent expensive copies
 auto s_length = df.define(column::expression([](const std::string& txt){return txt.length();}), s);
 
-// Custom definition evaluated out of input columns
+// -----------------------------------------------------------------------------
+// custom definition
+// -----------------------------------------------------------------------------
+// the most general & performant way to compute a column
+
+class VectorSelection : public column::definition<> 
+{
+
+};
 auto v_selected = df.define(column::definition<>(), v);
 @endcpp
 
@@ -129,8 +157,8 @@ auto cut_b_or_c = df.filter(cut_b || cut_c);
 
 @section guide-query Making queries
 
-Call queryosity::dataflow::make() with a queryosity::query::plan (specifying the query definition and its constructor arguments).
-The plan can be filled with input columns, then booked at a selection to instantiate the query.
+Call queryosity::dataflow::make() with a "plan" specifying the exact definition and constructor arguments of the qeury.
+Subsequently, the plan can be filled with input columns and booked at a selection to instantiate the query.
 
 @cpp
 using h1d = qty::hist::hist<double>;
@@ -149,10 +177,10 @@ auto qp_2d = df.make(query::plan<hist2d>(linax(100,0.0,1.0),linax(100,0.0,1.0)))
 auto [q_1d, q_2d] = sel.book(qp_1d, qp_2d);
 @endcpp
 
-Accessing the result of any one query triggers the dataset processing for *all* actions.
+Access the result of a query to turn all actions eager.
 
 @cpp
-auto hx_a = q_a.result();  // takes a while -- dataset needs to be processed
+auto hx_a = q_a.result();  // takes a while -- dataset traversal
 auto hxy_sel = q_2d.result();  // instantaneous -- already completed
 @endcpp
 
@@ -163,13 +191,13 @@ auto hxy_sel = q_2d.result();  // instantaneous -- already completed
 
 @section guide-vary Systematic variations
 
-Call queryosity::dataflow::vary() to create queryosity::lazy::varied columns. 
+Call queryosity::dataflow::vary() to create varied columns. 
 There are two ways in which variations can be specified:
 
 1. **Automatic.** Specify a specific type of column to be instantiated along with the nominal+variations. Always ensures the lockstep+transparent propagation of variations.
 2. **Manual.** Provide existing instances of columns to be nominal+variations; any column whose output value type is compatible to that of the nominal can be set as a variation.
 
-The two approaches can (and should) be used interchangeably with each other for full control over the creation & propagation of systematic variations.
+Both approaches can (and should) be used in a dataflow for full control over the creation & propagation of systematic variations.
 
 @cpp
 // automatic -- set and forget
@@ -229,7 +257,6 @@ q.has_variation("vary_b"); // false
 auto q_nom_res = q.nominal().result();
 auto q_varx_res = q.["vary_x"].result();
 auto q_none_res = q.["no"].result();
-
 @endcpp
 
 @see 
