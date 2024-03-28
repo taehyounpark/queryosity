@@ -62,7 +62,7 @@ int main() {
 1. Apply the MC event weight.
 2. Select entries for which there are exactly two opposite-sign leptons in the event.
 3. Separate into different/same-flavour cases for electrons and muons.
-4. Apply signal region cuts: <i>E</i><sub>T</sub><sup>miss</sup> > 30 GeV, <i>m</i><sub>ll</sub> < 60 GeV.
+4. Apply signal region cuts: @f$E_{\mathrm{T}}^{\mathrm{miss}} > 30\,\mathrm{GeV}@f$ and @f$m_{\ell\ell}< 60\,\mathrm{GeV}@f$.
 5. Merge back together to form flavour-inclusive opposite-sign signal region.
 6. In each case, plot the distribution of the dilepton+MET transverse momentum.
 	- Scale lepton energy scale by +/- 2% as systematic variations.
@@ -266,8 +266,8 @@ int main() {
 @section example-phys ATLAS DAOD_PHYS
 
 1. Apply the MC event weight.
-2. Select for events with exactly 2 electrons with <i>p</i><sub>T</sub> > 10 GeV and <i>&eta;</i> < 2.4.
-3. Compute & plot their di-invariant mass, <i>m</i><sub>ee</sub>.
+2. Select for events with exactly 2 electrons with @f$p_{\mathrm{T}} > 10\,\mathrm{GeV}@f$ and @f$ \eta < 2.4 @f$.
+3. Compute & plot their di-invariant mass, @f$ m_{ee} @f$.
 
 @cpp
 #include "qhep/Event.h"
@@ -403,7 +403,7 @@ elapsed time (10 threads) = 10.4677s
 @section example-task7 IRIS-HEP ADL benchmark
 
 - Collision dataset: [2012 CMS open data](http://opendata.cern.ch/record/6021) (16 GiB, 53 million events).
-- Task 7: plot the scalar sum in each event of the <i>p</i><sub>T</sub> of jets with <i>p</i><sub>T</sub> > 30 GeV that are not within 0.4 in Δ<i>R</i> of any light lepton with <i>p</i><sub>T</sub> > 10 GeV.
+- Task 7: plot the scalar sum in each event of the @f$p_{\mathrm{T}}@f$ of jets with @f$p_{\mathrm{T}}>30\,\mathrm{GeV}@f$ that are not within @f$\Delta R < 0.4@f$ of any light lepton with @f$p_{\mathrm{T}}>10\,\mathrm{GeV}@f$.
 
 @cpp
 #include <algorithm>

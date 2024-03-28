@@ -17,6 +17,7 @@ bld/
 *.xsd
 *.html
 *.temp
+*.cache
 docs/html
 docs/xml
 
