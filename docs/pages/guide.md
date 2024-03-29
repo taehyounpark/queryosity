@@ -4,15 +4,14 @@
 @section guide-dataflow Dataflow
 
 @cpp
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
-namespace qty = queryosity;
+using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
 namespace dataset = qty::dataset;
 namespace column = qty::column;
 namespace query = qty::query;
 namespace systematic = qty::systematic;
-using dataflow = qty::dataflow;
 
 int main() {
 
@@ -40,8 +39,8 @@ dataflow df(multithread::enable(), dataset::weight(1.234), dataset::head(100));
 
 @section guide-dataset-reader Reading a dataset
 
-Call queryosity::dataflow::load() with a queryosity::dataset::input (specifying the dataset reader and its constructor arguments).
-The loaded dataset can then read queryosity::dataset::column (specifying the column data type and name).
+Call queryosity::dataflow::load() with an input dataset and its constructor arguments.
+The loaded dataset can then read out columns, provided their data types and names.
 
 @cpp
 using json = qty::json;

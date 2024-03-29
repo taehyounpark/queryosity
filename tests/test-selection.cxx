@@ -4,12 +4,10 @@
 #include <random>
 #include <unordered_map>
 
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
 #include "queryosity/json.h"
 #include "queryosity/sumw.h"
-
-namespace qty = queryosity;
 
 TEST_CASE("correctness & consistency of selections") {
 

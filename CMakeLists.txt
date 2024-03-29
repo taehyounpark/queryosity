@@ -2,17 +2,21 @@ cmake_minimum_required(VERSION 3.14)
 
 project(queryosity)
 
-
-OPTION(QUERYOSITY_INSTALL "Install target" ON)
-OPTION(QUERYOSITY_DOCS    "Documentation" OFF)
-OPTION(QUERYOSITY_TESTS   "Tests" OFF)
-OPTION(QUERYOSITY_EXAMPLES "Install target" OFF)
+OPTION(QUERYOSITY_INSTALL    "Install target" ON)
+OPTION(QUERYOSITY_DOCS       "Documentation" OFF)
+OPTION(QUERYOSITY_EXTENSIONS "Extensions" OFF)
+OPTION(QUERYOSITY_TESTS      "Tests" OFF)
+OPTION(QUERYOSITY_EXAMPLES   "Examples" OFF)
 
 set(QUERYOSITY_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(QUERYOSITY_MAJOR_VERSION 0)
 set(QUERYOSITY_MINOR_VERSION 3)
 set(QUERYOSITY_PATCH_VERSION 0)
 set(QUERYOSITY_VERSION ${QUERYOSITY_MAJOR_VERSION}.${QUERYOSITY_MINOR_VERSION}.${QUERYOSITY_PATCH_VERSION})
+
+if (QUERYOSITY_TESTS OR QUERYOSITY_EXAMPLES)
+  set(QUERYOSITY_EXTENSIONS ON)
+endif()
 
 set(QUERYOSITY_CXX_STANDARD 17 CACHE STRING "Minimum C++ standard") 
 
@@ -85,13 +89,21 @@ if (QUERYOSITY_INSTALL)
 endif()
 
 if (QUERYOSITY_TESTS OR QUERYOSITY_EXAMPLES)
+
+  # boost
+  find_package(Boost REQUIRED)
+  include_directories(${Boost_INCLUDE_DIRS})
+  link_directories(${Boost_LIBRARY_DIRS})
+
+
   add_subdirectory("extensions")
-  if (QUERYOSITY_TESTS)
-    enable_testing()
-    add_subdirectory("tests")
-  endif()
-  if (QUERYOSITY_EXAMPLES)
-    add_subdirectory("examples")
-  endif()
 endif()
 
+if (QUERYOSITY_TESTS)
+  enable_testing()
+  add_subdirectory("tests")
+endif()
+
+if (QUERYOSITY_EXAMPLES)
+  add_subdirectory("examples")
+endif()

@@ -66,7 +66,6 @@ public:
   virtual void count(double w) = 0;
 
 protected:
-  bool m_raw;
   double m_scale;
   const selection::node *m_selection;
 };
@@ -103,7 +102,7 @@ template <typename Bkr> using booked_t = typename Bkr::query_type;
 #include "selection.h"
 
 inline queryosity::query::node::node()
-    : m_raw(false), m_scale(1.0), m_selection(nullptr) {}
+    : m_scale(1.0), m_selection(nullptr) {}
 
 inline void
 queryosity::query::node::set_selection(const selection::node &selection) {
@@ -119,8 +118,6 @@ inline void queryosity::query::node::apply_scale(double scale) {
   m_scale *= scale;
 }
 
-inline void queryosity::query::node::use_weight(bool use) { m_raw = !use; }
-
 inline void queryosity::query::node::initialize(unsigned int,
                                                 unsigned long long,
                                                 unsigned long long) {
@@ -130,7 +127,7 @@ inline void queryosity::query::node::initialize(unsigned int,
 
 inline void queryosity::query::node::execute(unsigned int, unsigned long long) {
   if (m_selection->passed_cut()) {
-    this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
+    this->count(m_scale * m_selection->get_weight());
   }
 }
 

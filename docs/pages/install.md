@@ -40,7 +40,7 @@ target_link_libraries(YourProject INTERFACE queryosity::queryosity)
 ~~~
 
 ~~~{.cpp}
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 ~~~
 
 @subsection install-cmake-integrated Integrated
@@ -54,5 +54,5 @@ target_link_libraries(YourProject INTERFACE queryosity::queryosity)
 ~~~
 
 ~~~{.cpp}
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 ~~~

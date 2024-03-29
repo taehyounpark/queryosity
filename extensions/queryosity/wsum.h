@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <variant>
 
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
 namespace queryosity {
 

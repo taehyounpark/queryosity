@@ -30,8 +30,6 @@
 #include <vector>
 #include <sstream>
 
-namespace qty = queryosity;
-
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
 namespace dataset = qty::dataset;
@@ -96,7 +94,7 @@ add_library(Analysis ...)
 target_link_libraries(Analysis INTERFACE queryosity::queryosity)
 ```
 ```cpp
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 ```
 #### Integrated
 ```cmake

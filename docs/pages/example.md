@@ -13,8 +13,6 @@
 #include <vector>
 #include <sstream>
 
-namespace qty = queryosity;
-
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
 namespace dataset = qty::dataset;
@@ -71,9 +69,8 @@ int main() {
 #include "qhep/Hist.h"
 #include "qhep/Tree.h"
 
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
-namespace qty = queryosity;
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
 namespace dataset = qty::dataset;
@@ -300,7 +297,7 @@ int main() {
 using VecF = ROOT::RVec<float>;
 using VecD = ROOT::RVec<double>;
 
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
 using dataflow = queryosity::dataflow;
 namespace multithread = queryosity::multithread;
@@ -417,7 +414,7 @@ int main(int argc, char *argv[]) {
 #include <cstdlib>
 #include <functional>
 
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
 #include "TCanvas.h"
 #include <ROOT/RVec.hxx>

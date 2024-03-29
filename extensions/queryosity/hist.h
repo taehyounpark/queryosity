@@ -2,7 +2,7 @@
 #include <functional>          // std::ref
 #include <utility>
 
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
 namespace queryosity {
 

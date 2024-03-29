@@ -5,17 +5,17 @@
 #include <random>
 #include <unordered_map>
 
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
 #include "queryosity/json.h"
 #include "queryosity/wsum.h"
 
-using dataflow = queryosity::dataflow;
-namespace multithread = queryosity::multithread;
-namespace dataset = queryosity::dataset;
-namespace column = queryosity::column;
-namespace query = queryosity::query;
-namespace systematic = queryosity::systematic;
+using dataflow = qty::dataflow;
+namespace multithread = qty::multithread;
+namespace dataset = qty::dataset;
+namespace column = qty::column;
+namespace query = qty::query;
+namespace systematic = qty::systematic;
 
 // generate random data
 nlohmann::json generate_random_data(unsigned int nentries = 100) {
@@ -56,8 +56,8 @@ std::vector<double> get_correct_result(const nlohmann::json &random_data) {
 }
 
 std::vector<double> get_queryosity_result(const nlohmann::json &random_data) {
-  queryosity::dataflow df;
-  auto ds = df.load(dataset::input<queryosity::json>(random_data));
+  qty::dataflow df;
+  auto ds = df.load(dataset::input<qty::json>(random_data));
 
   auto x = ds.vary(dataset::column<double>("x_nom"), {"vary_x", "x_var"});
   auto w = ds.vary(dataset::column<unsigned int>("w_nom"), {"vary_w", "w_var"});
@@ -69,7 +69,7 @@ std::vector<double> get_queryosity_result(const nlohmann::json &random_data) {
 
   auto weighted = df.weight(w);
 
-  auto wsumx = df.make(query::plan<queryosity::wsum>()).fill(x).book(weighted);
+  auto wsumx = df.make(query::plan<qty::wsum>()).fill(x).book(weighted);
   auto wsumx_nom = wsumx.nominal().result();
   auto wsumx_xvar = wsumx["vary_x"].result();
   auto wsumx_wvar = wsumx["vary_w"].result();

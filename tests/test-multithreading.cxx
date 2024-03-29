@@ -4,19 +4,19 @@
 #include <random>
 #include <unordered_map>
 
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
 #include <nlohmann/json.hpp>
 
 #include "queryosity/col.h"
 #include "queryosity/json.h"
 
-using dataflow = queryosity::dataflow;
-namespace multithread = queryosity::multithread;
-namespace dataset = queryosity::dataset;
-namespace column = queryosity::column;
-namespace query = queryosity::query;
-namespace systematic = queryosity::systematic;
+using dataflow = qty::dataflow;
+namespace multithread = qty::multithread;
+namespace dataset = qty::dataset;
+namespace column = qty::column;
+namespace query = qty::query;
+namespace systematic = qty::systematic;
 
 std::vector<int> get_correct_result(const nlohmann::json &random_data) {
   std::vector<int> correct_result;
@@ -30,11 +30,11 @@ std::vector<int> get_correct_result(const nlohmann::json &random_data) {
 std::vector<int> get_queryosity_result(const nlohmann::json &random_data,
                                        int ncores) {
   dataflow df(multithread::enable(ncores));
-  auto ds = df.load(dataset::input<queryosity::json>(random_data));
+  auto ds = df.load(dataset::input<qty::json>(random_data));
   auto entry_value = ds.read(dataset::column<int>("value"));
   auto all = df.define(column::constant<bool>(true));
   auto incl = df.filter(all);
-  auto col = df.make(query::plan<queryosity::col<int>>());
+  auto col = df.make(query::plan<qty::col<int>>());
   col = col.fill(entry_value);
   return incl.book(col).result();
 }

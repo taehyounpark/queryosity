@@ -5,14 +5,17 @@
 #include <random>
 #include <unordered_map>
 
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
-#include "queryosity/Json.h"
-#include "queryosity/WeightedSum.h"
+#include "queryosity/json.h"
+#include "queryosity/wsum.h"
 
-namespace multithread = queryosity::multithread;
-namespace sample = queryosity::sample;
-using dataflow = queryosity::dataflow;
+using dataflow = qty::dataflow;
+namespace multithread = qty::multithread;
+namespace dataset = qty::dataset;
+namespace column = qty::column;
+namespace query = qty::query;
+namespace systematic = qty::systematic;
 
 // generate random data
 nlohmann::json generate_random_data(unsigned int nentries = 100) {
@@ -53,7 +56,7 @@ std::vector<double> get_correct_result(const nlohmann::json &random_data) {
 }
 
 std::vector<double> get_queryosity_result(const nlohmann::json &random_data) {
-  queryosity::dataflow df;
+  qty::dataflow df;
   auto ds = df.open<Json>(random_data);
   auto x = ds.read<double>("x_nom", {{"vary_x", "x_var"}});
   auto w = ds.read<unsigned int>("w_nom", {{"vary_w", "w_var"}});

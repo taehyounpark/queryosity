@@ -3,7 +3,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "queryosity/queryosity.h"
+#include "queryosity.h"
 
 namespace queryosity {
 

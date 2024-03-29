@@ -9,7 +9,8 @@ np.random.seed(42)
 # Parameters
 mass = 100.0
 width = 0.1
-offset = 1.01
+resol = 1.0
+scale = 1.01
 smear = 0.01
 
 nentries = 10000
@@ -19,13 +20,13 @@ cauchy_dist = cauchy(loc=mass, scale=width)
 cauchy_samples = cauchy_dist.rvs(size=nentries)
 
 # Gaussian random numbers for scaling
-gaussian_dist = norm(loc=0.0, scale=1.0)
+gaussian_dist = norm(loc=0.0, scale=resol)
 gaussian_samples = gaussian_dist.rvs(size=nentries)
 
 # Perform the actions as described
 x_true = cauchy_samples
 x_nom = x_true + gaussian_samples
-x_scale = x_nom * offset
+x_scale = x_nom * scale
 x_smear = x_nom * norm(loc=1.0, scale=smear).rvs(size=nentries)
 
 # Poisson-distributed random numbers for weights

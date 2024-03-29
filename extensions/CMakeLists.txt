@@ -1,22 +1,14 @@
-
-find_package(Boost REQUIRED)
-include_directories(${Boost_INCLUDE_DIRS})
-link_directories(${Boost_LIBRARY_DIRS})
-
 file(GLOB QUERYOSITY_EXT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/queryosity/*.h)
-
 add_library(
   queryosity_extensions
   SHARED
   ${QUERYOSITY_EXT_HEADERS}
 )
-set_property(TARGET queryosity_extensions PROPERTY EXPORT_NAME extensions)
 add_library(queryosity::extensions ALIAS queryosity_extensions)
-
-target_compile_features(queryosity_extensions INTERFACE "cxx_std_${QUERYOSITY_CXX_STANDARD}" )
-
+set_target_properties(queryosity_extensions PROPERTIES EXPORT_NAME queryosity_extensions)
 set_target_properties(queryosity_extensions PROPERTIES LINKER_LANGUAGE CXX)
 
+target_compile_features(queryosity_extensions PUBLIC "cxx_std_${QUERYOSITY_CXX_STANDARD}" )
 target_compile_options(
   queryosity_extensions PUBLIC 
   -Wall -Wextra
@@ -25,12 +17,21 @@ target_compile_options(
   $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-ggdb3> 
 )
 
+include(FetchContent)
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
+FetchContent_Declare(csv URL https://github.com/d99kris/rapidcsv/archive/refs/tags/v8.82.tar.gz)
+FetchContent_MakeAvailable(csv)
+
 target_include_directories(
   queryosity_extensions 
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} 
 )
+include(ExternalProject)
 
 target_link_libraries(
   queryosity_extensions
   INTERFACE queryosity::queryosity
+  PUBLIC nlohmann_json::nlohmann_json ${Boost_LIBRARIES}
 )
