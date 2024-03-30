@@ -25,7 +25,10 @@ include(FetchContent)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
-FetchContent_Declare(csv URL https://github.com/d99kris/rapidcsv/archive/refs/tags/v8.82.tar.gz)
+FetchContent_Declare(csv   
+  GIT_REPOSITORY https://github.com/d99kris/rapidcsv.git
+  GIT_TAG        7e87d8c
+)
 FetchContent_MakeAvailable(csv)
 
 target_include_directories(
@@ -37,5 +40,5 @@ include(ExternalProject)
 target_link_libraries(
   queryosity_extensions
   INTERFACE queryosity::queryosity
-  PUBLIC nlohmann_json::nlohmann_json ${Boost_LIBRARIES}
+  PUBLIC nlohmann_json::nlohmann_json rapidcsv ${Boost_LIBRARIES}
 )

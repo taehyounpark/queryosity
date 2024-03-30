@@ -148,6 +148,8 @@ template <typename T> class expression;
 
 template <typename T> class evaluator;
 
+template <typename T> class series;
+
 template <typename T>
 constexpr std::true_type check_reader(typename column::reader<T> const &);
 constexpr std::false_type check_reader(...);

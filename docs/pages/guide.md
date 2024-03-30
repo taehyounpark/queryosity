@@ -37,7 +37,7 @@ dataflow df(multithread::enable(), dataset::weight(1.234), dataset::head(100));
 | `dataset::weight(scale)` | Apply a global `scale` to all weights. | `1.0` |
 | `dataset::head(nrows)` | Process the first `nrows` of the dataset. | `-1` (all entries) |
 
-@section guide-dataset-reader Reading a dataset
+@section guide-dataset-reader Reading-in dataset(s)
 
 Call queryosity::dataflow::load() with an input dataset and its constructor arguments.
 The loaded dataset can then read out columns, provided their data types and names.
@@ -45,32 +45,22 @@ The loaded dataset can then read out columns, provided their data types and name
 @cpp
 using json = qty::json;
 
-// load a dataset
 std::ifstream data("data.json");
 auto ds = df.load(dataset::input<json>(data));
 
-// read a dataset column
 auto x = ds.read(dataset::column<double>("x"));
 @endcpp
 
 A dataflow can load multiple datasets, as long as all valid partitions reported by queryosity::dataset::source::partition() have the same number of total entries.
-Or, a dataset can report an empty partition, which signals that it relinquishes the control to the other datasets.
+A dataset can report an empty partition, which signals that it relinquishes the control to the other datasets.
 
 @cpp
-// no need to be another json -- whatever else!
-std::ifstream more_data("more_data.json");
-auto ds_another = df.load(dataset::input<json>(more_data));
+using csv = qty::csv;
 
-// no need to be another double -- whatever else!
-auto y = ds_another.read(dataset::column<double>("y"));
+std::ifstream data_csv("data.csv");
+auto y = df.load(dataset::input<csv>(data_csv)).read(dataset::column<double>("y"));
 
-// shortcut: implicitly load a dataset and read out all columns at once.
-std::ifstream even_more_data("even_more_data.json");
-auto [s, v] = df.read(
-  dataset::input<json>(even_more_data),
-  dataset::column<std::string>("s"),
-  dataset::column<std::vector<double>>("v")
-  );
+auto z = x+y;
 @endcpp
 
 @see 
@@ -78,9 +68,11 @@ auto [s, v] = df.read(
   - queryosity::dataset::source (ABC)
   - queryosity::dataset::reader (ABC)
   - queryosity::json (Extension)
+  - queryosity::csv (Extension)
 - queryosity::dataset::column (API)
   - queryosity::column::reader (ABC)
   - queryosity::json::item (Extension)
+  - queryosity::csv::cell (Extension)
 
 @section guide-column Computing quantities
 
@@ -135,21 +127,43 @@ auto v_selected = df.define(column::definition<>(), v);
 Call queryosity::dataflow::filter() or queryosity::dataflow::weight() to initiate a selection in the cutflow, and apply subsequent selections from existing nodes to compound them. 
 
 @cpp
+// -----------------------------------------------------------------------------
 // initiate a cutflow 
-auto inclusive = df.filter(c); // using an existing column as the decision
+// -----------------------------------------------------------------------------
 
-// selections can be compounded regardless of their type (cut or weight)
-auto weighted = cut.weight(
-  column::expression([](double w){return (w<0 ? 0.0: w);}), w
-  ); // using an exprssion evaluated out of input columns
+// pass all entries, apply a weight
+auto weighted = df.weight(w);
 
-// compounding multiple selections from a common node creates a branching point
-auto cut_a = weighted.filter(a);
-auto cut_b = weighted.filter(b);
-auto cut_c = weighted.filter(c);
+// -----------------------------------------------------------------------------
+// compounding 
+// -----------------------------------------------------------------------------
+// cuts and weights can be compounded in any order.
 
-// selections are columns whose values are their decisions along the cutflow,
-// which can also be used to evaluate new selections.
+// ignore entry if weight is negative
+auto cut = weighted.filter(
+  column::expression([](double w){return (w>=0;);}), w
+  );
+
+// -----------------------------------------------------------------------------
+// branching out
+// -----------------------------------------------------------------------------
+// applying more than one selection from a node creates a branching point.
+
+auto cat = ds.read<std::string>("cat");
+
+auto a = df.define(column::constant<std::string>("a"));
+auto b = df.define(column::constant<std::string>("b"));
+auto c = df.define(column::constant<std::string>("c"));
+
+auto cut_a = cut.filter(cat == a);
+auto cut_b = cut.filter(cat == b);
+auto cut_c = cut.filter(cat == c);
+
+// -----------------------------------------------------------------------------
+// merging
+// -----------------------------------------------------------------------------
+// selections can be merged based on their decision values.
+
 auto cut_a_and_b = df.filter(cut_a && cut_b);
 auto cut_b_or_c = df.filter(cut_b || cut_c);
 @endcpp

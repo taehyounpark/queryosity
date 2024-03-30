@@ -32,9 +32,8 @@ std::vector<int> get_queryosity_result(const nlohmann::json &random_data,
   auto entry_value = ds.read(dataset::column<int>("value"));
   auto all = df.define(column::constant<bool>(true));
   auto incl = df.filter(all);
-  auto col = df.make(query::plan<query::series<int>>());
-  col = col.fill(entry_value);
-  return incl.book(col).result();
+  auto col = incl.get(column::series(entry_value));
+  return col.result();
 }
 
 TEST_CASE("multithreading consistency") {

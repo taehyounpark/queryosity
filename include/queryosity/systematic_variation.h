@@ -6,17 +6,23 @@
 
 #include "dataflow.h"
 #include "lazy.h"
+#include "column_definition.h"
 
 namespace queryosity {
 
 template <typename... Args> class systematic::variation {
 
 public:
-  variation(const std::string &name, Args... args)
+  variation(const std::string &name, Args const&... args)
       : m_name(name), m_args(args...) {}
 
   std::string const &name() const { return m_name; }
   std::tuple<Args...> const &args() const { return m_args; }
+
+  template <typename Arg>
+  auto _vary_arg() const -> Arg {
+    return std::apply([](Args const&... args){return Arg(args...);}, m_args);
+  }
 
 protected:
   std::string m_name;

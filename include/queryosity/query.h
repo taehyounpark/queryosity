@@ -42,9 +42,11 @@ template <typename T> class aggregation;
 
 template <typename T> class definition;
 
-template <typename T> class book;
+template <typename T> class booker;
 
 template <typename T> class plan;
+
+template <typename T> class series;
 
 class node : public action {
 
@@ -80,7 +82,7 @@ check_fillable(const typename query::definition<Out(Vals...)> &);
 constexpr std::false_type check_fillable(...);
 
 template <typename T> struct is_book : std::false_type {};
-template <typename T> struct is_book<query::book<T>> : std::true_type {};
+template <typename T> struct is_book<query::booker<T>> : std::true_type {};
 
 template <typename T>
 constexpr bool is_aggregation_v =
@@ -94,6 +96,23 @@ template <typename T> constexpr bool is_bookable_v = is_book<T>::value;
 
 template <typename Bkr> using booked_t = typename Bkr::query_type;
 
+// mixin class to conditionally add a member variable
+template <typename Action, typename Enable = void>
+struct result_if_aggregation {};
+
+// Specialization for types satisfying is_query
+template <typename Action>
+struct result_if_aggregation<
+    Action, std::enable_if_t<query::is_aggregation_v<Action>>> {
+  using result_type = decltype(std::declval<Action>().result());
+  result_if_aggregation() : m_merged(false) {}
+  virtual ~result_if_aggregation() = default;
+
+protected:
+  result_type m_result;
+  bool m_merged;
+};
+
 } // namespace query
 
 } // namespace queryosity
@@ -101,8 +120,7 @@ template <typename Bkr> using booked_t = typename Bkr::query_type;
 #include "column.h"
 #include "selection.h"
 
-inline queryosity::query::node::node()
-    : m_scale(1.0), m_selection(nullptr) {}
+inline queryosity::query::node::node() : m_scale(1.0), m_selection(nullptr) {}
 
 inline void
 queryosity::query::node::set_selection(const selection::node &selection) {

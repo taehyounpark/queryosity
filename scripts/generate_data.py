@@ -34,22 +34,32 @@ w_nom = np.ones(nentries)
 w_toy = w_nom * poisson(1).rvs(size=nentries)
 w_up = w_nom*1.1
 
+# Generate a Poisson(1) number 10k times
+v_sizes = np.random.poisson(1, 10000)
+v_values = [np.random.exponential(40, size=n) for n in v_sizes]
+v_nom = np.array([np.sort(arr)[::-1] for arr in v_values], dtype=object)
+v_dn = v_nom * 0.8
+
 # category
-category = randint.rvs(1,4,size=nentries)
+cat_nom = randint.rvs(1,4,size=nentries)
+cat_var = randint.rvs(1,4,size=nentries)
 
 # Prepare the data for JSON
 data_to_save = [
     {
         "x_true": float(x_val), 
-        "x_nom": float(x_nom_val), 
+        "x": float(x_nom_val), 
         "x_scale": float(x_scale_val), 
         "x_smear": float(x_smear_val),
-        "w_nom": float(w_nom_val),
+        "v": list(v_nom),
+        "v_dn": list(v_dn),
+        "w": float(w_nom_val),
         "w_up": float(w_up_val),
         "w_toy": float(w_toy_val),
-        "category" : int(category)
+        "cat" : int(cat_nom),
+        "cat_var" : int(cat_var)
     } 
-    for x_val, x_nom_val, x_scale_val, x_smear_val, w_nom_val, w_toy_val, w_up_val, category in zip(x_true, x_nom, x_scale, x_smear, w_nom, w_toy, w_up, category)
+    for x_val, x_nom_val, x_scale_val, x_smear_val, v_nom, v_dn, w_nom_val, w_toy_val, w_up_val, cat_nom, cat_var in zip(x_true, x_nom, x_scale, x_smear, v_nom, v_dn, w_nom, w_toy, w_up, cat_nom, cat_var)
 ]
 
 # Save the data into a JSON file

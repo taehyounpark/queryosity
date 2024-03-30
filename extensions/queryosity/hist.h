@@ -1,8 +1,10 @@
+#include "queryosity.h"
+
 #include <boost/histogram.hpp> // make_histogram, regular, weight, indexed
+#include <boost/histogram/ostream.hpp>
+
 #include <functional>          // std::ref
 #include <utility>
-
-#include "queryosity.h"
 
 namespace queryosity {
 

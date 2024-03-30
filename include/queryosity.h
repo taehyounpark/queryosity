@@ -13,6 +13,7 @@
 #include "queryosity/column_definition.h"
 #include "queryosity/column_equation.h"
 #include "queryosity/column_reader.h"
+#include "queryosity/column_series.h"
 
 #include "queryosity/query_aggregation.h"
 #include "queryosity/query_definition.h"

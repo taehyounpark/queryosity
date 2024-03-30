@@ -30,7 +30,7 @@ public:
   auto _make(dataflow &df) const;
 
 protected:
-  std::function<todo<query::book<Qry>>(dataflow &)> m_make;
+  std::function<todo<query::booker<Qry>>(dataflow &)> m_make;
 };
 
 } // namespace query

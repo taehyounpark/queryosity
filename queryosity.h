@@ -1388,7 +1388,7 @@ check_fillable(const typename query::definition<Out(Vals...)> &);
 constexpr std::false_type check_fillable(...);
 
 template <typename T> struct is_book : std::false_type {};
-template <typename T> struct is_book<query::book<T>> : std::true_type {};
+template <typename T> struct is_book<query::booker<T>> : std::true_type {};
 
 template <typename T>
 constexpr bool is_aggregation_v =
@@ -1583,7 +1583,7 @@ public:
   book &operator=(const book &) = default;
 
   template <typename... Vals>
-  auto book_fill(column::valued<Vals> const &...cols) const
+  auto fill_columns(column::valued<Vals> const &...cols) const
       -> std::unique_ptr<book<T>>;
 
   auto set_selection(const selection::node &sel) const -> std::unique_ptr<T>;
@@ -1602,14 +1602,14 @@ protected:
 
 template <typename T>
 template <typename... Args>
-queryosity::query::book<T>::book(Args... args)
+queryosity::query::booker<T>::book(Args... args)
     : m_make_unique_query(std::bind(
           [](Args... args) { return std::make_unique<T>(args...); }, args...)) {
 }
 
 template <typename T>
 template <typename... Vals>
-auto queryosity::query::book<T>::book_fill(
+auto queryosity::query::booker<T>::fill_columns(
     column::valued<Vals> const &...columns) const -> std::unique_ptr<book<T>> {
   // use a fresh one with its current fills
   auto filled = std::make_unique<book<T>>(*this);
@@ -1621,7 +1621,7 @@ auto queryosity::query::book<T>::book_fill(
 
 template <typename T>
 template <typename... Vals>
-void queryosity::query::book<T>::fill_query(
+void queryosity::query::booker<T>::fill_query(
     column::valued<Vals> const &...columns) {
   // use a snapshot of its current calls
   m_fill_columns.push_back(std::bind(
@@ -1632,7 +1632,7 @@ void queryosity::query::book<T>::fill_query(
 }
 
 template <typename T>
-auto queryosity::query::book<T>::set_selection(const selection::node &sel) const
+auto queryosity::query::booker<T>::set_selection(const selection::node &sel) const
     -> std::unique_ptr<T> {
   // call constructor
   auto cnt = m_make_unique_query();
@@ -1655,10 +1655,10 @@ public:
 
 public:
   template <typename Qry, typename... Args>
-  std::unique_ptr<query::book<Qry>> make(Args &&...args);
+  std::unique_ptr<query::booker<Qry>> make(Args &&...args);
 
   template <typename Qry>
-  auto book(query::book<Qry> const &bkr, const selection::node &sel) -> Qry *;
+  auto book(query::booker<Qry> const &bkr, const selection::node &sel) -> Qry *;
 
   void scale_current_queries(double scale);
   void clear_current_queries();
@@ -1684,14 +1684,14 @@ inline void queryosity::query::experiment::scale_current_queries(double scale) {
 }
 
 template <typename Qry, typename... Args>
-std::unique_ptr<queryosity::query::book<Qry>>
+std::unique_ptr<queryosity::query::booker<Qry>>
 queryosity::query::experiment::make(Args &&...args) {
-  auto bkr = std::make_unique<query::book<Qry>>(std::forward<Args>(args)...);
+  auto bkr = std::make_unique<query::booker<Qry>>(std::forward<Args>(args)...);
   return bkr;
 }
 
 template <typename Qry>
-auto queryosity::query::experiment::book(query::book<Qry> const &bkr,
+auto queryosity::query::experiment::book(query::booker<Qry> const &bkr,
                                          const selection::node &sel) -> Qry * {
   auto qry = bkr.set_selection(sel);
   return this->add_query(std::move(qry));
@@ -2129,7 +2129,7 @@ public:
    * @return queryosity::todo query booker.
    */
   template <typename Qry>
-  auto make(query::plan<Qry> const &plan) -> todo<query::book<Qry>>;
+  auto make(query::plan<Qry> const &plan) -> todo<query::booker<Qry>>;
 
   template <typename Val, typename... Vars>
   auto vary(column::constant<Val> const &nom, Vars const &...vars);
@@ -2163,7 +2163,7 @@ public:
       -> lazy<selection::node>;
 
   template <typename Qry, typename... Args>
-  auto _make(Args &&...args) -> todo<query::book<Qry>>;
+  auto _make(Args &&...args) -> todo<query::booker<Qry>>;
 
 protected:
   template <typename Kwd> void accept_kwarg(Kwd &&kwarg);
@@ -2180,10 +2180,10 @@ protected:
                  lazy<Cols> const &...columns) -> lazy<Def>;
 
   template <typename Qry>
-  auto _book(todo<query::book<Qry>> const &bkr,
+  auto _book(todo<query::booker<Qry>> const &bkr,
              lazy<selection::node> const &sel) -> lazy<Qry>;
   template <typename Qry, typename... Sels>
-  auto _book(todo<query::book<Qry>> const &bkr, lazy<Sels> const &...sels)
+  auto _book(todo<query::booker<Qry>> const &bkr, lazy<Sels> const &...sels)
       -> std::array<lazy<Qry>, sizeof...(Sels)>;
 
   template <typename Syst, typename Val>
@@ -3393,7 +3393,7 @@ public:
   auto _make(dataflow &df) const;
 
 protected:
-  std::function<todo<query::book<Qry>>(dataflow &)> m_make;
+  std::function<todo<query::booker<Qry>>(dataflow &)> m_make;
 };
 
 } // namespace query
@@ -3589,8 +3589,8 @@ auto queryosity::dataflow::weight(
 }
 
 template <typename Qry, typename... Args>
-auto queryosity::dataflow::_make(Args &&...args) -> todo<query::book<Qry>> {
-  return todo<query::book<Qry>>(*this, ensemble::invoke(
+auto queryosity::dataflow::_make(Args &&...args) -> todo<query::booker<Qry>> {
+  return todo<query::booker<Qry>>(*this, ensemble::invoke(
                                            [&args...](dataset::player *plyr) {
                                              return plyr->template make<Qry>(
                                                  std::forward<Args>(args)...);
@@ -3600,7 +3600,7 @@ auto queryosity::dataflow::_make(Args &&...args) -> todo<query::book<Qry>> {
 
 template <typename Qry>
 auto queryosity::dataflow::make(queryosity::query::plan<Qry> const &cntr)
-    -> todo<query::book<Qry>> {
+    -> todo<query::booker<Qry>> {
   return cntr._make(*this);
 }
 
@@ -3619,13 +3619,13 @@ auto queryosity::dataflow::_evaluate(todo<column::evaluator<Def>> const &calc,
 }
 
 template <typename Qry>
-auto queryosity::dataflow::_book(todo<query::book<Qry>> const &bkr,
+auto queryosity::dataflow::_book(todo<query::booker<Qry>> const &bkr,
                                  lazy<selection::node> const &sel)
     -> lazy<Qry> {
   // new query booked: dataset will need to be analyzed
   this->reset();
   auto act = ensemble::invoke(
-      [](dataset::player *plyr, query::book<Qry> *bkr,
+      [](dataset::player *plyr, query::booker<Qry> *bkr,
          const selection::node *sel) { return plyr->book(*bkr, *sel); },
       m_processor.get_slots(), bkr.get_slots(), sel.get_slots());
   auto lzy = lazy<Qry>(*this, act);
@@ -3633,7 +3633,7 @@ auto queryosity::dataflow::_book(todo<query::book<Qry>> const &bkr,
 }
 
 template <typename Qry, typename... Sels>
-auto queryosity::dataflow::_book(todo<query::book<Qry>> const &bkr,
+auto queryosity::dataflow::_book(todo<query::booker<Qry>> const &bkr,
                                  lazy<Sels> const &...sels)
     -> std::array<lazy<Qry>, sizeof...(Sels)> {
   return std::array<lazy<Qry>, sizeof...(Sels)>{this->_book(bkr, sels)...};
@@ -3990,7 +3990,7 @@ protected:
     return todo<V>(*this->m_df,
                    ensemble::invoke(
                        [](V *fillable, typename Nodes::action_type *...cols) {
-                         return fillable->book_fill(*cols...);
+                         return fillable->fill_columns(*cols...);
                        },
                        this->get_slots(), columns.get_slots()...));
   }

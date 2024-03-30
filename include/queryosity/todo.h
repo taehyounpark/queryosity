@@ -220,7 +220,7 @@ protected:
     return todo<V>(*this->m_df,
                    ensemble::invoke(
                        [](V *fillable, typename Nodes::action_type *...cols) {
-                         return fillable->book_fill(*cols...);
+                         return fillable->add_columns(*cols...);
                        },
                        this->get_slots(), columns.get_slots()...));
   }

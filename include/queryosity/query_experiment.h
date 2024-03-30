@@ -6,7 +6,7 @@
 #include "selection_cutflow.h"
 
 #include "query.h"
-#include "query_book.h"
+#include "query_booker.h"
 
 namespace queryosity {
 
@@ -18,10 +18,10 @@ public:
 
 public:
   template <typename Qry, typename... Args>
-  std::unique_ptr<query::book<Qry>> make(Args &&...args);
+  std::unique_ptr<query::booker<Qry>> make(Args &&...args);
 
   template <typename Qry>
-  auto book(query::book<Qry> const &bkr, const selection::node &sel) -> Qry *;
+  auto book(query::booker<Qry> const &bkr, const selection::node &sel) -> Qry *;
 
   void scale_current_queries(double scale);
   void clear_current_queries();
@@ -47,14 +47,14 @@ inline void queryosity::query::experiment::scale_current_queries(double scale) {
 }
 
 template <typename Qry, typename... Args>
-std::unique_ptr<queryosity::query::book<Qry>>
+std::unique_ptr<queryosity::query::booker<Qry>>
 queryosity::query::experiment::make(Args &&...args) {
-  auto bkr = std::make_unique<query::book<Qry>>(std::forward<Args>(args)...);
+  auto bkr = std::make_unique<query::booker<Qry>>(std::forward<Args>(args)...);
   return bkr;
 }
 
 template <typename Qry>
-auto queryosity::query::experiment::book(query::book<Qry> const &bkr,
+auto queryosity::query::experiment::book(query::booker<Qry> const &bkr,
                                          const selection::node &sel) -> Qry * {
   auto qry = bkr.set_selection(sel);
   return this->add_query(std::move(qry));

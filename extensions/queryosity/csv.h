@@ -7,50 +7,66 @@ namespace queryosity {
 class csv : public dataset::reader<csv> {
 
 public:
-class cell;
+  template <typename T>
+  class cell;
 
 public:
-csv(const std::string& file_path);
-virtual ~csv() = default;
+  csv(std::ifstream& data);
+  virtual ~csv() = default;
 
-/**
- * @brief Parallelize the dataset for parallel processing.
- * @param[in] nslots Requested concurrency.
- */
-virtual void parallelize(unsigned int nslots) override;
+  /**
+   * @brief Parallelize the dataset for parallel processing.
+   * @param[in] nslots Requested concurrency.
+   */
+  virtual void parallelize(unsigned int nslots) override;
 
-/**
- * @brief Partition the dataset for parallel processing.
- * @returns Dataset partition.
- */
-virtual std::vector<std::pair<unsigned long long, unsigned long long>>
-partition() override;
+  /**
+   * @brief Partition the dataset for parallel processing.
+   * @returns Dataset partition.
+   */
+  virtual std::vector<std::pair<unsigned long long, unsigned long long>>
+  partition() override;
 
-/**
- * @brief Read a column.
- * @tparam T Column data type.
- * @param[in] slot Multithreading slot index.
- * @param[in] column_name Column name.
- */
-template <typename T>
-std::unique_ptr<item<T>> read(unsigned int slot,
-                              const std::string &column_name) const;
+  /**
+   * @brief Read a column.
+   * @tparam T Column data type.
+   * @param[in] slot Multithreading slot index.
+   * @param[in] column_name Column name.
+   */
+  template <typename T>
+  std::unique_ptr<cell<T>> read(unsigned int slot,
+                                const std::string &column_name) const;
 
 protected:
-  CSVReader m_reader;
+  rapidcsv::Document m_document;
   unsigned int m_nslots;
-
 };
 
-}
+template <typename T> class csv::cell : public column::reader<T> {
 
-inline queryosity::csv::csv(const std::string& file_path) : m_reader(file_path), m_nslots(1) {}
+public:
+  cell(rapidcsv::Document const &document, const std::string &column_name)
+      : m_value(), m_document(document), m_column_name(column_name) {};
+  virtual ~cell() = default;
 
-inline std::vector<std::pair<unsigned long long, unsigned long long>> partition() {
-  unsigned int nrows = 0;
-  for(auto it = m_reader.begin() ; it != m_reader.end() ; ++it) {
-    nrows++;
-  }
+  virtual T const &read(unsigned int, unsigned long long) const override;
+
+protected:
+  mutable T m_value;
+  rapidcsv::Document const &m_document;
+  std::string m_column_name;
+};
+
+} // namespace queryosity
+
+inline queryosity::csv::csv(std::ifstream& data)
+    : m_document(data), m_nslots(1) {}
+
+inline void queryosity::csv::parallelize(unsigned int nslots) { m_nslots = nslots; }
+
+inline std::vector<std::pair<unsigned long long, unsigned long long>>
+queryosity::csv::partition() {
+  unsigned int nrows = m_document.GetRowCount();
 
   // take division & remainder
   const unsigned int nentries_per_slot = nrows / m_nslots;
@@ -68,5 +84,16 @@ inline std::vector<std::pair<unsigned long long, unsigned long long>> partition(
   assert(parts.back().second == nrows);
 
   return parts;
+}
 
+template <typename T>
+std::unique_ptr<queryosity::csv::cell<T>>
+queryosity::csv::read(unsigned int, const std::string &column_name) const {
+  return std::make_unique<cell<T>>(m_document, column_name);
+}
+
+template <typename T>
+T const &queryosity::csv::cell<T>::read(unsigned int, unsigned long long entry) const {
+  this->m_value = this->m_document.template GetCell<T>(this->m_column_name, entry);
+  return this->m_value;
 }
