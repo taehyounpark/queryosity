@@ -162,7 +162,7 @@ Subsequently, the plan can be filled with input columns and booked at a selectio
 @cpp
 using h1d = qty::hist::hist<double>;
 using h2d = qty::hist::hist<double,double>;
-using linax = qty::hist::axis::linear;
+using linax = qty::hist::axis::regular;
 
 // instantiate a 1d histogram query filled with x over all entries
 auto q = df.make(query::plan<h1d>(linax(100,0.0,1.0))).fill(x).book(inclusive);

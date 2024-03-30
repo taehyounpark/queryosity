@@ -42,6 +42,9 @@ target_compile_options(
   $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-ggdb3> 
 )
 
+find_package(Threads REQUIRED)
+target_link_libraries(queryosity INTERFACE Threads::Threads)
+
 if (QUERYOSITY_INSTALL)
   include(CMakePackageConfigHelpers)
   include(GNUInstallDirs)
@@ -88,14 +91,7 @@ if (QUERYOSITY_INSTALL)
 
 endif()
 
-if (QUERYOSITY_TESTS OR QUERYOSITY_EXAMPLES)
-
-  # boost
-  find_package(Boost REQUIRED)
-  include_directories(${Boost_INCLUDE_DIRS})
-  link_directories(${Boost_LIBRARY_DIRS})
-
-
+if (QUERYOSITY_EXTENSIONS OR QUERYOSITY_TESTS OR QUERYOSITY_EXAMPLES)
   add_subdirectory("extensions")
 endif()
 

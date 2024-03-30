@@ -1,15 +1,13 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include <random>
-#include <unordered_map>
+#include <nlohmann/json.hpp>
+#include "queryosity/json.h"
 
 #include "queryosity.h"
 
-#include <nlohmann/json.hpp>
-
-#include "queryosity/col.h"
-#include "queryosity/json.h"
+#include <random>
+#include <unordered_map>
 
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
@@ -34,7 +32,7 @@ std::vector<int> get_queryosity_result(const nlohmann::json &random_data,
   auto entry_value = ds.read(dataset::column<int>("value"));
   auto all = df.define(column::constant<bool>(true));
   auto incl = df.filter(all);
-  auto col = df.make(query::plan<qty::col<int>>());
+  auto col = df.make(query::plan<query::series<int>>());
   col = col.fill(entry_value);
   return incl.book(col).result();
 }

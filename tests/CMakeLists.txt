@@ -1,11 +1,4 @@
 if (QUERYOSITY_TESTS)
-
-  find_package(Threads REQUIRED)
-
-  find_package(Boost REQUIRED)
-  include_directories(${Boost_INCLUDE_DIRS})
-  link_directories(${Boost_LIBRARY_DIRS})
-
   #add_executable(test-definition ./test-definition.cxx)
   #target_compile_features(test-definition PUBLIC cxx_std_17)
   #target_link_libraries(test-definition queryosity::extensions pthread ${Boost_LIBRARIES})

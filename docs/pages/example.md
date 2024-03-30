@@ -21,7 +21,7 @@ namespace query = qty::query;
 
 using json = qty::json;
 using h1d = qty::hist::hist<double>;
-using linax = qty::hist::axis::linear;
+using linax = qty::hist::axis::regular;
 
 int main() {
 

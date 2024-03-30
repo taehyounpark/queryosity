@@ -17,6 +17,10 @@ target_compile_options(
   $<$<CONFIG:Debug>:-O0> $<$<CONFIG:Debug>:-ggdb3> 
 )
 
+# boost::histogram
+find_package(Boost REQUIRED)
+
+# nlohmann::json
 include(FetchContent)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
@@ -26,7 +30,7 @@ FetchContent_MakeAvailable(csv)
 
 target_include_directories(
   queryosity_extensions 
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} 
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS}
 )
 include(ExternalProject)
 

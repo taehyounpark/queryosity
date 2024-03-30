@@ -134,8 +134,8 @@ public:
    * @return Varied lazy column.
    */
   template <typename Fn, typename... Cols>
-  auto define(column::expression<Fn> const &expr, Cols const &...cols)
-      -> typename lazy<column::equation_t<Fn>>::varied;
+  auto define(column::expression<Fn> const &expr, Cols const &...cols) ->
+      typename lazy<column::equation_t<Fn>>::varied;
 
   /**
    * @brief Define a custom column.
@@ -158,8 +158,8 @@ public:
    * @return Varied lazy column.
    */
   template <typename Def, typename... Cols>
-  auto define(column::definition<Def> const &defn, Cols const &...cols)
-      -> typename lazy<Def>::varied;
+  auto define(column::definition<Def> const &defn, Cols const &...cols) ->
+      typename lazy<Def>::varied;
 
   /**
    * @brief Initiate a cutflow.
@@ -245,10 +245,14 @@ public:
       -> lazy<column::conversion<To, column::value_t<Col>>>;
 
   template <typename Def, typename... Args> auto _define(Args &&...args);
-  template <typename Def> auto _define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
+  template <typename Def>
+  auto _define(column::definition<Def> const &defn)
+      -> todo<column::evaluator<Def>>;
 
   template <typename Fn> auto _equate(Fn fn);
-  template <typename Fn> auto _equate(column::expression<Fn> const &expr) -> todo<column::evaluator<column::equation_t<Fn>>> ;
+  template <typename Fn>
+  auto _equate(column::expression<Fn> const &expr)
+      -> todo<column::evaluator<column::equation_t<Fn>>>;
 
   template <typename Sel, typename Col>
   auto _select(lazy<Col> const &col) -> lazy<selection::node>;
@@ -416,8 +420,8 @@ auto queryosity::dataflow::define(
 
 template <typename Def, typename... Cols>
 auto queryosity::dataflow::define(
-    queryosity::column::definition<Def> const &defn, Cols const &...cols)
-    -> typename lazy<Def>::varied {
+    queryosity::column::definition<Def> const &defn, Cols const &...cols) ->
+    typename lazy<Def>::varied {
   return this->_define(defn).template evaluate(cols...);
 }
 
@@ -430,8 +434,8 @@ auto queryosity::dataflow::define(
 
 template <typename Fn, typename... Cols>
 auto queryosity::dataflow::define(
-    queryosity::column::expression<Fn> const &expr, Cols const &...cols)
-    -> typename lazy<column::equation_t<Fn>>::varied {
+    queryosity::column::expression<Fn> const &expr, Cols const &...cols) ->
+    typename lazy<column::equation_t<Fn>>::varied {
   return this->_equate(expr).template evaluate(cols...);
 }
 
@@ -609,13 +613,13 @@ auto queryosity::dataflow::_define(Args &&...args) {
 
 template <typename Def>
 auto queryosity::dataflow::_define(
-    queryosity::column::definition<Def> const &defn) -> todo<column::evaluator<Def>>  {
+    queryosity::column::definition<Def> const &defn)
+    -> todo<column::evaluator<Def>> {
   return defn._define(*this);
 }
 
-template <typename Fn> auto queryosity::dataflow::_equate(Fn fn){
-  return todo<column::evaluator<
-      typename column::equation_t<Fn>>>(
+template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
+  return todo<column::evaluator<typename column::equation_t<Fn>>>(
       *this,
       ensemble::invoke(
           [fn](dataset::player *plyr) { return plyr->template equate(fn); },
@@ -624,7 +628,8 @@ template <typename Fn> auto queryosity::dataflow::_equate(Fn fn){
 
 template <typename Fn>
 auto queryosity::dataflow::_equate(
-    queryosity::column::expression<Fn> const &expr) -> todo<column::evaluator<column::equation_t<Fn>>> {
+    queryosity::column::expression<Fn> const &expr)
+    -> todo<column::evaluator<column::equation_t<Fn>>> {
   return expr._equate(*this);
 }
 

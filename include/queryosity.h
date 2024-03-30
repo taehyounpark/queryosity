@@ -16,6 +16,7 @@
 
 #include "queryosity/query_aggregation.h"
 #include "queryosity/query_definition.h"
+#include "queryosity/query_series.h"
 
 #include "queryosity/dataflow.h"
 
