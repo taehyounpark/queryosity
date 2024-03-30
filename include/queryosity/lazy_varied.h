@@ -29,6 +29,9 @@ public:
   varied(lazy<Act> nom);
   ~varied() = default;
 
+  varied(varied const &) = default;
+  varied &operator=(varied const &) = default;
+
   varied(varied &&) = default;
   varied &operator=(varied &&) = default;
 

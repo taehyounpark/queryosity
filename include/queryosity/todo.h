@@ -3,30 +3,11 @@
 #include "dataflow.h"
 #include "lazy.h"
 #include "lazy_varied.h"
+#include "detail.h"
 #include "systematic.h"
 #include "systematic_resolver.h"
 
 namespace queryosity {
-
-template <typename T> class todo;
-
-template <typename U>
-static constexpr std::true_type check_lazy(lazy<U> const &);
-static constexpr std::false_type check_lazy(...) { return std::false_type{}; }
-template <typename U>
-static constexpr std::true_type check_todo(todo<U> const &);
-static constexpr std::false_type check_todo(...) { return std::false_type{}; }
-
-template <typename V>
-static constexpr bool is_nominal_v =
-    (decltype(check_lazy(std::declval<V>()))::value ||
-     decltype(check_todo(std::declval<V>()))::value);
-template <typename V> static constexpr bool is_varied_v = !is_nominal_v<V>;
-
-template <typename... Args>
-static constexpr bool has_no_variation_v = (is_nominal_v<Args> && ...);
-template <typename... Args>
-static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 /**
  * @ingroup api

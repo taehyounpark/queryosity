@@ -25,8 +25,7 @@ public:
   series(Col const &col);
   ~series() = default;
 
-  auto _get(lazy<selection::node> &sel) const
-      -> lazy<query::series<value_type>>;
+  auto _get(lazy<selection::node> &sel) const;
 
   auto _get(lazy<selection::node>::varied &sel) const ->
       typename lazy<query::series<value_type>>::varied;
@@ -43,8 +42,7 @@ template <typename Col>
 queryosity::column::series<Col>::series(Col const &col) : m_column(col){};
 
 template <typename Col>
-auto queryosity::column::series<Col>::_get(lazy<selection::node> &sel) const
-    -> lazy<query::series<value_type>> {
+auto queryosity::column::series<Col>::_get(lazy<selection::node> &sel) const {
   auto df = sel.m_df;
   return df->make(query::plan<query::series<value_type>>())
       .fill(m_column)
