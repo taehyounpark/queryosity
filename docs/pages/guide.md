@@ -248,8 +248,7 @@ Both approaches can (and should) be used in a dataflow for full control over the
 auto x = ds.vary(
   dataset::column<double>("x_nom"),
   {{"shift_x","x_shifted"}, {"smear_x", "x_smeared"}}
-  );  
-// type = qty::lazy<column::fixed<double>>::varied
+  ); // qty::lazy<column::fixed<double>>::varied
 // (column::fixed<dobule> is the concrete type)
 
 // constants are varied by alternate values
@@ -278,8 +277,7 @@ auto z = systematic::vary(
   systematic::nominal(z_nom), 
   systematic::variation("z_fixed", f_fixed), 
   systematic::variation("z_half", z_half)
-  );  
-// qty::lazy<column::valued<double>>::varied
+  ); // qty::lazy<column::valued<double>>::varied
 // (column::valued<double> is the common denominator base class)
 @endcpp
 
