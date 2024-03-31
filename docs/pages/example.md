@@ -190,10 +190,9 @@ int main() {
   auto met = met_MeV / MeV;
 
   // vary the energy scale by +/-2%
-  auto Escale =
-      df.vary(column::expression([](VecD E) { return E; }),
-              systematic::variation("eg_up", [](VecD E) { return E * 1.02; }),
-              systematic::variation("eg_dn", [](VecD E) { return E * 0.98; }));
+  auto Escale = df.vary(column::expression([](VecD E) { return E; }),
+                      {{"eg_up", [](VecD E) { return E * 1.02; }},
+                       {"eg_dn", [](VecD E) { return E * 0.98; }}});
 
   // apply the energy scale (uncertainties)
   // and select ones within acceptance
