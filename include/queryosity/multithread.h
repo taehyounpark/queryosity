@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <thread>
@@ -31,11 +32,15 @@ unsigned int check(std::vector<T> const &first,
                    std::vector<Args> const &...args);
 
 template <typename Fn, typename... Args>
-void call(Fn const &fn, std::vector<Args> const &...args);
+auto invoke(Fn const &fn, std::vector<Args> const &...args)
+    -> std::enable_if_t<
+        !std::is_void_v<typename std::invoke_result_t<Fn, Args...>>,
+        std::vector<typename std::invoke_result_t<Fn, Args...>>>;
 
 template <typename Fn, typename... Args>
 auto invoke(Fn const &fn, std::vector<Args> const &...args)
-    -> std::vector<typename std::invoke_result_t<Fn, Args...>>;
+    -> std::enable_if_t<
+        std::is_void_v<typename std::invoke_result_t<Fn, Args...>>, void>;
 
 } // namespace ensemble
 
@@ -113,30 +118,35 @@ inline unsigned int
 queryosity::ensemble::check(std::vector<T> const &first,
                             std::vector<Args> const &...args) {
   assert(((first.size() == args.size()) && ...));
-  (args.size(), ...);  // suppress GCC unused parameter warnings
+  (args.size(), ...); // suppress GCC unused parameter warnings
   return first.size();
-}
-
-template <typename Fn, typename... Args>
-inline void queryosity::ensemble::call(Fn const &fn,
-                                       std::vector<Args> const &...args) {
-  const auto nslots = check(args...);
-  for (size_t i = 0; i < nslots; ++i) {
-    fn(args.at(i)...);
-  }
 }
 
 template <typename Fn, typename... Args>
 inline auto queryosity::ensemble::invoke(Fn const &fn,
                                          std::vector<Args> const &...args)
-    -> std::vector<typename std::invoke_result_t<Fn, Args...>> {
+    -> std::enable_if_t<
+        !std::is_void_v<typename std::invoke_result_t<Fn, Args...>>,
+        std::vector<typename std::invoke_result_t<Fn, Args...>>> {
   auto nslots = check(args...);
-  typename std::vector<typename std::invoke_result_t<Fn, Args...>> invoked;
+  using slot_t = typename std::invoke_result_t<Fn, Args...>;
+  typename std::vector<slot_t> invoked;
   invoked.reserve(nslots);
   for (size_t i = 0; i < nslots; ++i) {
     invoked.push_back(std::move((fn(args.at(i)...))));
   }
   return invoked;
+}
+
+template <typename Fn, typename... Args>
+inline auto queryosity::ensemble::invoke(Fn const &fn,
+                                         std::vector<Args> const &...args)
+    -> std::enable_if_t<
+        std::is_void_v<typename std::invoke_result_t<Fn, Args...>>, void> {
+  auto nslots = check(args...);
+  for (size_t i = 0; i < nslots; ++i) {
+    fn(args.at(i)...);
+  }
 }
 
 template <typename T>
