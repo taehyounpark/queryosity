@@ -6,7 +6,7 @@
 [![macOS](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`queryosity` is a row-wise analysis description language for semi-structured data.
+`queryosity` is a row-wise data analysis description language.
 
 <p align="center">
 	<strong> <a href="https://taehyounpark.github.io/queryosity/">See full documentation</a></strong>
@@ -15,11 +15,11 @@
 ## Features
 
 - **Super simple.** The easy-to-learn API has a grand total of *five* endpoints.
-- **Arbitrary actions.** Work with datasets/columns/queries of *any* data structure the way *you* want to.
+- **Arbitrary data types.** Work with datasets/columns/queries of *any* data structure.
 - **Lazy but efficient.** An action is performed for an entry only if needed. All actions are performed in one dataset traversal. Dataset traversal is multithreaded.
-- **Systematic variations.** Perform *automatic* sensitivity analysis by applying systematic variations on actions.
+- **Systematic variations.** Perform *automatic* sensitivity analysis by applying systematic variations on columns.
 
-## At a glance
+## Hello World
 ```cpp
 #include "queryosity/json.h"
 #include "queryosity/hist.h"

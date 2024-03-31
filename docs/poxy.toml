@@ -2,7 +2,7 @@
 
 name            = 'queryosity'
 author          = 'Tae Hyoun Park'
-description     = 'Coherent analysis description language'
+description     = 'Coherent data analysis description language'
 cpp             = 17
 github          = 'taehyounpark/queryosity'
 license         = [ 'MIT', 'https://github.com/taehyounpark/queryosity/blob/master/LICENSE' ]
