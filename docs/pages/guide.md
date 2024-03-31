@@ -248,14 +248,14 @@ Both approaches can (and should) be used in a dataflow for full control over the
 auto x = ds.vary(
   dataset::column<double>("x_nom"),
   {{"shift_x","x_shifted"}, {"smear_x", "x_smeared"}}
-  ); // qty::lazy<column::fixed<double>>::varied
-// (column::fixed<dobule> is the concrete type)
+  );
 
 // constants are varied by alternate values
 auto y = df.vary(
   column::constant(true),
   {{"no", false}}
-  );
+  ); // qty::lazy<column::fixed<double>>::varied
+// (column::fixed<dobule> is the concrete type)
 
 // expressions are varied by alternate expression and input columns
 auto x_pm_y = df.vary(
