@@ -1,14 +1,18 @@
 @page install Installation
 @tableofcontents
 
-- Core prerequisites: C++17
-- Extension dependencies: [nlohmann::json](https://json.nlohmann.me), [boost::histogram](https://www.boost.org/doc/libs/1_84_0/libs/histogram/doc/html/index.html)
-- The following environments are included in CI:
+- Core requirement: C++17
+  - The following environments are included in CI:
 
 | OS | Compiler | Versions |
 | :--- | :--- | :--- |
 | macOS 12 | Clang | 13.1, 13.2.1, 13.3.1, 13.4.1, 14.0, 14.0.1, 14.1 |
 | Ubuntu 22.04 LTS | GCC | 9.4, 10.5, 11.4, 12.3 |
+
+- Optional dependencies (for tests and examples): 
+  - [nlohmann::json](https://json.nlohmann.me)
+  - [radpidcsv](https://github.com/d99kris/rapidcsv) 
+  - [boost::histogram](https://www.boost.org/doc/libs/1_84_0/libs/histogram/doc/html/index.html)
 
 @section install-header Single-header
 
@@ -26,17 +30,17 @@ git clone https://github.com/taehyounpark/queryosity.git
 
 ~~~{.sh}
 cd queryosity/ && mkdir build/ && cd build/
-cmake ../
+cmake -DQUERYOSITY_INSTALL=ON ../
 cmake --build .
 cmake --install .
 ~~~
 
 ~~~{.cmake}
-find_package(queryosity 0.1.0 REQUIRED)
+find_package(queryosity 0.3.2 REQUIRED)
 ...
-add_library(YourProject ...)
+add_library(MyAnalysis ...)
 ...
-target_link_libraries(YourProject INTERFACE queryosity::queryosity)
+target_link_libraries(MyAnalysis INTERFACE queryosity::queryosity)
 ~~~
 
 ~~~{.cpp}
@@ -48,9 +52,9 @@ target_link_libraries(YourProject INTERFACE queryosity::queryosity)
 ~~~{.cmake}
 add_subdirectory(queryosity)
 ...
-add_library(YourProject ...)
+add_library(MyAnalysis ...)
 ...
-target_link_libraries(YourProject INTERFACE queryosity::queryosity)
+target_link_libraries(MyAnalysis INTERFACE queryosity::queryosity)
 ~~~
 
 ~~~{.cpp}

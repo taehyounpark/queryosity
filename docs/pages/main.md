@@ -1,21 +1,13 @@
 @mainpage
 
-@tableofcontents
+<!-- @tableofcontents -->
 
-`queryosity` is a row-wise data analysis description language.
-
-<!-- --------------------------------------------------------------------------------------------------------------- -->
-
-@section mainpage-features Features
-
-- **Super simple.** The easy-to-learn API has a grand total of *five* endpoints.
-- **Arbitrary data types.** Work with datasets/columns/queries of *any* data structure.
-- **Lazy but efficient.** An action is performed for an entry only if needed. All actions are performed in one dataset traversal. Dataset traversal is multithreaded.
-- **Systematic variations.** Perform *automatic* sensitivity analysis by applying systematic variations on columns.
+`queryosity` is a row-wise analysis description language for (semi-)structured data.
 
 @section mainpage-documentation Documentation
 
 - @ref install
+- @ref design
 - @ref conceptual
 - @ref guide
 - @ref example

@@ -176,17 +176,19 @@ template <typename Lzy> class nominal;
 
 class mode {
 public:
-  mode() : m_variation_name("") {}
+  mode() : m_is_nominal(true), m_variation_name("") {}
   ~mode() = default;
 
   void set_variation_name(const std::string &var_name) {
+    m_is_nominal = false;
     m_variation_name = var_name;
   }
 
-  bool is_nominal() const { return m_variation_name.empty(); }
+  bool is_nominal() const { return m_is_nominal; }
   std::string variation_name() const { return m_variation_name; }
 
 protected:
+  bool m_is_nominal;
   std::string m_variation_name;
 };
 

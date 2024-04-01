@@ -6,18 +6,18 @@
 [![macOS](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`queryosity` is a row-wise data analysis description language.
+`queryosity` is a row-wise analysis description language for (semi-)structured data.
 
 <p align="center">
-	<strong> <a href="https://taehyounpark.github.io/queryosity/">See full documentation</a></strong>
+	<strong> <a href="https://taehyounpark.github.io/queryosity/">Documentation</a></strong>
 </p>
 
 ## Features
 
-- **Super simple.** The easy-to-learn API has a grand total of *five* endpoints.
-- **Arbitrary data types.** Work with datasets/columns/queries of *any* data structure.
-- **Lazy but efficient.** An action is performed for an entry only if needed. All actions are performed in one dataset traversal. Dataset traversal is multithreaded.
-- **Systematic variations.** Perform *automatic* sensitivity analysis by applying systematic variations on columns.
+- Dataflow interface.
+- Arbitrary data types.
+- Lazy, multithreaded actions.
+- Sensitivity analysis.
 
 ## Hello World
 ```cpp
@@ -82,7 +82,7 @@ git clone https://github.com/taehyounpark/queryosity.git
 #### External
 ```sh
 cd queryosity/ && mkdir build/ && cd build/
-cmake ../
+cmake -DQUERYOSITY_INSTALL=ON ../
 cmake --build .
 cmake --install .
 ```

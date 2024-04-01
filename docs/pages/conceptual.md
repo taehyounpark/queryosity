@@ -5,14 +5,14 @@
 
 A `dataflow` consists of a directed, acyclic graph of tasks performed for each entry.
 
-@image html dataflow.png "The dataflow"
+@image html dataflow.png "The dataflow."
 
 An action is a node belonging to one of three task sub-graphs, each of which are associated with a set of applicable methods.
 Actions of each task graph can receive ones of the previous graphs as inputs:
 
 | Action | Description | Methods | Description | Task Graph | Input actions |
 | :--- | :-- | :-- | :-- | :-- | :-- | 
-| `column` | Quantity of interest | `read()` | Read a column. | Computation | -- |
+| `column` | Quantity of interest | `read()` | Read a column. | Computation | (`column`) |
 | | | `define()` | Evaluate a column. | | |
 | `selection` | Boolean decision | `filter()` | Apply a cut. | Cutflow | `column` |
 | | Floating-point decision | `weight()` | Apply a statistical significance. | | |
@@ -23,21 +23,20 @@ Actions of each task graph can receive ones of the previous graphs as inputs:
 @section conceptual-lazy Lazy actions
 
 All actions are "lazy", meaning they are not executed them unless required.
-Accessing the result of a query turns it "eager" and triggers the dataset traversal.
-The dataset traversal performs all existing queries of the dataflow up to that point.
+Accessing the result of a query turns it and all other actions "eager", triggering the dataset traversal.
 The eagerness of actions in each entry is as follows:
 
-1. A query is executed only if its associated selection passes the cut.
+1. A query is performed only if its associated selection passes the cut.
 2. A selection is evaluated only if all prior cuts in the cutflow have passed.
 3. A column is evaluated only if it is needed to determine any of the above.
 
 @section conceptual-columns Columns
 
-A `column` contains some data type `T` whose value is updated for each entry.
-Columns that are read-in from a dataset or user-defined constants are *independent*, i.e. their values do not depend on others, whereas other user-defined columns are *dependent* and require existing columns as inputs.
-A tower of dependent columns evaluated out of more independent ones forms the computation graph:
+A `column` holds a value of some data type `T` to be updated for each entry.
+Columns that are read-in from a dataset or user-defined constants are *independent*, i.e. their values do not depend on others, whereas columns evaluated out of existing ones as inputs are *dependent*.
+The tower of dependent columns evaluated out of more independent ones forms the computation graph:
 
-@image html computation.png "Example computation graph"
+@image html computation.png "Example computation graph."
 
 Only the minimum number of computations needed are performed for each entry:
 - If and when a column value is computed for an entry, it is cached and never re-computed.
@@ -49,22 +48,22 @@ Only the minimum number of computations needed are performed for each entry:
 A `selection` represents a scalar-valued decision made on an entry:
 
 - A boolean `cut` to determine if a query should be performed for a given entry.
-    - A series of two or more cuts becomes their intersection, `&&`.
+    - A series of two or more cuts becomes their intersection, `and`
 - A floating-point `weight` to assign a statistical significance to the entry.
     - A series of two or more weights becomes to their product, `*`.
 
 A cutflow can have from the following types connections between selections:
 
-@image html cutflow.png "Example cutflow structure"
+@image html cutflow.png "Example cutflow structure."
 
 - Applying a selection from an existing node, which determines the order in which they are compounded.
 - Branching selections by applying more than one selection from a common node.
 - Merging two selections, e.g. taking the union/intersection of two cuts.
 
-Selections constitute a specific type of columns; as such, they are subject to the same value-caching and computation behaviour.
-In addition, the cutflow imposes the following additional rules on them:
-- The cut decision is evaluated only if of its previous cut has passed.
-- The weight decision is evaluated only if the cut has passed.
+Selections constitute a specific type of columns; as such, they are subject to the value-caching and evaluation behaviour of the computation graph.
+Addditionally, the cutflow imposes the following rules on them:
+- The cut at a selection is evaluated only if all previous cuts have passed.
+- The weight at a selection is evaluated only if its cut has passed.
 
 @section conceptual-query Queries
 
@@ -78,9 +77,9 @@ For multithreaded runs, the user must also define how outputs from individual th
 
 Two common workflows exist in associating queries with selections:
 
-@image html query_1.png "Running a single query at multiple selections"
+@image html query_1.png "Running a single query at multiple selections."
 
-@image html query_2.png "Running multiple queries at a selection"
+@image html query_2.png "Running multiple queries at a selection."
 
 @section conceptual-variations Systematic variations
 
@@ -100,4 +99,6 @@ The propagation proceeds in the following fashion:
 
 All variations are processed at once in a single dataset traversal, i.e. they do not incur additional runtime overhead other than what is already required to perform the actions themselves.
 
-@image html variation.png "Propagation of systematic variations for z=x+y."
+@image html variation.png "Propagation of systematic variations."
+
+@see @ref guide
