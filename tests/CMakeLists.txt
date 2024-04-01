@@ -1,8 +1,5 @@
 if (QUERYOSITY_TESTS)
 
-  install(FILES ${CMAKE_SOURCE_DIR}/data/data.json
-          DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/
-  )
   #add_executable(test-definition ./test-definition.cxx)
   #target_compile_features(test-definition PUBLIC cxx_std_17)
   #target_link_libraries(test-definition queryosity::extensions pthread ${Boost_LIBRARIES})
