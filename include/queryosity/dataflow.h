@@ -535,7 +535,7 @@ template <typename Col> auto queryosity::dataflow::weight(Col const &col) {
   return syst;
 }
 
-auto queryosity::dataflow::all() -> lazy<selection::node> {
+inline auto queryosity::dataflow::all() -> lazy<selection::node> {
   if (!m_all) {
     m_all = std::make_unique<lazy<selection::node>>(
         this->filter(column::constant(true)));

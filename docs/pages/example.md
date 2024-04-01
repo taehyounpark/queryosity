@@ -103,8 +103,8 @@ histogram(regular(20, 0, 200, options=underflow | overflow))
 	- Scale lepton energy scale by @f$\pm 2\,\%@f$ as systematic variations.
 
 @cpp
-#include "qhep/Hist.h"
-#include "qhep/Tree.h"
+#include "HepQuery/Hist.h"
+#include "HepQuery/Tree.h"
 
 #include "queryosity.h"
 
@@ -162,7 +162,7 @@ int main() {
 
   std::vector<std::string> tree_files{"hww.root"};
   std::string tree_name = "mini";
-  auto ds = df.load(dataset::input<Tree>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<HepQ::Tree>(tree_files, tree_name));
 
   // weights
   auto mc_weight = ds.read(dataset::column<float>("mcWeight"));
@@ -275,7 +275,7 @@ int main() {
   // ---------------------------------------------------------------------------
   
   auto [pth_2los_sr, pth_2ldf_sr, pth_2lsf_sr] =
-      df.make(query::plan<Hist<1, float>>("pth", 30, 0, 150))
+      df.make(query::plan<HepQ::Hist<1, float>>("pth", 30, 0, 150))
           .fill(higgs_pt)
           .book(cut_2los_sr, cut_2ldf_sr, cut_2lsf_sr);
 
@@ -324,8 +324,8 @@ int main() {
 3. Compute & plot their di-invariant mass, @f$ m_{ee} @f$.
 
 @cpp
-#include "qhep/Event.h"
-#include "qhep/Hist.h"
+#include "HepQuery/Event.h"
+#include "HepQuery/Hist.h"
 
 #include <xAODEventInfo/EventInfo.h>
 #include <xAODEgamma/ElectronContainer.h>
@@ -425,7 +425,7 @@ int main(int argc, char *argv[]) {
           .filter(column::expression(TwoElectrons), selectedElectrons);
 
   auto selectedElectronsPtHist =
-      df.make(query::plan<Hist<1,float>>("diElectronMass", 100, 0, 500))
+      df.make(query::plan<HepQ::Hist<1,float>>("diElectronMass", 100, 0, 500))
           .fill(diElectronsMassGeV)
           .book(atLeastTwoSelectedElectrons);
 
@@ -517,7 +517,7 @@ void task(int n) {
 
   std::vector<std::string> tree_files{"Run2012B_SingleMu.root"};
   std::string tree_name = "Events";
-  auto ds = df.load(dataset::input<Tree>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<HepQ::Tree>(tree_files, tree_name));
 
   auto n_jet = ds.read(dataset::column<unsigned int>("nJet"));
   auto jets_pt = ds.read(dataset::column<VecF>("Jet_pt"));
@@ -559,7 +559,7 @@ void task(int n) {
                       goodjet_mask);
 
   auto h_sumpt_goodjet =
-      df.make(query::plan<Hist<1, float>>("goodjet_sumpt", 185, 15, 200))
+      df.make(query::plan<HepQ::Hist<1, float>>("goodjet_sumpt", 185, 15, 200))
           .fill(goodjet_sumpt)
           .book(cut_goodjet);
 
