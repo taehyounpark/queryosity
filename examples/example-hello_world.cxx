@@ -30,9 +30,8 @@ int main() {
   auto sel =
       df.weight(w)
           .filter(column::expression(
-                      [](std::vector<double> const &v) { return v.size(); }),
-                  v)
-          .filter(column::expression([](double x) { return x > 100.0; }), x);
+              [](std::vector<double> const &v) { return v.size(); }))(v)
+          .filter(column::expression([](double x) { return x > 100.0; }))(x);
 
   auto h_x0_w = df.make(query::plan<h1d>(linax(20, 0.0, 200.0)))
                     .fill(v0)

@@ -23,9 +23,6 @@ public:
   template <typename Qry>
   auto book(query::booker<Qry> const &bkr, const selection::node &sel) -> Qry *;
 
-  void scale_current_queries(double scale);
-  void clear_current_queries();
-
 protected:
   template <typename Qry> auto add_query(std::unique_ptr<Qry> qry) -> Qry *;
 
@@ -35,16 +32,6 @@ protected:
 };
 
 } // namespace queryosity
-
-inline void queryosity::query::experiment::clear_current_queries() {
-  m_queries.clear();
-}
-
-inline void queryosity::query::experiment::scale_current_queries(double scale) {
-  for (auto const &qry : m_queries) {
-    qry->apply_scale(scale);
-  }
-}
 
 template <typename Qry, typename... Args>
 std::unique_ptr<queryosity::query::booker<Qry>>

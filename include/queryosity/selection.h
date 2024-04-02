@@ -19,7 +19,7 @@ class cutflow;
 class cut;
 class weight;
 
-template <typename T> class apply;
+template <typename T, typename U> class applicator;
 
 class node : public column::calculation<double> {
 
@@ -40,14 +40,10 @@ protected:
 };
 
 template <typename T> struct is_applicable : std::false_type {};
-template <typename T>
-struct is_applicable<selection::apply<T>> : std::true_type {};
+template <typename T, typename U>
+struct is_applicable<selection::applicator<T,U>> : std::true_type {};
 template <typename T>
 static constexpr bool is_applicable_v = is_applicable<T>::value;
-
-template <typename F>
-using apply_t = typename selection::apply<
-    queryosity::column::equation_t<F>>;
 
 } // namespace selection
 

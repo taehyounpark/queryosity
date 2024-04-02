@@ -37,7 +37,7 @@ public:
       evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>;
 
   template <typename Def, typename... Cols>
-  auto evaluate(evaluator<Def> &calc, Cols const &...cols) -> Def *;
+  auto evaluate(evaluator<Def> const&calc, Cols const &...cols) -> Def *;
 
 protected:
   template <typename Col> auto add_column(std::unique_ptr<Col> col) -> Col *;
@@ -95,9 +95,9 @@ auto queryosity::column::computation::equate(std::function<Ret(Args...)> fn)
 }
 
 template <typename Def, typename... Cols>
-auto queryosity::column::computation::evaluate(evaluator<Def> &calc,
+auto queryosity::column::computation::evaluate(evaluator<Def> const &calc,
                                                Cols const &...cols) -> Def * {
-  auto defn = calc._evaluate(cols...);
+  auto defn = calc.evaluate(cols...);
   return this->add_column(std::move(defn));
 }
 

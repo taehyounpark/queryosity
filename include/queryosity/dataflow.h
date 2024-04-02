@@ -116,62 +116,22 @@ public:
   /**
    * @brief Define a column using an expression.
    * @tparam Fn Callable type.
-   * @tparam Cols Input column types.
    * @param[in] expr C++ function, functor, lambda, or any other callable.
-   * @param[in] cols Input columns.
-   * @return Lazy column.
+   * @return Evaluator.
    */
-  template <typename Fn, typename... Cols>
-  auto
-  define(column::expression<Fn> const &expr) -> lazy<column::equation_t<Fn>>;
+  template <typename Fn>
+  auto define(column::expression<Fn> const &expr)
+      -> todo<column::evaluator<column::equation_t<Fn>>>;
 
   /**
    * @brief Define a column using an expression.
-   * @tparam Fn Callable type.
-   * @tparam Cols Input column types.
-   * @param[in] expr C++ function, functor, lambda, or any other callable.
-   * @param[in] cols Input columns.
-   * @return Lazy column.
+   * @tparam Def Custom definition.
+   * @param[in] defn Definition type and constructor arguments.
+   * @return Evaluator.
    */
-  template <typename Fn, typename... Cols>
-  auto define(column::expression<Fn> const &expr,
-              lazy<Cols> const &...cols) -> lazy<column::equation_t<Fn>>;
-
-  /**
-   * @brief Define a varied column using an expression.
-   * @tparam Fn Callable type.
-   * @tparam Cols Input column types.
-   * @param[in] expr C++ function, functor, lambda, or any other callable.
-   * @param[in] cols (Varied) input columns.
-   * @return Varied lazy column.
-   */
-  template <typename Fn, typename... Cols>
-  auto define(column::expression<Fn> const &expr, Cols const &...cols) ->
-      typename lazy<column::equation_t<Fn>>::varied;
-
-  /**
-   * @brief Define a custom column.
-   * @tparam Def `column::definition<Out(Ins...)>` implementation.
-   * @tparam Cols Input column types.
-   * @param[in] defn Constructor arguments for `Def`.
-   * @param[in] cols Input columns.
-   * @return Lazy column.
-   */
-  template <typename Def, typename... Cols>
-  auto define(column::definition<Def> const &defn,
-              lazy<Cols> const &...cols) -> lazy<Def>;
-
-  /**
-   * @brief Define a custom column.
-   * @tparam Def `column::definition<Out(Ins...)>` implementation.
-   * @tparam Cols Input column types.
-   * @param[in] defn Constructor arguments for `Def`.
-   * @param[in] cols (Varied) input columns.
-   * @return Varied lazy column.
-   */
-  template <typename Def, typename... Cols>
-  auto define(column::definition<Def> const &defn, Cols const &...cols) ->
-      typename lazy<Def>::varied;
+  template <typename Def>
+  auto define(column::definition<Def> const &defn)
+      -> todo<column::evaluator<Def>>;
 
   /**
    * @brief Select all entries.
@@ -241,8 +201,9 @@ public:
    * @param[in] Input (varied) columns used to evaluate cut decision.
    * @return Lazy (varied) selection.
    */
-  template <typename Fn, typename... Cols>
-  auto filter(column::expression<Fn> const &expr, Cols const &...cols);
+  template <typename Fn>
+  auto filter(column::expression<Fn> const &expr)
+      -> todo<selection::applicator<selection::cut, column::equation_t<Fn>>>;
 
   /**
    * @brief Initiate a cutflow.
@@ -251,8 +212,9 @@ public:
    * @param[in] Input (varied) columns used to evaluate weight decision.
    * @return Lazy (varied) selection.
    */
-  template <typename Fn, typename... Cols>
-  auto weight(column::expression<Fn> const &expr, Cols const &...cols);
+  template <typename Fn>
+  auto weight(column::expression<Fn> const &expr)
+      -> todo<selection::applicator<selection::weight, column::equation_t<Fn>>>;
 
   /**
    * @brief Plan a query.
@@ -286,20 +248,25 @@ public:
 
   template <typename Def, typename... Args> auto _define(Args &&...args);
   template <typename Def>
-  auto
-  _define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
+  auto _define(column::definition<Def> const &defn)
+      -> todo<column::evaluator<Def>>;
 
   template <typename Fn> auto _equate(Fn fn);
   template <typename Fn>
   auto _equate(column::expression<Fn> const &expr)
       -> todo<column::evaluator<column::equation_t<Fn>>>;
 
-  template <typename Sel, typename Col>
-  auto _select(lazy<Col> const &col) -> lazy<selection::node>;
+  template <typename Sel, typename Fn> auto _select(Fn fn);
+  template <typename Sel, typename Fn>
+  auto _select(column::expression<Fn> const &expr)
+      -> todo<selection::applicator<Sel, column::equation_t<Fn>>>;
 
-  template <typename Sel, typename Col>
+  template <typename Sel, typename Fn>
+  auto _select(lazy<selection::node> const &prev, Fn fn);
+  template <typename Sel, typename Fn>
   auto _select(lazy<selection::node> const &prev,
-               lazy<Col> const &col) -> lazy<selection::node>;
+               column::expression<Fn> const &expr)
+      -> todo<selection::applicator<Sel, column::equation_t<Fn>>>;
 
   template <typename Qry, typename... Args>
   auto _make(Args &&...args) -> todo<query::booker<Qry>>;
@@ -311,16 +278,28 @@ protected:
   void reset();
 
   template <typename DS, typename Val>
-  auto _read(dataset::reader<DS> &ds,
-             const std::string &name) -> lazy<read_column_t<DS, Val>>;
+  auto _read(dataset::reader<DS> &ds, const std::string &name)
+      -> lazy<read_column_t<DS, Val>>;
 
   template <typename Def, typename... Cols>
   auto _evaluate(todo<column::evaluator<Def>> const &calc,
                  lazy<Cols> const &...columns) -> lazy<Def>;
 
+  template <typename Sel, typename Col>
+  auto _apply(lazy<Col> const &col) -> lazy<selection::node>;
+
+  template <typename Sel, typename Col>
+  auto _apply(lazy<selection::node> const &prev, lazy<Col> const &col)
+      -> lazy<selection::node>;
+
+  template <typename Sel, typename Def, typename... Cols>
+  auto _apply(todo<selection::applicator<Sel, Def>> const &calc,
+              lazy<Cols> const &...columns) -> lazy<selection::node>;
+
   template <typename Qry>
   auto _book(todo<query::booker<Qry>> const &bkr,
              lazy<selection::node> const &sel) -> lazy<Qry>;
+
   template <typename Qry, typename... Sels>
   auto _book(todo<query::booker<Qry>> const &bkr, lazy<Sels> const &...sels)
       -> std::array<lazy<Qry>, sizeof...(Sels)>;
@@ -357,12 +336,10 @@ public:
 
 public:
   template <typename Fn, typename... Nodes>
-  static auto invoke(Fn fn, Nodes const &...nodes)
-      -> std::enable_if_t<
-          !std::is_void_v<
-              std::invoke_result_t<Fn, typename Nodes::action_type *...>>,
-          std::vector<
-              std::invoke_result_t<Fn, typename Nodes::action_type *...>>>;
+  static auto invoke(Fn fn, Nodes const &...nodes) -> std::enable_if_t<
+      !std::is_void_v<
+          std::invoke_result_t<Fn, typename Nodes::action_type *...>>,
+      std::vector<std::invoke_result_t<Fn, typename Nodes::action_type *...>>>;
 
   template <typename Fn, typename... Nodes>
   static auto invoke(Fn fn, Nodes const &...nodes)
@@ -472,49 +449,28 @@ auto queryosity::dataflow::define(column::constant<Val> const &cnst)
   return cnst._assign(*this);
 }
 
-template <typename Def, typename... Cols>
-auto queryosity::dataflow::define(column::definition<Def> const &defn,
-                                  lazy<Cols> const &...cols) -> lazy<Def> {
-  return this->_define(defn).template evaluate(cols...);
+template <typename Def>
+auto queryosity::dataflow::define(column::definition<Def> const &defn)
+    -> todo<column::evaluator<Def>> {
+  return this->_define(defn);
 }
 
-template <typename Def, typename... Cols>
-auto queryosity::dataflow::define(column::definition<Def> const &defn,
-                                  Cols const &...cols) ->
-    typename lazy<Def>::varied {
-  return this->_define(defn).template evaluate(cols...);
-}
-
-template <typename Fn, typename... Cols>
+template <typename Fn>
 auto queryosity::dataflow::define(column::expression<Fn> const &expr)
-    -> lazy<column::equation_t<Fn>> {
-  return this->_equate(expr).template evaluate();
-}
-
-template <typename Fn, typename... Cols>
-auto queryosity::dataflow::define(column::expression<Fn> const &expr,
-                                  lazy<Cols> const &...cols)
-    -> lazy<column::equation_t<Fn>> {
-  return this->_equate(expr).template evaluate(cols...);
-}
-
-template <typename Fn, typename... Cols>
-auto queryosity::dataflow::define(column::expression<Fn> const &expr,
-                                  Cols const &...cols) ->
-    typename lazy<column::equation_t<Fn>>::varied {
-  return this->_equate(expr).template evaluate(cols...);
+    -> todo<column::evaluator<column::equation_t<Fn>>> {
+  return this->_equate(expr);
 }
 
 template <typename Col>
 auto queryosity::dataflow::filter(lazy<Col> const &col)
     -> lazy<selection::node> {
-  return this->_select<selection::cut>(col);
+  return this->_apply<selection::cut>(col);
 }
 
 template <typename Col>
 auto queryosity::dataflow::weight(lazy<Col> const &col)
     -> lazy<selection::node> {
-  return this->_select<selection::weight>(col);
+  return this->_apply<selection::weight>(col);
 }
 
 template <typename Col> auto queryosity::dataflow::filter(Col const &col) {
@@ -549,22 +505,22 @@ auto queryosity::dataflow::filter(column::constant<Fn> const &cnst)
   return this->filter(this->define(cnst));
 }
 
-template <typename Fn, typename... Cols>
-auto queryosity::dataflow::filter(column::expression<Fn> const &expr,
-                                  Cols const &...cols) {
-  return this->filter(this->define(expr, cols...));
-}
-
 template <typename Val>
 auto queryosity::dataflow::weight(column::constant<Val> const &cnst)
     -> lazy<selection::node> {
   return this->weight(this->define(cnst));
 }
 
-template <typename Fn, typename... Cols>
-auto queryosity::dataflow::weight(column::expression<Fn> const &expr,
-                                  Cols const &...cols) {
-  return this->weight(this->define(expr, cols...));
+template <typename Fn>
+auto queryosity::dataflow::filter(column::expression<Fn> const &expr)
+    -> todo<selection::applicator<selection::cut, column::equation_t<Fn>>> {
+  return this->_select<selection::cut>(expr);
+}
+
+template <typename Fn>
+auto queryosity::dataflow::weight(column::expression<Fn> const &expr)
+    -> todo<selection::applicator<selection::weight, column::equation_t<Fn>>> {
+  return this->_select<selection::weight>(expr);
 }
 
 template <typename Qry, typename... Args>
@@ -588,12 +544,24 @@ auto queryosity::dataflow::_evaluate(todo<column::evaluator<Def>> const &calc,
                                      lazy<Cols> const &...columns)
     -> lazy<Def> {
   auto act = ensemble::invoke(
-      [](dataset::player *plyr, column::evaluator<Def> *calc,
+      [](dataset::player *plyr, column::evaluator<Def> const *calc,
          Cols const *...cols) {
         return plyr->template evaluate(*calc, *cols...);
       },
       m_processor.get_slots(), calc.get_slots(), columns.get_slots()...);
   auto lzy = lazy<Def>(*this, act);
+  return lzy;
+}
+
+template <typename Sel, typename Def, typename... Cols>
+auto queryosity::dataflow::_apply(
+    todo<selection::applicator<Sel, Def>> const &appl,
+    lazy<Cols> const &...columns) -> lazy<selection::node> {
+  auto act = ensemble::invoke(
+      [](dataset::player *plyr, selection::applicator<Sel,Def> const *appl,
+         Cols const *...cols) { return plyr->template apply(*appl, *cols...); },
+      m_processor.get_slots(), appl.get_slots(), columns.get_slots()...);
+  auto lzy = lazy<selection::node>(*this, act);
   return lzy;
 }
 
@@ -605,7 +573,7 @@ auto queryosity::dataflow::_book(todo<query::booker<Qry>> const &bkr,
   this->reset();
   auto act = ensemble::invoke(
       [](dataset::player *plyr, query::booker<Qry> *bkr,
-         const selection::node *sel) { return plyr->book(*bkr, *sel); },
+         selection::node const *sel) { return plyr->book(*bkr, *sel); },
       m_processor.get_slots(), bkr.get_slots(), sel.get_slots());
   auto lzy = lazy<Qry>(*this, act);
   return lzy;
@@ -728,12 +696,43 @@ auto queryosity::dataflow::_equate(column::expression<Fn> const &expr)
   return expr._equate(*this);
 }
 
+template <typename Sel, typename Fn> auto queryosity::dataflow::_select(Fn fn) {
+  return todo<selection::applicator<Sel, typename column::equation_t<Fn>>>(
+      *this, ensemble::invoke(
+                 [fn](dataset::player *plyr) {
+                   return plyr->template select<Sel>(nullptr, fn);
+                 },
+                 m_processor.get_slots()));
+}
+
+template <typename Sel, typename Fn>
+auto queryosity::dataflow::_select(lazy<selection::node> const &prev, Fn fn) {
+  return todo<selection::applicator<Sel, typename column::equation_t<Fn>>>(
+      *this, ensemble::invoke(
+                 [fn](dataset::player *plyr, selection::node const *prev) {
+                   return plyr->template select<Sel>(prev, fn);
+                 },
+                 m_processor.get_slots(), prev.get_slots()));
+}
+
+template <typename Sel, typename Fn>
+auto queryosity::dataflow::_select(column::expression<Fn> const &expr)
+    -> todo<selection::applicator<Sel, column::equation_t<Fn>>> {
+  return expr.template _select<Sel>(*this);
+}
+
+template <typename Sel, typename Fn>
+auto queryosity::dataflow::_select(lazy<selection::node> const& prev, column::expression<Fn> const &expr)
+    -> todo<selection::applicator<Sel, column::equation_t<Fn>>> {
+  return expr.template _select<Sel>(*this, prev);
+}
+
 template <typename Sel, typename Col>
-auto queryosity::dataflow::_select(lazy<Col> const &dec)
+auto queryosity::dataflow::_apply(lazy<Col> const &dec)
     -> lazy<selection::node> {
   auto act = ensemble::invoke(
       [](dataset::player *plyr, Col *col) {
-        return plyr->template select<Sel>(nullptr, *col);
+        return plyr->template apply<Sel>(nullptr, *col);
       },
       m_processor.get_slots(), dec.get_slots());
   auto lzy = lazy<selection::node>(*this, act);
@@ -741,12 +740,12 @@ auto queryosity::dataflow::_select(lazy<Col> const &dec)
 }
 
 template <typename Sel, typename Col>
-auto queryosity::dataflow::_select(lazy<selection::node> const &prev,
-                                   lazy<Col> const &dec)
+auto queryosity::dataflow::_apply(lazy<selection::node> const &prev,
+                                  lazy<Col> const &dec)
     -> lazy<selection::node> {
   auto act = ensemble::invoke(
-      [](dataset::player *plyr, selection::node *prev, Col *col) {
-        return plyr->template select<Sel>(prev, *col);
+      [](dataset::player *plyr, selection::node const *prev, Col *col) {
+        return plyr->template apply<Sel>(prev, *col);
       },
       m_processor.get_slots(), prev.get_slots(), dec.get_slots());
   auto lzy = lazy<selection::node>(*this, act);

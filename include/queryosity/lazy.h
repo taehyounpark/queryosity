@@ -74,13 +74,11 @@ public:
   template <typename Col> auto filter(Col const &col) const;
   template <typename Col> auto weight(Col const &col) const;
 
-  template <typename Expr, typename... Cols>
-  auto filter(queryosity::column::expression<Expr> const &expr,
-              Cols const &...cols) const;
+  template <typename Expr>
+  auto filter(queryosity::column::expression<Expr> const &expr) const;
 
-  template <typename Expr, typename... Cols>
-  auto weight(queryosity::column::expression<Expr> const &expr,
-              Cols const &...cols) const;
+  template <typename Expr>
+  auto weight(queryosity::column::expression<Expr> const &expr) const;
 
   template <typename Agg> auto book(Agg &&agg) const;
   template <typename... Aggs> auto book(Aggs &&...aggs) const;
@@ -232,7 +230,7 @@ template <typename Action>
 template <typename Col>
 auto queryosity::lazy<Action>::filter(lazy<Col> const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
-    return this->m_df->template _select<selection::cut>(*this, col);
+    return this->m_df->template _apply<selection::cut>(*this, col);
   } else {
     static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");
@@ -243,7 +241,7 @@ template <typename Action>
 template <typename Col>
 auto queryosity::lazy<Action>::weight(lazy<Col> const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
-    return this->m_df->template _select<selection::weight>(*this, col);
+    return this->m_df->template _apply<selection::weight>(*this, col);
   } else {
     static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");
@@ -283,13 +281,11 @@ auto queryosity::lazy<Action>::weight(Col const &col) const {
 }
 
 template <typename Action>
-template <typename Expr, typename... Cols>
+template <typename Expr>
 auto queryosity::lazy<Action>::filter(
-    queryosity::column::expression<Expr> const &expr,
-    Cols const &...cols) const {
+    queryosity::column::expression<Expr> const &expr) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
-    auto col = this->m_df->define(expr, cols...);
-    return this->filter(col);
+    return this->m_df->template _select<selection::cut>(*this, expr);
   } else {
     static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");
@@ -297,13 +293,11 @@ auto queryosity::lazy<Action>::filter(
 }
 
 template <typename Action>
-template <typename Expr, typename... Cols>
+template <typename Expr>
 auto queryosity::lazy<Action>::weight(
-    queryosity::column::expression<Expr> const &expr,
-    Cols const &...cols) const {
+    queryosity::column::expression<Expr> const &expr) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
-    auto col = this->m_df->define(expr, cols...);
-    return this->weight(col);
+    return this->m_df->template _select<selection::weight>(*this, expr);
   } else {
     static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");

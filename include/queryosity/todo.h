@@ -59,6 +59,20 @@ public:
   }
 
   /**
+   * @brief Apply the selection with input columns.
+   * @param[in] columns Input columns.
+   * @param[in][out] Applied selection.
+   */
+  template <typename... Nodes, typename V = Helper,
+            std::enable_if_t<queryosity::selection::is_applicable_v<V>,
+                             bool> = false>
+  auto apply(Nodes &&...columns) const
+      -> decltype(std::declval<todo<V>>()._apply(
+          std::forward<Nodes>(columns)...)) {
+    return this->template _apply(std::forward<Nodes>(columns)...);
+  }
+
+  /**
    * @brief Fill query with input columns per-entry.
    * @param[in] columns Input columns.
    * @returns Updated query plan filled with input columns.
@@ -97,13 +111,15 @@ public:
    * @param[in] columns... Input columns.
    * @return Evaluated column.
    */
-  template <typename... Args, typename V = Helper,
-            std::enable_if_t<column::is_evaluatable_v<V>,
-                             bool> = false>
-  auto operator()(Args &&...columns) const
-      -> decltype(std::declval<todo<V>>().evaluate(
-          std::forward<Args>(std::declval<Args &&>())...)) {
-    return this->evaluate(std::forward<Args>(columns)...);
+  template <typename... Args>
+  auto operator()(Args &&...columns) const {
+    if constexpr( column::is_evaluatable_v<Helper> ) {
+      return this->evaluate(std::forward<Args>(columns)...);
+    } else if constexpr( selection::is_applicable_v<Helper> ) {
+      return this->apply(std::forward<Args>(columns)...);
+    } else if constexpr( query::is_fillable_v<Helper> ) {
+      return this->fill(std::forward<Args>(columns)...);
+    }
   }
 
 protected:
@@ -130,6 +146,37 @@ protected:
 
     for (auto const &var_name : systematic::get_variation_names(columns...)) {
       auto var = this->m_df->_evaluate(*this, columns.variation(var_name)...);
+      syst.set_variation(var_name, std::move(var));
+    }
+
+    return syst;
+  }
+
+  template <typename... Nodes, typename V = Helper,
+            std::enable_if_t<queryosity::selection::is_applicable_v<V> &&
+                                 queryosity::has_no_variation_v<Nodes...>,
+                             bool> = false>
+  auto _apply(Nodes const &...columns) const
+      -> lazy<selection::node> {
+    using selection_type = typename V::selection_type;
+    return this->m_df->template _apply<selection_type>(*this,columns...);
+  }
+
+  template <typename... Nodes, typename V = Helper,
+            std::enable_if_t<queryosity::selection::is_applicable_v<V> &&
+                                 queryosity::has_variation_v<Nodes...>,
+                             bool> = false>
+  auto _apply(Nodes const &...columns) const ->
+      typename lazy<selection::node>::varied {
+
+    using selection_type = typename V::selection_type;
+    using varied_type = typename lazy<column::evaluated_t<V>>::varied;
+
+    auto nom = this->m_df->template _apply<selection_type>(*this,columns.nominal()...);
+    auto syst = varied_type(std::move(nom));
+
+    for (auto const &var_name : systematic::get_variation_names(columns...)) {
+      auto var = this->m_df->template _apply<selection_type>(*this,columns.variation(var_name)...);
       syst.set_variation(var_name, std::move(var));
     }
 

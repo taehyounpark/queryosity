@@ -7,8 +7,7 @@ namespace queryosity {
 
 namespace dataset {
 
-class player : public queryosity::column::computation,
-               public query::experiment {
+class player : public query::experiment {
 
 public:
   player() = default;
