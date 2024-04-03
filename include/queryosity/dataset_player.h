@@ -29,6 +29,7 @@ inline void queryosity::dataset::player::play(
     std::vector<std::unique_ptr<source>> const &sources, double scale,
     unsigned int slot, unsigned long long begin, unsigned long long end) {
 
+  // apply dataset scale in effect for all queries
   for (auto const &qry : m_queries) {
     qry->apply_scale(scale);
   }

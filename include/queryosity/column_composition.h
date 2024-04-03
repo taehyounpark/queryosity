@@ -13,15 +13,15 @@ namespace queryosity {
  * can be calculated.
  */
 template <typename Me, typename... Obs>
-class column::representation<Me(Obs...)> : public valued<Me> {
+class column::composition<Me(Obs...)> : public valued<Me> {
 
 public:
   using vartuple_type = std::tuple<variable<Obs>...>;
   using obstuple_type = std::tuple<observable<Obs>...>;
 
 public:
-  representation() = default;
-  virtual ~representation() = default;
+  composition() = default;
+  virtual ~composition() = default;
 
   template <typename... Vals> void set_arguments(const view<Vals> &...args);
 
@@ -40,13 +40,13 @@ protected:
 } // namespace queryosity
 
 template <typename Me, typename... Obs>
-Me const &queryosity::column::representation<Me(Obs...)>::value() const {
+Me const &queryosity::column::composition<Me(Obs...)>::value() const {
   return static_cast<const Me &>(*this);
 }
 
 template <typename Me, typename... Obs>
 template <typename... Vals>
-void queryosity::column::representation<Me(Obs...)>::set_arguments(
+void queryosity::column::composition<Me(Obs...)>::set_arguments(
     view<Vals> const &...args) {
   static_assert(sizeof...(Obs) == sizeof...(Vals));
   m_arguments = std::make_tuple(std::invoke(
@@ -58,14 +58,14 @@ void queryosity::column::representation<Me(Obs...)>::set_arguments(
 
 template <typename Me, typename... Obs>
 template <unsigned int N>
-constexpr auto queryosity::column::representation<Me(Obs...)>::value() const
+constexpr auto queryosity::column::composition<Me(Obs...)>::value() const
     -> decltype(std::get<N>(std::declval<vartuple_type>()).value()) {
   return std::get<N>(m_arguments).value();
 }
 
 template <typename Me, typename... Obs>
 template <auto N>
-constexpr auto queryosity::column::representation<Me(Obs...)>::value() const {
+constexpr auto queryosity::column::composition<Me(Obs...)>::value() const {
   constexpr auto idx = static_cast<std::underlying_type_t<decltype(N)>>(N);
   return std::get<idx>(this->m_arguments).value();
 }

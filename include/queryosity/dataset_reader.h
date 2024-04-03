@@ -18,7 +18,6 @@ public:
 
   virtual void parallelize(unsigned int concurrency) = 0;
 
-  virtual double normalize();
   virtual void initialize();
 
   /**
@@ -83,8 +82,6 @@ using read_column_t =
         std::declval<std::string const &>()))::element_type;
 
 #include "column_reader.h"
-
-inline double queryosity::dataset::source::normalize() { return 1.0; }
 
 inline void queryosity::dataset::source::initialize() {}
 

@@ -140,7 +140,7 @@ template <typename T, typename U> class conversion;
 
 template <typename T> class equation;
 
-template <typename T> class representation;
+template <typename T> class composition;
 
 template <typename T> class constant;
 
@@ -169,8 +169,8 @@ constexpr std::false_type check_equation(...);
 
 template <typename T>
 constexpr std::true_type
-check_representation(typename column::representation<T> const &);
-constexpr std::false_type check_representation(...);
+check_composition(typename column::composition<T> const &);
+constexpr std::false_type check_composition(...);
 
 template <typename T>
 constexpr bool is_reader_v =
@@ -189,7 +189,7 @@ constexpr bool is_equation_v =
     decltype(check_equation(std::declval<std::decay_t<T> const &>()))::value;
 
 template <typename T>
-constexpr bool is_representation_v = decltype(check_representation(
+constexpr bool is_composition_v = decltype(check_composition(
     std::declval<std::decay_t<T> const &>()))::value;
 
 template <typename T> struct is_evaluator : std::false_type {};
