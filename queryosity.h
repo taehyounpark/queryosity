@@ -8,6 +8,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <thread>
@@ -37,11 +38,15 @@ unsigned int check(std::vector<T> const &first,
                    std::vector<Args> const &...args);
 
 template <typename Fn, typename... Args>
-void call(Fn const &fn, std::vector<Args> const &...args);
+auto invoke(Fn const &fn, std::vector<Args> const &...args)
+    -> std::enable_if_t<
+        !std::is_void_v<typename std::invoke_result_t<Fn, Args...>>,
+        std::vector<typename std::invoke_result_t<Fn, Args...>>>;
 
 template <typename Fn, typename... Args>
 auto invoke(Fn const &fn, std::vector<Args> const &...args)
-    -> std::vector<typename std::invoke_result_t<Fn, Args...>>;
+    -> std::enable_if_t<
+        std::is_void_v<typename std::invoke_result_t<Fn, Args...>>, void>;
 
 } // namespace ensemble
 
@@ -119,30 +124,35 @@ inline unsigned int
 queryosity::ensemble::check(std::vector<T> const &first,
                             std::vector<Args> const &...args) {
   assert(((first.size() == args.size()) && ...));
-  (args.size(), ...);  // suppress GCC unused parameter warnings
+  (args.size(), ...); // suppress GCC unused parameter warnings
   return first.size();
-}
-
-template <typename Fn, typename... Args>
-inline void queryosity::ensemble::call(Fn const &fn,
-                                       std::vector<Args> const &...args) {
-  const auto nslots = check(args...);
-  for (size_t i = 0; i < nslots; ++i) {
-    fn(args.at(i)...);
-  }
 }
 
 template <typename Fn, typename... Args>
 inline auto queryosity::ensemble::invoke(Fn const &fn,
                                          std::vector<Args> const &...args)
-    -> std::vector<typename std::invoke_result_t<Fn, Args...>> {
+    -> std::enable_if_t<
+        !std::is_void_v<typename std::invoke_result_t<Fn, Args...>>,
+        std::vector<typename std::invoke_result_t<Fn, Args...>>> {
   auto nslots = check(args...);
-  typename std::vector<typename std::invoke_result_t<Fn, Args...>> invoked;
+  using slot_t = typename std::invoke_result_t<Fn, Args...>;
+  typename std::vector<slot_t> invoked;
   invoked.reserve(nslots);
   for (size_t i = 0; i < nslots; ++i) {
     invoked.push_back(std::move((fn(args.at(i)...))));
   }
   return invoked;
+}
+
+template <typename Fn, typename... Args>
+inline auto queryosity::ensemble::invoke(Fn const &fn,
+                                         std::vector<Args> const &...args)
+    -> std::enable_if_t<
+        std::is_void_v<typename std::invoke_result_t<Fn, Args...>>, void> {
+  auto nslots = check(args...);
+  for (size_t i = 0; i < nslots; ++i) {
+    fn(args.at(i)...);
+  }
 }
 
 template <typename T>
@@ -170,22 +180,19 @@ auto get_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 template <typename Node> class resolver;
 
-template <typename... Args> class variation;
+template <typename Lzy> class variation;
 
 template <typename Lzy> class nominal;
 
 class mode {
 public:
-  mode() : m_is_nominal(true), m_variation_name("") {}
+  mode();
   ~mode() = default;
 
-  void set_variation_name(const std::string &var_name) {
-    m_is_nominal = false;
-    m_variation_name = var_name;
-  }
+  void set_variation_name(const std::string &var_name);
 
-  bool is_nominal() const { return m_is_nominal; }
-  std::string variation_name() const { return m_variation_name; }
+  bool is_nominal() const;
+  std::string variation_name() const;
 
 protected:
   bool m_is_nominal;
@@ -202,6 +209,23 @@ auto queryosity::systematic::get_variation_names(Nodes const &...nodes)
   std::set<std::string> variation_names;
   (variation_names.merge(nodes.get_variation_names()), ...);
   return variation_names;
+}
+
+inline queryosity::systematic::mode::mode()
+    : m_is_nominal(true), m_variation_name("") {}
+
+inline void
+queryosity::systematic::mode::set_variation_name(const std::string &var_name) {
+  m_is_nominal = false;
+  ;
+  m_variation_name = var_name;
+}
+
+inline bool queryosity::systematic::mode::is_nominal() const {
+  return m_variation_name.empty();
+}
+inline std::string queryosity::systematic::mode::variation_name() const {
+  return m_variation_name;
 }
 
 namespace queryosity {
@@ -360,13 +384,15 @@ template <typename T, typename U> class conversion;
 
 template <typename T> class equation;
 
-template <typename T> class representation;
+template <typename T> class composition;
 
 template <typename T> class constant;
 
 template <typename T> class expression;
 
 template <typename T> class evaluator;
+
+template <typename T> class series;
 
 template <typename T>
 constexpr std::true_type check_reader(typename column::reader<T> const &);
@@ -387,8 +413,8 @@ constexpr std::false_type check_equation(...);
 
 template <typename T>
 constexpr std::true_type
-check_representation(typename column::representation<T> const &);
-constexpr std::false_type check_representation(...);
+check_composition(typename column::composition<T> const &);
+constexpr std::false_type check_composition(...);
 
 template <typename T>
 constexpr bool is_reader_v =
@@ -407,7 +433,7 @@ constexpr bool is_equation_v =
     decltype(check_equation(std::declval<std::decay_t<T> const &>()))::value;
 
 template <typename T>
-constexpr bool is_representation_v = decltype(check_representation(
+constexpr bool is_composition_v = decltype(check_composition(
     std::declval<std::decay_t<T> const &>()))::value;
 
 template <typename T> struct is_evaluator : std::false_type {};
@@ -551,7 +577,6 @@ public:
 
   virtual void parallelize(unsigned int concurrency) = 0;
 
-  virtual double normalize();
   virtual void initialize();
 
   /**
@@ -736,8 +761,6 @@ void queryosity::column::reader<T>::execute(unsigned int slot,
   this->m_updated = false;
 }
 
-inline double queryosity::dataset::source::normalize() { return 1.0; }
-
 inline void queryosity::dataset::source::initialize() {}
 
 inline void queryosity::dataset::source::initialize(unsigned int,
@@ -868,10 +891,10 @@ public:
   ~evaluator() = default;
 
   template <typename... Vals>
-  std::unique_ptr<T> _evaluate(view<Vals> const &...cols) const;
+  std::unique_ptr<T> evaluate(view<Vals> const &...cols) const;
 
 protected:
-  std::function<std::unique_ptr<T>()> m_make_unique;
+  std::function<std::unique_ptr<T>()> m_make_unique_column;
 };
 
 } // namespace queryosity
@@ -879,18 +902,16 @@ protected:
 template <typename T>
 template <typename... Args>
 queryosity::column::evaluator<T>::evaluator(Args const &...args)
-    : m_make_unique(std::bind(
+    : m_make_unique_column(std::bind(
           [](Args const &...args) { return std::make_unique<T>(args...); },
           args...)) {}
 
 template <typename T>
 template <typename... Vals>
-std::unique_ptr<T> queryosity::column::evaluator<T>::_evaluate(
+std::unique_ptr<T> queryosity::column::evaluator<T>::evaluate(
     view<Vals> const &...columns) const {
-  auto defn = m_make_unique();
-
+  auto defn = m_make_unique_column();
   defn->set_arguments(columns...);
-
   return defn;
 }
 
@@ -1075,7 +1096,7 @@ public:
       evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>;
 
   template <typename Def, typename... Cols>
-  auto evaluate(evaluator<Def> &calc, Cols const &...cols) -> Def *;
+  auto evaluate(evaluator<Def> const&calc, Cols const &...cols) -> Def *;
 
 protected:
   template <typename Col> auto add_column(std::unique_ptr<Col> col) -> Col *;
@@ -1236,9 +1257,9 @@ auto queryosity::column::computation::equate(std::function<Ret(Args...)> fn)
 }
 
 template <typename Def, typename... Cols>
-auto queryosity::column::computation::evaluate(evaluator<Def> &calc,
+auto queryosity::column::computation::evaluate(evaluator<Def> const &calc,
                                                Cols const &...cols) -> Def * {
-  auto defn = calc._evaluate(cols...);
+  auto defn = calc.evaluate(cols...);
   return this->add_column(std::move(defn));
 }
 
@@ -1273,7 +1294,7 @@ class cutflow;
 class cut;
 class weight;
 
-template <typename T> class apply;
+template <typename T, typename U> class applicator;
 
 class node : public column::calculation<double> {
 
@@ -1285,8 +1306,6 @@ public:
   bool is_initial() const noexcept;
   const selection::node *get_previous() const noexcept;
 
-  template <typename T> void set_decision(column::valued<T> const &dec);
-
   virtual bool passed_cut() const = 0;
   virtual double get_weight() const = 0;
 
@@ -1296,14 +1315,13 @@ protected:
 };
 
 template <typename T> struct is_applicable : std::false_type {};
-template <typename T>
-struct is_applicable<selection::apply<T>> : std::true_type {};
+template <typename T, typename U>
+struct is_applicable<selection::applicator<T,U>> : std::true_type {};
 template <typename T>
 static constexpr bool is_applicable_v = is_applicable<T>::value;
 
-template <typename F>
-using apply_t = typename selection::apply<
-    queryosity::column::equation_t<F>>;
+template <typename T>
+using applied_t = typename T::selection_type;
 
 } // namespace selection
 
@@ -1320,9 +1338,11 @@ constexpr bool is_selection_v = std::is_base_of_v<selection::node, T>;
 /**
  * @brief All queryosity namespaces and classes.
  */
-namespace queryosity {
+namespace queryosity
+{
 
-namespace column {
+namespace column
+{
 
 template <typename T> class view;
 
@@ -1334,7 +1354,8 @@ template <typename T> class observable;
 
 } // namespace column
 
-namespace selection {
+namespace selection
+{
 
 class node;
 
@@ -1343,7 +1364,8 @@ class node;
 /**
  * @brief Perform a query.
  */
-namespace query {
+namespace query
+{
 
 class experiment;
 
@@ -1351,96 +1373,117 @@ template <typename T> class aggregation;
 
 template <typename T> class definition;
 
-template <typename T> class book;
+template <typename T> class booker;
 
-template <typename T> class plan;
+template <typename T> class output;
 
-class node : public action {
+template <typename T> class series;
 
-public:
-  node();
-  virtual ~node() = default;
+class node : public action
+{
 
-  void apply_scale(double scale);
-  void use_weight(bool use = true);
+  public:
+    node();
+    virtual ~node() = default;
 
-  void set_selection(const selection::node &selection);
-  const selection::node *get_selection() const;
+    void apply_scale(double scale);
+    void use_weight(bool use = true);
 
-  virtual void initialize(unsigned int slot, unsigned long long begin,
-                          unsigned long long end) override;
-  virtual void execute(unsigned int slot, unsigned long long entry) override;
-  virtual void finalize(unsigned int slot) override;
+    void set_selection(const selection::node &selection);
+    const selection::node *get_selection() const;
 
-  virtual void count(double w) = 0;
+    virtual void initialize(unsigned int slot, unsigned long long begin, unsigned long long end) override;
+    virtual void execute(unsigned int slot, unsigned long long entry) override;
+    virtual void finalize(unsigned int slot) override;
 
-protected:
-  bool m_raw;
-  double m_scale;
-  const selection::node *m_selection;
+    virtual void count(double w) = 0;
+
+  protected:
+    double m_scale;
+    const selection::node *m_selection;
 };
 
-template <typename T>
-constexpr std::true_type check_implemented(const query::aggregation<T> &);
+template <typename T> constexpr std::true_type check_implemented(const query::aggregation<T> &);
 constexpr std::false_type check_implemented(...);
 
 template <typename Out, typename... Vals>
-constexpr std::true_type
-check_fillable(const typename query::definition<Out(Vals...)> &);
+constexpr std::true_type check_fillable(const typename query::definition<Out(Vals...)> &);
 constexpr std::false_type check_fillable(...);
 
-template <typename T> struct is_book : std::false_type {};
-template <typename T> struct is_book<query::booker<T>> : std::true_type {};
+template <typename T> struct is_book : std::false_type
+{
+};
+template <typename T> struct is_book<query::booker<T>> : std::true_type
+{
+};
 
-template <typename T>
-constexpr bool is_aggregation_v =
-    decltype(check_implemented(std::declval<T>()))::value;
+template <typename T> constexpr bool is_aggregation_v = decltype(check_implemented(std::declval<T>()))::value;
 
-template <typename T>
-constexpr bool is_fillable_v =
-    decltype(check_fillable(std::declval<T>()))::value;
+template <typename T> constexpr bool is_fillable_v = decltype(check_fillable(std::declval<T>()))::value;
 
 template <typename T> constexpr bool is_bookable_v = is_book<T>::value;
 
 template <typename Bkr> using booked_t = typename Bkr::query_type;
 
+// mixin class to conditionally add a member variable
+template <typename Action, typename Enable = void> struct result_if_aggregation
+{
+};
+
+// Specialization for types satisfying is_query
+template <typename Action> struct result_if_aggregation<Action, std::enable_if_t<query::is_aggregation_v<Action>>>
+{
+    using result_type = decltype(std::declval<Action>().result());
+    result_if_aggregation() : m_merged(false)
+    {
+    }
+    virtual ~result_if_aggregation() = default;
+
+  protected:
+    result_type m_result;
+    bool m_merged;
+};
+
 } // namespace query
 
 } // namespace queryosity
 
-inline queryosity::query::node::node()
-    : m_raw(false), m_scale(1.0), m_selection(nullptr) {}
-
-inline void
-queryosity::query::node::set_selection(const selection::node &selection) {
-  m_selection = &selection;
+inline queryosity::query::node::node() : m_scale(1.0), m_selection(nullptr)
+{
 }
 
-inline const queryosity::selection::node *
-queryosity::query::node::get_selection() const {
-  return m_selection;
+inline void queryosity::query::node::set_selection(const selection::node &selection)
+{
+    m_selection = &selection;
 }
 
-inline void queryosity::query::node::apply_scale(double scale) {
-  m_scale *= scale;
+inline const queryosity::selection::node *queryosity::query::node::get_selection() const
+{
+    return m_selection;
 }
 
-inline void queryosity::query::node::use_weight(bool use) { m_raw = !use; }
-
-inline void queryosity::query::node::initialize(unsigned int,
-                                                unsigned long long,
-                                                unsigned long long) {
-  if (!m_selection)
-    throw std::runtime_error("no booked selection");
+inline void queryosity::query::node::apply_scale(double scale)
+{
+    m_scale *= scale;
 }
 
-inline void queryosity::query::node::execute(unsigned int, unsigned long long) {
-  if (m_selection->passed_cut()) {
-    this->count(m_raw ? 1.0 : m_scale * m_selection->get_weight());
-  }
+inline void queryosity::query::node::initialize(unsigned int, unsigned long long, unsigned long long)
+{
+    if (!m_selection)
+        throw std::runtime_error("no booked selection");
 }
 
-inline void queryosity::query::node::finalize(unsigned int) {}
+inline void queryosity::query::node::execute(unsigned int, unsigned long long)
+{
+    if (m_selection->passed_cut())
+    {
+        this->count(m_scale * m_selection->get_weight());
+    }
+}
+
+inline void queryosity::query::node::finalize(unsigned int)
+{
+}
 
 inline queryosity::selection::node::node(const selection::node *presel,
                                          column::variable<double> dec)
@@ -1455,9 +1498,52 @@ queryosity::selection::node::get_previous() const noexcept {
   return m_preselection;
 }
 
+#include <functional>
+#include <memory>
+#include <type_traits>
+
 namespace queryosity {
 
-class selection::cutflow {
+template <typename Sel, typename Def>
+class selection::applicator : public column::evaluator<Def> {
+
+public:
+  using selection_type = Sel;
+  using evaluated_type = typename column::evaluator<Def>::evaluated_type;
+
+public:
+  template <typename... Args> applicator(selection::node const *prev, Args const &...args);
+  ~applicator() = default;
+
+  template <typename... Vals>
+  std::pair<std::unique_ptr<Sel>, std::unique_ptr<Def>>
+  apply(column::view<Vals> const &...columns) const;
+
+protected:
+  selection::node const* m_prev;
+
+};
+
+} // namespace queryosity
+
+template <typename Sel, typename Def>
+template <typename... Args>
+queryosity::selection::applicator<Sel, Def>::applicator(selection::node const *prev, Args const &...args)
+    : column::evaluator<Def>(args...), m_prev(prev) {}
+
+template <typename Sel, typename Def>
+template <typename... Vals>
+std::pair<std::unique_ptr<Sel>, std::unique_ptr<Def>>
+queryosity::selection::applicator<Sel, Def>::apply(
+    column::view<Vals> const &...columns) const {
+  auto col = this->evaluate(columns...);
+  auto sel = std::make_unique<Sel>(m_prev, column::variable<double>(*col));
+  return {std::move(sel), std::move(col)};
+}
+
+namespace queryosity {
+
+class selection::cutflow : public column::computation {
 
 public:
   cutflow() = default;
@@ -1465,7 +1551,16 @@ public:
 
 public:
   template <typename Sel, typename Val>
-  auto select(selection::node const *prev, column::valued<Val> const &dec)
+  auto apply(selection::node const *prev, column::valued<Val> const &dec)
+      -> selection::node *;
+
+  template <typename Sel, typename Ret, typename... Args>
+  auto select(selection::node const *prev, std::function<Ret(Args...)> fn) const
+      -> std::unique_ptr<applicator<
+          Sel, column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>;
+
+  template <typename Sel, typename Def, typename... Cols>
+  auto apply(applicator<Sel, Def> const &calc, Cols const &...cols)
       -> selection::node *;
 
 protected:
@@ -1550,10 +1645,29 @@ inline double queryosity::selection::weight::get_weight() const {
 }
 
 template <typename Sel, typename Val>
-auto queryosity::selection::cutflow::select(selection::node const *prev,
-                                            column::valued<Val> const &dec)
+auto queryosity::selection::cutflow::apply(selection::node const *prev,
+                                           column::valued<Val> const &dec)
     -> selection::node * {
   auto sel = std::make_unique<Sel>(prev, column::variable<double>(dec));
+  return this->add_selection(std::move(sel));
+}
+
+template <typename Sel, typename Ret, typename... Args>
+auto queryosity::selection::cutflow::select(
+    selection::node const *prev, std::function<Ret(Args...)> fn) const
+    -> std::unique_ptr<applicator<
+        Sel, column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>> {
+  return std::make_unique<applicator<
+      Sel, column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>(prev,
+                                                                        fn);
+}
+
+template <typename Sel, typename Def, typename... Cols>
+auto queryosity::selection::cutflow::apply(
+    selection::applicator<Sel, Def> const &calc, Cols const &...cols)
+    -> selection::node * {
+  auto [sel, col] = calc.apply(cols...);
+  this->add_column(std::move(col));
   return this->add_selection(std::move(sel));
 }
 
@@ -1571,22 +1685,22 @@ auto queryosity::selection::cutflow::add_selection(std::unique_ptr<Sel> sel)
 
 namespace queryosity {
 
-template <typename T> class query::book {
+template <typename T> class query::booker {
 
 public:
   using query_type = T;
 
 public:
-  template <typename... Args> book(Args... args);
-  ~book() = default;
+  template <typename... Args> booker(Args... args);
+  ~booker() = default;
 
   // copyable
-  book(const book &) = default;
-  book &operator=(const book &) = default;
+  booker(const booker &) = default;
+  booker &operator=(const booker &) = default;
 
   template <typename... Vals>
-  auto fill_columns(column::valued<Vals> const &...cols) const
-      -> std::unique_ptr<book<T>>;
+  auto add_columns(column::valued<Vals> const &...cols) const
+      -> std::unique_ptr<booker<T>>;
 
   auto set_selection(const selection::node &sel) const -> std::unique_ptr<T>;
 
@@ -1597,24 +1711,24 @@ protected:
 
 protected:
   std::function<std::unique_ptr<T>()> m_make_unique_query;
-  std::vector<std::function<void(T &)>> m_fill_columns;
+  std::vector<std::function<void(T &)>> m_add_columns;
 };
 
 } // namespace queryosity
 
 template <typename T>
 template <typename... Args>
-queryosity::query::booker<T>::book(Args... args)
+queryosity::query::booker<T>::booker(Args... args)
     : m_make_unique_query(std::bind(
           [](Args... args) { return std::make_unique<T>(args...); }, args...)) {
 }
 
 template <typename T>
 template <typename... Vals>
-auto queryosity::query::booker<T>::fill_columns(
-    column::valued<Vals> const &...columns) const -> std::unique_ptr<book<T>> {
+auto queryosity::query::booker<T>::add_columns(
+    column::valued<Vals> const &...columns) const -> std::unique_ptr<booker<T>> {
   // use a fresh one with its current fills
-  auto filled = std::make_unique<book<T>>(*this);
+  auto filled = std::make_unique<booker<T>>(*this);
   // add fills
   filled->fill_query(columns...);
   // return new book
@@ -1626,11 +1740,11 @@ template <typename... Vals>
 void queryosity::query::booker<T>::fill_query(
     column::valued<Vals> const &...columns) {
   // use a snapshot of its current calls
-  m_fill_columns.push_back(std::bind(
+  m_add_columns.push_back(std::bind(
       [](T &cnt, column::valued<Vals> const &...cols) {
         cnt.enter_columns(cols...);
       },
-      std::placeholders::_1, std::ref(columns)...));
+      std::placeholders::_1, std::cref(columns)...));
 }
 
 template <typename T>
@@ -1639,7 +1753,7 @@ auto queryosity::query::booker<T>::set_selection(const selection::node &sel) con
   // call constructor
   auto cnt = m_make_unique_query();
   // fill columns (if set)
-  for (const auto &fill_query : m_fill_columns) {
+  for (const auto &fill_query : m_add_columns) {
     fill_query(*cnt);
   }
   // book cnt at the selection
@@ -1662,9 +1776,6 @@ public:
   template <typename Qry>
   auto book(query::booker<Qry> const &bkr, const selection::node &sel) -> Qry *;
 
-  void scale_current_queries(double scale);
-  void clear_current_queries();
-
 protected:
   template <typename Qry> auto add_query(std::unique_ptr<Qry> qry) -> Qry *;
 
@@ -1674,16 +1785,6 @@ protected:
 };
 
 } // namespace queryosity
-
-inline void queryosity::query::experiment::clear_current_queries() {
-  m_queries.clear();
-}
-
-inline void queryosity::query::experiment::scale_current_queries(double scale) {
-  for (auto const &qry : m_queries) {
-    qry->apply_scale(scale);
-  }
-}
 
 template <typename Qry, typename... Args>
 std::unique_ptr<queryosity::query::booker<Qry>>
@@ -1712,8 +1813,7 @@ namespace queryosity {
 
 namespace dataset {
 
-class player : public queryosity::column::computation,
-               public query::experiment {
+class player : public query::experiment {
 
 public:
   player() = default;
@@ -1733,6 +1833,7 @@ inline void queryosity::dataset::player::play(
     std::vector<std::unique_ptr<source>> const &sources, double scale,
     unsigned int slot, unsigned long long begin, unsigned long long end) {
 
+  // apply dataset scale in effect for all queries
   for (auto const &qry : m_queries) {
     qry->apply_scale(scale);
   }
@@ -2023,50 +2124,29 @@ public:
   /**
    * @brief Define a column using an expression.
    * @tparam Fn Callable type.
-   * @tparam Cols Input column types.
    * @param[in] expr C++ function, functor, lambda, or any other callable.
-   * @param[in] cols Input columns.
-   * @return Lazy column.
+   * @return Evaluator.
    */
-  template <typename Fn, typename... Cols>
-  auto define(column::expression<Fn> const &expr, lazy<Cols> const &...cols)
-      -> lazy<column::equation_t<Fn>>;
+  template <typename Fn>
+  auto define(column::expression<Fn> const &expr)
+      -> todo<column::evaluator<column::equation_t<Fn>>>;
 
   /**
-   * @brief Define a varied column using an expression.
-   * @tparam Fn Callable type.
-   * @tparam Cols Input column types.
-   * @param[in] expr C++ function, functor, lambda, or any other callable.
-   * @param[in] cols (Varied) input columns.
-   * @return Varied lazy column.
+   * @brief Define a column using an expression.
+   * @tparam Def Custom definition.
+   * @param[in] defn Definition type and constructor arguments.
+   * @return Evaluator.
    */
-  template <typename Fn, typename... Cols>
-  auto define(column::expression<Fn> const &expr, Cols const &...cols)
-      -> typename lazy<column::equation_t<Fn>>::varied;
+  template <typename Def>
+  auto define(column::definition<Def> const &defn)
+      -> todo<column::evaluator<Def>>;
 
   /**
-   * @brief Define a custom column.
-   * @tparam Def `column::definition<Out(Ins...)>` implementation.
-   * @tparam Cols Input column types.
-   * @param[in] defn Constructor arguments for `Def`.
-   * @param[in] cols Input columns.
-   * @return Lazy column.
+   * @brief Select all entries.
+   * @return Lazy selection with cut passing for all entries and weight equal to
+   * unity.
    */
-  template <typename Def, typename... Cols>
-  auto define(column::definition<Def> const &defn, lazy<Cols> const &...cols)
-      -> lazy<Def>;
-
-  /**
-   * @brief Define a custom column.
-   * @tparam Def `column::definition<Out(Ins...)>` implementation.
-   * @tparam Cols Input column types.
-   * @param[in] defn Constructor arguments for `Def`.
-   * @param[in] cols (Varied) input columns.
-   * @return Varied lazy column.
-   */
-  template <typename Def, typename... Cols>
-  auto define(column::definition<Def> const &defn, Cols const &...cols)
-      -> typename lazy<Def>::varied;
+  auto all() -> lazy<selection::node>;
 
   /**
    * @brief Initiate a cutflow.
@@ -2110,8 +2190,28 @@ public:
    * @return Lazy (varied) selection.
    */
   template <typename Fn, typename... Cols>
-  auto filter(queryosity::column::expression<Fn> const &expr,
-              Cols const &...cols);
+  auto filter(column::constant<Fn> const &expr) -> lazy<selection::node>;
+
+  /**
+   * @brief Initiate a cutflow.
+   * @tparam Fn C++ Callable object.
+   * @tparam Cols Column types.
+   * @param[in] Input (varied) columns used to evaluate cut decision.
+   * @return Lazy (varied) selection.
+   */
+  template <typename Val>
+  auto weight(column::constant<Val> const &expr) -> lazy<selection::node>;
+
+  /**
+   * @brief Initiate a cutflow.
+   * @tparam Fn C++ Callable object.
+   * @tparam Cols Column types.
+   * @param[in] Input (varied) columns used to evaluate cut decision.
+   * @return Lazy (varied) selection.
+   */
+  template <typename Fn>
+  auto filter(column::expression<Fn> const &expr)
+      -> todo<selection::applicator<selection::cut, column::equation_t<Fn>>>;
 
   /**
    * @brief Initiate a cutflow.
@@ -2120,49 +2220,73 @@ public:
    * @param[in] Input (varied) columns used to evaluate weight decision.
    * @return Lazy (varied) selection.
    */
-  template <typename Fn, typename... Cols>
-  auto weight(queryosity::column::expression<Fn> const &expr,
-              Cols const &...cols);
+  template <typename Fn>
+  auto weight(column::expression<Fn> const &expr)
+      -> todo<selection::applicator<selection::weight, column::equation_t<Fn>>>;
 
   /**
    * @brief Plan a query.
    * @tparam Qry Concrete queryosity::query::definition implementation.
-   * @param[in] plan Query plan (constructor arguments).
+   * @param[in] output Query output (constructor arguments).
    * @return queryosity::todo query booker.
    */
   template <typename Qry>
-  auto make(query::output<Qry> const &plan) -> todo<query::booker<Qry>>;
+  auto get(query::output<Qry> const &output) -> todo<query::booker<Qry>>;
 
-  template <typename Val, typename... Vars>
-  auto vary(column::constant<Val> const &nom, Vars const &...vars);
-
-  template <typename Fn, typename... Vars>
-  auto vary(column::expression<Fn> const &expr, Vars const &...vars);
-
-  template <typename Defn, typename... Vars>
-  auto vary(column::definition<Defn> const &defn, Vars const &...vars);
-
-  /* public, but not really... */
+  /**
+   * @brief Get a column series.
+   * @tparam Col (Varied) lazy column.
+   * @param[in] col Column as series argument.
+   * @return queryosity::todo query booker.
+   */
+  template <typename Col> auto get(column::series<Col> const &srs);
 
   template <typename Val>
-  auto _assign(Val const &val) -> lazy<column::fixed<Val>>;
+  auto vary(column::constant<Val> const &cnst, std::map<std::string, Val> vars)
+      -> typename lazy<column::fixed<Val>>::varied;
+
+  template <typename Fn>
+  auto
+  vary(column::expression<Fn> const &expr,
+       std::map<std::string,
+                typename column::expression<Fn>::function_type> const &vars) ->
+      typename todo<column::evaluator<column::equation_t<Fn>>>::varied;
+
+  template <typename Def>
+  auto vary(column::definition<Def> const &defn,
+            std::map<std::string, column::definition<Def>> const &vars) ->
+      typename todo<column::evaluator<Def>>::varied;
+
+  /* "public" API for Python layer */
 
   template <typename To, typename Col>
   auto _convert(lazy<Col> const &col)
       -> lazy<column::conversion<To, column::value_t<Col>>>;
 
+  template <typename Val>
+  auto _assign(Val const &val) -> lazy<column::fixed<Val>>;
+
   template <typename Def, typename... Args> auto _define(Args &&...args);
-  template <typename Def> auto _define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
+  template <typename Def>
+  auto _define(column::definition<Def> const &defn)
+      -> todo<column::evaluator<Def>>;
 
   template <typename Fn> auto _equate(Fn fn);
-  template <typename Fn> auto _equate(column::expression<Fn> const &expr) -> todo<column::evaluator<column::equation_t<Fn>>> ;
+  template <typename Fn>
+  auto _equate(column::expression<Fn> const &expr)
+      -> todo<column::evaluator<column::equation_t<Fn>>>;
 
-  template <typename Sel, typename Col>
-  auto _select(lazy<Col> const &col) -> lazy<selection::node>;
+  template <typename Sel, typename Fn> auto _select(Fn fn);
+  template <typename Sel, typename Fn>
+  auto _select(column::expression<Fn> const &expr)
+      -> todo<selection::applicator<Sel, column::equation_t<Fn>>>;
 
-  template <typename Sel, typename Col>
-  auto _select(lazy<selection::node> const &prev, lazy<Col> const &col)
-      -> lazy<selection::node>;
+  template <typename Sel, typename Fn>
+  auto _select(lazy<selection::node> const &prev, Fn fn);
+  template <typename Sel, typename Fn>
+  auto _select(lazy<selection::node> const &prev,
+               column::expression<Fn> const &expr)
+      -> todo<selection::applicator<Sel, column::equation_t<Fn>>>;
 
   template <typename Qry, typename... Args>
   auto _make(Args &&...args) -> todo<query::booker<Qry>>;
@@ -2181,9 +2305,21 @@ protected:
   auto _evaluate(todo<column::evaluator<Def>> const &calc,
                  lazy<Cols> const &...columns) -> lazy<Def>;
 
+  template <typename Sel, typename Col>
+  auto _apply(lazy<Col> const &col) -> lazy<selection::node>;
+
+  template <typename Sel, typename Col>
+  auto _apply(lazy<selection::node> const &prev, lazy<Col> const &col)
+      -> lazy<selection::node>;
+
+  template <typename Sel, typename Def, typename... Cols>
+  auto _apply(todo<selection::applicator<Sel, Def>> const &calc,
+              lazy<Cols> const &...columns) -> lazy<selection::node>;
+
   template <typename Qry>
   auto _book(todo<query::booker<Qry>> const &bkr,
              lazy<selection::node> const &sel) -> lazy<Qry>;
+
   template <typename Qry, typename... Sels>
   auto _book(todo<query::booker<Qry>> const &bkr, lazy<Sels> const &...sels)
       -> std::array<lazy<Qry>, sizeof...(Sels)>;
@@ -2196,6 +2332,10 @@ protected:
   void _vary(Syst &syst, const std::string &name,
              column::expression<Fn> const &expr);
 
+  template <typename Syst, typename Def>
+  void _vary(Syst &syst, const std::string &name,
+             column::definition<Def> const &defn);
+
 protected:
   dataset::processor m_processor;
   dataset::weight m_weight;
@@ -2203,6 +2343,8 @@ protected:
 
   std::vector<std::unique_ptr<dataset::source>> m_sources;
   std::vector<unsigned int> m_dslots;
+
+  std::unique_ptr<lazy<selection::node>> m_all;
 
   bool m_analyzed;
 };
@@ -2213,7 +2355,20 @@ public:
   friend class dataflow;
 
 public:
-  node(dataflow &df) : m_df(&df) {}
+  template <typename Fn, typename... Nodes>
+  static auto invoke(Fn fn, Nodes const &...nodes) -> std::enable_if_t<
+      !std::is_void_v<
+          std::invoke_result_t<Fn, typename Nodes::action_type *...>>,
+      std::vector<std::invoke_result_t<Fn, typename Nodes::action_type *...>>>;
+
+  template <typename Fn, typename... Nodes>
+  static auto invoke(Fn fn, Nodes const &...nodes)
+      -> std::enable_if_t<std::is_void_v<std::invoke_result_t<
+                              Fn, typename Nodes::action_type *...>>,
+                          void>;
+
+public:
+  node(dataflow &df);
   virtual ~node() = default;
 
 protected:
@@ -2256,36 +2411,33 @@ queryosity::dataset::input<DS>::input(Args &&...args)
 
 #include <map>
 
-namespace queryosity {
+namespace queryosity
+{
 
-namespace dataset {
+namespace dataset
+{
 
-template <typename DS> class loaded {
+template <typename DS> class loaded
+{
 
-public:
-  loaded(dataflow &df, DS &ds);
-  ~loaded() = default;
+  public:
+    loaded(dataflow &df, DS &ds);
+    ~loaded() = default;
 
-  template <typename Val> auto _read(const std::string &name) {
-    return m_df->_read<DS, Val>(*m_ds, name);
-  }
+    template <typename Val> auto _read(const std::string &name)
+    {
+        return m_df->_read<DS, Val>(*m_ds, name);
+    }
 
-  template <typename Val>
-  auto read(dataset::column<Val> const &col) -> lazy<read_column_t<DS, Val>>;
+    template <typename Val> auto read(dataset::column<Val> const &col) -> lazy<read_column_t<DS, Val>>;
 
-  template <typename... Vals> auto read(dataset::column<Vals> const &... cols);
+    template <typename... Vals> auto read(dataset::column<Vals> const &...cols);
 
-  template <typename Val>
-  auto vary(dataset::column<Val> const &nom,
-            systematic::variation<std::string> const &var);
+    template <typename Val> auto vary(dataset::column<Val> const &col, std::map<std::string, std::string> const &vars);
 
-  template <typename Val, typename... Vars>
-  auto vary(dataset::column<Val> const &nom,
-            systematic::variation<Vars> const &...vars);
-
-protected:
-  dataflow *m_df;
-  dataset::reader<DS> *m_ds;
+  protected:
+    dataflow *m_df;
+    dataset::reader<DS> *m_ds;
 };
 
 } // namespace dataset
@@ -2343,36 +2495,56 @@ auto queryosity::dataset::column<Val>::_read(
 
 #include <type_traits>
 
+// check for the existence of a native/custom binary operator
 #define CHECK_FOR_BINARY_OP(op_name, op_symbol)                                \
-  struct has_no_##op_name {};                                                  \
+  template <typename T, typename Arg, typename = void>                         \
+  struct has_native_##op_name : std::false_type {};                            \
+                                                                               \
   template <typename T, typename Arg>                                          \
-  has_no_##op_name operator op_symbol(const T &, const Arg &);                 \
-  template <typename T, typename Arg = T> struct has_##op_name {               \
-    enum {                                                                     \
-      value = !std::is_same<decltype(std::declval<T>()                         \
-                                         op_symbol std::declval<Arg>()),       \
-                            has_no_##op_name>::value                           \
-    };                                                                         \
-  };                                                                           \
-  template <typename T, typename Arg = T>                                      \
-  static constexpr bool has_##op_name##_v = has_##op_name<T, Arg>::value;
+  struct has_native_##op_name<                                                 \
+      T, Arg,                                                                  \
+      std::void_t<decltype(std::declval<T>() op_symbol std::declval<Arg>())>>  \
+      : std::true_type {};                                                     \
+                                                                               \
+  template <typename T, typename Arg>                                          \
+  auto operator op_symbol(const T &, const Arg &) -> priority_tag<0>;          \
+                                                                               \
+  template <typename T, typename Arg> struct has_custom_only_##op_name {       \
+  private:                                                                     \
+    template <typename U, typename V>                                          \
+    static auto test(priority_tag<1>)                                          \
+        -> decltype(std::declval<U>() op_symbol std::declval<V>(),             \
+                    std::true_type());                                         \
+                                                                               \
+    template <typename, typename>                                              \
+    static auto test(priority_tag<0>) -> std::false_type;                      \
+                                                                               \
+  public:                                                                      \
+    static constexpr bool value =                                              \
+        decltype(test<T, Arg>(priority_tag<1>()))::value &&                    \
+        !has_native_##op_name<T, Arg>::value;                                  \
+  };
 
 #define DEFINE_LAZY_BINARY_OP(op_name, op_symbol)                              \
   template <typename Arg, typename V = Action,                                 \
-            std::enable_if_t<                                                  \
+            typename std::enable_if<                                           \
                 queryosity::is_column_v<V> &&                                  \
                     queryosity::is_column_v<typename Arg::action_type> &&      \
-                    detail::has_##op_name##_v<                                 \
-                        column::value_t<V>,                           \
-                        column::value_t<typename Arg::action_type>>,  \
-                bool> = false>                                                 \
+                    (detail::has_native_##op_name<                             \
+                         column::value_t<V>,                                   \
+                         column::value_t<typename Arg::action_type>>::value || \
+                     detail::has_custom_only_##op_name<                        \
+                         column::value_t<V>,                                   \
+                         column::value_t<typename Arg::action_type>>::value),  \
+                bool>::type = true>                                            \
   auto operator op_symbol(Arg const &arg) const {                              \
-    return this->m_df->define(                                                 \
-        queryosity::column::expression(                                        \
-            [](column::value_t<V> const &me,                          \
-               column::value_t<typename Arg::action_type> const       \
-                   &you) { return me op_symbol you; }),                        \
-        *this, arg);                                                           \
+    return this->m_df                                                          \
+        ->define(queryosity::column::expression(                               \
+            [](column::value_t<V> const &me,                                   \
+               column::value_t<typename Arg::action_type> const &you) {        \
+              return me op_symbol you;                                         \
+            }))                                                                \
+        .template evaluate(*this, arg);                                        \
   }
 
 #define CHECK_FOR_UNARY_OP(op_name, op_symbol)                                 \
@@ -2388,17 +2560,16 @@ auto queryosity::dataset::column<Val>::_read(
   static constexpr bool has_##op_name##_v = has_##op_name<T>::value;
 
 #define DEFINE_LAZY_UNARY_OP(op_name, op_symbol)                               \
-  template <typename V = Action,                                               \
-            std::enable_if_t<                                                  \
-                queryosity::is_column_v<V> &&                                  \
-                    detail::has_##op_name##_v<column::value_t<V>>,    \
-                bool> = false>                                                 \
+  template <                                                                   \
+      typename V = Action,                                                     \
+      std::enable_if_t<queryosity::is_column_v<V> &&                           \
+                           detail::has_##op_name##_v<column::value_t<V>>,      \
+                       bool> = false>                                          \
   auto operator op_symbol() const {                                            \
-    return this->m_df->define(queryosity::column::expression(                  \
-                                  [](column::value_t<V> const &me) {  \
-                                    return (op_symbol me);                     \
-                                  }),                                          \
-                              *this);                                          \
+    return this->m_df                                                          \
+        ->define(queryosity::column::expression(                               \
+            [](column::value_t<V> const &me) { return (op_symbol me); }))      \
+        .template evaluate(*this);                                             \
   }
 
 #define CHECK_FOR_INDEX_OP()                                                   \
@@ -2418,46 +2589,56 @@ auto queryosity::dataset::column<Val>::_read(
   static constexpr bool has_subscript_v = has_subscript<T, Index>::value;
 
 #define DEFINE_LAZY_INDEX_OP()                                                 \
-  template <typename Arg, typename V = Action,                                 \
-            std::enable_if_t<                                                  \
-                is_column_v<V> &&                                              \
-                    detail::has_subscript_v<                                   \
-                        column::value_t<V>,                           \
-                        column::value_t<typename Arg::action_type>>,  \
-                bool> = false>                                                 \
+  template <                                                                   \
+      typename Arg, typename V = Action,                                       \
+      std::enable_if_t<is_column_v<V> &&                                       \
+                           detail::has_subscript_v<                            \
+                               column::value_t<V>,                             \
+                               column::value_t<typename Arg::action_type>>,    \
+                       bool> = false>                                          \
   auto operator[](Arg const &arg) const {                                      \
-    return this->m_df->define(                                                 \
-        queryosity::column::expression(                                        \
-            [](column::value_t<V> me,                                 \
-               column::value_t<typename Arg::action_type> index) {    \
+    return this->m_df                                                          \
+        ->define(queryosity::column::expression(                               \
+            [](column::value_t<V> me,                                          \
+               column::value_t<typename Arg::action_type> index) {             \
               return me[index];                                                \
-            }),                                                                \
-        *this, arg);                                                           \
+            }))                                                                \
+        .template evaluate(*this, arg);                                        \
   }
 
 #define DECLARE_LAZY_VARIED_BINARY_OP(op_symbol)                               \
-  template <typename Arg>                                                      \
-  auto operator op_symbol(Arg &&b) const->typename lazy<                       \
+  template <                                                                   \
+      typename Arg, typename V = Act,                                          \
+      std::enable_if_t<queryosity::is_column_v<V> &&                           \
+                           queryosity::is_column_v<typename Arg::action_type>, \
+                       bool> = false>                                          \
+  auto operator op_symbol(Arg const &b) const -> typename lazy<                \
       typename decltype(std::declval<lazy<Act>>().operator op_symbol(          \
-          std::forward<Arg>(b).nominal()))::action_type>::varied;
+          b.nominal()                                                          \
+              .template to<column::value_t<V>>()))::action_type>::varied;
 
 #define DEFINE_LAZY_VARIED_BINARY_OP(op_symbol)                                \
   template <typename Act>                                                      \
-  template <typename Arg>                                                      \
-  auto queryosity::lazy<Act>::varied::operator op_symbol(Arg &&b) const->      \
-      typename lazy<                                                           \
+  template <                                                                   \
+      typename Arg, typename V,                                                \
+      std::enable_if_t<queryosity::is_column_v<V> &&                           \
+                           queryosity::is_column_v<typename Arg::action_type>, \
+                       bool>>                                                  \
+  auto queryosity::lazy<Act>::varied::operator op_symbol(Arg const &b) const   \
+      -> typename lazy<                                                        \
           typename decltype(std::declval<lazy<Act>>().operator op_symbol(      \
-              std::forward<Arg>(b).nominal()))::action_type>::varied {         \
+              b.nominal()                                                      \
+                  .template to<column::value_t<V>>()))::action_type>::varied { \
     auto syst = typename lazy<                                                 \
         typename decltype(std::declval<lazy<Act>>().operator op_symbol(        \
-            std::forward<Arg>(b).nominal()))::action_type>::                   \
+            b.nominal().template to<column::value_t<V>>()))::action_type>::    \
         varied(this->nominal().operator op_symbol(                             \
-            std::forward<Arg>(b).nominal()));                                  \
-    for (auto const &var_name :                                                \
-         systematic::get_variation_names(*this, std::forward<Arg>(b))) {       \
-      syst.set_variation(var_name,                                             \
-                         variation(var_name).operator op_symbol(               \
-                             std::forward<Arg>(b).variation(var_name)));       \
+            b.nominal().template to<column::value_t<V>>()));                   \
+    for (auto const &var_name : systematic::get_variation_names(*this, b)) {   \
+      syst.set_variation(                                                      \
+          var_name,                                                            \
+          variation(var_name).operator op_symbol(                              \
+              b.variation(var_name).template to<column::value_t<V>>()));       \
     }                                                                          \
     return syst;                                                               \
   }
@@ -2465,13 +2646,13 @@ auto queryosity::dataset::column<Val>::_read(
 #define DECLARE_LAZY_VARIED_UNARY_OP(op_symbol)                                \
   template <typename V = Act,                                                  \
             std::enable_if_t<queryosity::is_column_v<V>, bool> = false>        \
-  auto operator op_symbol() const->typename lazy<                              \
+  auto operator op_symbol() const -> typename lazy<                            \
       typename decltype(std::declval<lazy<V>>().                               \
                         operator op_symbol())::action_type>::varied;
 #define DEFINE_LAZY_VARIED_UNARY_OP(op_name, op_symbol)                        \
   template <typename Act>                                                      \
   template <typename V, std::enable_if_t<queryosity::is_column_v<V>, bool>>    \
-  auto queryosity::lazy<Act>::varied::operator op_symbol() const->             \
+  auto queryosity::lazy<Act>::varied::operator op_symbol() const ->            \
       typename lazy<                                                           \
           typename decltype(std::declval<lazy<V>>().                           \
                             operator op_symbol())::action_type>::varied {      \
@@ -2487,7 +2668,32 @@ auto queryosity::dataset::column<Val>::_read(
 
 namespace queryosity {
 
+template <typename T> class lazy;
+template <typename T> class todo;
+
+template <typename U>
+static constexpr std::true_type check_lazy(lazy<U> const &);
+static constexpr std::false_type check_lazy(...) { return std::false_type{}; }
+template <typename U>
+static constexpr std::true_type check_todo(todo<U> const &);
+static constexpr std::false_type check_todo(...) { return std::false_type{}; }
+
+template <typename V>
+static constexpr bool is_nominal_v =
+    (decltype(check_lazy(std::declval<V>()))::value ||
+     decltype(check_todo(std::declval<V>()))::value);
+template <typename V> static constexpr bool is_varied_v = !is_nominal_v<V>;
+
+template <typename... Args>
+static constexpr bool has_no_variation_v = (is_nominal_v<Args> && ...);
+template <typename... Args>
+static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
+
 namespace detail {
+
+// https://quuxplusone.github.io/blog/2021/07/09/priority-tag/
+template <int I> struct priority_tag : priority_tag<I - 1> {};
+template <> struct priority_tag<0> {};
 
 CHECK_FOR_UNARY_OP(logical_not, !)
 CHECK_FOR_UNARY_OP(minus, -)
@@ -2549,23 +2755,6 @@ public:
 
 namespace queryosity {
 
-// mixin class to conditionally add a member variable
-template <typename Action, typename Enable = void>
-struct result_if_aggregation {};
-
-// Specialization for types satisfying is_query
-template <typename Action>
-struct result_if_aggregation<
-    Action, std::enable_if_t<query::is_aggregation_v<Action>>> {
-  using result_type = decltype(std::declval<Action>().result());
-  result_if_aggregation() : m_merged(false) {}
-  virtual ~result_if_aggregation() = default;
-
-protected:
-  result_type m_result;
-  bool m_merged;
-};
-
 /**
  * @ingroup api
  * @brief Lazy action over dataset.
@@ -2575,7 +2764,7 @@ template <typename Action>
 class lazy : public dataflow::node,
              public ensemble::slotted<Action>,
              public systematic::resolver<lazy<Action>>,
-             public result_if_aggregation<Action> {
+             public query::result_if_aggregation<Action> {
 
 public:
   class varied;
@@ -2586,6 +2775,7 @@ public:
 public:
   friend class dataflow;
   template <typename> friend class lazy;
+  template <typename> friend class column::series; // access to dataflow
 
 public:
   lazy(dataflow &df, std::vector<Action *> const &slots)
@@ -2626,25 +2816,36 @@ public:
   template <typename Col> auto filter(Col const &col) const;
   template <typename Col> auto weight(Col const &col) const;
 
-  template <typename Expr, typename... Cols>
-  auto filter(queryosity::column::expression<Expr> const &expr,
-              Cols const &...cols) const;
+  template <typename Expr>
+  auto filter(queryosity::column::expression<Expr> const &expr) const;
 
-  template <typename Expr, typename... Cols>
-  auto weight(queryosity::column::expression<Expr> const &expr,
-              Cols const &...cols) const;
+  template <typename Expr>
+  auto weight(queryosity::column::expression<Expr> const &expr) const;
 
   template <typename Agg> auto book(Agg &&agg) const;
   template <typename... Aggs> auto book(Aggs &&...aggs) const;
 
-  template <typename V = Action,
-            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
-                             bool> = false>
+  /**
+   * @brief Get a column series for the entries passing the selection
+   * @attention The weight value does not apply in the population of the
+   * series.
+   */
+  template <typename Col, std::enable_if_t<queryosity::is_nominal_v<Col>,bool> = false>
+  auto get(column::series<Col> const &col)
+      -> lazy<query::series<typename column::series<Col>::value_type>>;
+
+  template <typename Col, std::enable_if_t<queryosity::is_varied_v<Col>,bool> = false>
+  auto get(column::series<Col> const &col)
+      -> typename lazy<query::series<typename column::series<Col>::value_type>>::varied;
+
+  template <
+      typename V = Action,
+      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
   auto result() -> decltype(std::declval<V>().result());
 
-  template <typename V = Action,
-            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
-                             bool> = false>
+  template <
+      typename V = Action,
+      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
   auto operator->() -> decltype(std::declval<V>().result()) {
     return this->result();
   }
@@ -2666,9 +2867,9 @@ public:
   DEFINE_LAZY_INDEX_OP()
 
 protected:
-  template <typename V = Action,
-            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
-                             bool> = false>
+  template <
+      typename V = Action,
+      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
   void merge_results();
 
 protected:
@@ -2702,6 +2903,9 @@ public:
   varied(lazy<Act> nom);
   ~varied() = default;
 
+  varied(varied const &) = default;
+  varied &operator=(varied const &) = default;
+
   varied(varied &&) = default;
   varied &operator=(varied &&) = default;
 
@@ -2726,15 +2930,16 @@ public:
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
   auto weight(Col const &col) -> typename lazy<selection::node>::varied;
 
-  template <typename Expr, typename... Args, typename V = Act,
+  template <typename Expr, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
-  auto filter(column::expression<Expr> const &expr, Args &&...args) ->
-      typename lazy<selection::node>::varied;
+  auto filter(column::expression<Expr> const &expr) -> typename todo<
+      selection::applicator<selection::cut, column::equation_t<Expr>>>::varied;
 
-  template <typename Expr, typename... Args, typename V = Act,
+  template <typename Expr, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
-  auto weight(column::expression<Expr> const &expr, Args &&...args) ->
-      typename lazy<selection::node>::varied;
+  auto weight(column::expression<Expr> const &expr) ->
+      typename todo<selection::applicator<selection::weight,
+                                          column::equation_t<Expr>>>::varied;
 
   template <typename Agg, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
@@ -2744,13 +2949,13 @@ public:
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
   auto book(Aggs &&...aggs);
 
-  template <typename V = Act,
-            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
-                             bool> = false>
+  template <
+      typename V = Act,
+      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
   auto operator[](const std::string &var_name) -> lazy<V> &;
-  template <typename V = Act,
-            std::enable_if_t<queryosity::query::is_aggregation_v<V>,
-                             bool> = false>
+  template <
+      typename V = Act,
+      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
   auto operator[](const std::string &var_name) const -> lazy<V> const &;
 
   DECLARE_LAZY_VARIED_UNARY_OP(-)
@@ -2784,8 +2989,9 @@ queryosity::lazy<Act>::varied::varied(lazy<Act> nom)
 template <typename Act>
 void queryosity::lazy<Act>::varied::set_variation(const std::string &var_name,
                                                   lazy var) {
-  ensemble::call([var_name](action *act) { act->set_variation_name(var_name); },
-                 var.get_slots());
+  ensemble::invoke(
+      [var_name](action *act) { act->set_variation_name(var_name); },
+      var.get_slots());
   m_var_map.insert(std::make_pair(var_name, std::move(var)));
   m_var_names.insert(var_name);
 }
@@ -2859,43 +3065,39 @@ auto queryosity::lazy<Act>::varied::weight(Col const &col) ->
 }
 
 template <typename Act>
-template <typename Expr, typename... Args, typename V,
+template <typename Expr, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::filter(
-    queryosity::column::expression<Expr> const &expr, Args &&...args) ->
-    typename lazy<selection::node>::varied {
+    queryosity::column::expression<Expr> const &expr) ->
+    typename todo<selection::applicator<selection::cut,
+                                        column::equation_t<Expr>>>::varied {
 
-  using varied_type = typename lazy<selection::node>::varied;
+  using varied_type = typename todo<selection::applicator<selection::cut,
+                                        column::equation_t<Expr>>>::varied;
 
-  auto syst = varied_type(
-      this->nominal().filter(expr, std::forward<Args>(args).nominal()...));
+  auto syst = varied_type(this->nominal().filter(expr));
 
-  for (auto const &var_name :
-       systematic::get_variation_names(*this, std::forward<Args>(args)...)) {
-    syst.set_variation(
-        var_name, this->variation(var_name).filter(
-                      expr, std::forward<Args>(args).variation(var_name)...));
+  for (auto const &var_name : systematic::get_variation_names(*this)) {
+    syst.set_variation(var_name, this->variation(var_name).filter(expr));
   }
   return syst;
 }
 
 template <typename Act>
-template <typename Expr, typename... Args, typename V,
+template <typename Expr, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::weight(
-    queryosity::column::expression<Expr> const &expr, Args &&...args) ->
-    typename lazy<selection::node>::varied {
+    queryosity::column::expression<Expr> const &expr) ->
+    typename todo<selection::applicator<selection::weight,
+                                        column::equation_t<Expr>>>::varied {
 
-  using varied_type = typename lazy<selection::node>::varied;
+  using varied_type = typename todo<selection::applicator<selection::weight,
+                                        column::equation_t<Expr>>>::varied;
 
-  auto syst = varied_type(
-      this->nominal().weight(expr, std::forward<Args>(args).nominal()...));
+  auto syst = varied_type(this->nominal().weight(expr));
 
-  for (auto const &var_name :
-       systematic::get_variation_names(*this, std::forward<Args>(args)...)) {
-    syst.set_variation(
-        var_name, this->variation(var_name).weight(
-                      expr, std::forward<Args>(args).variation(var_name)...));
+  for (auto const &var_name : systematic::get_variation_names(*this)) {
+    syst.set_variation(var_name, this->variation(var_name).weight(expr));
   }
   return syst;
 }
@@ -2904,20 +3106,19 @@ template <typename Act>
 template <typename Agg, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::book(Agg &&agg) {
-  return agg.book(*this);
+  return agg.at(*this);
 }
 
 template <typename Act>
 template <typename... Aggs, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::book(Aggs &&...aggs) {
-  return std::make_tuple((aggs.book(*this), ...));
+  return std::make_tuple((aggs.at(*this), ...));
 }
 
 template <typename Act>
-template <
-    typename V,
-    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
+template <typename V,
+          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::operator[](const std::string &var_name)
     -> lazy<V> & {
   if (!this->has_variation(var_name)) {
@@ -2927,9 +3128,8 @@ auto queryosity::lazy<Act>::varied::operator[](const std::string &var_name)
 }
 
 template <typename Act>
-template <
-    typename V,
-    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
+template <typename V,
+          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
 auto queryosity::lazy<Act>::varied::operator[](
     const std::string &var_name) const -> lazy<V> const & {
   if (!this->has_variation(var_name)) {
@@ -2953,6 +3153,226 @@ DEFINE_LAZY_VARIED_BINARY_OP(==)
 DEFINE_LAZY_VARIED_BINARY_OP(&&)
 DEFINE_LAZY_VARIED_BINARY_OP(||)
 DEFINE_LAZY_VARIED_BINARY_OP([])
+
+namespace queryosity {
+
+/**
+ * @brief Minimal query with an output result.
+ * @details This ABC should be used for actions that do not require any input
+ * columns.
+ */
+template <typename T> class query::aggregation : public node {
+
+public:
+  using result_type = T;
+
+public:
+  aggregation() = default;
+  virtual ~aggregation() = default;
+
+  /**
+   * Create and return the result of the query.
+   * If multiple slots are run concurrently in multithreaded mode, the results
+   * are merged into one (see `merge`).
+   * @return The result.
+   */
+  virtual T result() const = 0;
+
+  /**
+   * Merge the results from concurrent slots into one representing the full
+   * dataset.
+   * @param[in] results Partial result from each thread.
+   * @return Merged result.
+   */
+  virtual T merge(std::vector<T> const &results) const = 0;
+
+  using node::count;
+
+  /**
+   * Shortcut for `result()`.
+   * @return The result.
+   */
+  T operator->() const { return this->result(); }
+
+protected:
+};
+
+} // namespace queryosity
+
+namespace queryosity {
+
+/**
+ * @brief Query filled with column value(s) per-entry.
+ * @tparam T Output result type.
+ * @tparam Obs Input column data types.
+ */
+template <typename T, typename... Obs>
+class query::definition<T(Obs...)> : public query::aggregation<T> {
+
+public:
+  using vartup_type = std::tuple<column::variable<Obs>...>;
+
+public:
+  definition() = default;
+  virtual ~definition() = default;
+
+  /**
+   * @brief Perform the counting action for an entry.
+   * @param[in] observables The `observable` of each input column.
+   * @param[in] weight The weight value of the booked selection for the passed
+   * entry.
+   * @details This action is performed N times for a passed entry, where N is
+   * the number of `fill` calls made during its `todo` configuration.
+   */
+  virtual void fill(column::observable<Obs>... observables, double w) = 0;
+  virtual void count(double w) final override;
+
+  template <typename... Vals>
+  void enter_columns(column::view<Vals> const &...cols);
+
+protected:
+  std::vector<vartup_type> m_fills;
+};
+
+} // namespace queryosity
+
+template <typename T, typename... Obs>
+template <typename... Vals>
+void queryosity::query::definition<T(Obs...)>::enter_columns(
+    column::view<Vals> const &...cols) {
+  static_assert(sizeof...(Obs) == sizeof...(Vals),
+                "dimension mis-match between filled variables & columns.");
+  m_fills.emplace_back(cols...);
+}
+
+template <typename T, typename... Obs>
+void queryosity::query::definition<T(Obs...)>::count(double w) {
+  for (unsigned int ifill = 0; ifill < m_fills.size(); ++ifill) {
+    std::apply(
+        [this, w](const column::variable<Obs> &...obs) {
+          this->fill(obs..., w);
+        },
+        m_fills[ifill]);
+  }
+}
+
+#include <vector>
+
+namespace queryosity
+{
+
+namespace query
+{
+
+template <typename T> class series : public queryosity::query::definition<std::vector<T>(T)>
+{
+
+  public:
+    series() = default;
+    ~series() = default;
+
+    virtual void initialize(unsigned int, unsigned long long, unsigned long long) override;
+    virtual void fill(queryosity::column::observable<T>, double) override;
+    virtual void finalize(unsigned int) override;
+    virtual std::vector<T> result() const override;
+    virtual std::vector<T> merge(std::vector<std::vector<T>> const &results) const override;
+
+  protected:
+    std::vector<T> m_result;
+};
+
+} // namespace query
+
+} // namespace queryosity
+
+template <typename T>
+void queryosity::query::series<T>::initialize(unsigned int, unsigned long long begin, unsigned long long end)
+{
+    m_result.reserve(end - begin);
+}
+
+template <typename T> void queryosity::query::series<T>::fill(queryosity::column::observable<T> x, double)
+{
+    m_result.push_back(x.value());
+}
+
+template <typename T> void queryosity::query::series<T>::finalize(unsigned int)
+{
+    m_result.resize(m_result.size());
+}
+
+template <typename T> std::vector<T> queryosity::query::series<T>::result() const
+{
+    return m_result;
+}
+
+template <typename T>
+std::vector<T> queryosity::query::series<T>::merge(std::vector<std::vector<T>> const &results) const
+{
+    std::vector<T> merged;
+    size_t merged_size = 0;
+    for (const auto &result : results)
+    {
+        merged_size += result.size();
+    }
+    merged.reserve(merged_size);
+    for (const auto &result : results)
+    {
+        merged.insert(merged.end(), result.begin(), result.end());
+    }
+    return merged;
+}
+
+namespace queryosity {
+
+namespace column {
+
+/**
+ * @brief Argumnet for column series.
+ * @tparam Col (Varied) lazy column node.
+ * @todo C++20: Use concept to require lazy<column<Val>(::varied)>.
+ */
+template <typename Col> class series {
+
+public:
+  using value_type = column::value_t<typename Col::action_type>;
+
+public:
+  series(Col const &col);
+  ~series() = default;
+
+  auto _get(lazy<selection::node> &sel) const;
+
+  auto _get(lazy<selection::node>::varied &sel) const ->
+      typename lazy<query::series<value_type>>::varied;
+
+protected:
+  Col m_column;
+};
+
+} // namespace column
+
+} // namespace queryosity
+
+template <typename Col>
+queryosity::column::series<Col>::series(Col const &col) : m_column(col){};
+
+template <typename Col>
+auto queryosity::column::series<Col>::_get(lazy<selection::node> &sel) const {
+  auto df = sel.m_df;
+  return df->get(query::output<query::series<value_type>>())
+      .fill(m_column)
+      .at(sel);
+}
+
+template <typename Col>
+auto queryosity::column::series<Col>::_get(lazy<selection::node>::varied &sel)
+    const -> typename lazy<query::series<value_type>>::varied {
+  auto df = sel.nominal().m_df;
+  return df->get(query::output<query::series<value_type>>())
+      .fill(m_column)
+      .at(sel);
+}
 
 template <typename Action>
 template <typename Derived>
@@ -3042,7 +3462,7 @@ template <typename Action>
 template <typename Col>
 auto queryosity::lazy<Action>::filter(lazy<Col> const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
-    return this->m_df->template _select<selection::cut>(*this, col);
+    return this->m_df->template _apply<selection::cut>(*this, col);
   } else {
     static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");
@@ -3053,7 +3473,7 @@ template <typename Action>
 template <typename Col>
 auto queryosity::lazy<Action>::weight(lazy<Col> const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
-    return this->m_df->template _select<selection::weight>(*this, col);
+    return this->m_df->template _apply<selection::weight>(*this, col);
   } else {
     static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");
@@ -3093,13 +3513,11 @@ auto queryosity::lazy<Action>::weight(Col const &col) const {
 }
 
 template <typename Action>
-template <typename Expr, typename... Cols>
+template <typename Expr>
 auto queryosity::lazy<Action>::filter(
-    queryosity::column::expression<Expr> const &expr,
-    Cols const &...cols) const {
+    queryosity::column::expression<Expr> const &expr) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
-    auto col = this->m_df->define(expr, cols...);
-    return this->filter(col);
+    return this->m_df->template _select<selection::cut>(*this, expr);
   } else {
     static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");
@@ -3107,13 +3525,11 @@ auto queryosity::lazy<Action>::filter(
 }
 
 template <typename Action>
-template <typename Expr, typename... Cols>
+template <typename Expr>
 auto queryosity::lazy<Action>::weight(
-    queryosity::column::expression<Expr> const &expr,
-    Cols const &...cols) const {
+    queryosity::column::expression<Expr> const &expr) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
-    auto col = this->m_df->define(expr, cols...);
-    return this->weight(col);
+    return this->m_df->template _select<selection::weight>(*this, expr);
   } else {
     static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");
@@ -3125,7 +3541,7 @@ template <typename Agg>
 auto queryosity::lazy<Action>::book(Agg &&agg) const {
   static_assert(std::is_base_of_v<selection::node, Action>,
                 "book must be called from a selection");
-  return agg.book(*this);
+  return agg.at(*this);
 }
 
 template <typename Action>
@@ -3133,13 +3549,26 @@ template <typename... Aggs>
 auto queryosity::lazy<Action>::book(Aggs &&...aggs) const {
   static_assert(std::is_base_of_v<selection::node, Action>,
                 "book must be called from a selection");
-  return std::make_tuple((aggs.book(*this), ...));
+  return std::make_tuple((aggs.at(*this), ...));
 }
 
 template <typename Action>
-template <
-    typename V,
-    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
+template <typename Col, std::enable_if_t<queryosity::is_nominal_v<Col>,bool>>
+auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
+    -> lazy<query::series<typename column::series<Col>::value_type>> {
+  return col._get(*this);
+}
+
+template <typename Action>
+template <typename Col, std::enable_if_t<queryosity::is_varied_v<Col>,bool>>
+auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
+    -> typename lazy<query::series<typename column::series<Col>::value_type>>::varied {
+  return col._get(*this);
+}
+
+template <typename Action>
+template <typename V,
+          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
 auto queryosity::lazy<Action>::result()
     -> decltype(std::declval<V>().result()) {
   this->m_df->analyze();
@@ -3148,9 +3577,8 @@ auto queryosity::lazy<Action>::result()
 }
 
 template <typename Action>
-template <
-    typename V,
-    std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> e>
+template <typename V,
+          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> e>
 void queryosity::lazy<Action>::merge_results() {
   if (this->m_merged)
     return;
@@ -3176,94 +3604,69 @@ void queryosity::lazy<Action>::merge_results() {
 
 namespace queryosity {
 
-template <typename... Args> class systematic::variation {
+template <typename Lazy> class systematic::variation {
 
 public:
-  variation(const std::string &name, Args... args)
-      : m_name(name), m_args(args...) {}
-
-  std::string const &name() const { return m_name; }
-  std::tuple<Args...> const &args() const { return m_args; }
-
-protected:
-  std::string m_name;
-  std::tuple<Args...> m_args;
-};
-
-template <typename Action> class systematic::variation<lazy<Action>> {
-
-public:
-  variation(const std::string &name, lazy<Action> const &var);
+  variation(const std::string &name, Lazy const &var);
   virtual ~variation() = default;
 
   auto name() const -> std::string;
-  auto get() const -> lazy<Action> const &;
+  auto get() const -> Lazy const &;
 
 protected:
   std::string m_name;
-  lazy<Action> const &m_var;
+  Lazy m_var;
 };
 
 } // namespace queryosity
 
-template <typename Action>
-queryosity::systematic::variation<queryosity::lazy<Action>>::variation(
-    const std::string &name, queryosity::lazy<Action> const &var)
+template <typename Lazy>
+queryosity::systematic::variation<Lazy>::variation(
+    const std::string &name, Lazy const &var)
     : m_name(name), m_var(var) {}
 
-template <typename Action>
-auto queryosity::systematic::variation<queryosity::lazy<Action>>::name() const
+template <typename Lazy>
+auto queryosity::systematic::variation<Lazy>::name() const
     -> std::string {
   return m_name;
 }
 
-template <typename Action>
-auto queryosity::systematic::variation<queryosity::lazy<Action>>::get() const
-    -> queryosity::lazy<Action> const & {
+template <typename Lazy>
+auto queryosity::systematic::variation<Lazy>::get() const
+    -> Lazy const & {
   return m_var;
 }
 
-template <typename DS>
-queryosity::dataset::loaded<DS>::loaded(queryosity::dataflow &df, DS &ds)
-    : m_df(&df), m_ds(&ds) {}
+template <typename DS> queryosity::dataset::loaded<DS>::loaded(queryosity::dataflow &df, DS &ds) : m_df(&df), m_ds(&ds)
+{
+}
 
 template <typename DS>
 template <typename Val>
-auto queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col)
-    -> lazy<read_column_t<DS, Val>> {
-  return col.template _read(*this);
+auto queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col) -> lazy<read_column_t<DS, Val>>
+{
+    return col.template _read(*this);
 }
 
 template <typename DS>
 template <typename... Vals>
-auto queryosity::dataset::loaded<DS>::read(
-    dataset::column<Vals> const &...cols) {
-  return std::make_tuple(cols.template _read(*this)...);
+auto queryosity::dataset::loaded<DS>::read(dataset::column<Vals> const &...cols)
+{
+    return std::make_tuple(cols.template _read(*this)...);
 }
 
 template <typename DS>
 template <typename Val>
-auto queryosity::dataset::loaded<DS>::vary(
-    dataset::column<Val> const &col,
-    systematic::variation<std::string> const &var) {
-  auto nom = this->read(col);
-  typename decltype(nom)::varied varied_column(std::move(nom));
-  varied_column.set_variation(
-      var.name(), this->read(dataset::column<Val>(std::get<0>(var.args()))));
-  return varied_column;
-}
-
-template <typename DS>
-template <typename Val, typename... Vars>
-auto queryosity::dataset::loaded<DS>::vary(
-    dataset::column<Val> const &col,
-    systematic::variation<Vars> const &...vars) {
-  auto nom = this->read(col);
-  typename decltype(nom)::varied varied_column(std::move(nom));
-  (varied_column.set_variation(
-       vars.name(), this->read(dataset::column<Val>(std::get<0>(vars.args())))),
-   ...);
-  return varied_column;
+auto queryosity::dataset::loaded<DS>::vary(dataset::column<Val> const &col,
+                                           std::map<std::string, std::string> const &vars)
+{
+    auto nom = this->read(col);
+    typename decltype(nom)::varied varied_column(std::move(nom));
+    for (auto const &var : vars)
+    {
+        varied_column.set_variation(var.first, this->read(dataset::column<Val>(var.second)));
+    }
+    return varied_column;
 }
 
 namespace queryosity {
@@ -3382,7 +3785,7 @@ namespace query {
  * @tparam Qry Concrete implementation of
  * queryosity::query::definition<T(Obs...)>.
  */
-template <typename Qry> class plan {
+template <typename Qry> class output {
 
 public:
   /**
@@ -3390,9 +3793,9 @@ public:
    * @tparam Args `Qry` constructor argument types.
    * @param args Constructor arguments.
    */
-  template <typename... Args> plan(Args const &...args);
+  template <typename... Args> output(Args const &...args);
 
-  auto _make(dataflow &df) const;
+  auto make(dataflow &df) const;
 
 protected:
   std::function<todo<query::booker<Qry>>(dataflow &)> m_make;
@@ -3404,11 +3807,11 @@ protected:
 
 template <typename Qry>
 template <typename... Args>
-queryosity::query::output<Qry>::plan(Args const &...args)
+queryosity::query::output<Qry>::output(Args const &...args)
     : m_make([args...](dataflow &df) { return df._make<Qry>(args...); }) {}
 
 template <typename Qry>
-auto queryosity::query::output<Qry>::_make(queryosity::dataflow &df) const {
+auto queryosity::query::output<Qry>::make(queryosity::dataflow &df) const {
   return this->m_make(df);
 }
 
@@ -3444,7 +3847,7 @@ auto queryosity::systematic::nominal<Lzy>::get() const -> Lzy const & {
 
 inline queryosity::dataflow::dataflow()
     : m_processor(multithread::disable()), m_weight(1.0), m_nrows(-1),
-      m_analyzed(false) {}
+      m_all(nullptr), m_analyzed(false) {}
 
 template <typename Kwd>
 queryosity::dataflow::dataflow(Kwd &&kwarg) : dataflow() {
@@ -3513,49 +3916,33 @@ auto queryosity::dataflow::read(
 }
 
 template <typename Val>
-auto queryosity::dataflow::define(queryosity::column::constant<Val> const &cnst)
+auto queryosity::dataflow::define(column::constant<Val> const &cnst)
     -> lazy<column::fixed<Val>> {
   return cnst._assign(*this);
 }
 
-template <typename Def, typename... Cols>
-auto queryosity::dataflow::define(
-    queryosity::column::definition<Def> const &defn, lazy<Cols> const &...cols)
-    -> lazy<Def> {
-  return this->_define(defn).template evaluate(cols...);
+template <typename Def>
+auto queryosity::dataflow::define(column::definition<Def> const &defn)
+    -> todo<column::evaluator<Def>> {
+  return this->_define(defn);
 }
 
-template <typename Def, typename... Cols>
-auto queryosity::dataflow::define(
-    queryosity::column::definition<Def> const &defn, Cols const &...cols)
-    -> typename lazy<Def>::varied {
-  return this->_define(defn).template evaluate(cols...);
-}
-
-template <typename Fn, typename... Cols>
-auto queryosity::dataflow::define(
-    queryosity::column::expression<Fn> const &expr, lazy<Cols> const &...cols)
-    -> lazy<column::equation_t<Fn>> {
-  return this->_equate(expr).template evaluate(cols...);
-}
-
-template <typename Fn, typename... Cols>
-auto queryosity::dataflow::define(
-    queryosity::column::expression<Fn> const &expr, Cols const &...cols)
-    -> typename lazy<column::equation_t<Fn>>::varied {
-  return this->_equate(expr).template evaluate(cols...);
+template <typename Fn>
+auto queryosity::dataflow::define(column::expression<Fn> const &expr)
+    -> todo<column::evaluator<column::equation_t<Fn>>> {
+  return this->_equate(expr);
 }
 
 template <typename Col>
 auto queryosity::dataflow::filter(lazy<Col> const &col)
     -> lazy<selection::node> {
-  return this->_select<selection::cut>(col);
+  return this->_apply<selection::cut>(col);
 }
 
 template <typename Col>
 auto queryosity::dataflow::weight(lazy<Col> const &col)
     -> lazy<selection::node> {
-  return this->_select<selection::weight>(col);
+  return this->_apply<selection::weight>(col);
 }
 
 template <typename Col> auto queryosity::dataflow::filter(Col const &col) {
@@ -3576,34 +3963,57 @@ template <typename Col> auto queryosity::dataflow::weight(Col const &col) {
   return syst;
 }
 
-template <typename Fn, typename... Cols>
-auto queryosity::dataflow::filter(
-    queryosity::column::expression<Fn> const &expr, Cols const &...cols) {
-  auto dec = this->define(expr, cols...);
-  return this->filter(dec);
+inline auto queryosity::dataflow::all() -> lazy<selection::node> {
+  if (!m_all) {
+    m_all = std::make_unique<lazy<selection::node>>(
+        this->filter(column::constant(true)));
+  }
+  return *m_all;
 }
 
 template <typename Fn, typename... Cols>
-auto queryosity::dataflow::weight(
-    queryosity::column::expression<Fn> const &expr, Cols const &...cols) {
-  auto dec = this->define(expr, cols...);
-  return this->weight(dec);
+auto queryosity::dataflow::filter(column::constant<Fn> const &cnst)
+    -> lazy<selection::node> {
+  return this->filter(this->define(cnst));
+}
+
+template <typename Val>
+auto queryosity::dataflow::weight(column::constant<Val> const &cnst)
+    -> lazy<selection::node> {
+  return this->weight(this->define(cnst));
+}
+
+template <typename Fn>
+auto queryosity::dataflow::filter(column::expression<Fn> const &expr)
+    -> todo<selection::applicator<selection::cut, column::equation_t<Fn>>> {
+  return this->_select<selection::cut>(expr);
+}
+
+template <typename Fn>
+auto queryosity::dataflow::weight(column::expression<Fn> const &expr)
+    -> todo<selection::applicator<selection::weight, column::equation_t<Fn>>> {
+  return this->_select<selection::weight>(expr);
 }
 
 template <typename Qry, typename... Args>
 auto queryosity::dataflow::_make(Args &&...args) -> todo<query::booker<Qry>> {
   return todo<query::booker<Qry>>(*this, ensemble::invoke(
-                                           [&args...](dataset::player *plyr) {
-                                             return plyr->template make<Qry>(
-                                                 std::forward<Args>(args)...);
-                                           },
-                                           m_processor.get_slots()));
+                                             [&args...](dataset::player *plyr) {
+                                               return plyr->template make<Qry>(
+                                                   std::forward<Args>(args)...);
+                                             },
+                                             m_processor.get_slots()));
 }
 
 template <typename Qry>
-auto queryosity::dataflow::make(queryosity::query::output<Qry> const &cntr)
+auto queryosity::dataflow::get(queryosity::query::output<Qry> const &qry)
     -> todo<query::booker<Qry>> {
-  return cntr._make(*this);
+  return qry.make(*this);
+}
+
+template <typename Col>
+auto queryosity::dataflow::get(queryosity::column::series<Col> const &srs) {
+  return this->all().get(srs);
 }
 
 template <typename Def, typename... Cols>
@@ -3611,12 +4021,24 @@ auto queryosity::dataflow::_evaluate(todo<column::evaluator<Def>> const &calc,
                                      lazy<Cols> const &...columns)
     -> lazy<Def> {
   auto act = ensemble::invoke(
-      [](dataset::player *plyr, column::evaluator<Def> *calc,
+      [](dataset::player *plyr, column::evaluator<Def> const *calc,
          Cols const *...cols) {
         return plyr->template evaluate(*calc, *cols...);
       },
       m_processor.get_slots(), calc.get_slots(), columns.get_slots()...);
   auto lzy = lazy<Def>(*this, act);
+  return lzy;
+}
+
+template <typename Sel, typename Def, typename... Cols>
+auto queryosity::dataflow::_apply(
+    todo<selection::applicator<Sel, Def>> const &appl,
+    lazy<Cols> const &...columns) -> lazy<selection::node> {
+  auto act = ensemble::invoke(
+      [](dataset::player *plyr, selection::applicator<Sel, Def> const *appl,
+         Cols const *...cols) { return plyr->template apply(*appl, *cols...); },
+      m_processor.get_slots(), appl.get_slots(), columns.get_slots()...);
+  auto lzy = lazy<selection::node>(*this, act);
   return lzy;
 }
 
@@ -3628,7 +4050,7 @@ auto queryosity::dataflow::_book(todo<query::booker<Qry>> const &bkr,
   this->reset();
   auto act = ensemble::invoke(
       [](dataset::player *plyr, query::booker<Qry> *bkr,
-         const selection::node *sel) { return plyr->book(*bkr, *sel); },
+         selection::node const *sel) { return plyr->book(*bkr, *sel); },
       m_processor.get_slots(), bkr.get_slots(), sel.get_slots());
   auto lzy = lazy<Qry>(*this, act);
   return lzy;
@@ -3651,28 +4073,46 @@ inline void queryosity::dataflow::analyze() {
 
 inline void queryosity::dataflow::reset() { m_analyzed = false; }
 
-template <typename Val, typename... Vars>
-auto queryosity::dataflow::vary(queryosity::column::constant<Val> const &cnst,
-                                Vars const &...vars) {
+template <typename Val>
+auto queryosity::dataflow::vary(column::constant<Val> const &cnst,
+                                std::map<std::string, Val> vars) ->
+    typename lazy<column::fixed<Val>>::varied {
   auto nom = this->define(cnst);
   using varied_type = typename decltype(nom)::varied;
   varied_type syst(std::move(nom));
-  ((this->_vary(syst, vars.name(),
-                column::constant<Val>(std::get<0>(vars.args())))),
-   ...);
+  for (auto const &var : vars) {
+    this->_vary(syst, var.first, column::constant<Val>(var.second));
+  }
   return syst;
 }
 
-template <typename Fn, typename... Vars>
-auto queryosity::dataflow::vary(queryosity::column::expression<Fn> const &expr,
-                                Vars const &...vars) {
+template <typename Fn>
+auto queryosity::dataflow::vary(
+    column::expression<Fn> const &expr,
+    std::map<std::string, typename column::expression<Fn>::function_type> const
+        &vars) ->
+    typename todo<column::evaluator<column::equation_t<Fn>>>::varied {
   auto nom = this->_equate(expr);
   using varied_type = typename decltype(nom)::varied;
   using function_type = typename column::expression<Fn>::function_type;
   varied_type syst(std::move(nom));
-  ((this->_vary(syst, vars.name(),
-                column::expression(function_type(std::get<0>(vars.args()))))),
-   ...);
+  for (auto const &var : vars) {
+    this->_vary(syst, var.first, column::expression<function_type>(var.second));
+  }
+  return syst;
+}
+
+template <typename Def>
+auto queryosity::dataflow::vary(
+    column::definition<Def> const &defn,
+    std::map<std::string, column::definition<Def>> const &vars) ->
+    typename todo<column::evaluator<Def>>::varied {
+  auto nom = this->_define(defn);
+  using varied_type = typename decltype(nom)::varied;
+  varied_type syst(std::move(nom));
+  for (auto const &var : vars) {
+    this->_vary(syst, var.first, var.second);
+  }
   return syst;
 }
 
@@ -3686,8 +4126,7 @@ auto queryosity::dataflow::_read(dataset::reader<DS> &ds,
 }
 
 template <typename Val>
-auto queryosity::dataflow::_assign(Val const &val)
-    -> lazy<queryosity::column::fixed<Val>> {
+auto queryosity::dataflow::_assign(Val const &val) -> lazy<column::fixed<Val>> {
   auto act = ensemble::invoke(
       [&val](dataset::player *plyr) { return plyr->template assign<Val>(val); },
       m_processor.get_slots());
@@ -3696,8 +4135,8 @@ auto queryosity::dataflow::_assign(Val const &val)
 }
 
 template <typename To, typename Col>
-auto queryosity::dataflow::_convert(lazy<Col> const &col) -> lazy<
-    queryosity::column::conversion<To, queryosity::column::value_t<Col>>> {
+auto queryosity::dataflow::_convert(lazy<Col> const &col)
+    -> lazy<column::conversion<To, column::value_t<Col>>> {
   auto act = ensemble::invoke(
       [](dataset::player *plyr, Col const *from) {
         return plyr->template convert<To>(*from);
@@ -3709,24 +4148,23 @@ auto queryosity::dataflow::_convert(lazy<Col> const &col) -> lazy<
 
 template <typename Def, typename... Args>
 auto queryosity::dataflow::_define(Args &&...args) {
-  return todo<queryosity::column::evaluator<Def>>(
-      *this,
-      ensemble::invoke(
-          [&args...](dataset::player *plyr) {
-            return plyr->template define<Def>(std::forward<Args>(args)...);
-          },
-          m_processor.get_slots()));
+  return todo<column::evaluator<Def>>(*this,
+                                      ensemble::invoke(
+                                          [&args...](dataset::player *plyr) {
+                                            return plyr->template define<Def>(
+                                                std::forward<Args>(args)...);
+                                          },
+                                          m_processor.get_slots()));
 }
 
 template <typename Def>
-auto queryosity::dataflow::_define(
-    queryosity::column::definition<Def> const &defn) -> todo<column::evaluator<Def>>  {
+auto queryosity::dataflow::_define(column::definition<Def> const &defn)
+    -> todo<column::evaluator<Def>> {
   return defn._define(*this);
 }
 
-template <typename Fn> auto queryosity::dataflow::_equate(Fn fn){
-  return todo<column::evaluator<
-      typename column::equation_t<Fn>>>(
+template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
+  return todo<column::evaluator<typename column::equation_t<Fn>>>(
       *this,
       ensemble::invoke(
           [fn](dataset::player *plyr) { return plyr->template equate(fn); },
@@ -3734,17 +4172,49 @@ template <typename Fn> auto queryosity::dataflow::_equate(Fn fn){
 }
 
 template <typename Fn>
-auto queryosity::dataflow::_equate(
-    queryosity::column::expression<Fn> const &expr) -> todo<column::evaluator<column::equation_t<Fn>>> {
+auto queryosity::dataflow::_equate(column::expression<Fn> const &expr)
+    -> todo<column::evaluator<column::equation_t<Fn>>> {
   return expr._equate(*this);
 }
 
+template <typename Sel, typename Fn> auto queryosity::dataflow::_select(Fn fn) {
+  return todo<selection::applicator<Sel, typename column::equation_t<Fn>>>(
+      *this, ensemble::invoke(
+                 [fn](dataset::player *plyr) {
+                   return plyr->template select<Sel>(nullptr, fn);
+                 },
+                 m_processor.get_slots()));
+}
+
+template <typename Sel, typename Fn>
+auto queryosity::dataflow::_select(lazy<selection::node> const &prev, Fn fn) {
+  return todo<selection::applicator<Sel, typename column::equation_t<Fn>>>(
+      *this, ensemble::invoke(
+                 [fn](dataset::player *plyr, selection::node const *prev) {
+                   return plyr->template select<Sel>(prev, fn);
+                 },
+                 m_processor.get_slots(), prev.get_slots()));
+}
+
+template <typename Sel, typename Fn>
+auto queryosity::dataflow::_select(column::expression<Fn> const &expr)
+    -> todo<selection::applicator<Sel, column::equation_t<Fn>>> {
+  return expr.template _select<Sel>(*this);
+}
+
+template <typename Sel, typename Fn>
+auto queryosity::dataflow::_select(lazy<selection::node> const &prev,
+                                   column::expression<Fn> const &expr)
+    -> todo<selection::applicator<Sel, column::equation_t<Fn>>> {
+  return expr.template _select<Sel>(*this, prev);
+}
+
 template <typename Sel, typename Col>
-auto queryosity::dataflow::_select(lazy<Col> const &dec)
+auto queryosity::dataflow::_apply(lazy<Col> const &dec)
     -> lazy<selection::node> {
   auto act = ensemble::invoke(
       [](dataset::player *plyr, Col *col) {
-        return plyr->template select<Sel>(nullptr, *col);
+        return plyr->template apply<Sel>(nullptr, *col);
       },
       m_processor.get_slots(), dec.get_slots());
   auto lzy = lazy<selection::node>(*this, act);
@@ -3752,12 +4222,12 @@ auto queryosity::dataflow::_select(lazy<Col> const &dec)
 }
 
 template <typename Sel, typename Col>
-auto queryosity::dataflow::_select(lazy<selection::node> const &prev,
-                                   lazy<Col> const &dec)
+auto queryosity::dataflow::_apply(lazy<selection::node> const &prev,
+                                  lazy<Col> const &dec)
     -> lazy<selection::node> {
   auto act = ensemble::invoke(
-      [](dataset::player *plyr, selection::node *prev, Col *col) {
-        return plyr->template select<Sel>(prev, *col);
+      [](dataset::player *plyr, selection::node const *prev, Col *col) {
+        return plyr->template apply<Sel>(prev, *col);
       },
       m_processor.get_slots(), prev.get_slots(), dec.get_slots());
   auto lzy = lazy<selection::node>(*this, act);
@@ -3765,40 +4235,44 @@ auto queryosity::dataflow::_select(lazy<selection::node> const &prev,
 }
 
 template <typename Syst, typename Val>
-void queryosity::dataflow::_vary(
-    Syst &syst, const std::string &name,
-    queryosity::column::constant<Val> const &cnst) {
+void queryosity::dataflow::_vary(Syst &syst, const std::string &name,
+                                 column::constant<Val> const &cnst) {
   syst.set_variation(name, this->define(cnst));
 }
 
 template <typename Syst, typename Fn>
-void queryosity::dataflow::_vary(
-    Syst &syst, const std::string &name,
-    queryosity::column::expression<Fn> const &expr) {
+void queryosity::dataflow::_vary(Syst &syst, const std::string &name,
+                                 column::expression<Fn> const &expr) {
   syst.set_variation(name, this->_equate(expr));
 }
 
+template <typename Syst, typename Def>
+void queryosity::dataflow::_vary(Syst &syst, const std::string &name,
+                                 column::definition<Def> const &defn) {
+  syst.set_variation(name, this->_define(defn));
+}
+
+inline queryosity::dataflow::node::node(dataflow &df) : m_df(&df) {}
+
+template <typename Fn, typename... Nodes>
+auto queryosity::dataflow::node::invoke(Fn fn, Nodes const &...nodes)
+    -> std::enable_if_t<
+        !std::is_void_v<
+            std::invoke_result_t<Fn, typename Nodes::action_type *...>>,
+        std::vector<
+            std::invoke_result_t<Fn, typename Nodes::action_type *...>>> {
+  return ensemble::invoke(fn, nodes.get_slots()...);
+}
+
+template <typename Fn, typename... Nodes>
+auto queryosity::dataflow::node::invoke(Fn fn, Nodes const &...nodes)
+    -> std::enable_if_t<std::is_void_v<std::invoke_result_t<
+                            Fn, typename Nodes::action_type *...>>,
+                        void> {
+  ensemble::invoke(fn, nodes.get_slots()...);
+}
+
 namespace queryosity {
-
-template <typename T> class todo;
-
-template <typename U>
-static constexpr std::true_type check_lazy(lazy<U> const &);
-static constexpr std::false_type check_lazy(...) { return std::false_type{}; }
-template <typename U>
-static constexpr std::true_type check_todo(todo<U> const &);
-static constexpr std::false_type check_todo(...) { return std::false_type{}; }
-
-template <typename V>
-static constexpr bool is_nominal_v =
-    (decltype(check_lazy(std::declval<V>()))::value ||
-     decltype(check_todo(std::declval<V>()))::value);
-template <typename V> static constexpr bool is_varied_v = !is_nominal_v<V>;
-
-template <typename... Args>
-static constexpr bool has_no_variation_v = (is_nominal_v<Args> && ...);
-template <typename... Args>
-static constexpr bool has_variation_v = (is_varied_v<Args> || ...);
 
 /**
  * @ingroup api
@@ -3850,6 +4324,20 @@ public:
   }
 
   /**
+   * @brief Apply the selection with input columns.
+   * @param[in] columns Input columns.
+   * @param[in][out] Applied selection.
+   */
+  template <typename... Nodes, typename V = Helper,
+            std::enable_if_t<queryosity::selection::is_applicable_v<V>,
+                             bool> = false>
+  auto apply(Nodes &&...columns) const
+      -> decltype(std::declval<todo<V>>()._apply(
+          std::forward<Nodes>(columns)...)) {
+    return this->template _apply(std::forward<Nodes>(columns)...);
+  }
+
+  /**
    * @brief Fill query with input columns per-entry.
    * @param[in] columns Input columns.
    * @returns Updated query plan filled with input columns.
@@ -3867,7 +4355,7 @@ public:
    * @param[in] sel Selection node at which query is counted/filled.
    * @return The query booked at the selection.
    */
-  template <typename Node> auto book(Node &&selection) const {
+  template <typename Node> auto at(Node &&selection) const {
     return this->_book(std::forward<Node>(selection));
   }
 
@@ -3877,7 +4365,7 @@ public:
    * @param[in] sels... selection nodes.
    * @return `std::tuple` of queries booked at each selection.
    */
-  template <typename... Sels> auto book(Sels &&...sels) const {
+  template <typename... Sels> auto at(Sels &&...sels) const {
     static_assert(query::is_bookable_v<Helper>, "not bookable");
     return this->_book(std::forward<Sels>(sels)...);
   }
@@ -3888,13 +4376,15 @@ public:
    * @param[in] columns... Input columns.
    * @return Evaluated column.
    */
-  template <typename... Args, typename V = Helper,
-            std::enable_if_t<column::is_evaluatable_v<V>,
-                             bool> = false>
-  auto operator()(Args &&...columns) const
-      -> decltype(std::declval<todo<V>>().evaluate(
-          std::forward<Args>(std::declval<Args &&>())...)) {
-    return this->evaluate(std::forward<Args>(columns)...);
+  template <typename... Args>
+  auto operator()(Args &&...columns) const {
+    if constexpr( column::is_evaluatable_v<Helper> ) {
+      return this->evaluate(std::forward<Args>(columns)...);
+    } else if constexpr( selection::is_applicable_v<Helper> ) {
+      return this->apply(std::forward<Args>(columns)...);
+    } else if constexpr( query::is_fillable_v<Helper> ) {
+      return this->fill(std::forward<Args>(columns)...);
+    }
   }
 
 protected:
@@ -3921,6 +4411,37 @@ protected:
 
     for (auto const &var_name : systematic::get_variation_names(columns...)) {
       auto var = this->m_df->_evaluate(*this, columns.variation(var_name)...);
+      syst.set_variation(var_name, std::move(var));
+    }
+
+    return syst;
+  }
+
+  template <typename... Nodes, typename V = Helper,
+            std::enable_if_t<queryosity::selection::is_applicable_v<V> &&
+                                 queryosity::has_no_variation_v<Nodes...>,
+                             bool> = false>
+  auto _apply(Nodes const &...columns) const
+      -> lazy<selection::node> {
+    using selection_type = typename V::selection_type;
+    return this->m_df->template _apply<selection_type>(*this,columns...);
+  }
+
+  template <typename... Nodes, typename V = Helper,
+            std::enable_if_t<queryosity::selection::is_applicable_v<V> &&
+                                 queryosity::has_variation_v<Nodes...>,
+                             bool> = false>
+  auto _apply(Nodes const &...columns) const ->
+      typename lazy<selection::node>::varied {
+
+    using selection_type = typename V::selection_type;
+    using varied_type = typename lazy<column::evaluated_t<V>>::varied;
+
+    auto nom = this->m_df->template _apply<selection_type>(*this,columns.nominal()...);
+    auto syst = varied_type(std::move(nom));
+
+    for (auto const &var_name : systematic::get_variation_names(columns...)) {
+      auto var = this->m_df->template _apply<selection_type>(*this,columns.variation(var_name)...);
       syst.set_variation(var_name, std::move(var));
     }
 
@@ -3992,7 +4513,7 @@ protected:
     return todo<V>(*this->m_df,
                    ensemble::invoke(
                        [](V *fillable, typename Nodes::action_type *...cols) {
-                         return fillable->fill_columns(*cols...);
+                         return fillable->add_columns(*cols...);
                        },
                        this->get_slots(), columns.get_slots()...));
   }
@@ -4176,108 +4697,6 @@ auto queryosity::column::definition<Def>::_define(dataflow &df) const {
 namespace queryosity {
 
 /**
- * @brief Minimal query with an output result.
- * @details This ABC should be used for actions that do not require any input
- * columns.
- */
-template <typename T> class query::aggregation : public node {
-
-public:
-  using result_type = T;
-
-public:
-  aggregation() = default;
-  virtual ~aggregation() = default;
-
-  /**
-   * Create and return the result of the query.
-   * If multiple slots are run concurrently in multithreaded mode, the results
-   * are merged into one (see `merge`).
-   * @return The result.
-   */
-  virtual T result() const = 0;
-
-  /**
-   * Merge the results from concurrent slots into one representing the full
-   * dataset.
-   * @param[in] results Partial result from each thread.
-   * @return Merged result.
-   */
-  virtual T merge(std::vector<T> const &results) const = 0;
-
-  using node::count;
-
-  /**
-   * Shortcut for `result()`.
-   * @return The result.
-   */
-  T operator->() const { return this->result(); }
-
-protected:
-};
-
-} // namespace queryosity
-
-namespace queryosity {
-
-/**
- * @brief Query filled with column value(s) per-entry.
- * @tparam T Output result type.
- * @tparam Obs Input column data types.
- */
-template <typename T, typename... Obs>
-class query::definition<T(Obs...)> : public query::aggregation<T> {
-
-public:
-  using vartup_type = std::tuple<column::variable<Obs>...>;
-
-public:
-  definition() = default;
-  virtual ~definition() = default;
-
-  /**
-   * @brief Perform the counting action for an entry.
-   * @param[in] observables The `observable` of each input column.
-   * @param[in] weight The weight value of the booked selection for the passed
-   * entry.
-   * @details This action is performed N times for a passed entry, where N is
-   * the number of `fill` calls made during its `todo` configuration.
-   */
-  virtual void fill(column::observable<Obs>... observables, double w) = 0;
-  virtual void count(double w) final override;
-
-  template <typename... Vals>
-  void enter_columns(column::view<Vals> const &...cols);
-
-protected:
-  std::vector<vartup_type> m_fills;
-};
-
-} // namespace queryosity
-
-template <typename T, typename... Obs>
-template <typename... Vals>
-void queryosity::query::definition<T(Obs...)>::enter_columns(
-    column::view<Vals> const &...cols) {
-  static_assert(sizeof...(Obs) == sizeof...(Vals),
-                "dimension mis-match between filled variables & columns.");
-  m_fills.emplace_back(cols...);
-}
-
-template <typename T, typename... Obs>
-void queryosity::query::definition<T(Obs...)>::count(double w) {
-  for (unsigned int ifill = 0; ifill < m_fills.size(); ++ifill) {
-    std::apply(
-        [this, w](const column::variable<Obs> &...obs) {
-          this->fill(obs..., w);
-        },
-        m_fills[ifill]);
-  }
-}
-
-namespace queryosity {
-
-/**
  * @ingroup api
  * @brief Varied version of a todo item.
  * @details A todo varied item is functionally equivalent to a todo
@@ -4306,11 +4725,17 @@ public:
   virtual std::set<std::string> get_variation_names() const override;
 
 public:
-  template <typename... Args, typename V = Bld,
-            std::enable_if_t<queryosity::column::is_evaluatable_v<V>,
-                             bool> = false>
+  template <
+      typename... Args, typename V = Bld,
+      std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool> = false>
   auto evaluate(Args &&...args) ->
       typename queryosity::lazy<column::evaluated_t<V>>::varied;
+
+  template <
+      typename... Args, typename V = Bld,
+      std::enable_if_t<queryosity::selection::is_applicable_v<V>, bool> = false>
+  auto apply(Args &&...args) ->
+      typename queryosity::lazy<selection::applied_t<V>>::varied;
 
   /**
    * @brief Fill the query with input columns.
@@ -4318,8 +4743,7 @@ public:
    * @return A new todo query node with input columns filled.
    */
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<queryosity::query::is_bookable_v<V>,
-                             bool> = false>
+            std::enable_if_t<queryosity::query::is_bookable_v<V>, bool> = false>
   auto fill(Nodes const &...columns) -> varied;
 
   /**
@@ -4328,9 +4752,8 @@ public:
    * @return Lazy query booked at selection.
    */
   template <typename Node, typename V = Bld,
-            std::enable_if_t<queryosity::query::is_bookable_v<V>,
-                             bool> = false>
-  auto book(Node const &selection) -> typename lazy<query::booked_t<V>>::varied;
+            std::enable_if_t<queryosity::query::is_bookable_v<V>, bool> = false>
+  auto at(Node const &selection) -> typename lazy<query::booked_t<V>>::varied;
 
   /**
    * @brief Book the query logic at multiple selections.
@@ -4338,9 +4761,8 @@ public:
    * @return Delayed query containing booked lazy queries.
    */
   template <typename... Nodes, typename V = Bld,
-            std::enable_if_t<queryosity::query::is_bookable_v<V>,
-                             bool> = false>
-  auto book(Nodes const &...selections)
+            std::enable_if_t<queryosity::query::is_bookable_v<V>, bool> = false>
+  auto at(Nodes const &...selections)
       -> std::array<typename lazy<query::booked_t<V>>::varied,
                     sizeof...(Nodes)>;
 
@@ -4410,19 +4832,35 @@ queryosity::todo<Bld>::varied::get_variation_names() const {
 }
 
 template <typename Bld>
-template <
-    typename... Args, typename V,
-    std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool>>
+template <typename... Args, typename V,
+          std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::evaluate(Args &&...args) ->
     typename queryosity::lazy<column::evaluated_t<V>>::varied {
-  using varied_type =
-      typename queryosity::lazy<column::evaluated_t<V>>::varied;
+  using varied_type = typename queryosity::lazy<column::evaluated_t<V>>::varied;
   auto syst = varied_type(
       this->nominal().evaluate(std::forward<Args>(args).nominal()...));
   for (auto const &var_name :
        systematic::get_variation_names(*this, std::forward<Args>(args)...)) {
     syst.set_variation(var_name,
                        variation(var_name).evaluate(
+                           std::forward<Args>(args).variation(var_name)...));
+  }
+  return syst;
+}
+
+template <typename Bld>
+template <typename... Args, typename V,
+          std::enable_if_t<queryosity::selection::is_applicable_v<V>, bool>>
+auto queryosity::todo<Bld>::varied::apply(Args &&...args) ->
+    typename queryosity::lazy<selection::applied_t<V>>::varied {
+  using varied_type =
+      typename queryosity::lazy<selection::applied_t<V>>::varied;
+  auto syst =
+      varied_type(this->nominal().apply(std::forward<Args>(args).nominal()...));
+  for (auto const &var_name :
+       systematic::get_variation_names(*this, std::forward<Args>(args)...)) {
+    syst.set_variation(var_name,
+                       variation(var_name).apply(
                            std::forward<Args>(args).variation(var_name)...));
   }
   return syst;
@@ -4444,14 +4882,14 @@ auto queryosity::todo<Bld>::varied::fill(Nodes const &...columns) -> varied {
 template <typename Bld>
 template <typename Node, typename V,
           std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
-auto queryosity::todo<Bld>::varied::book(Node const &selection) ->
+auto queryosity::todo<Bld>::varied::at(Node const &selection) ->
     typename lazy<query::booked_t<V>>::varied {
   using varied_type = typename lazy<query::booked_t<V>>::varied;
-  auto syst = varied_type(this->nominal().book(selection.nominal()));
+  auto syst = varied_type(this->nominal().at(selection.nominal()));
   for (auto const &var_name :
        systematic::get_variation_names(*this, selection)) {
-    syst.set_variation(var_name, this->variation(var_name).book(
-                                     selection.variation(var_name)));
+    syst.set_variation(
+        var_name, this->variation(var_name).at(selection.variation(var_name)));
   }
   return syst;
 }
@@ -4459,7 +4897,7 @@ auto queryosity::todo<Bld>::varied::book(Node const &selection) ->
 template <typename Bld>
 template <typename... Nodes, typename V,
           std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
-auto queryosity::todo<Bld>::varied::book(Nodes const &...selections)
+auto queryosity::todo<Bld>::varied::at(Nodes const &...selections)
     -> std::array<typename lazy<query::booked_t<V>>::varied, sizeof...(Nodes)> {
   // variations
   using varied_type = typename lazy<query::booked_t<V>>::varied;
@@ -4469,12 +4907,10 @@ auto queryosity::todo<Bld>::varied::book(Nodes const &...selections)
   auto _book_varied =
       [var_names,
        this](systematic::resolver<lazy<selection::node>> const &sel) {
-        auto syst =
-            varied_type(this->m_df->_book(this->nominal(), sel.nominal()));
+        auto syst = varied_type(this->nominal().at(sel.nominal()));
         for (auto const &var_name : var_names) {
-          syst.set_variation(var_name,
-                             this->m_df->_book(this->variation(var_name),
-                                               sel.variation(var_name)));
+          syst.set_variation(var_name, this->variation(var_name).at(
+                                           sel.variation(var_name)));
         }
         return syst;
       };
@@ -4529,3 +4965,5 @@ auto queryosity::systematic::vary(systematic::nominal<Lzy> const &nom,
   (syst.set_variation(vars.name(), vars.get().template to<value_type>()), ...);
   return syst;
 }
+
+namespace qty = queryosity;
