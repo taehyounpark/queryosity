@@ -58,8 +58,8 @@ int main() {
 		column::expression([](std::vector<double> const& v){return v.size()}), x
 		);
 
-	auto h_x0_w = df.make( 
-		query::plan<h1d>( linax(100,0.0,1.0) ) 
+	auto h_x0_w = df.get( 
+		query::output<h1d>( linax(100,0.0,1.0) ) 
 		).fill(x0).book(sel).result();
 
 	std::ostringstream os;

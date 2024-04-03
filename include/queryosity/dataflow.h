@@ -219,23 +219,35 @@ public:
   /**
    * @brief Plan a query.
    * @tparam Qry Concrete queryosity::query::definition implementation.
-   * @param[in] plan Query plan (constructor arguments).
+   * @param[in] output Query output (constructor arguments).
    * @return queryosity::todo query booker.
    */
   template <typename Qry>
-  auto make(query::plan<Qry> const &plan) -> todo<query::booker<Qry>>;
+  auto get(query::output<Qry> const &output) -> todo<query::booker<Qry>>;
+
+  /**
+   * @brief Get a column series.
+   * @tparam Col (Varied) lazy column.
+   * @param[in] col Column as series argument.
+   * @return queryosity::todo query booker.
+   */
+  template <typename Col> auto get(column::series<Col> const &srs);
 
   template <typename Val>
-  auto vary(column::constant<Val> const &cnst, std::map<std::string, Val> vars);
+  auto vary(column::constant<Val> const &cnst, std::map<std::string, Val> vars)
+      -> typename lazy<column::fixed<Val>>::varied;
 
   template <typename Fn>
   auto
   vary(column::expression<Fn> const &expr,
        std::map<std::string,
-                typename column::expression<Fn>::function_type> const &vars);
+                typename column::expression<Fn>::function_type> const &vars) ->
+      typename todo<column::evaluator<column::equation_t<Fn>>>::varied;
 
-  template <typename Defn, typename... Vars>
-  auto vary(column::definition<Defn> const &defn, Vars const &...vars);
+  template <typename Def>
+  auto vary(column::definition<Def> const &defn,
+            std::map<std::string, column::definition<Def>> const &vars) ->
+      typename todo<column::evaluator<Def>>::varied;
 
   /* "public" API for Python layer */
 
@@ -312,9 +324,9 @@ protected:
   void _vary(Syst &syst, const std::string &name,
              column::expression<Fn> const &expr);
 
-  template <typename Syst, typename Defn>
+  template <typename Syst, typename Def>
   void _vary(Syst &syst, const std::string &name,
-             column::definition<Defn> const &defn);
+             column::definition<Def> const &defn);
 
 protected:
   dataset::processor m_processor;
@@ -367,7 +379,7 @@ protected:
 
 #include "column_constant.h"
 #include "column_expression.h"
-#include "query_plan.h"
+#include "query_output.h"
 
 #include "systematic_nominal.h"
 #include "systematic_resolver.h"
@@ -534,9 +546,14 @@ auto queryosity::dataflow::_make(Args &&...args) -> todo<query::booker<Qry>> {
 }
 
 template <typename Qry>
-auto queryosity::dataflow::make(queryosity::query::plan<Qry> const &cntr)
+auto queryosity::dataflow::get(queryosity::query::output<Qry> const &qry)
     -> todo<query::booker<Qry>> {
-  return cntr._make(*this);
+  return qry.make(*this);
+}
+
+template <typename Col>
+auto queryosity::dataflow::get(queryosity::column::series<Col> const &srs) {
+  return this->all().get(srs);
 }
 
 template <typename Def, typename... Cols>
@@ -558,7 +575,7 @@ auto queryosity::dataflow::_apply(
     todo<selection::applicator<Sel, Def>> const &appl,
     lazy<Cols> const &...columns) -> lazy<selection::node> {
   auto act = ensemble::invoke(
-      [](dataset::player *plyr, selection::applicator<Sel,Def> const *appl,
+      [](dataset::player *plyr, selection::applicator<Sel, Def> const *appl,
          Cols const *...cols) { return plyr->template apply(*appl, *cols...); },
       m_processor.get_slots(), appl.get_slots(), columns.get_slots()...);
   auto lzy = lazy<selection::node>(*this, act);
@@ -598,7 +615,8 @@ inline void queryosity::dataflow::reset() { m_analyzed = false; }
 
 template <typename Val>
 auto queryosity::dataflow::vary(column::constant<Val> const &cnst,
-                                std::map<std::string, Val> vars) {
+                                std::map<std::string, Val> vars) ->
+    typename lazy<column::fixed<Val>>::varied {
   auto nom = this->define(cnst);
   using varied_type = typename decltype(nom)::varied;
   varied_type syst(std::move(nom));
@@ -612,7 +630,8 @@ template <typename Fn>
 auto queryosity::dataflow::vary(
     column::expression<Fn> const &expr,
     std::map<std::string, typename column::expression<Fn>::function_type> const
-        &vars) {
+        &vars) ->
+    typename todo<column::evaluator<column::equation_t<Fn>>>::varied {
   auto nom = this->_equate(expr);
   using varied_type = typename decltype(nom)::varied;
   using function_type = typename column::expression<Fn>::function_type;
@@ -623,15 +642,17 @@ auto queryosity::dataflow::vary(
   return syst;
 }
 
-template <typename Defn, typename... Vars>
-auto queryosity::dataflow::vary(column::definition<Defn> const &defn,
-                                Vars const &...vars) {
+template <typename Def>
+auto queryosity::dataflow::vary(
+    column::definition<Def> const &defn,
+    std::map<std::string, column::definition<Def>> const &vars) ->
+    typename todo<column::evaluator<Def>>::varied {
   auto nom = this->_define(defn);
   using varied_type = typename decltype(nom)::varied;
   varied_type syst(std::move(nom));
-  ((this->_vary(syst, vars.name(),
-                vars.template _vary_arg<column::definition<Defn>>())),
-   ...);
+  for (auto const &var : vars) {
+    this->_vary(syst, var.first, var.second);
+  }
   return syst;
 }
 
@@ -722,7 +743,8 @@ auto queryosity::dataflow::_select(column::expression<Fn> const &expr)
 }
 
 template <typename Sel, typename Fn>
-auto queryosity::dataflow::_select(lazy<selection::node> const& prev, column::expression<Fn> const &expr)
+auto queryosity::dataflow::_select(lazy<selection::node> const &prev,
+                                   column::expression<Fn> const &expr)
     -> todo<selection::applicator<Sel, column::equation_t<Fn>>> {
   return expr.template _select<Sel>(*this, prev);
 }
@@ -764,9 +786,9 @@ void queryosity::dataflow::_vary(Syst &syst, const std::string &name,
   syst.set_variation(name, this->_equate(expr));
 }
 
-template <typename Syst, typename Defn>
+template <typename Syst, typename Def>
 void queryosity::dataflow::_vary(Syst &syst, const std::string &name,
-                                 column::definition<Defn> const &defn) {
+                                 column::definition<Def> const &defn) {
   syst.set_variation(name, this->_define(defn));
 }
 

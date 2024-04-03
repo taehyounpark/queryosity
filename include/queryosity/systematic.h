@@ -15,7 +15,7 @@ auto get_variation_names(Nodes const &...nodes) -> std::set<std::string>;
 
 template <typename Node> class resolver;
 
-template <typename... Args> class variation;
+template <typename Lzy> class variation;
 
 template <typename Lzy> class nominal;
 

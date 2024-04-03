@@ -61,7 +61,7 @@ TEST_CASE("propagation of systematic variations")
     auto x = ds.vary(dataset::column<double>("x"), {{"vary_x", "x_var"}});
     auto w = ds.vary(dataset::column<unsigned int>("w"), {{"vary_w", "w_var"}, {"vary_test", "w"}});
     auto weighted = df.weight(w);
-    auto wsumx = df.make(query::plan<qty::wsum>()).fill(x).book(weighted);
+    auto wsumx = df.get(query::output<qty::wsum>()).fill(x).at(weighted);
 
     SUBCASE("transparency")
     {

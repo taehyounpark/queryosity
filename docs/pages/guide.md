@@ -208,8 +208,8 @@ using h2d = qty::hist::hist<double,double>;
 using linax = qty::hist::axis::regular;
 
 // plan a 1d/2d histogram query filled with x/(x,y)
-auto q_1d = df.make(query::plan<h1d>(linax(100,0.0,1.0))).fill(x);
-auto q_2d = df.make(query::plan<h2d>(linax(100,0.0,1.0), linax(100,0.0,1.0))).fill(x,y);
+auto q_1d = df.get(query::output<h1d>(linax(100,0.0,1.0))).fill(x);
+auto q_2d = df.get(query::output<h2d>(linax(100,0.0,1.0), linax(100,0.0,1.0))).fill(x,y);
 
 // query at multiple selections
 auto [q_1d_a, q_1d_b] = q_1d.book(cut_a, cut_b);
@@ -226,7 +226,7 @@ auto hxy_c = q_2d_c.result(); // instantaneous
 @endcpp
 
 @see 
-- queryosity::query::plan (API)
+- queryosity::query::output (API)
 - queryosity::query::definition<T(Obs...)> (ABC)
 - queryosity::hist::hist (Extension)
 
@@ -279,17 +279,6 @@ auto z = systematic::vary(
   systematic::variation("z_half", z_half)
   ); // qty::lazy<column::valued<double>>::varied
 // (column::valued<double> is the common denominator base class)
-@endcpp
-
-
-@cpp
-// definitions are varied by alternate constructor arguments+input columns
-// since the constructor arguments of an arbitrary class is not known a-priori,
-// each must be provided on its own, rather than in a mapping.
-auto defn = df.vary(
-  column::definition<>(),
-  systematic::variation("vary_c", )
-  )();
 @endcpp
 
 The list of variations in a (set of) action(s) can be always be checked as they are propagated through the dataflow.

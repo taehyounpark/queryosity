@@ -48,7 +48,7 @@ template <typename T> class definition;
 
 template <typename T> class booker;
 
-template <typename T> class plan;
+template <typename T> class output;
 
 template <typename T> class series;
 

@@ -31,9 +31,9 @@ int main() {
 
   auto all = df.all();
 
-  auto h_z = df.make(query::plan<h1d>(linax(20,90.0,110.0)))
+  auto h_z = df.get(query::output<h1d>(linax(20,90.0,110.0)))
                     .fill(z)
-                    .book(all)
+                    .at(all)
                     .result();
 
   std::ostringstream os;

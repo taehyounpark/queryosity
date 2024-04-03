@@ -85,16 +85,16 @@ TEST_CASE("correctness & consistency of selections") {
   auto cut_b2 = weighted.filter(cut_ab && cut_b);
 
   // auto sumw_a = df.get<qty::sumw>().at(cut_a);
-  // auto sumw_a = cut_a.book(df.get<qty::sumw>());
+  // auto sumw_a = cut_a.at(df.get<qty::sumw>());
 
   auto [sumw_a, sumw_b, sumw_c] =
-      df.make(qty::query::plan<qty::sumw>()).book(cut_a, cut_b, cut_c);
+      df.get(qty::query::output<qty::sumw>()).at(cut_a, cut_b, cut_c);
   auto [sumw_ab, sumw_bc] =
-      df.make(qty::query::plan<qty::sumw>()).book(cut_ab, cut_bc);
+      df.get(qty::query::output<qty::sumw>()).at(cut_ab, cut_bc);
   auto [sumw_none, sumw_abc] =
-      df.make(qty::query::plan<qty::sumw>()).book(cut_none, cut_abc);
+      df.get(qty::query::output<qty::sumw>()).at(cut_none, cut_abc);
 
-  auto sumw_one2 = df.make(qty::query::plan<qty::sumw>()).book(cut_a2, cut_b2);
+  auto sumw_one2 = df.get(qty::query::output<qty::sumw>()).at(cut_a2, cut_b2);
 
   std::cout << "hi" << std::endl;
   std::cout << cut_a2.size() << std::endl;

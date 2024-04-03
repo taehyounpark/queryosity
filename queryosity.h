@@ -2131,7 +2131,7 @@ public:
    * @return queryosity::todo query booker.
    */
   template <typename Qry>
-  auto make(query::plan<Qry> const &plan) -> todo<query::booker<Qry>>;
+  auto make(query::output<Qry> const &plan) -> todo<query::booker<Qry>>;
 
   template <typename Val, typename... Vars>
   auto vary(column::constant<Val> const &nom, Vars const &...vars);
@@ -3404,11 +3404,11 @@ protected:
 
 template <typename Qry>
 template <typename... Args>
-queryosity::query::plan<Qry>::plan(Args const &...args)
+queryosity::query::output<Qry>::plan(Args const &...args)
     : m_make([args...](dataflow &df) { return df._make<Qry>(args...); }) {}
 
 template <typename Qry>
-auto queryosity::query::plan<Qry>::_make(queryosity::dataflow &df) const {
+auto queryosity::query::output<Qry>::_make(queryosity::dataflow &df) const {
   return this->m_make(df);
 }
 
@@ -3601,7 +3601,7 @@ auto queryosity::dataflow::_make(Args &&...args) -> todo<query::booker<Qry>> {
 }
 
 template <typename Qry>
-auto queryosity::dataflow::make(queryosity::query::plan<Qry> const &cntr)
+auto queryosity::dataflow::make(queryosity::query::output<Qry> const &cntr)
     -> todo<query::booker<Qry>> {
   return cntr._make(*this);
 }

@@ -44,16 +44,16 @@ queryosity::column::series<Col>::series(Col const &col) : m_column(col){};
 template <typename Col>
 auto queryosity::column::series<Col>::_get(lazy<selection::node> &sel) const {
   auto df = sel.m_df;
-  return df->make(query::plan<query::series<value_type>>())
+  return df->get(query::output<query::series<value_type>>())
       .fill(m_column)
-      .book(sel);
+      .at(sel);
 }
 
 template <typename Col>
 auto queryosity::column::series<Col>::_get(lazy<selection::node>::varied &sel)
     const -> typename lazy<query::series<value_type>>::varied {
   auto df = sel.nominal().m_df;
-  return df->make(query::plan<query::series<value_type>>())
+  return df->get(query::output<query::series<value_type>>())
       .fill(m_column)
-      .book(sel);
+      .at(sel);
 }

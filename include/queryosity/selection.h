@@ -45,6 +45,9 @@ struct is_applicable<selection::applicator<T,U>> : std::true_type {};
 template <typename T>
 static constexpr bool is_applicable_v = is_applicable<T>::value;
 
+template <typename T>
+using applied_t = typename T::selection_type;
+
 } // namespace selection
 
 template <typename T>

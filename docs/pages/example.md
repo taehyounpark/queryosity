@@ -51,7 +51,7 @@ int main() {
                   v)
           .filter(column::expression([](double x) { return x > 100.0; }), x);
 
-  auto h_x0_w = df.make(query::plan<h1d>(linax(20, 0.0, 200.0)))
+  auto h_x0_w = df.get(query::output<h1d>(linax(20, 0.0, 200.0)))
                     .fill(v0)
                     .book(sel)
                     .result();
@@ -275,7 +275,7 @@ int main() {
   // ---------------------------------------------------------------------------
   
   auto [pth_2los_sr, pth_2ldf_sr, pth_2lsf_sr] =
-      df.make(query::plan<HepQ::Hist<1, float>>("pth", 30, 0, 150))
+      df.get(query::output<HepQ::Hist<1, float>>("pth", 30, 0, 150))
           .fill(higgs_pt)
           .book(cut_2los_sr, cut_2ldf_sr, cut_2lsf_sr);
 
@@ -425,7 +425,7 @@ int main(int argc, char *argv[]) {
           .filter(column::expression(TwoElectrons), selectedElectrons);
 
   auto selectedElectronsPtHist =
-      df.make(query::plan<HepQ::Hist<1,float>>("diElectronMass", 100, 0, 500))
+      df.get(query::output<HepQ::Hist<1,float>>("diElectronMass", 100, 0, 500))
           .fill(diElectronsMassGeV)
           .book(atLeastTwoSelectedElectrons);
 
@@ -559,7 +559,7 @@ void task(int n) {
                       goodjet_mask);
 
   auto h_sumpt_goodjet =
-      df.make(query::plan<HepQ::Hist<1, float>>("goodjet_sumpt", 185, 15, 200))
+      df.get(query::output<HepQ::Hist<1, float>>("goodjet_sumpt", 185, 15, 200))
           .fill(goodjet_sumpt)
           .book(cut_goodjet);
 

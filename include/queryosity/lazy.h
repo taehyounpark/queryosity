@@ -309,7 +309,7 @@ template <typename Agg>
 auto queryosity::lazy<Action>::book(Agg &&agg) const {
   static_assert(std::is_base_of_v<selection::node, Action>,
                 "book must be called from a selection");
-  return agg.book(*this);
+  return agg.at(*this);
 }
 
 template <typename Action>
@@ -317,7 +317,7 @@ template <typename... Aggs>
 auto queryosity::lazy<Action>::book(Aggs &&...aggs) const {
   static_assert(std::is_base_of_v<selection::node, Action>,
                 "book must be called from a selection");
-  return std::make_tuple((aggs.book(*this), ...));
+  return std::make_tuple((aggs.at(*this), ...));
 }
 
 template <typename Action>

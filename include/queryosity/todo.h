@@ -90,7 +90,7 @@ public:
    * @param[in] sel Selection node at which query is counted/filled.
    * @return The query booked at the selection.
    */
-  template <typename Node> auto book(Node &&selection) const {
+  template <typename Node> auto at(Node &&selection) const {
     return this->_book(std::forward<Node>(selection));
   }
 
@@ -100,7 +100,7 @@ public:
    * @param[in] sels... selection nodes.
    * @return `std::tuple` of queries booked at each selection.
    */
-  template <typename... Sels> auto book(Sels &&...sels) const {
+  template <typename... Sels> auto at(Sels &&...sels) const {
     static_assert(query::is_bookable_v<Helper>, "not bookable");
     return this->_book(std::forward<Sels>(sels)...);
   }
