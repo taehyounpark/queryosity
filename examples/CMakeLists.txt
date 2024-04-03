@@ -6,16 +6,21 @@ if(QUERYOSITY_EXAMPLES)
   install(FILES ${CMAKE_SOURCE_DIR}/data/data.csv
           DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
 
-  add_executable(example-hello_world ./example-hello_world.cxx)
-  target_compile_features(example-hello_world PUBLIC cxx_std_17)
-  target_link_libraries(example-hello_world queryosity::extensions pthread
+  add_executable(example-01 ./example-01.cxx)
+  target_compile_features(example-01 PUBLIC cxx_std_17)
+  target_link_libraries(example-01 queryosity::extensions pthread
                         ${Boost_LIBRARIES})
-  add_test(NAME example-hello_world COMMAND example-hello_world)
+  add_test(NAME example-01 COMMAND example-01)
 
-  add_executable(example-multiple_datasets ./example-multiple_datasets.cxx)
-  target_compile_features(example-multiple_datasets PUBLIC cxx_std_17)
-  target_link_libraries(example-multiple_datasets queryosity::extensions
-                        pthread ${Boost_LIBRARIES})
-  add_test(NAME example-multiple_datasets COMMAND example-multiple_datasets)
+  add_executable(example-02 ./example-02.cxx)
+  target_compile_features(example-02 PUBLIC cxx_std_17)
+  target_link_libraries(example-02 queryosity::extensions pthread
+                        ${Boost_LIBRARIES})
+  add_test(NAME example-02 COMMAND example-02)
+
+  add_executable(example-03 ./example-03.cxx)
+  target_compile_features(example-03 PUBLIC cxx_std_17)
+  target_link_libraries(example-03 queryosity::extensions pthread) 
+  add_test(NAME example-03 COMMAND example-03)
 
 endif()

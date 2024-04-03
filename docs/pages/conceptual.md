@@ -72,7 +72,7 @@ For multithreaded runs, the user must also define how outputs from individual th
 
 - It must be associated with a selection whose cut determines which entries to count.
     - (Optional) The result is populated with the weight taken into account.
-- How an entry is to be counted to populate the query depends on the user definition, i.e. it is an arbitrary action.
+- How an entry populates the query depends on its implementation.
     - (Optional) The result is populated based on values of inputs columns.
 
 Two common workflows exist in associating queries with selections:
@@ -87,7 +87,7 @@ A sensitivity analysis means to study how changes in the system's inputs affect 
 In the context of dataset queries, a **systematic variation** constitutes a __change in a column value that affects the outcome of selections and queries__.
 
 Encapsulating the nominal and variations of a column creates a `varied` node in which each variation is mapped by the name of its associated systematic variation.
-A varied node in a dataflow can be treated functionally identical to a non-varied one, with all nominal+variations being propagated through all relevant task graphs implicitly:
+A varied node can be treated functionally identical to a non-varied one, with all nominal+variations being propagated through the relevant task graphs implicitly:
 
 - Any column definitions and selections evaluated out of varied input columns will be varied.
 - Any queries performed filled with varied input columns and/or at varied selections will be varied.
@@ -97,7 +97,7 @@ The propagation proceeds in the following fashion:
 - **Lockstep.** If two actions each have a variation of the same name, they are in effect together.
 - **Transparent.** If only one action has a given variation, then the nominal is in effect for the other.
 
-All variations are processed at once in a single dataset traversal, i.e. they do not incur additional runtime overhead other than what is already required to perform the actions themselves.
+All variations are processed at once in a single dataset traversal; in other words, they do not incur any additional runtime overhead other than what is needed to perform the actions themselves.
 
 @image html variation.png "Propagation of systematic variations."
 

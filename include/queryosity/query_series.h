@@ -18,7 +18,7 @@ template <typename T> class series : public queryosity::query::definition<std::v
     ~series() = default;
 
     virtual void initialize(unsigned int, unsigned long long, unsigned long long) override;
-    virtual void fill(queryosity::column::observable<T>, double) override;
+    virtual void fill(column::observable<T>, double) override;
     virtual void finalize(unsigned int) override;
     virtual std::vector<T> result() const override;
     virtual std::vector<T> merge(std::vector<std::vector<T>> const &results) const override;
@@ -37,7 +37,7 @@ void queryosity::query::series<T>::initialize(unsigned int, unsigned long long b
     m_result.reserve(end - begin);
 }
 
-template <typename T> void queryosity::query::series<T>::fill(queryosity::column::observable<T> x, double)
+template <typename T> void queryosity::query::series<T>::fill(column::observable<T> x, double)
 {
     m_result.push_back(x.value());
 }

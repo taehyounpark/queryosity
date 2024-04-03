@@ -324,14 +324,14 @@ template <typename Action>
 template <typename Col, std::enable_if_t<queryosity::is_nominal_v<Col>,bool>>
 auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
     -> lazy<query::series<typename column::series<Col>::value_type>> {
-  return col._get(*this);
+  return col.make(*this);
 }
 
 template <typename Action>
 template <typename Col, std::enable_if_t<queryosity::is_varied_v<Col>,bool>>
 auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
     -> typename lazy<query::series<typename column::series<Col>::value_type>>::varied {
-  return col._get(*this);
+  return col.make(*this);
 }
 
 template <typename Action>

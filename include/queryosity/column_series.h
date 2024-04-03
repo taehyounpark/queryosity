@@ -25,9 +25,11 @@ public:
   series(Col const &col);
   ~series() = default;
 
-  auto _get(lazy<selection::node> &sel) const;
+  auto make(dataflow &df) const;
 
-  auto _get(lazy<selection::node>::varied &sel) const ->
+  auto make(lazy<selection::node> &sel) const;
+
+  auto make(lazy<selection::node>::varied &sel) const ->
       typename lazy<query::series<value_type>>::varied;
 
 protected:
@@ -42,7 +44,12 @@ template <typename Col>
 queryosity::column::series<Col>::series(Col const &col) : m_column(col){};
 
 template <typename Col>
-auto queryosity::column::series<Col>::_get(lazy<selection::node> &sel) const {
+auto queryosity::column::series<Col>::make(dataflow &df) const {
+  return df.get(query::output<query::series<value_type>>()).fill(m_column);
+}
+
+template <typename Col>
+auto queryosity::column::series<Col>::make(lazy<selection::node> &sel) const {
   auto df = sel.m_df;
   return df->get(query::output<query::series<value_type>>())
       .fill(m_column)
@@ -50,7 +57,7 @@ auto queryosity::column::series<Col>::_get(lazy<selection::node> &sel) const {
 }
 
 template <typename Col>
-auto queryosity::column::series<Col>::_get(lazy<selection::node>::varied &sel)
+auto queryosity::column::series<Col>::make(lazy<selection::node>::varied &sel)
     const -> typename lazy<query::series<value_type>>::varied {
   auto df = sel.nominal().m_df;
   return df->get(query::output<query::series<value_type>>())

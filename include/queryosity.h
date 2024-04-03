@@ -15,6 +15,8 @@
 #include "queryosity/column_reader.h"
 #include "queryosity/column_series.h"
 
+#include "queryosity/selection_yield.h"
+
 #include "queryosity/query_aggregation.h"
 #include "queryosity/query_definition.h"
 #include "queryosity/query_series.h"

@@ -3,7 +3,7 @@
 
 @section example-hello-world Hello World
 
-- Example row (`v` may be empty, and `w` may be zero):
+- Example row (`v` may be empty):
 
 @code{.json}
 [
@@ -11,7 +11,7 @@
 ]
 @endcode
 
-- Select entries with non-empty `v` and `x > 100.0`.
+- Select entries with `v.size()` and `x > 100.0`.
 - Fill histogram with `v[0]` weighted by `w`.
 
 @cpp
@@ -47,13 +47,12 @@ int main() {
   auto sel =
       df.weight(w)
           .filter(column::expression(
-                      [](std::vector<double> const &v) { return v.size(); }),
-                  v)
-          .filter(column::expression([](double x) { return x > 100.0; }), x);
+              [](std::vector<double> const &v) { return v.size(); }))(v)
+          .filter(column::expression([](double x) { return x > 100.0; }))(x);
 
   auto h_x0_w = df.get(query::output<h1d>(linax(20, 0.0, 200.0)))
                     .fill(v0)
-                    .book(sel)
+                    .at(sel)
                     .result();
 
   std::ostringstream os;
@@ -89,10 +88,97 @@ histogram(regular(20, 0, 200, options=underflow | overflow))
                 └────────────────────────────────────────────────────────────┘
 @endout
 
-@section example-hww ROOT TTree with systematic variations
+@section example-basic Basic examples
+
+@subsection example-stirling Custom column definition
+
+- Compute the factorial of a number, @f$ n! = 1 \times 2 \times 3 \times ... \times n @f$.
+  1. if @f$ n! @f$ is too small & can fit inside ull_t, use full calculation
+  2. if @f$ n @f$ is large for approximation to be good enough, use it.
+
+@cpp
+#include <fstream>
+#include <sstream>
+#include <vector>
+
+#include "queryosity.h"
+#include "queryosity/hist.h"
+#include "queryosity/json.h"
+
+using dataflow = qty::dataflow;
+namespace multithread = qty::multithread;
+namespace dataset = qty::dataset;
+namespace column = qty::column;
+namespace query = qty::query;
+
+using json = qty::json;
+using h1d = qty::hist::hist<double>;
+using linax = qty::hist::axis::regular;
+
+using ull_t = unsigned long long;
+auto factorial(ull_t n) {
+  ull_t result = 1;
+  while (n > 1)
+    result *= n--;
+  return result;
+}
+
+auto stirling = [](ull_t n) {
+  return std::round(std::sqrt(2 * M_PI * n) * std::pow(n / std::exp(1), n));
+};
+
+class Factorial : public column::definition<double(ull_t, double, ull_t)> {
+public:
+  Factorial(ull_t threshold = 20) : m_threshold(threshold) {}
+  virtual ~Factorial() = default;
+  virtual double evaluate(column::observable<ull_t> n, column::observable<double> fast,
+                 column::observable<ull_t> full) const override {
+    return (n.value() >= std::min<ull_t>(m_threshold, 20)) ? fast.value()
+                                                    : full.value();
+  }
+  void adjust_threshold(ull_t threshold) { m_threshold = threshold; }
+
+protected:
+  ull_t m_threshold;
+};
+
+int main() {
+  dataflow df;
+
+  std::ifstream data_json("data.json");
+  auto n = df.load(dataset::input<json>(data_json))
+               .read(dataset::column<ull_t>("n"));
+
+  auto n_f_fast = df.define(column::expression(stirling))(n);
+  auto n_f_full = df.define(column::expression(factorial))(n);
+
+  ull_t n_threshold = 10;
+  auto n_f_slow = df.define(
+      column::expression([n_threshold](ull_t n, double fast, ull_t slow) -> double {
+        return n >= std::min<ull_t>(n_threshold,20) ? fast : slow;
+      }))(n, n_f_fast, n_f_full);
+  // time elapsed = t(n) + t(fast) + t(slow)
+  // :(
+
+  auto n_f_best =
+      df.define(column::definition<Factorial>(/*20*/))(n, n_f_fast, n_f_full);
+  // time elapsed = t(n) + { t(n_fast) if n >= 10, t(n_slow) if n < 10 }
+  // :)
+
+  // advanced: access per-thread instance
+  dataflow::node::invoke([n_threshold](Factorial *n_f) { n_f->adjust_threshold(n_threshold); },
+                         n_f_best);
+}
+
+@endcpp
+
+@section example-hep More examples
+
+- [HepQuery](https://github.com/taehyounpark/queryosity-hep)
+
+@subsection example-hep-hww ROOT TTree
 
 - Simulated ggF HWW* events: [ATLAS open data](https://opendata.cern.ch/record/3825).
-- ROOT extensions for queryosity: [queryosity-hep](https://github.com/taehyounpark/queryosity-hep)
 
 1. Apply the MC event weight.
 2. Select entries for which there are exactly two opposite-sign leptons in the event.
@@ -108,6 +194,7 @@ histogram(regular(20, 0, 200, options=underflow | overflow))
 
 #include "queryosity.h"
 
+namespace qty = queryosity;
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
 namespace dataset = qty::dataset;
@@ -134,6 +221,7 @@ using P4 = ROOT::Math::PtEtaPhiEVector;
 #include <memory>
 #include <sstream>
 
+// compute the nth-leading four-momentum out of (pt, eta, phi, m) arrays
 class NthP4 : public column::definition<P4(VecD, VecD, VecD, VecD)> {
 
 public:
@@ -153,15 +241,11 @@ protected:
 
 int main() {
 
-  // the tree doesn't have enough events to multithread
-  dataflow df(multithread::disable());
-
-  // ---------------------------------------------------------------------------
-  // read dataset
-  // ---------------------------------------------------------------------------
-
   std::vector<std::string> tree_files{"hww.root"};
   std::string tree_name = "mini";
+
+  // not enough events to multithread
+  dataflow df(multithread::disable());
   auto ds = df.load(dataset::input<HepQ::Tree>(tree_files, tree_name));
 
   // weights
@@ -179,10 +263,6 @@ int main() {
   auto [met_MeV, met_phi] = ds.read(dataset::column<float>("met_et"),
                                     dataset::column<float>("met_phi"));
 
-  // ---------------------------------------------------------------------------
-  // compute quantities
-  // ---------------------------------------------------------------------------
-
   // units
   auto MeV = df.define(column::constant(1000.0));
   auto lep_pt = lep_pt_MeV / MeV;
@@ -191,11 +271,10 @@ int main() {
 
   // vary the energy scale by +/-2%
   auto Escale = df.vary(column::expression([](VecD E) { return E; }),
-                      {{"eg_up", [](VecD E) { return E * 1.02; }},
-                       {"eg_dn", [](VecD E) { return E * 0.98; }}});
+                        {{"eg_up", [](VecD E) { return E * 1.02; }},
+                         {"eg_dn", [](VecD E) { return E * 0.98; }}});
 
-  // apply the energy scale (uncertainties)
-  // and select ones within acceptance
+  // apply the energy scale (uncertainties) and select within acceptance
   auto lep_pt_min = df.define(column::constant(15.0));
   auto lep_eta_max = df.define(column::constant(2.4));
   auto lep_selection = (lep_eta < lep_eta_max) && (lep_eta > (-lep_eta_max)) &&
@@ -204,111 +283,96 @@ int main() {
   auto lep_E_sel = Escale(lep_E)[lep_selection];
   auto lep_eta_sel = lep_eta[lep_selection];
   auto lep_phi_sel = lep_phi[lep_selection];
+  auto lep_Q_sel = lep_Q[lep_selection];
+  auto lep_type_sel = lep_type[lep_selection];
 
-  // put (sub-)leading lepton into four-momentum
-  auto l1p4 = df.define(column::definition<NthP4>(0), lep_pt_sel, lep_eta_sel,
-                        lep_phi_sel, lep_E_sel);
-  auto l2p4 = df.define(column::definition<NthP4>(1), lep_pt_sel, lep_eta_sel,
-                        lep_phi_sel, lep_E_sel);
+  // compute (sub-)leading lepton four-momentum
+  auto l1p4 = df.define(column::definition<NthP4>(0))(lep_pt_sel, lep_eta_sel,
+                                                      lep_phi_sel, lep_E_sel);
+  auto l2p4 = df.define(column::definition<NthP4>(1))(lep_pt_sel, lep_eta_sel,
+                                                      lep_phi_sel, lep_E_sel);
 
   // compute dilepton invariant mass & higgs transverse momentum
   auto llp4 = l1p4 + l2p4;
   auto mll =
-      df.define(column::expression([](const P4 &p4) { return p4.M(); }), llp4);
+      df.define(column::expression([](const P4 &p4) { return p4.M(); }))(llp4);
   auto higgs_pt =
       df.define(column::expression([](const P4 &p4, float q, float q_phi) {
-                  TVector2 p2;
-                  p2.SetMagPhi(p4.Pt(), p4.Phi());
-                  TVector2 q2;
-                  q2.SetMagPhi(q, q_phi);
-                  return (p2 + q2).Mod();
-                }),
-                llp4, met, met_phi);
+        TVector2 p2;
+        p2.SetMagPhi(p4.Pt(), p4.Phi());
+        TVector2 q2;
+        q2.SetMagPhi(q, q_phi);
+        return (p2 + q2).Mod();
+      }))(llp4, met, met_phi);
 
   // compute number of leptons
   auto nlep_req = df.define(column::constant<unsigned int>(2));
-  auto nlep_sel =
-      df.define(column::expression([](VecD const &lep) { return lep.size(); }),
-                lep_pt_sel);
+  auto nlep_sel = df.define(column::expression(
+      [](VecD const &lep) { return lep.size(); }))(lep_pt_sel);
 
-  // ---------------------------------------------------------------------------
-  // apply cuts & weights
-  // ---------------------------------------------------------------------------
-
-  // MC event weight * electron & muon scale factors
+  // apply MC event weight * electron & muon scale factors
   auto weighted = df.weight(mc_weight * el_sf * mu_sf);
 
-  // 2 opoosite-signed leptons
+  // require 2 opoosite-signed leptons
   auto cut_2l = weighted.filter(nlep_sel == nlep_req);
-  auto cut_2los =
-      cut_2l.filter(column::expression([](const VecF &lep_charge) {
-                      return lep_charge.at(0) + lep_charge.at(1) == 0;
-                    }),
-                    lep_Q);
+  auto cut_2los = cut_2l.filter(column::expression([](const VecF &lep_charge) {
+    return lep_charge[0] + lep_charge[1] == 0;
+  }))(lep_Q_sel);
 
-  // branch out into df/sf channels
-  auto cut_2ldf =
-      cut_2los.filter(column::expression([](const VecI &lep_type) {
-                        return lep_type.at(0) + lep_type.at(1) == 24;
-                      }),
-                      lep_type);
-  auto cut_2lsf =
-      cut_2los.filter(column::expression([](const VecI &lep_type) {
-                        return (lep_type.at(0) + lep_type.at(1) == 22) ||
-                               (lep_type.at(0) + lep_type.at(1) == 26);
-                      }),
-                      lep_type);
+  // branch out into differet/same-flavour channels
+  auto cut_2ldf = cut_2los.filter(column::expression([](const VecI &lep_type) {
+    return lep_type[0] + lep_type[1] == 24;
+  }))(lep_type_sel);
+  auto cut_2lsf = cut_2los.filter(column::expression([](const VecI &lep_type) {
+    return (lep_type[0] + lep_type[1] == 22) ||
+           (lep_type[0] + lep_type[1] == 26);
+  }))(lep_type_sel);
 
-  // mll cut is different for df/sf channel
+  // apply (different) cuts for each channel
   auto mll_min_df = df.define(column::constant(10.0));
-  auto cut_2ldf_sr = cut_2ldf.filter(mll > mll_min_df);
+  auto cut_2ldf_presel = cut_2ldf.filter(mll > mll_min_df);
   auto mll_min_sf = df.define(column::constant(12.0));
-  auto cut_2lsf_sr = cut_2lsf.filter(mll > mll_min_sf);
+  auto cut_2lsf_presel = cut_2lsf.filter(mll > mll_min_sf);
 
+  // merge df+sf channels
   // once two selections are joined, they "forget" everything upstream
-  // i.e. need to re-apply the event weight!
-  auto cut_2los_sr =
-      df.filter(cut_2ldf_sr || cut_2lsf_sr).weight(mc_weight * el_sf * mu_sf);
+  // i.e. need to re-apply the event weight
+  auto cut_2los_presel = df.filter(cut_2ldf_presel || cut_2lsf_presel)
+                             .weight(mc_weight * el_sf * mu_sf);
 
-  // ---------------------------------------------------------------------------
-  // perform queries
-  // ---------------------------------------------------------------------------
-  
-  auto [pth_2los_sr, pth_2ldf_sr, pth_2lsf_sr] =
+  // make histograms
+  auto [pth_2los_presel, pth_2ldf_presel, pth_2lsf_presel] =
       df.get(query::output<HepQ::Hist<1, float>>("pth", 30, 0, 150))
           .fill(higgs_pt)
-          .book(cut_2los_sr, cut_2ldf_sr, cut_2lsf_sr);
+          .at(cut_2los_presel, cut_2ldf_presel, cut_2lsf_presel);
 
-  // ---------------------------------------------------------------------------
   // plot results
-  // ---------------------------------------------------------------------------
-
   Double_t w = 1600;
   Double_t h = 800;
   TCanvas c("c", "c", w, h);
   c.SetWindowSize(w + (w - c.GetWw()), h + (h - c.GetWh()));
   c.Divide(3, 1);
   c.cd(1);
-  pth_2los_sr.nominal()->SetLineColor(kBlack);
-  pth_2los_sr.nominal()->Draw("ep");
-  pth_2los_sr["eg_up"]->SetLineColor(kRed);
-  pth_2los_sr["eg_up"]->Draw("same hist");
-  pth_2los_sr["eg_dn"]->SetLineColor(kBlue);
-  pth_2los_sr["eg_dn"]->Draw("same hist");
+  pth_2los_presel.nominal()->SetLineColor(kBlack);
+  pth_2los_presel.nominal()->Draw("ep");
+  pth_2los_presel["eg_up"]->SetLineColor(kRed);
+  pth_2los_presel["eg_up"]->Draw("same hist");
+  pth_2los_presel["eg_dn"]->SetLineColor(kBlue);
+  pth_2los_presel["eg_dn"]->Draw("same hist");
   c.cd(2);
-  pth_2ldf_sr.nominal()->SetLineColor(kBlack);
-  pth_2ldf_sr.nominal()->Draw("ep");
-  pth_2ldf_sr["eg_up"]->SetLineColor(kRed);
-  pth_2ldf_sr["eg_up"]->Draw("same hist");
-  pth_2ldf_sr["eg_dn"]->SetLineColor(kBlue);
-  pth_2ldf_sr["eg_dn"]->Draw("same hist");
+  pth_2ldf_presel.nominal()->SetLineColor(kBlack);
+  pth_2ldf_presel.nominal()->Draw("ep");
+  pth_2ldf_presel["eg_up"]->SetLineColor(kRed);
+  pth_2ldf_presel["eg_up"]->Draw("same hist");
+  pth_2ldf_presel["eg_dn"]->SetLineColor(kBlue);
+  pth_2ldf_presel["eg_dn"]->Draw("same hist");
   c.cd(3);
-  pth_2lsf_sr.nominal()->SetLineColor(kBlack);
-  pth_2lsf_sr.nominal()->Draw("ep");
-  pth_2lsf_sr["eg_up"]->SetLineColor(kRed);
-  pth_2lsf_sr["eg_up"]->Draw("same hist");
-  pth_2lsf_sr["eg_dn"]->SetLineColor(kBlue);
-  pth_2lsf_sr["eg_dn"]->Draw("same hist");
+  pth_2lsf_presel.nominal()->SetLineColor(kBlack);
+  pth_2lsf_presel.nominal()->Draw("ep");
+  pth_2lsf_presel["eg_up"]->SetLineColor(kRed);
+  pth_2lsf_presel["eg_up"]->Draw("same hist");
+  pth_2lsf_presel["eg_dn"]->SetLineColor(kBlue);
+  pth_2lsf_presel["eg_dn"]->Draw("same hist");
   c.SaveAs("pth.png");
 
   return 0;
@@ -317,7 +381,7 @@ int main() {
 
 @image html pth.png
 
-@section example-phys ATLAS DAOD_PHYS
+@subsection example-hep-daod ATLAS DAOD_PHYS
 
 1. Apply the MC event weight.
 2. Select for events with exactly 2 electrons with @f$p_{\mathrm{T}} > 10\,\mathrm{GeV}@f$ and @f$ \eta < 2.4 @f$.
@@ -327,8 +391,8 @@ int main() {
 #include "HepQuery/Event.h"
 #include "HepQuery/Hist.h"
 
-#include <xAODEventInfo/EventInfo.h>
 #include <xAODEgamma/ElectronContainer.h>
+#include <xAODEventInfo/EventInfo.h>
 
 using VecF = ROOT::RVec<float>;
 using VecD = ROOT::RVec<double>;
@@ -342,9 +406,9 @@ namespace column = queryosity::column;
 namespace query = queryosity::query;
 namespace systematic = queryosity::systematic;
 
+#include "TCanvas.h"
 #include "TH1F.h"
 #include "TPad.h"
-#include "TCanvas.h"
 #include <ROOT/RVec.hxx>
 
 #include <chrono>
@@ -353,17 +417,36 @@ namespace systematic = queryosity::systematic;
 #include <sstream>
 
 std::vector<std::string> daodFiles{
-"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000001.pool.root.1",
-"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000002.pool.root.1",
-"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000003.pool.root.1",
-"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000004.pool.root.1",
-"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000005.pool.root.1",
-"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000006.pool.root.1",
-"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000007.pool.root.1",
-"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000008.pool.root.1",
-"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000009.pool.root.1",
-"/project/6001378/thpark/public/mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_p5855/DAOD_PHYS.35010014._000010.pool.root.1"
-};
+    "/project/6001378/thpark/public/"
+    "mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_"
+    "p5855/DAOD_PHYS.35010014._000001.pool.root.1",
+    "/project/6001378/thpark/public/"
+    "mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_"
+    "p5855/DAOD_PHYS.35010014._000002.pool.root.1",
+    "/project/6001378/thpark/public/"
+    "mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_"
+    "p5855/DAOD_PHYS.35010014._000003.pool.root.1",
+    "/project/6001378/thpark/public/"
+    "mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_"
+    "p5855/DAOD_PHYS.35010014._000004.pool.root.1",
+    "/project/6001378/thpark/public/"
+    "mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_"
+    "p5855/DAOD_PHYS.35010014._000005.pool.root.1",
+    "/project/6001378/thpark/public/"
+    "mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_"
+    "p5855/DAOD_PHYS.35010014._000006.pool.root.1",
+    "/project/6001378/thpark/public/"
+    "mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_"
+    "p5855/DAOD_PHYS.35010014._000007.pool.root.1",
+    "/project/6001378/thpark/public/"
+    "mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_"
+    "p5855/DAOD_PHYS.35010014._000008.pool.root.1",
+    "/project/6001378/thpark/public/"
+    "mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_"
+    "p5855/DAOD_PHYS.35010014._000009.pool.root.1",
+    "/project/6001378/thpark/public/"
+    "mc23_13p6TeV.601189.PhPy8EG_AZNLO_Zee.deriv.DAOD_PHYS.e8514_s4162_r14622_"
+    "p5855/DAOD_PHYS.35010014._000010.pool.root.1"};
 std::string treeName = "CollectionTree";
 
 float EventWeight(const xAOD::EventInfo &eventInfo) {
@@ -377,10 +460,9 @@ public:
   ElectronSelection(double pT_min, double eta_max)
       : m_pT_min(pT_min), m_eta_max(eta_max) {}
   virtual ~ElectronSelection() = default;
-  virtual ConstDataVector<xAOD::ElectronContainer> evaluate(
-      column::observable<xAOD::ElectronContainer> els) const override {
-    ConstDataVector<xAOD::ElectronContainer> els_sel(
-        SG::VIEW_ELEMENTS);
+  virtual ConstDataVector<xAOD::ElectronContainer>
+  evaluate(column::observable<xAOD::ElectronContainer> els) const override {
+    ConstDataVector<xAOD::ElectronContainer> els_sel(SG::VIEW_ELEMENTS);
     for (const xAOD::Electron *el : *els) {
       if (el->pt() < m_pT_min)
         continue;
@@ -404,30 +486,30 @@ float DiElectronsMass(ConstDataVector<xAOD::ElectronContainer> const &els) {
   return (els[0]->p4() + els[1]->p4()).M();
 };
 
-int main(int argc, char *argv[]) {  
-  dataflow df;
+int main() {  
+  dataflow df(multithread::enable());
 
-  auto ds = df.load(dataset::input<Event>(daodFiles, treeName));
+  auto ds = df.load(dataset::input<HepQ::Event>(daodFiles, treeName));
   auto eventInfo = ds.read(dataset::column<xAOD::EventInfo>("EventInfo"));
   auto allElectrons =
       ds.read(dataset::column<xAOD::ElectronContainer>("Electrons"));
 
   auto selectedElectrons =
-      df.define(column::definition<ElectronSelection>(10.0,1.5), allElectrons);
+      df.define(column::definition<ElectronSelection>(10.0, 1.5))(allElectrons);
   auto diElectronsMassMeV =
-      df.define(column::expression(DiElectronsMass), selectedElectrons);
+      df.define(column::expression(DiElectronsMass))(selectedElectrons);
   auto toGeV = df.define(column::constant(1.0 / 1000.0));
   auto diElectronsMassGeV = diElectronsMassMeV * toGeV;
 
-  auto eventWeight = df.define(column::expression(EventWeight), eventInfo);
+  auto eventWeight = df.define(column::expression(EventWeight))(eventInfo);
   auto atLeastTwoSelectedElectrons =
       df.weight(eventWeight)
-          .filter(column::expression(TwoElectrons), selectedElectrons);
+          .filter(column::expression(TwoElectrons))(selectedElectrons);
 
   auto selectedElectronsPtHist =
-      df.get(query::output<HepQ::Hist<1,float>>("diElectronMass", 100, 0, 500))
+      df.get(query::plan<HepQ::Hist<1, float>>("diElectronMass", 100, 0, 500))
           .fill(diElectronsMassGeV)
-          .book(atLeastTwoSelectedElectrons);
+          .at(atLeastTwoSelectedElectrons);
 
   selectedElectronsPtHist->Draw();
   gPad->SetLogy();
@@ -439,7 +521,7 @@ int main(int argc, char *argv[]) {
 
 @image html mee.png
 
-@section example-task7 IRIS-HEP ADL benchmark
+@subsection example-hep-task7 IRIS-HEP ADL benchmark
 
 - Collision dataset: [2012 CMS open data](http://opendata.cern.ch/record/6021) (16 GiB, 53 million events).
 - Task 7: plot the scalar sum in each event of the @f$p_{\mathrm{T}}@f$ of jets with @f$p_{\mathrm{T}}>30\,\mathrm{GeV}@f$ that are not within @f$\Delta R < 0.4@f$ of any light lepton with @f$p_{\mathrm{T}}>10\,\mathrm{GeV}@f$.
@@ -455,8 +537,8 @@ int main(int argc, char *argv[]) {
 #include "TCanvas.h"
 #include <ROOT/RVec.hxx>
 
-#include "AnalysisPlugins/Hist.h"
-#include "AnalysisPlugins/Tree.h"
+#include "HepQuery/Hist.h"
+#include "HepQuery/Tree.h"
 
 template <typename T> using Vec = ROOT::RVec<T>;
 using VecUI = Vec<unsigned int>;
@@ -471,17 +553,16 @@ namespace column = queryosity::column;
 namespace query = queryosity::query;
 namespace systematic = queryosity::systematic;
 
-class DRMinMaxSel : public column::definition<VecI(VecF, VecF, VecF,
-                                                               VecF, VecF)> {
+class DRMinMaxSel
+    : public column::definition<VecI(VecF, VecF, VecF, VecF, VecF)> {
 public:
   DRMinMaxSel(float minDR, float pt2Min) : m_minDR(minDR), m_pt2Min(pt2Min) {}
   virtual ~DRMinMaxSel() = default;
-  virtual VecI
-  evaluate(column::observable<VecF> eta1,
-           column::observable<VecF> phi1,
-           column::observable<VecF> pt2,
-           column::observable<VecF> eta2,
-           column::observable<VecF> phi2) const override {
+  virtual VecI evaluate(column::observable<VecF> eta1,
+                        column::observable<VecF> phi1,
+                        column::observable<VecF> pt2,
+                        column::observable<VecF> eta2,
+                        column::observable<VecF> phi2) const override {
     VecI mask(eta1->size(), 1);
     if (eta2->size() == 0) {
       return mask;
@@ -536,32 +617,24 @@ void task(int n) {
   auto els_phi = ds.read(dataset::column<VecF>("Electron_phi"));
 
   auto jets_ptcut = df.define(
-      column::expression([](VecF const &pts) { return pts > 30; }),
-      jets_pt);
-  auto jets_mudr =
-      df.define(column::definition<DRMinMaxSel>(0.4, 10.0),
-                jets_eta, jets_phi, mus_pt, mus_eta, mus_phi);
-  auto jets_eldr =
-      df.define(column::definition<DRMinMaxSel>(0.4, 10.0),
-                jets_eta, jets_phi, els_pt, els_eta, els_phi);
+      column::expression([](VecF const &pts) { return pts > 30; }))(jets_pt);
+  auto jets_mudr = df.define(column::definition<DRMinMaxSel>(0.4, 10.0))(
+      jets_eta, jets_phi, mus_pt, mus_eta, mus_phi);
+  auto jets_eldr = df.define(column::definition<DRMinMaxSel>(0.4, 10.0))(
+      jets_eta, jets_phi, els_pt, els_eta, els_phi);
   auto goodjet_mask = jets_ptcut && jets_mudr && jets_eldr;
-  auto goodjet_sumpt = df.define(
-      column::expression(
-          [](VecI const &good, VecF const &pt) { return Sum(pt[good]); }),
-      goodjet_mask, jets_pt);
+  auto goodjet_sumpt =
+      df.define(column::expression([](VecI const &good, VecF const &pt) {
+        return Sum(pt[good]);
+      }))(goodjet_mask, jets_pt);
 
-  auto cut_1jet = df.filter(
-      column::expression([](int njet) { return njet >= 1; }),
-      n_jet);
-  auto cut_goodjet =
-      cut_1jet.filter(column::expression(
-                          [](VecI const &goodjet) { return Sum(goodjet); }),
-                      goodjet_mask);
+  auto cut_goodjet = df.filter(column::expression(
+      [](VecI const &goodjet) { return Sum(goodjet); }))(goodjet_mask);
 
   auto h_sumpt_goodjet =
       df.get(query::output<HepQ::Hist<1, float>>("goodjet_sumpt", 185, 15, 200))
           .fill(goodjet_sumpt)
-          .book(cut_goodjet);
+          .at(cut_goodjet);
 
   TCanvas c;
   h_sumpt_goodjet->Draw();
@@ -583,3 +656,7 @@ int main(int argc, char **argv) {
 }
 @endcpp
 @image html task_7.png
+@out
+used threads = 1, elapsed time = 116.676s
+used threads = 20, elapsed time = 9.06188s
+@endout

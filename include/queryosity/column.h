@@ -106,21 +106,41 @@ protected:
   std::unique_ptr<const view<T>> m_view;
 };
 
-// easy to move around
-template <typename T> class observable {
+/**
+ * @brief Column observable.
+ * @tparam Val Column data type.
+ */
+template <typename Val> class observable {
 
 public:
-  observable(variable<T> const &obs);
+  /**
+   * @brief Constructor out of a variable.
+   */
+  observable(variable<Val> const &obs);
   virtual ~observable() = default;
 
-  T const &value() const;
-  T const *field() const;
+  /**
+   * @brief Compute and retrieve the value of the column.
+   * @return Value of the column.
+   * @brief The column is *not* computed until the method is called at least
+   * once during the dataflow entry processing. Once computed, it is cached for
+   * future retrievals.
+   */
+  Val const &value() const;
+  Val const *field() const;
 
-  T const &operator*() const;
-  T const *operator->() const;
+  /**
+   * @brief Shortcut for `value()`.
+   */
+  Val const &operator*() const;
+
+  /**
+   * @brief Indirection semantic for non-trivial data types.
+   */
+  Val const *operator->() const;
 
 protected:
-  const variable<T> *m_var;
+  const variable<Val> &m_var;
 };
 
 template <typename To, typename From>
@@ -189,8 +209,8 @@ constexpr bool is_equation_v =
     decltype(check_equation(std::declval<std::decay_t<T> const &>()))::value;
 
 template <typename T>
-constexpr bool is_composition_v = decltype(check_composition(
-    std::declval<std::decay_t<T> const &>()))::value;
+constexpr bool is_composition_v =
+    decltype(check_composition(std::declval<std::decay_t<T> const &>()))::value;
 
 template <typename T> struct is_evaluator : std::false_type {};
 template <typename T>
@@ -296,24 +316,24 @@ template <typename T> T const *queryosity::column::variable<T>::field() const {
 
 template <typename T>
 queryosity::column::observable<T>::observable(const variable<T> &var)
-    : m_var(&var) {}
+    : m_var(var) {}
 
 template <typename T>
 T const &queryosity::column::observable<T>::operator*() const {
-  return m_var->value();
+  return m_var.value();
 }
 
 template <typename T>
 T const *queryosity::column::observable<T>::operator->() const {
-  return m_var->field();
+  return m_var.field();
 }
 
 template <typename T>
 T const &queryosity::column::observable<T>::value() const {
-  return m_var->value();
+  return m_var.value();
 }
 
 template <typename T>
 T const *queryosity::column::observable<T>::field() const {
-  return m_var->field();
+  return m_var.field();
 }

@@ -17,7 +17,14 @@ namespace selection {
 class cutflow;
 
 class cut;
+
 class weight;
+
+struct count_t;
+
+class counter;
+
+template <typename... Ts> class yield;
 
 template <typename T, typename U> class applicator;
 

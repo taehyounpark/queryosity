@@ -228,10 +228,18 @@ public:
   /**
    * @brief Get a column series.
    * @tparam Col (Varied) lazy column.
-   * @param[in] col Column as series argument.
-   * @return queryosity::todo query booker.
+   * @param[in] col Column as series constructor argument.
+   * @return (Varied) lazy column series query.
    */
-  template <typename Col> auto get(column::series<Col> const &srs);
+  template <typename Col> auto get(column::series<Col> const &col);
+
+  /**
+   * @brief Get selection yield.
+   * @tparam Sels (Varied) lazy selection(s).
+   * @param[in] sel Selection(s) as yield constructor argument(s).
+   * @return (Varied) lazy selection yield query(ies).
+   */
+  template <typename... Sels> auto get(selection::yield<Sels...> const &sels);
 
   template <typename Val>
   auto vary(column::constant<Val> const &cnst, std::map<std::string, Val> vars)
@@ -552,8 +560,12 @@ auto queryosity::dataflow::get(queryosity::query::output<Qry> const &qry)
 }
 
 template <typename Col>
-auto queryosity::dataflow::get(queryosity::column::series<Col> const &srs) {
-  return this->all().get(srs);
+auto queryosity::dataflow::get(queryosity::column::series<Col> const &col) {
+  return col.make(*this);
+}
+
+template <typename... Sels> auto queryosity::dataflow::get(selection::yield<Sels...> const &sels) {
+  return sels.make(*this);
 }
 
 template <typename Def, typename... Cols>

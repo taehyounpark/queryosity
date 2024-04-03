@@ -7,11 +7,11 @@ namespace queryosity {
 
 /**
  * @brief Query filled with column value(s) per-entry.
- * @tparam T Output result type.
+ * @tparam Out Output result type.
  * @tparam Obs Input column data types.
  */
-template <typename T, typename... Obs>
-class query::definition<T(Obs...)> : public query::aggregation<T> {
+template <typename Out, typename... Obs>
+class query::definition<Out(Obs...)> : public query::aggregation<Out> {
 
 public:
   using vartup_type = std::tuple<column::variable<Obs>...>;
@@ -42,17 +42,17 @@ protected:
 
 #include "column.h"
 
-template <typename T, typename... Obs>
+template <typename Out, typename... Obs>
 template <typename... Vals>
-void queryosity::query::definition<T(Obs...)>::enter_columns(
+void queryosity::query::definition<Out(Obs...)>::enter_columns(
     column::view<Vals> const &...cols) {
   static_assert(sizeof...(Obs) == sizeof...(Vals),
                 "dimension mis-match between filled variables & columns.");
   m_fills.emplace_back(cols...);
 }
 
-template <typename T, typename... Obs>
-void queryosity::query::definition<T(Obs...)>::count(double w) {
+template <typename Out, typename... Obs>
+void queryosity::query::definition<Out(Obs...)>::count(double w) {
   for (unsigned int ifill = 0; ifill < m_fills.size(); ++ifill) {
     std::apply(
         [this, w](const column::variable<Obs> &...obs) {
