@@ -350,21 +350,41 @@ protected:
   std::unique_ptr<const view<T>> m_view;
 };
 
-// easy to move around
-template <typename T> class observable {
+/**
+ * @brief Column observable.
+ * @tparam Val Column data type.
+ */
+template <typename Val> class observable {
 
 public:
-  observable(variable<T> const &obs);
+  /**
+   * @brief Constructor out of a variable.
+   */
+  observable(variable<Val> const &obs);
   virtual ~observable() = default;
 
-  T const &value() const;
-  T const *field() const;
+  /**
+   * @brief Compute and retrieve the value of the column.
+   * @return Value of the column.
+   * @brief The column is *not* computed until the method is called at least
+   * once during the dataflow entry processing. Once computed, it is cached for
+   * future retrievals.
+   */
+  Val const &value() const;
+  Val const *field() const;
 
-  T const &operator*() const;
-  T const *operator->() const;
+  /**
+   * @brief Shortcut for `value()`.
+   */
+  Val const &operator*() const;
+
+  /**
+   * @brief Indirection semantic for non-trivial data types.
+   */
+  Val const *operator->() const;
 
 protected:
-  const variable<T> *m_var;
+  const variable<Val> &m_var;
 };
 
 template <typename To, typename From>
@@ -433,8 +453,8 @@ constexpr bool is_equation_v =
     decltype(check_equation(std::declval<std::decay_t<T> const &>()))::value;
 
 template <typename T>
-constexpr bool is_composition_v = decltype(check_composition(
-    std::declval<std::decay_t<T> const &>()))::value;
+constexpr bool is_composition_v =
+    decltype(check_composition(std::declval<std::decay_t<T> const &>()))::value;
 
 template <typename T> struct is_evaluator : std::false_type {};
 template <typename T>
@@ -540,26 +560,26 @@ template <typename T> T const *queryosity::column::variable<T>::field() const {
 
 template <typename T>
 queryosity::column::observable<T>::observable(const variable<T> &var)
-    : m_var(&var) {}
+    : m_var(var) {}
 
 template <typename T>
 T const &queryosity::column::observable<T>::operator*() const {
-  return m_var->value();
+  return m_var.value();
 }
 
 template <typename T>
 T const *queryosity::column::observable<T>::operator->() const {
-  return m_var->field();
+  return m_var.field();
 }
 
 template <typename T>
 T const &queryosity::column::observable<T>::value() const {
-  return m_var->value();
+  return m_var.value();
 }
 
 template <typename T>
 T const *queryosity::column::observable<T>::field() const {
-  return m_var->field();
+  return m_var.field();
 }
 
 namespace queryosity {
@@ -1292,7 +1312,14 @@ namespace selection {
 class cutflow;
 
 class cut;
+
 class weight;
+
+struct count_t;
+
+class counter;
+
+template <typename... Ts> class yield;
 
 template <typename T, typename U> class applicator;
 
@@ -2236,10 +2263,18 @@ public:
   /**
    * @brief Get a column series.
    * @tparam Col (Varied) lazy column.
-   * @param[in] col Column as series argument.
-   * @return queryosity::todo query booker.
+   * @param[in] col Column as series constructor argument.
+   * @return (Varied) lazy column series query.
    */
-  template <typename Col> auto get(column::series<Col> const &srs);
+  template <typename Col> auto get(column::series<Col> const &col);
+
+  /**
+   * @brief Get selection yield.
+   * @tparam Sels (Varied) lazy selection(s).
+   * @param[in] sel Selection(s) as yield constructor argument(s).
+   * @return (Varied) lazy selection yield query(ies).
+   */
+  template <typename... Sels> auto get(selection::yield<Sels...> const &sels);
 
   template <typename Val>
   auto vary(column::constant<Val> const &cnst, std::map<std::string, Val> vars)
@@ -3203,11 +3238,11 @@ namespace queryosity {
 
 /**
  * @brief Query filled with column value(s) per-entry.
- * @tparam T Output result type.
+ * @tparam Out Output result type.
  * @tparam Obs Input column data types.
  */
-template <typename T, typename... Obs>
-class query::definition<T(Obs...)> : public query::aggregation<T> {
+template <typename Out, typename... Obs>
+class query::definition<Out(Obs...)> : public query::aggregation<Out> {
 
 public:
   using vartup_type = std::tuple<column::variable<Obs>...>;
@@ -3236,17 +3271,17 @@ protected:
 
 } // namespace queryosity
 
-template <typename T, typename... Obs>
+template <typename Out, typename... Obs>
 template <typename... Vals>
-void queryosity::query::definition<T(Obs...)>::enter_columns(
+void queryosity::query::definition<Out(Obs...)>::enter_columns(
     column::view<Vals> const &...cols) {
   static_assert(sizeof...(Obs) == sizeof...(Vals),
                 "dimension mis-match between filled variables & columns.");
   m_fills.emplace_back(cols...);
 }
 
-template <typename T, typename... Obs>
-void queryosity::query::definition<T(Obs...)>::count(double w) {
+template <typename Out, typename... Obs>
+void queryosity::query::definition<Out(Obs...)>::count(double w) {
   for (unsigned int ifill = 0; ifill < m_fills.size(); ++ifill) {
     std::apply(
         [this, w](const column::variable<Obs> &...obs) {
@@ -3272,7 +3307,7 @@ template <typename T> class series : public queryosity::query::definition<std::v
     ~series() = default;
 
     virtual void initialize(unsigned int, unsigned long long, unsigned long long) override;
-    virtual void fill(queryosity::column::observable<T>, double) override;
+    virtual void fill(column::observable<T>, double) override;
     virtual void finalize(unsigned int) override;
     virtual std::vector<T> result() const override;
     virtual std::vector<T> merge(std::vector<std::vector<T>> const &results) const override;
@@ -3291,7 +3326,7 @@ void queryosity::query::series<T>::initialize(unsigned int, unsigned long long b
     m_result.reserve(end - begin);
 }
 
-template <typename T> void queryosity::query::series<T>::fill(queryosity::column::observable<T> x, double)
+template <typename T> void queryosity::query::series<T>::fill(column::observable<T> x, double)
 {
     m_result.push_back(x.value());
 }
@@ -3341,9 +3376,11 @@ public:
   series(Col const &col);
   ~series() = default;
 
-  auto _get(lazy<selection::node> &sel) const;
+  auto make(dataflow &df) const;
 
-  auto _get(lazy<selection::node>::varied &sel) const ->
+  auto make(lazy<selection::node> &sel) const;
+
+  auto make(lazy<selection::node>::varied &sel) const ->
       typename lazy<query::series<value_type>>::varied;
 
 protected:
@@ -3358,7 +3395,12 @@ template <typename Col>
 queryosity::column::series<Col>::series(Col const &col) : m_column(col){};
 
 template <typename Col>
-auto queryosity::column::series<Col>::_get(lazy<selection::node> &sel) const {
+auto queryosity::column::series<Col>::make(dataflow &df) const {
+  return df.get(query::output<query::series<value_type>>()).fill(m_column);
+}
+
+template <typename Col>
+auto queryosity::column::series<Col>::make(lazy<selection::node> &sel) const {
   auto df = sel.m_df;
   return df->get(query::output<query::series<value_type>>())
       .fill(m_column)
@@ -3366,7 +3408,7 @@ auto queryosity::column::series<Col>::_get(lazy<selection::node> &sel) const {
 }
 
 template <typename Col>
-auto queryosity::column::series<Col>::_get(lazy<selection::node>::varied &sel)
+auto queryosity::column::series<Col>::make(lazy<selection::node>::varied &sel)
     const -> typename lazy<query::series<value_type>>::varied {
   auto df = sel.nominal().m_df;
   return df->get(query::output<query::series<value_type>>())
@@ -3556,14 +3598,14 @@ template <typename Action>
 template <typename Col, std::enable_if_t<queryosity::is_nominal_v<Col>,bool>>
 auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
     -> lazy<query::series<typename column::series<Col>::value_type>> {
-  return col._get(*this);
+  return col.make(*this);
 }
 
 template <typename Action>
 template <typename Col, std::enable_if_t<queryosity::is_varied_v<Col>,bool>>
 auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
     -> typename lazy<query::series<typename column::series<Col>::value_type>>::varied {
-  return col._get(*this);
+  return col.make(*this);
 }
 
 template <typename Action>
@@ -4012,8 +4054,12 @@ auto queryosity::dataflow::get(queryosity::query::output<Qry> const &qry)
 }
 
 template <typename Col>
-auto queryosity::dataflow::get(queryosity::column::series<Col> const &srs) {
-  return this->all().get(srs);
+auto queryosity::dataflow::get(queryosity::column::series<Col> const &col) {
+  return col.make(*this);
+}
+
+template <typename... Sels> auto queryosity::dataflow::get(selection::yield<Sels...> const &sels) {
+  return sels.make(*this);
 }
 
 template <typename Def, typename... Cols>
@@ -4692,6 +4738,97 @@ queryosity::column::definition<Def>::definition(Args const &...args) {
 template <typename Def>
 auto queryosity::column::definition<Def>::_define(dataflow &df) const {
   return this->m_define(df);
+}
+
+#include <cmath>
+
+namespace queryosity {
+
+namespace selection {
+
+/**
+ * @brief Yield (sum of weights and squared error) at a selection.
+ */
+struct count_t {
+
+  unsigned long long entries;
+  double value;
+  double error;
+};
+
+class counter : public query::aggregation<count_t> {
+
+public:
+  counter() = default;
+  virtual ~counter() = default;
+
+  virtual void count(double w) override;
+  virtual count_t result() const override;
+  virtual void finalize(unsigned int) override;
+  virtual count_t merge(std::vector<count_t> const &results) const override;
+
+protected:
+  count_t m_cnt;
+};
+
+/**
+ * @brief Argumnet for column yield.
+ * @tparam Sel (Varied) lazy column node.
+ * @todo C++20: Use concept to require lazy<column<Val>(::varied)>.
+ */
+template <typename... Sels> class yield {
+
+public:
+  yield(Sels const &...sels);
+  ~yield() = default;
+
+  auto make(dataflow &df) const;
+
+protected:
+  std::tuple<Sels...> m_selections;
+};
+
+} // namespace selection
+
+} // namespace queryosity
+
+inline void queryosity::selection::counter::count(double w) {
+  m_cnt.entries++;
+  m_cnt.value += w;
+  m_cnt.error += w * w;
+}
+
+inline void queryosity::selection::counter::finalize(unsigned int) {
+  m_cnt.error = std::sqrt(m_cnt.error);
+}
+
+inline queryosity::selection::count_t queryosity::selection::counter::result() const {
+  return m_cnt;
+}
+
+inline queryosity::selection::count_t
+queryosity::selection::counter::merge(std::vector<count_t> const& cnts) const {
+  count_t sum;
+  for (auto const &cnt : cnts) {
+    sum.entries += cnt.entries;
+    sum.value += cnt.value;
+    sum.error += cnt.error * cnt.error;
+  }
+  sum.error = std::sqrt(sum.error);
+  return sum;
+}
+
+template <typename... Sels>
+queryosity::selection::yield<Sels...>::yield(Sels const &...sels)
+    : m_selections(sels...) {}
+
+template <typename... Sels>
+auto queryosity::selection::yield<Sels...>::make(dataflow &df) const {
+  return std::apply(
+      [&df](Sels const &...sels) {
+        return df.get(query::output<counter>()).at(sels...);
+      },
+      m_selections);
 }
 
 namespace queryosity {
