@@ -166,10 +166,11 @@ A query can be filled multiple times, as long as the dimensionality of each call
 
 @cpp
 // fill 1d histogram with x & y for each entry
-auto q_1xy = df.get(query::output<h1d>(linax(100,0.0,1.0))).fill(x).fill(y).at(cut);
+auto q_1xy = df.get(query::output<h1d>(linax(10, 0.0, 1.0)))(x)(y);
 
 // fill 2d histogram with (x, y) for each entry
-auto q_2xy = df.get(query::output<h2d>(linax(100,0.0,1.0), linax(100,0.0,1.0))).fill(x, y).at(cut);
+auto q_2xy =
+    df.get(query::output<h2d>(linax(10, 0.0, 1.0), linax(10, 0.0, 1.0)))(x, y);
 @endcpp
 
 Multiple queries can be instantiated at once by:
@@ -179,7 +180,7 @@ Multiple queries can be instantiated at once by:
 
 @cpp
 // 1.
-auto [q_1xy_a, q_1xy_b] = q_1xy.book(cut_a, cut_b);
+auto [q_1xy_a, q_1xy_b] = q_1xy.at(cut_a, cut_b);
 
 // 2.
 auto [q_1xy_c, q_2xy_c] = c.book(q_1xy, q_2xy);
@@ -202,24 +203,25 @@ auto h2xy_c = q_2xy_c.result(); // instantaneous
 Specifying systematic variations on a column is as simple as it can be: provide the nominal argument and a mapping of variation name to alternate arguments to queryosity::dataflow::vary() in lieu of the usual queryosity::dataflow::define().
 
 @cpp
-// dataset columns are varied by different column names from the loaded dataset
+// dataset columns must be varied from the loaded dataset
 auto x = ds.vary(dataset::column<double>("x_nom"),
                  {{"shift_x", "x_shifted"}, {"smear_x", "x_smeared"}});
 
-// constants are varied by alternate values
+// constants
 auto pm1 = df.vary(column::constant(0), {{"plus_1", 1}, {"minus_1", -1}});
 
-// dependent columns are varied by alternate constructor argument(s)
-// and input columns
+// variations can step in at two places for dependent columns:
+// 1. constructor arguments
+// 2. input columns
 auto x =
     df.vary(column::expression([](float x, float y) { return x + y; }),
             {{"kill_x", [](double x, double y) { return x * y; }}})(x, pm1);
 @endcpp
 
-Alternatively, provide existing instances of columns to be the nominal and its variations, where column whose data type is compatible with that of the nominal can be set as a variation.
+Alternatively, existing instances of columns of compatible data types can be put into a varied column:
 
 @cpp
-// note: different column types of different data types!
+// note the different column and data types!
 auto z_nom = ds.read(dataset::column<double>("z"));
 auto z_fixed = df.define(column::constant<int>(100.0));
 auto z_half =
@@ -230,7 +232,7 @@ auto z = systematic::vary(systematic::nominal(z_nom),
 @endcpp
 
 The set of variations active in nodes can be checked as they are propagated through the dataflow.
-After the dust settles, the nominal and each varied result of a query can be accessed individually.
+After everything, the varied results of a query can be accessed by the variation names.
 
 @cpp
 // check variations
@@ -239,7 +241,7 @@ x.has_variation("smear_x"); // true, x_smeared + 0
 x.has_variation("plus_1");  // true, x_nom + 1
 x.has_variation("minus_1"); // true, x_nom - 1
 x.has_variation("kill_x");  // true: x_nom * 0
-x.has_variation("no"); // false
+x.has_variation("no");      // false
 
 // propagation through selection and query
 auto yn = df.vary(column::constant(true), {{"no", false}});
@@ -250,12 +252,12 @@ systematic::get_variation_names(
 auto cut = df.filter(yn);
 auto q = df.get(column::series(x)).book(cut);
 
-q.get_variation_names(); // {"shift_x", "smear_x", "plus_1", "minus_1",
-                         // "kill_x", "no"}
+q.get_variation_names(); // same set as (x, yn) above
 
 // access nominal+variation results
-q.nominal().result();   // {x_nom_0, ..., x_nom_N}
+q.nominal().result();  // {x_nom_0, ..., x_nom_N}
 q["shift_x"].result(); // {x_shifted_0, ..., x_shifted_N}
+q["plus_1"].result();  // {x_nom_0 + 1, ..., x_nom_N + 1}
 q["kill_x"].result();  // {0, ..., 0}
 q["no"].result();      // {}
 @endcpp
