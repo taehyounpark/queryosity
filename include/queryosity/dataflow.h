@@ -143,7 +143,7 @@ public:
   /**
    * @brief Initiate a cutflow.
    * @tparam Col Column type.
-   * @param[in] column Input column value used as cut decision.
+   * @param[in] column Input column used as cut decision.
    * @return Lazy selection.
    */
   template <typename Col>
@@ -152,7 +152,7 @@ public:
   /**
    * @brief Initiate a cutflow.
    * @tparam Col Column type.
-   * @param[in] column Input column value used as weight decision.
+   * @param[in] column Input column used as weight decision.
    * @return Lazy selection.
    */
   template <typename Col>
@@ -161,7 +161,7 @@ public:
   /**
    * @brief Initiate a cutflow.
    * @tparam Col Lazy varied column.
-   * @param[in] column Input column value used as cut decision.
+   * @param[in] column Input column used as cut decision.
    * @return Lazy varied selection.
    */
   template <typename Col> auto filter(Col const &col);
@@ -169,7 +169,7 @@ public:
   /**
    * @brief Initiate a cutflow.
    * @tparam Col Lazy varied column.
-   * @param[in] column Input column value used as weight decision.
+   * @param[in] column Input column used as weight decision.
    * @return Lazy varied selection.
    */
   template <typename Col> auto weight(Col const &col);

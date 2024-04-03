@@ -172,6 +172,41 @@ int main() {
 
 @endcpp
 
+@subsection example-column-series Column as a series
+
+@cpp
+// single column
+// (sel: (varied) lazy selection)
+auto x = ds.read(dataset::column<double>("x"));
+auto x_arr = df.get(column::series(x)).at(sel).result(); // std::vector<double>
+
+// single column at multiple selections
+// (sel_a/b/c: (varied) lazy selections)
+auto [x_arr_a, x_arr_b, x_arr_c] = df.get(column::series(x)).at(sel_a, sel_b, sel_c);
+
+// multiple columns at a selection
+auto y = ds.read(dataset::column<int>("y"));
+auto z = ds.read(dataset::column<std::string>("z"));
+auto [y_arr, z_arr] = sel.get(column::series(y, z));
+@endcpp
+
+@subsection example-selection-yield Yield at a selection
+
+@cpp
+// single selection
+auto all = df.filter(column::constant(true));
+auto yield_tot = def.get(selection::yield(all));
+unsigned long long yield_tot_entries =
+    yield_tot.entries;                    // number of entries passed
+double yield_tot_value = yield_tot.value; // sum(weights)
+double yield_tot_error = yield_tot.error; // sqrt(sum(weights squared))
+
+// multiple selections 
+// (sel_a/b/c: (varied) lazy selections)
+auto [yield_a, yield_b, yield_c] =
+    df.get(selection::yield(sel_a, sel_b, sel_c));
+@endcpp
+
 @section example-hep More examples
 
 - [HepQuery](https://github.com/taehyounpark/queryosity-hep)

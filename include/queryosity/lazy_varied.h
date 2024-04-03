@@ -14,9 +14,11 @@ namespace queryosity {
 /**
  * @ingroup api
  * @brief Variations of a lazy action.
- * @details A varied lazy node encapsulates independent nominal and variations
- * of a lazy action.
  * @tparam Action Action to be performed.
+ * @details A varied lazy action encapsulates independent nominal and variation
+ * instances of of a lazy action, which are implicitly propagated through all
+ * downstream actions that it participates in. In other words, a varied node
+ * behaves functionally identical to a nominal-only one.
  */
 template <typename Act>
 class lazy<Act>::varied : public dataflow::node,
@@ -46,12 +48,21 @@ public:
   virtual std::set<std::string> get_variation_names() const override;
 
   /**
-   * Apply a filter.
+   * @brief Compound a cut to this selection.
+   * @Col (Varied) lazy input column type.
+   * @parma[in] col (Varied) lazy input column used as cut decision.
+   * @return Varied lazy selection.
    */
   template <typename Col, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
   auto filter(Col const &col) -> typename lazy<selection::node>::varied;
 
+  /**
+   * @brief Compound a weight to this selection.
+   * @Col (Varied) lazy input column type.
+   * @parma[in] col (Varied) lazy input column used as cut decision.
+   * @return Varied lazy selection.
+   */
   template <typename Col, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
   auto weight(Col const &col) -> typename lazy<selection::node>::varied;
@@ -200,8 +211,8 @@ auto queryosity::lazy<Act>::varied::filter(
     typename todo<selection::applicator<selection::cut,
                                         column::equation_t<Expr>>>::varied {
 
-  using varied_type = typename todo<selection::applicator<selection::cut,
-                                        column::equation_t<Expr>>>::varied;
+  using varied_type = typename todo<
+      selection::applicator<selection::cut, column::equation_t<Expr>>>::varied;
 
   auto syst = varied_type(this->nominal().filter(expr));
 
@@ -219,8 +230,9 @@ auto queryosity::lazy<Act>::varied::weight(
     typename todo<selection::applicator<selection::weight,
                                         column::equation_t<Expr>>>::varied {
 
-  using varied_type = typename todo<selection::applicator<selection::weight,
-                                        column::equation_t<Expr>>>::varied;
+  using varied_type =
+      typename todo<selection::applicator<selection::weight,
+                                          column::equation_t<Expr>>>::varied;
 
   auto syst = varied_type(this->nominal().weight(expr));
 
