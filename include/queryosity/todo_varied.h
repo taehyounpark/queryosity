@@ -221,7 +221,7 @@ auto queryosity::todo<Bld>::varied::at(Nodes const &...selections)
        this](systematic::resolver<lazy<selection::node>> const &sel) {
         auto syst = varied_type(this->nominal().at(sel.nominal()));
         for (auto const &var_name : var_names) {
-          syst.set_variation(var_name, this->variation(var_name).book(
+          syst.set_variation(var_name, this->variation(var_name).at(
                                            sel.variation(var_name)));
         }
         return syst;
