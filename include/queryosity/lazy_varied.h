@@ -200,7 +200,8 @@ auto queryosity::lazy<Act>::varied::filter(
     typename todo<selection::applicator<selection::cut,
                                         column::equation_t<Expr>>>::varied {
 
-  using varied_type = typename lazy<selection::node>::varied;
+  using varied_type = typename todo<selection::applicator<selection::cut,
+                                        column::equation_t<Expr>>>::varied;
 
   auto syst = varied_type(this->nominal().filter(expr));
 
@@ -218,7 +219,8 @@ auto queryosity::lazy<Act>::varied::weight(
     typename todo<selection::applicator<selection::weight,
                                         column::equation_t<Expr>>>::varied {
 
-  using varied_type = typename lazy<selection::node>::varied;
+  using varied_type = typename todo<selection::applicator<selection::weight,
+                                        column::equation_t<Expr>>>::varied;
 
   auto syst = varied_type(this->nominal().weight(expr));
 
