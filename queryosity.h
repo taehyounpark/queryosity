@@ -2178,7 +2178,7 @@ public:
   /**
    * @brief Initiate a cutflow.
    * @tparam Col Column type.
-   * @param[in] column Input column value used as cut decision.
+   * @param[in] column Input column used as cut decision.
    * @return Lazy selection.
    */
   template <typename Col>
@@ -2187,7 +2187,7 @@ public:
   /**
    * @brief Initiate a cutflow.
    * @tparam Col Column type.
-   * @param[in] column Input column value used as weight decision.
+   * @param[in] column Input column used as weight decision.
    * @return Lazy selection.
    */
   template <typename Col>
@@ -2196,7 +2196,7 @@ public:
   /**
    * @brief Initiate a cutflow.
    * @tparam Col Lazy varied column.
-   * @param[in] column Input column value used as cut decision.
+   * @param[in] column Input column used as cut decision.
    * @return Lazy varied selection.
    */
   template <typename Col> auto filter(Col const &col);
@@ -2204,7 +2204,7 @@ public:
   /**
    * @brief Initiate a cutflow.
    * @tparam Col Lazy varied column.
-   * @param[in] column Input column value used as weight decision.
+   * @param[in] column Input column used as weight decision.
    * @return Lazy varied selection.
    */
   template <typename Col> auto weight(Col const &col);
@@ -2845,39 +2845,113 @@ public:
             std::enable_if_t<queryosity::is_column_v<V>, bool> = false>
   auto to() const -> lazy<column::valued<To>>;
 
-  template <typename Col> auto filter(lazy<Col> const &col) const;
-  template <typename Col> auto weight(lazy<Col> const &col) const;
+  /**
+   * @brief Compound a weight to from this selection.
+   * @tparam Col Column type.
+   * @param[in] column Input lazy column used as weight decision.
+   * @details The current selection becomes its prerequisite in the cutflow: all
+   * prerequisites must pass in order for a downstream selection to pass.
+   * @return Compounded lazy weight.
+   */
+  template <typename Col> auto filter(lazy<Col> const &column) const;
 
-  template <typename Col> auto filter(Col const &col) const;
-  template <typename Col> auto weight(Col const &col) const;
+  /**
+   * @brief Compound a weight to from this selection.
+   * @tparam Col Column type.
+   * @param[in] column Input lazy column used as weight decision.
+   * @return Compounded lazy weight.
+   */
+  template <typename Col> auto weight(lazy<Col> const &column) const;
 
+  /**
+   * @brief Compound a varied cut to this selection.
+   * @tparam Col Varied lazy column type.
+   * @param[in] column Input varied column used as cut decision.
+   * @return Varied lazy cut.
+   */
+  template <typename Col> auto filter(Col const &column) const;
+
+  /**
+   * @brief Compound a varied weight to this selection.
+   * @tparam Col Varied lazy column type.
+   * @param[in] column Input varied column used as weight decision.
+   * @return Varied lazy weight.
+   */
+  template <typename Col> auto weight(Col const &column) const;
+
+  /**
+   * @brief Compound a cut to this selection.
+   * @tparam Expr Callable type (C++ function, functor, lambda, etc.).
+   * @param[in] column Input lazy column used as cut decision.
+   * @return Selection evaluator.
+   */
   template <typename Expr>
   auto filter(queryosity::column::expression<Expr> const &expr) const;
 
+  /**
+   * @brief Compound a weight to from this selection.
+   * @tparam Expr Callable type (C++ function, functor, lambda, etc.).
+   * @param[in] expr Expression used to evaluate the weight decision.
+   * @return Selection evaluator.
+   */
   template <typename Expr>
   auto weight(queryosity::column::expression<Expr> const &expr) const;
 
-  template <typename Agg> auto book(Agg &&agg) const;
-  template <typename... Aggs> auto book(Aggs &&...aggs) const;
+  /**
+   * @brief Book a query at this selection.
+   * @tparam Qry (Varied) query booker type.
+   * @param[in] qry Query booker.
+   * @details The query booker should have already been filled with input columns (if applicable).
+   * @return (Varied) lazy query.
+   */
+  template <typename Qry> auto book(Qry &&qry) const;
 
   /**
-   * @brief Get a column series for the entries passing the selection
+   * @brief Book multiple queries at this selection.
+   * @tparam Qrys (Varied) query booker types.
+   * @param[in] qrys Query bookers.
+   * @details The query bookers should have already been filled with input columns (if applicable).
+   * @return (Varied) lazy queries.
+   */
+  template <typename... Qrys> auto book(Qrys &&...qrys) const;
+
+  /**
+   * @brief Get a column series for the entries passing the selection.
+   * @tparam Col Lazy column type.
+   * @return Lazy query.
    * @attention The weight value does not apply in the population of the
    * series.
    */
-  template <typename Col, std::enable_if_t<queryosity::is_nominal_v<Col>,bool> = false>
+  template <typename Col,
+            std::enable_if_t<queryosity::is_nominal_v<Col>, bool> = false>
   auto get(column::series<Col> const &col)
       -> lazy<query::series<typename column::series<Col>::value_type>>;
 
-  template <typename Col, std::enable_if_t<queryosity::is_varied_v<Col>,bool> = false>
-  auto get(column::series<Col> const &col)
-      -> typename lazy<query::series<typename column::series<Col>::value_type>>::varied;
+  /**
+   * @brief Get a column series for the entries passing the selection.
+   * @tparam Col Varied column type.
+   * @return Varied lazy query.
+   * @attention The weight value does not apply in the population of the
+   * series.
+   */
+  template <typename Col,
+            std::enable_if_t<queryosity::is_varied_v<Col>, bool> = false>
+  auto get(column::series<Col> const &col) -> typename lazy<
+      query::series<typename column::series<Col>::value_type>>::varied;
 
+  /**
+   * @brief (Process and) retrieve the result of a query.
+   * @return Query result.
+   * @attention Invoking this turns *all* lazy actions in the dataflow *eager*.
+   */
   template <
       typename V = Action,
       std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
   auto result() -> decltype(std::declval<V>().result());
 
+  /**
+   * @brief Shortcut for `result()`.
+   */
   template <
       typename V = Action,
       std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
@@ -2923,9 +2997,11 @@ namespace queryosity {
 /**
  * @ingroup api
  * @brief Variations of a lazy action.
- * @details A varied lazy node encapsulates independent nominal and variations
- * of a lazy action.
  * @tparam Action Action to be performed.
+ * @details A varied lazy action encapsulates independent nominal and variation
+ * instances of of a lazy action, which are implicitly propagated through all
+ * downstream actions that it participates in. In other words, a varied node
+ * behaves functionally identical to a nominal-only one.
  */
 template <typename Act>
 class lazy<Act>::varied : public dataflow::node,
@@ -2955,12 +3031,21 @@ public:
   virtual std::set<std::string> get_variation_names() const override;
 
   /**
-   * Apply a filter.
+   * @brief Compound a cut to this selection.
+   * @Col (Varied) lazy input column type.
+   * @parma[in] col (Varied) lazy input column used as cut decision.
+   * @return Varied lazy selection.
    */
   template <typename Col, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
   auto filter(Col const &col) -> typename lazy<selection::node>::varied;
 
+  /**
+   * @brief Compound a weight to this selection.
+   * @Col (Varied) lazy input column type.
+   * @parma[in] col (Varied) lazy input column used as cut decision.
+   * @return Varied lazy selection.
+   */
   template <typename Col, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
   auto weight(Col const &col) -> typename lazy<selection::node>::varied;
@@ -3107,8 +3192,8 @@ auto queryosity::lazy<Act>::varied::filter(
     typename todo<selection::applicator<selection::cut,
                                         column::equation_t<Expr>>>::varied {
 
-  using varied_type = typename todo<selection::applicator<selection::cut,
-                                        column::equation_t<Expr>>>::varied;
+  using varied_type = typename todo<
+      selection::applicator<selection::cut, column::equation_t<Expr>>>::varied;
 
   auto syst = varied_type(this->nominal().filter(expr));
 
@@ -3126,8 +3211,9 @@ auto queryosity::lazy<Act>::varied::weight(
     typename todo<selection::applicator<selection::weight,
                                         column::equation_t<Expr>>>::varied {
 
-  using varied_type = typename todo<selection::applicator<selection::weight,
-                                        column::equation_t<Expr>>>::varied;
+  using varied_type =
+      typename todo<selection::applicator<selection::weight,
+                                          column::equation_t<Expr>>>::varied;
 
   auto syst = varied_type(this->nominal().weight(expr));
 
@@ -3579,32 +3665,33 @@ auto queryosity::lazy<Action>::weight(
 }
 
 template <typename Action>
-template <typename Agg>
-auto queryosity::lazy<Action>::book(Agg &&agg) const {
+template <typename Qry>
+auto queryosity::lazy<Action>::book(Qry &&qry) const {
   static_assert(std::is_base_of_v<selection::node, Action>,
                 "book must be called from a selection");
-  return agg.at(*this);
+  return qry.at(*this);
 }
 
 template <typename Action>
-template <typename... Aggs>
-auto queryosity::lazy<Action>::book(Aggs &&...aggs) const {
+template <typename... Qrys>
+auto queryosity::lazy<Action>::book(Qrys &&...qrys) const {
   static_assert(std::is_base_of_v<selection::node, Action>,
                 "book must be called from a selection");
-  return std::make_tuple((aggs.at(*this), ...));
+  return std::make_tuple((qrys.at(*this), ...));
 }
 
 template <typename Action>
-template <typename Col, std::enable_if_t<queryosity::is_nominal_v<Col>,bool>>
+template <typename Col, std::enable_if_t<queryosity::is_nominal_v<Col>, bool>>
 auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
     -> lazy<query::series<typename column::series<Col>::value_type>> {
   return col.make(*this);
 }
 
 template <typename Action>
-template <typename Col, std::enable_if_t<queryosity::is_varied_v<Col>,bool>>
+template <typename Col, std::enable_if_t<queryosity::is_varied_v<Col>, bool>>
 auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
-    -> typename lazy<query::series<typename column::series<Col>::value_type>>::varied {
+    -> typename lazy<
+        query::series<typename column::series<Col>::value_type>>::varied {
   return col.make(*this);
 }
 

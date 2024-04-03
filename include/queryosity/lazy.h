@@ -22,7 +22,7 @@ template <typename Action>
 class lazy : public dataflow::node,
              public ensemble::slotted<Action>,
              public systematic::resolver<lazy<Action>>,
-             public query::result_if_qryregation<Action> {
+             public query::result_if_aggregation<Action> {
 
 public:
   class varied;
@@ -169,7 +169,7 @@ public:
    */
   template <
       typename V = Action,
-      std::enable_if_t<queryosity::query::is_qryregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
   auto result() -> decltype(std::declval<V>().result());
 
   /**
@@ -177,7 +177,7 @@ public:
    */
   template <
       typename V = Action,
-      std::enable_if_t<queryosity::query::is_qryregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
   auto operator->() -> decltype(std::declval<V>().result()) {
     return this->result();
   }
@@ -201,7 +201,7 @@ public:
 protected:
   template <
       typename V = Action,
-      std::enable_if_t<queryosity::query::is_qryregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
   void merge_results();
 
 protected:
@@ -411,7 +411,7 @@ auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
 
 template <typename Action>
 template <typename V,
-          std::enable_if_t<queryosity::query::is_qryregation_v<V>, bool>>
+          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
 auto queryosity::lazy<Action>::result()
     -> decltype(std::declval<V>().result()) {
   this->m_df->analyze();
@@ -421,7 +421,7 @@ auto queryosity::lazy<Action>::result()
 
 template <typename Action>
 template <typename V,
-          std::enable_if_t<queryosity::query::is_qryregation_v<V>, bool> e>
+          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> e>
 void queryosity::lazy<Action>::merge_results() {
   if (this->m_merged)
     return;
