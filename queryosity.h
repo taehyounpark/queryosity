@@ -60,7 +60,7 @@ public:
   core(const core &) = default;
   core &operator=(const core &) = default;
 
-  ~core() = default;
+  virtual ~core() = default;
 
   /**
    * @brief Run the function on the underlying slots, multi-threading if
@@ -257,7 +257,11 @@ namespace queryosity {
  */
 namespace column {
 
-class node : public action {};
+class node : public action {
+  public:
+    node() = default;
+    virtual ~node() = default;
+};
 
 //---------------------------------------------------
 // view can actually report on the concrete data type
@@ -338,7 +342,7 @@ template <typename T> class variable {
 public:
   variable() = default;
   template <typename U> variable(view<U> const &val);
-  virtual ~variable() = default;
+  ~variable() = default;
 
   variable(variable &&) = default;
   variable &operator=(variable &&) = default;
@@ -361,7 +365,7 @@ public:
    * @brief Constructor out of a variable.
    */
   observable(variable<Val> const &obs);
-  virtual ~observable() = default;
+  ~observable() = default;
 
   /**
    * @brief Compute and retrieve the value of the column.
@@ -908,7 +912,7 @@ public:
 
 public:
   template <typename... Args> evaluator(Args const &...args);
-  ~evaluator() = default;
+  virtual ~evaluator() = default;
 
   template <typename... Vals>
   std::unique_ptr<T> evaluate(view<Vals> const &...cols) const;
@@ -1540,7 +1544,7 @@ public:
 
 public:
   template <typename... Args> applicator(selection::node const *prev, Args const &...args);
-  ~applicator() = default;
+  virtual ~applicator() = default;
 
   template <typename... Vals>
   std::pair<std::unique_ptr<Sel>, std::unique_ptr<Def>>
@@ -1920,7 +1924,7 @@ namespace dataset {
 class processor : public multithread::core, public ensemble::slotted<player> {
 public:
   processor(int suggestion);
-  ~processor() = default;
+  virtual ~processor() = default;
 
   processor(const processor &) = delete;
   processor &operator=(const processor &) = delete;
@@ -3012,7 +3016,7 @@ public:
 
 public:
   varied(lazy<Act> nom);
-  ~varied() = default;
+  virtual ~varied() = default;
 
   varied(varied const &) = default;
   varied &operator=(varied const &) = default;
@@ -3715,14 +3719,14 @@ void queryosity::lazy<Action>::merge_results() {
   using result_type = decltype(model->result());
   const auto nslots = this->size();
   if (nslots == 1) {
-    this->m_result = model->result();
+    this->m_result = std::move(model->result());
   } else {
     std::vector<result_type> results;
     results.reserve(nslots);
     for (size_t islot = 0; islot < nslots; ++islot) {
       results.push_back(std::move(this->get_slot(islot)->result()));
     }
-    this->m_result = model->merge(results);
+    this->m_result = std::move(model->merge(results));
   }
   this->m_merged = true;
 }
@@ -3737,7 +3741,7 @@ template <typename Lazy> class systematic::variation {
 
 public:
   variation(const std::string &name, Lazy const &var);
-  virtual ~variation() = default;
+  ~variation() = default;
 
   auto name() const -> std::string;
   auto get() const -> Lazy const &;
@@ -3923,6 +3927,7 @@ public:
    * @param args Constructor arguments.
    */
   template <typename... Args> output(Args const &...args);
+  ~output() = default;
 
   auto make(dataflow &df) const;
 
@@ -3954,7 +3959,7 @@ template <typename Lzy> class nominal {
 
 public:
   nominal(Lzy const &nom);
-  virtual ~nominal() = default;
+  ~nominal() = default;
 
   auto get() const -> Lzy const &;
 
