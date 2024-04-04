@@ -94,7 +94,7 @@ template <typename T> class variable {
 public:
   variable() = default;
   template <typename U> variable(view<U> const &val);
-  virtual ~variable() = default;
+  ~variable() = default;
 
   variable(variable &&) = default;
   variable &operator=(variable &&) = default;
@@ -117,7 +117,7 @@ public:
    * @brief Constructor out of a variable.
    */
   observable(variable<Val> const &obs);
-  virtual ~observable() = default;
+  ~observable() = default;
 
   /**
    * @brief Compute and retrieve the value of the column.

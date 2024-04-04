@@ -429,14 +429,14 @@ void queryosity::lazy<Action>::merge_results() {
   using result_type = decltype(model->result());
   const auto nslots = this->size();
   if (nslots == 1) {
-    this->m_result = model->result();
+    this->m_result = std::move(model->result());
   } else {
     std::vector<result_type> results;
     results.reserve(nslots);
     for (size_t islot = 0; islot < nslots; ++islot) {
       results.push_back(std::move(this->get_slot(islot)->result()));
     }
-    this->m_result = model->merge(results);
+    this->m_result = std::move(model->merge(results));
   }
   this->m_merged = true;
 }
