@@ -11,14 +11,14 @@
 @section design-arbitrary-data Arbitrary data types.
 
 - Many "columns" are not trivial: they can contain nested properties, links to other data, etc.
-- If a dataset has rows, or "events", the library should be able to run over it.
-- Output results of any data structure as desired.
+- If a dataset has rows, or "events", it can be processed.
+- Output results can be of any data structure.
 
 @section design-cutflow Unified cutflow for cuts and weights.
 
-- There is only one difference between (1) accepting an event (cut), or (2) assigning a statistical significance to it (weight): one is a yes-or-no, and the other is a number.
-- Selections can be arbitrarily deep (compounded selections) or wide (branched selections).
-- Whenever a particular selection is in effect for an event, all queries are populated with the same entries and weights.
+- There is only one difference between (1) accepting an event (cut), or (2) assigning a statistical significance to it (weight): the former is a yes-or-no, and the latter is a number.
+- Selections can be arbitrarily deep (compounded) or wide (branched).
+- All queries performed under a given selection are populated with the same entries and weights.
 
 @section design-performance Optimal(maximal) efficiency(usage) of computational resources.
 
@@ -27,7 +27,7 @@
 
 @section design-systematic-variations Built-in, generalized handling of systematic variations.
 
-- An experiment can be subject to @f$ O(100) @f$ sources of "systematic uncertainties".
+- An experiment can be subject to @f$ O(100) @f$ sources of systematic uncertainties.
 - Applying systematic variations that are (1) specified once and automatically propagated, and (2) processed all at once in one dataset traversal, is crucial for minimizing "time-to-insight".
 
 @see @ref conceptual 
