@@ -15,7 +15,7 @@ public:
 
 public:
   void play(std::vector<std::unique_ptr<source>> const &sources, double scale,
-            slot_t slot, std::vector<part_t> const& parts);
+            slot_t slot, std::vector<part_t> const &parts);
 };
 
 } // namespace dataset
@@ -26,7 +26,7 @@ public:
 
 inline void queryosity::dataset::player::play(
     std::vector<std::unique_ptr<source>> const &sources, double scale,
-    slot_t slot, std::vector<part_t> const& parts) {
+    slot_t slot, std::vector<part_t> const &parts) {
 
   // apply dataset scale in effect for all queries
   for (auto const &qry : m_queries) {
@@ -34,7 +34,7 @@ inline void queryosity::dataset::player::play(
   }
 
   // traverse each part
-  for (auto const& part : parts) {
+  for (auto const &part : parts) {
     // initialize
     for (auto const &ds : sources) {
       ds->initialize(slot, part.first, part.second);
