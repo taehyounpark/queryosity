@@ -15,8 +15,7 @@ public:
 
 public:
   void play(std::vector<std::unique_ptr<source>> const &sources, double scale,
-            unsigned int slot, unsigned long long begin,
-            unsigned long long end);
+            slot_t slot, std::vector<part_t> const& parts);
 };
 
 } // namespace dataset
@@ -27,55 +26,56 @@ public:
 
 inline void queryosity::dataset::player::play(
     std::vector<std::unique_ptr<source>> const &sources, double scale,
-    unsigned int slot, unsigned long long begin, unsigned long long end) {
+    slot_t slot, std::vector<part_t> const& parts) {
 
   // apply dataset scale in effect for all queries
   for (auto const &qry : m_queries) {
     qry->apply_scale(scale);
   }
 
-  // initialize
-  for (auto const &ds : sources) {
-    ds->initialize(slot, begin, end);
-  }
-  for (auto const &col : m_columns) {
-    col->initialize(slot, begin, end);
-  }
-  for (auto const &sel : m_selections) {
-    sel->initialize(slot, begin, end);
-  }
-  for (auto const &qry : m_queries) {
-    qry->initialize(slot, begin, end);
-  }
-
-  // execute
-  for (auto entry = begin; entry < end; ++entry) {
+  // traverse each part
+  for (auto const& part : parts) {
+    // initialize
     for (auto const &ds : sources) {
-      ds->execute(slot, entry);
+      ds->initialize(slot, part.first, part.second);
     }
     for (auto const &col : m_columns) {
-      col->execute(slot, entry);
+      col->initialize(slot, part.first, part.second);
     }
     for (auto const &sel : m_selections) {
-      sel->execute(slot, entry);
+      sel->initialize(slot, part.first, part.second);
     }
     for (auto const &qry : m_queries) {
-      qry->execute(slot, entry);
+      qry->initialize(slot, part.first, part.second);
     }
-  }
-
-  // finalize (in reverse order)
-  for (auto const &qry : m_queries) {
-    qry->finalize(slot);
-  }
-  for (auto const &sel : m_selections) {
-    sel->finalize(slot);
-  }
-  for (auto const &col : m_columns) {
-    col->finalize(slot);
-  }
-  for (auto const &ds : sources) {
-    ds->finalize(slot);
+    // execute
+    for (auto entry = part.first; entry < part.second; ++entry) {
+      for (auto const &ds : sources) {
+        ds->execute(slot, entry);
+      }
+      for (auto const &col : m_columns) {
+        col->execute(slot, entry);
+      }
+      for (auto const &sel : m_selections) {
+        sel->execute(slot, entry);
+      }
+      for (auto const &qry : m_queries) {
+        qry->execute(slot, entry);
+      }
+    }
+    // finalize (in reverse order)
+    for (auto const &qry : m_queries) {
+      qry->finalize(slot);
+    }
+    for (auto const &sel : m_selections) {
+      sel->finalize(slot);
+    }
+    for (auto const &col : m_columns) {
+      col->finalize(slot);
+    }
+    for (auto const &ds : sources) {
+      ds->finalize(slot);
+    }
   }
 
   // clear out queries (should not be re-played)

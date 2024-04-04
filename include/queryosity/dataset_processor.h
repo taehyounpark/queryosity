@@ -104,33 +104,40 @@ inline void queryosity::dataset::processor::process(
   }
 
   // 2. partition dataset(s)
-  std::vector<std::vector<std::pair<unsigned long long, unsigned long long>>>
-      partitions;
+  // 2.1 get partition from each dataset source
+  std::vector<partition_t > partitions_from_sources;
   for (auto const &ds : sources) {
-    auto partition = ds->partition();
-    if (partition.size())
-      partitions.push_back(partition);
+    auto partition_from_source = ds->partition();
+    if (partition_from_source.size())
+      partitions_from_sources.push_back(std::move(partition_from_source));
   }
-  if (!partitions.size()) {
-    throw std::logic_error("no valid dataset partition implemented");
+  if (!partitions_from_sources.size()) {
+    throw std::runtime_error("no valid dataset partition implemented");
   }
-  // find common denominator partition
-  auto partition = dataset::partition::align(partitions);
-  // truncate entries to row limit
-  partition = dataset::partition::truncate(partition, nrows);
-  // merge partition to concurrency limit
-  partition = dataset::partition::merge(partition, nslots);
-  // match processor & partition parallelism
-  this->downsize(partition.size());
+  // 2.2 find common denominator partition
+  const auto partition_aligned = dataset::partition::align(partitions_from_sources);
+  // 2.3 truncate entries to row limit
+  const auto partition_truncated = dataset::partition::truncate(partition_aligned, nrows);
+  // 2.3 distribute partition amongst threads
+  std::vector<partition_t> partitions_for_slots(nslots); 
+  auto nparts_remaining = partition_truncated.size();
+  const auto nparts = nparts_remaining;
+  while (nparts_remaining) {
+    for( unsigned int islot=0; islot<nslots ; ++islot) {
+      partitions_for_slots[islot].push_back(std::move(partition_truncated[nparts-(nparts_remaining--)]));
+      if (!nparts_remaining) break;
+    }
+  } 
+  // todo: can intel tbb distribute slots during parallel processing?
 
   // 3. run event loop
   this->run(
       [&sources,
        scale](dataset::player *plyr, unsigned int slot,
-              std::pair<unsigned long long, unsigned long long> part) {
-        plyr->play(sources, scale, slot, part.first, part.second);
+              std::vector<std::pair<unsigned long long, unsigned long long>> const& parts) {
+        plyr->play(sources, scale, slot, parts);
       },
-      m_player_ptrs, m_range_slots, partition);
+      m_player_ptrs, m_range_slots, partitions_for_slots);
 
   // 4. exit event loop
   for (auto const &ds : sources) {
