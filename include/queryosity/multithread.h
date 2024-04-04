@@ -54,7 +54,7 @@ public:
   core(const core &) = default;
   core &operator=(const core &) = default;
 
-  ~core() = default;
+  virtual ~core() = default;
 
   /**
    * @brief Run the function on the underlying slots, multi-threading if

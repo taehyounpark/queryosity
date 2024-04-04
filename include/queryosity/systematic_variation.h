@@ -14,7 +14,7 @@ template <typename Lazy> class systematic::variation {
 
 public:
   variation(const std::string &name, Lazy const &var);
-  virtual ~variation() = default;
+  ~variation() = default;
 
   auto name() const -> std::string;
   auto get() const -> Lazy const &;

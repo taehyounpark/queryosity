@@ -13,7 +13,11 @@ namespace queryosity {
  */
 namespace column {
 
-class node : public action {};
+class node : public action {
+  public:
+    node() = default;
+    virtual ~node() = default;
+};
 
 //---------------------------------------------------
 // view can actually report on the concrete data type

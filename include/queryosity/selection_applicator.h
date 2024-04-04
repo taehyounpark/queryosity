@@ -17,7 +17,7 @@ public:
 
 public:
   template <typename... Args> applicator(selection::node const *prev, Args const &...args);
-  ~applicator() = default;
+  virtual ~applicator() = default;
 
   template <typename... Vals>
   std::pair<std::unique_ptr<Sel>, std::unique_ptr<Def>>

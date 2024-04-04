@@ -12,7 +12,7 @@ template <typename Lzy> class nominal {
 
 public:
   nominal(Lzy const &nom);
-  virtual ~nominal() = default;
+  ~nominal() = default;
 
   auto get() const -> Lzy const &;
 

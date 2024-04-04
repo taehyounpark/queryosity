@@ -15,7 +15,7 @@ public:
 
 public:
   template <typename... Args> evaluator(Args const &...args);
-  ~evaluator() = default;
+  virtual ~evaluator() = default;
 
   template <typename... Vals>
   std::unique_ptr<T> evaluate(view<Vals> const &...cols) const;

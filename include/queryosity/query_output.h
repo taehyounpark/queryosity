@@ -26,6 +26,7 @@ public:
    * @param args Constructor arguments.
    */
   template <typename... Args> output(Args const &...args);
+  ~output() = default;
 
   auto make(dataflow &df) const;
 

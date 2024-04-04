@@ -11,7 +11,7 @@ namespace dataset {
 class processor : public multithread::core, public ensemble::slotted<player> {
 public:
   processor(int suggestion);
-  ~processor() = default;
+  virtual ~processor() = default;
 
   processor(const processor &) = delete;
   processor &operator=(const processor &) = delete;
