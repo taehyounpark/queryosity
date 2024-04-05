@@ -51,7 +51,7 @@ protected:
 
 /**
  * @ingroup ext
- * @brief JSON item as "column" data.
+ * @brief JSON item as column data.
  * @tparam T data type.
  */
 template <typename T> class json::item : public queryosity::column::reader<T> {

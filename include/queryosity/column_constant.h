@@ -17,7 +17,7 @@ public:
   constant(Val const &val);
   ~constant() = default;
 
-  auto _assign(dataflow &df) const -> lazy<column::fixed<Val>>;
+  auto _assign(dataflow &df) const -> lazy<column::valued<Val>>;
 
 protected:
   Val m_val;
@@ -33,6 +33,6 @@ queryosity::column::constant<Val>::constant(Val const &val) : m_val(val) {}
 
 template <typename Val>
 auto queryosity::column::constant<Val>::_assign(queryosity::dataflow &df) const
-    -> lazy<column::fixed<Val>> {
+    -> lazy<column::valued<Val>> {
   return df._assign(this->m_val);
 }

@@ -37,7 +37,8 @@ public:
       typename... Args, typename V = Bld,
       std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool> = false>
   auto evaluate(Args &&...args) ->
-      typename queryosity::lazy<column::evaluated_t<V>>::varied;
+      typename decltype(this->nominal().evaluate(
+        std::forward<Args>(args.nominal)...))::varied;
 
   template <
       typename... Args, typename V = Bld,
@@ -147,8 +148,10 @@ template <typename Bld>
 template <typename... Args, typename V,
           std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::evaluate(Args &&...args) ->
-    typename queryosity::lazy<column::evaluated_t<V>>::varied {
-  using varied_type = typename queryosity::lazy<column::evaluated_t<V>>::varied;
+    typename decltype(this->nominal().evaluate(
+        std::forward<Args>(args.nominal)...))::varied {
+  using varied_type = typename decltype(this->nominal().evaluate(
+      std::forward<Args>(args.nominal)...))::varied;
   auto syst = varied_type(
       this->nominal().evaluate(std::forward<Args>(args).nominal()...));
   for (auto const &var_name :
@@ -221,8 +224,8 @@ auto queryosity::todo<Bld>::varied::at(Nodes const &...selections)
        this](systematic::resolver<lazy<selection::node>> const &sel) {
         auto syst = varied_type(this->nominal().at(sel.nominal()));
         for (auto const &var_name : var_names) {
-          syst.set_variation(var_name, this->variation(var_name).at(
-                                           sel.variation(var_name)));
+          syst.set_variation(
+              var_name, this->variation(var_name).at(sel.variation(var_name)));
         }
         return syst;
       };

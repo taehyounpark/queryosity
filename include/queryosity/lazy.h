@@ -44,6 +44,8 @@ public:
   template <typename Derived>
   lazy(dataflow &df, std::vector<std::unique_ptr<Derived>> const &slots);
 
+  template <typename Base> operator lazy<Base>() const;
+
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;
 
@@ -124,7 +126,8 @@ public:
    * @brief Book a query at this selection.
    * @tparam Qry (Varied) query booker type.
    * @param[in] qry Query booker.
-   * @details The query booker should have already been filled with input columns (if applicable).
+   * @details The query booker should have already been filled with input
+   * columns (if applicable).
    * @return (Varied) lazy query.
    */
   template <typename Qry> auto book(Qry &&qry) const;
@@ -133,7 +136,8 @@ public:
    * @brief Book multiple queries at this selection.
    * @tparam Qrys (Varied) query booker types.
    * @param[in] qrys Query bookers.
-   * @details The query bookers should have already been filled with input columns (if applicable).
+   * @details The query bookers should have already been filled with input
+   * columns (if applicable).
    * @return (Varied) lazy queries.
    */
   template <typename... Qrys> auto book(Qrys &&...qrys) const;
@@ -238,6 +242,12 @@ queryosity::lazy<Action>::lazy(
   for (auto const &slot : slots) {
     m_slots.push_back(static_cast<Action *>(slot.get()));
   }
+}
+
+template <typename Action>
+template <typename Base>
+queryosity::lazy<Action>::operator lazy<Base>() const {
+  return lazy<Base>(*this->m_df, this->m_slots);
 }
 
 template <typename Action>

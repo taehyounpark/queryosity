@@ -112,7 +112,7 @@ inline void queryosity::dataset::processor::process(
       partitions_from_sources.push_back(std::move(partition_from_source));
   }
   if (!partitions_from_sources.size()) {
-    throw std::runtime_error("no valid dataset partition implemented");
+    throw std::runtime_error("no valid dataset partition found");
   }
   // 2.2 find common denominator partition
   const auto partition_aligned =

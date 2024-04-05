@@ -96,8 +96,8 @@ auto three = one + two;
 auto v_0 = v[zero];
 // reminder: actions are *lazy*, i.e. no undefined behaviour (yet)
 
-// self-assignment operators are not possible
-// one += two;
+// can be re-assigned as long as data type remains unchanged
+two = three - one;
 
 // C++ function, functor, lambda, etc. evaluated out of input columns
 // tip: pass large values by const& to prevent copies
@@ -105,10 +105,10 @@ auto s_length = df.define(
     column::expression([](const std::string &txt) { return txt.length(); }))(s);
 @endcpp
 
-A column can also be computed through a custom definition (see @ref example-stirling for an example), which enables full control over
+A column can also be computed through a @ref example-stirling, which enables full control over its
 
 - Customization: user-defined constructor arguments and member variables/functions.
-- Optimization: the computation of each input column is deferred until value is invoked.
+- Optimization: the computation of each input column is deferred until its value is invoked.
 
 @see 
 - queryosity::column::definition (API)
@@ -200,7 +200,7 @@ auto h2xy_c = q_2xy_c.result(); // instantaneous
 
 @section guide-vary Systematic variations
 
-Specifying systematic variations on a column is as simple as it can be: provide the nominal argument and a mapping of variation name to alternate arguments to queryosity::dataflow::vary() in lieu of the usual queryosity::dataflow::define().
+To specifying systematic variations on a column, provide the nominal argument and a mapping of variation name to alternate arguments to queryosity::dataflow::vary() instead of the usual queryosity::dataflow::define().
 
 @cpp
 // dataset columns must be varied from the loaded dataset
@@ -250,7 +250,7 @@ systematic::get_variation_names(
     x, yn); // {"shift_x", "smear_x", "plus_1", "minus_1", "kill_x", "no"}
 
 auto cut = df.filter(yn);
-auto q = df.get(column::series(x)).book(cut);
+auto q = df.get(column::series(x)).at(cut);
 
 q.get_variation_names(); // same set as (x, yn) above
 

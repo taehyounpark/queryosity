@@ -4,6 +4,10 @@
 
 namespace queryosity {
 
+/**
+ * @ingroup ext
+ * @brief CSV dataset for queryosity.
+*/
 class csv : public dataset::reader<csv> {
 
 public:
@@ -42,6 +46,11 @@ protected:
   unsigned int m_nslots;
 };
 
+/**
+ * @ingroup ext
+ * @brief CSV cell as column data.
+ * @tparam T data type.
+ */
 template <typename T> class csv::cell : public column::reader<T> {
 
 public:

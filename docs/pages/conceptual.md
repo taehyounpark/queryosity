@@ -10,15 +10,17 @@ A `dataflow` consists of a directed, acyclic graph of tasks performed for each e
 An action is a node belonging to one of three task sub-graphs, each of which are associated with a set of applicable methods.
 Actions of each task graph can receive ones of the previous graphs as inputs:
 
-| Action | Description | Methods | Description | Task Graph | Input actions |
+| Action | Description | Methods | Description | Task Graph | Inputs (optional) |
 | :--- | :-- | :-- | :-- | :-- | :-- | 
 | `column` | Quantity of interest | `read()` | Read a column. | Computation | (`column`) |
-| | | `define()` | Evaluate a column. | | |
+| | | `define()` | Compute a column. | | |
 | `selection` | Boolean decision | `filter()` | Apply a cut. | Cutflow | `column` |
 | | Floating-point decision | `weight()` | Apply a statistical significance. | | |
-| `query` | Perform a query | `make()` | Plan a query. | Experiment | `column` & `selection` |
+| | | `book()` | Perform a query at the selection. | | |
+| `query` | Perform a query | `get()` | Define an output. | Experiment | (`column`) & `selection` |
 | | | `fill()` | Populate with column value(s). | | |
-| | | `book()` | Perform over selected entries. | | |
+| | | `at()` | Perform over selected entries. | | |
+| | | `result()` | Get the result. | | |
 
 @section conceptual-lazy Lazy actions
 

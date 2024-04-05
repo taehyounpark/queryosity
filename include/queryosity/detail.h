@@ -121,8 +121,7 @@
                        bool> = false>                                          \
   auto operator op_symbol(Arg const &b) const -> typename lazy<                \
       typename decltype(std::declval<lazy<Act>>().operator op_symbol(          \
-          b.nominal()                                                          \
-              .template to<column::value_t<V>>()))::action_type>::varied;
+          b.nominal()))::action_type>::varied;
 
 #define DEFINE_LAZY_VARIED_BINARY_OP(op_symbol)                                \
   template <typename Act>                                                      \
@@ -134,18 +133,15 @@
   auto queryosity::lazy<Act>::varied::operator op_symbol(Arg const &b) const   \
       -> typename lazy<                                                        \
           typename decltype(std::declval<lazy<Act>>().operator op_symbol(      \
-              b.nominal()                                                      \
-                  .template to<column::value_t<V>>()))::action_type>::varied { \
+              b.nominal()))::action_type>::varied {                            \
     auto syst = typename lazy<                                                 \
         typename decltype(std::declval<lazy<Act>>().operator op_symbol(        \
-            b.nominal().template to<column::value_t<V>>()))::action_type>::    \
-        varied(this->nominal().operator op_symbol(                             \
-            b.nominal().template to<column::value_t<V>>()));                   \
+            b.nominal()))::action_type>::varied(this->nominal().               \
+                                                operator op_symbol(            \
+                                                    b.nominal()));             \
     for (auto const &var_name : systematic::get_variation_names(*this, b)) {   \
-      syst.set_variation(                                                      \
-          var_name,                                                            \
-          variation(var_name).operator op_symbol(                              \
-              b.variation(var_name).template to<column::value_t<V>>()));       \
+      syst.set_variation(var_name, variation(var_name).operator op_symbol(     \
+                                       b.variation(var_name)));                \
     }                                                                          \
     return syst;                                                               \
   }

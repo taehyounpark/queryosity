@@ -67,8 +67,4 @@ int main() {
       df.define(column::definition<Factorial>(/*20*/))(n, n_f_fast, n_f_full);
   // time elapsed = t(n) + { t(n_fast) if n >= 10, t(n_slow) if n < 10 }
   // :)
-
-  // advanced: access per-thread instance
-  dataflow::node::invoke([n_threshold](Factorial *n_f) { n_f->adjust_threshold(n_threshold); },
-                         n_f_best);
 }

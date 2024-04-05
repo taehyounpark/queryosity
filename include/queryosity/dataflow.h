@@ -111,7 +111,7 @@ public:
    * @param[in] cnst Constant value.
    */
   template <typename Val>
-  auto define(column::constant<Val> const &cnst) -> lazy<column::fixed<Val>>;
+  auto define(column::constant<Val> const &cnst) -> lazy<column::valued<Val>>;
 
   /**
    * @brief Define a column using an expression.
@@ -243,7 +243,7 @@ public:
 
   template <typename Val>
   auto vary(column::constant<Val> const &cnst, std::map<std::string, Val> vars)
-      -> typename lazy<column::fixed<Val>>::varied;
+      -> typename lazy<column::valued<Val>>::varied;
 
   template <typename Fn>
   auto
@@ -264,7 +264,7 @@ public:
       -> lazy<column::conversion<To, column::value_t<Col>>>;
 
   template <typename Val>
-  auto _assign(Val const &val) -> lazy<column::fixed<Val>>;
+  auto _assign(Val const &val) -> lazy<column::valued<Val>>;
 
   template <typename Def, typename... Args> auto _define(Args &&...args);
   template <typename Def>
@@ -465,7 +465,7 @@ auto queryosity::dataflow::read(
 
 template <typename Val>
 auto queryosity::dataflow::define(column::constant<Val> const &cnst)
-    -> lazy<column::fixed<Val>> {
+    -> lazy<column::valued<Val>> {
   return cnst._assign(*this);
 }
 
@@ -628,9 +628,9 @@ inline void queryosity::dataflow::reset() { m_analyzed = false; }
 template <typename Val>
 auto queryosity::dataflow::vary(column::constant<Val> const &cnst,
                                 std::map<std::string, Val> vars) ->
-    typename lazy<column::fixed<Val>>::varied {
+    typename lazy<column::valued<Val>>::varied {
   auto nom = this->define(cnst);
-  using varied_type = typename decltype(nom)::varied;
+  using varied_type = typename lazy<column::valued<Val>>::varied;
   varied_type syst(std::move(nom));
   for (auto const &var : vars) {
     this->_vary(syst, var.first, column::constant<Val>(var.second));
@@ -678,11 +678,11 @@ auto queryosity::dataflow::_read(dataset::reader<DS> &ds,
 }
 
 template <typename Val>
-auto queryosity::dataflow::_assign(Val const &val) -> lazy<column::fixed<Val>> {
+auto queryosity::dataflow::_assign(Val const &val) -> lazy<column::valued<Val>> {
   auto act = ensemble::invoke(
       [&val](dataset::player *plyr) { return plyr->template assign<Val>(val); },
       m_processor.get_slots());
-  auto lzy = lazy<column::fixed<Val>>(*this, act);
+  auto lzy = lazy<column::valued<Val>>(*this, act);
   return lzy;
 }
 
