@@ -8,10 +8,12 @@ class dataflow;
 
 template <typename Val> class lazy;
 
+namespace column {
+
 /**
  * @brief Define a constant column in dataflow.
  */
-template <typename Val> class column::constant {
+template <typename Val> struct constant {
 
 public:
   constant(Val const &val);
@@ -22,6 +24,8 @@ public:
 protected:
   Val m_val;
 };
+
+} // namespace column
 
 } // namespace queryosity
 

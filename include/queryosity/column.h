@@ -166,9 +166,11 @@ template <typename T> class equation;
 
 template <typename T> class composition;
 
-template <typename T> class constant;
+template <typename T> struct constant;
 
-template <typename T> class expression;
+template <typename T> struct expression;
+
+template <typename T> struct customization;
 
 template <typename T> class evaluator;
 

@@ -23,7 +23,7 @@ namespace column {
 /**
  * @brief Define a column evaluated out of an expression.
  */
-template <typename Expr> class expression {
+template <typename Expr> struct expression {
 
 public:
   using function_type = decltype(std::function(std::declval<Expr>()));

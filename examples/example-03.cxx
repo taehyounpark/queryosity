@@ -39,7 +39,7 @@ public:
     return (n.value() >= std::min<ull_t>(m_threshold, 20)) ? fast.value()
                                                     : full.value();
   }
-  void adjust_threshold(ull_t threshold) { m_threshold = threshold; }
+  void change_threshold(ull_t threshold) { m_threshold = threshold; }
 
 protected:
   ull_t m_threshold;
@@ -64,7 +64,7 @@ int main() {
   // :(
 
   auto n_f_best =
-      df.define(column::definition<Factorial>(/*20*/))(n, n_f_fast, n_f_full);
+      df.define(column::definition<Factorial>(20), column::customization([](Factorial* n_f_best){n_f_best->change_threshold(10);}))(n, n_f_fast, n_f_full);
   // time elapsed = t(n) + { t(n_fast) if n >= 10, t(n_slow) if n < 10 }
   // :)
 }
