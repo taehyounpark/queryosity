@@ -41,7 +41,7 @@ protected:
  * @tparam Sel (Varied) lazy column node.
  * @todo C++20: Use concept to require lazy<column<Val>(::varied)>.
  */
-template <typename... Sels> class yield {
+template <typename... Sels> struct yield {
 
 public:
   yield(Sels const &...sels);

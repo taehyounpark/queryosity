@@ -166,15 +166,15 @@ template <typename T> class equation;
 
 template <typename T> class composition;
 
+template <typename T> class evaluator;
+
 template <typename T> struct constant;
 
 template <typename T> struct expression;
 
 template <typename T> struct customization;
 
-template <typename T> class evaluator;
-
-template <typename T> class series;
+template <typename T> struct series;
 
 template <typename T>
 constexpr std::true_type check_reader(typename column::reader<T> const &);

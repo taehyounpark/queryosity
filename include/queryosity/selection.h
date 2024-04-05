@@ -20,13 +20,13 @@ class cut;
 
 class weight;
 
+template <typename T, typename U> class applicator;
+
 struct count_t;
 
 class counter;
 
-template <typename... Ts> class yield;
-
-template <typename T, typename U> class applicator;
+template <typename... Ts> struct yield;
 
 class node : public column::calculation<double> {
 

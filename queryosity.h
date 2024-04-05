@@ -410,13 +410,15 @@ template <typename T> class equation;
 
 template <typename T> class composition;
 
-template <typename T> class constant;
-
-template <typename T> class expression;
-
 template <typename T> class evaluator;
 
-template <typename T> class series;
+template <typename T> struct constant;
+
+template <typename T> struct expression;
+
+template <typename T> struct customization;
+
+template <typename T> struct series;
 
 template <typename T>
 constexpr std::true_type check_reader(typename column::reader<T> const &);
@@ -903,9 +905,34 @@ void queryosity::column::calculation<Val>::finalize(unsigned int) {}
 #include <memory>
 #include <type_traits>
 
+#include <functional>
+
 namespace queryosity {
 
-template <typename T> class column::evaluator {
+namespace column {
+
+template <typename Fn> struct customization {
+  customization(Fn fn) : fn(std::move(fn)) {}
+  ~customization() = default;
+  template <typename Def> void patch(column::evaluator<Def> *eval) const;
+  Fn fn;
+};
+
+} // namespace column
+
+} // namespace queryosity
+
+template <typename Fn>
+template <typename Def>
+void queryosity::column::customization<Fn>::patch(column::evaluator<Def> *eval) const {
+  eval->patch(std::function<void(Def*)>(fn));
+}
+
+namespace queryosity {
+
+namespace column {
+
+template <typename T> class evaluator {
 
 public:
   using evaluated_type = T;
@@ -914,27 +941,38 @@ public:
   template <typename... Args> evaluator(Args const &...args);
   virtual ~evaluator() = default;
 
+  void patch(std::function<void(T *)> fn);
+
   template <typename... Vals>
   std::unique_ptr<T> evaluate(view<Vals> const &...cols) const;
 
 protected:
-  std::function<std::unique_ptr<T>()> m_make_unique_column;
+  std::function<std::unique_ptr<T>()> m_make;
+  std::function<void(T *)> m_patch;
 };
+} // namespace column
 
 } // namespace queryosity
 
 template <typename T>
 template <typename... Args>
 queryosity::column::evaluator<T>::evaluator(Args const &...args)
-    : m_make_unique_column(std::bind(
+    : m_make(std::bind(
           [](Args const &...args) { return std::make_unique<T>(args...); },
-          args...)) {}
+          args...)),
+      m_patch([](T *) {}) {}
+
+template <typename T>
+void queryosity::column::evaluator<T>::patch(std::function<void(T *)> fn) {
+  m_patch = std::move(fn);
+}
 
 template <typename T>
 template <typename... Vals>
-std::unique_ptr<T> queryosity::column::evaluator<T>::evaluate(
-    view<Vals> const &...columns) const {
-  auto defn = m_make_unique_column();
+std::unique_ptr<T>
+queryosity::column::evaluator<T>::evaluate(view<Vals> const &...columns) const {
+  auto defn = m_make();
+  this->m_patch(defn.get());
   defn->set_arguments(columns...);
   return defn;
 }
@@ -959,15 +997,17 @@ namespace queryosity {
 
 namespace dataset {
 
+using entry_t = unsigned long long;
+
 using partition_t = std::vector<part_t>;
+
+using slot_t = unsigned int;
 
 namespace partition {
 
 partition_t align(std::vector<partition_t> const &partitions);
 
 partition_t truncate(partition_t const &parts, long long nentries_max);
-
-partition_t merge(partition_t const &parts, unsigned int nslots_max);
 
 } // namespace partition
 
@@ -977,12 +1017,12 @@ partition_t merge(partition_t const &parts, unsigned int nslots_max);
 
 inline queryosity::dataset::partition_t queryosity::dataset::partition::align(
     std::vector<partition_t> const &partitions) {
-  std::map<unsigned long long, unsigned int> edge_counts;
+  std::map<entry_t, unsigned int> edge_counts;
   const unsigned int num_vectors = partitions.size();
 
   // Count appearances of each edge
   for (const auto &vec : partitions) {
-    std::map<unsigned long long, bool>
+    std::map<entry_t, bool>
         seen_edges; // Ensure each edge is only counted once per vector
     for (const auto &p : vec) {
       if (seen_edges.find(p.first) == seen_edges.end()) {
@@ -997,7 +1037,7 @@ inline queryosity::dataset::partition_t queryosity::dataset::partition::align(
   }
 
   // Filter edges that appear in all vectors
-  std::vector<unsigned long long> aligned_edges;
+  std::vector<entry_t> aligned_edges;
   for (const auto &pair : edge_counts) {
     if (pair.second == num_vectors) {
       aligned_edges.push_back(pair.first);
@@ -1005,64 +1045,12 @@ inline queryosity::dataset::partition_t queryosity::dataset::partition::align(
   }
 
   // Create aligned vector of pairs
-  std::vector<std::pair<unsigned long long, unsigned long long>> aligned_ranges;
+  std::vector<std::pair<entry_t, entry_t>> aligned_ranges;
   for (size_t i = 0; i < aligned_edges.size() - 1; ++i) {
     aligned_ranges.emplace_back(aligned_edges[i], aligned_edges[i + 1]);
   }
 
   return aligned_ranges;
-}
-
-inline queryosity::dataset::partition_t queryosity::dataset::partition::merge(
-    queryosity::dataset::partition_t const &parts, unsigned int nslots_max) {
-
-  // no merging needed
-  if (nslots_max >= static_cast<unsigned int>(parts.size()))
-    return parts;
-
-  assert(!parts.empty() && nslots_max > 0);
-
-  partition_t parts_merged;
-
-  const unsigned int total_size = parts.back().second - parts.front().first;
-  const unsigned int size_per_slot = total_size / nslots_max;
-  const unsigned int extra_size = total_size % nslots_max;
-
-  unsigned int current_start = parts[0].first;
-  unsigned int current_end = current_start;
-  unsigned int accumulated_size = 0;
-  unsigned int nslots_created = 0;
-
-  for (const auto &part : parts) {
-    unsigned int part_size = part.second - part.first;
-    // check if another part can be added
-    if (accumulated_size + part_size >
-            size_per_slot + (nslots_created < extra_size ? 1 : 0) &&
-        nslots_created < nslots_max - 1) {
-      // add the current range if adding next part will exceed the average size
-      parts_merged.emplace_back(current_start, current_end);
-      current_start = current_end;
-      accumulated_size = 0;
-      ++nslots_created;
-    }
-
-    // add part size to the current slot
-    accumulated_size += part_size;
-    current_end += part_size;
-
-    // handle the last slot differently to include all remaining parts
-    if (nslots_created == nslots_max - 1) {
-      parts_merged.emplace_back(current_start, parts.back().second);
-      break; // All parts have been processed
-    }
-  }
-
-  // ensure we have exactly nslots_max slots
-  if (static_cast<unsigned int>(parts_merged.size()) < nslots_max) {
-    parts_merged.emplace_back(current_start, parts.back().second);
-  }
-
-  return parts_merged;
 }
 
 inline queryosity::dataset::partition_t
@@ -1319,13 +1307,13 @@ class cut;
 
 class weight;
 
+template <typename T, typename U> class applicator;
+
 struct count_t;
 
 class counter;
 
-template <typename... Ts> class yield;
-
-template <typename T, typename U> class applicator;
+template <typename... Ts> struct yield;
 
 class node : public column::calculation<double> {
 
@@ -1406,9 +1394,9 @@ template <typename T> class definition;
 
 template <typename T> class booker;
 
-template <typename T> class output;
-
 template <typename T> class series;
+
+template <typename T> struct output;
 
 class node : public action
 {
@@ -1852,8 +1840,7 @@ public:
 
 public:
   void play(std::vector<std::unique_ptr<source>> const &sources, double scale,
-            unsigned int slot, unsigned long long begin,
-            unsigned long long end);
+            slot_t slot, std::vector<part_t> const &parts);
 };
 
 } // namespace dataset
@@ -1862,55 +1849,56 @@ public:
 
 inline void queryosity::dataset::player::play(
     std::vector<std::unique_ptr<source>> const &sources, double scale,
-    unsigned int slot, unsigned long long begin, unsigned long long end) {
+    slot_t slot, std::vector<part_t> const &parts) {
 
   // apply dataset scale in effect for all queries
   for (auto const &qry : m_queries) {
     qry->apply_scale(scale);
   }
 
-  // initialize
-  for (auto const &ds : sources) {
-    ds->initialize(slot, begin, end);
-  }
-  for (auto const &col : m_columns) {
-    col->initialize(slot, begin, end);
-  }
-  for (auto const &sel : m_selections) {
-    sel->initialize(slot, begin, end);
-  }
-  for (auto const &qry : m_queries) {
-    qry->initialize(slot, begin, end);
-  }
-
-  // execute
-  for (auto entry = begin; entry < end; ++entry) {
+  // traverse each part
+  for (auto const &part : parts) {
+    // initialize
     for (auto const &ds : sources) {
-      ds->execute(slot, entry);
+      ds->initialize(slot, part.first, part.second);
     }
     for (auto const &col : m_columns) {
-      col->execute(slot, entry);
+      col->initialize(slot, part.first, part.second);
     }
     for (auto const &sel : m_selections) {
-      sel->execute(slot, entry);
+      sel->initialize(slot, part.first, part.second);
     }
     for (auto const &qry : m_queries) {
-      qry->execute(slot, entry);
+      qry->initialize(slot, part.first, part.second);
     }
-  }
-
-  // finalize (in reverse order)
-  for (auto const &qry : m_queries) {
-    qry->finalize(slot);
-  }
-  for (auto const &sel : m_selections) {
-    sel->finalize(slot);
-  }
-  for (auto const &col : m_columns) {
-    col->finalize(slot);
-  }
-  for (auto const &ds : sources) {
-    ds->finalize(slot);
+    // execute
+    for (auto entry = part.first; entry < part.second; ++entry) {
+      for (auto const &ds : sources) {
+        ds->execute(slot, entry);
+      }
+      for (auto const &col : m_columns) {
+        col->execute(slot, entry);
+      }
+      for (auto const &sel : m_selections) {
+        sel->execute(slot, entry);
+      }
+      for (auto const &qry : m_queries) {
+        qry->execute(slot, entry);
+      }
+    }
+    // finalize (in reverse order)
+    for (auto const &qry : m_queries) {
+      qry->finalize(slot);
+    }
+    for (auto const &sel : m_selections) {
+      sel->finalize(slot);
+    }
+    for (auto const &col : m_columns) {
+      col->finalize(slot);
+    }
+    for (auto const &ds : sources) {
+      ds->finalize(slot);
+    }
   }
 
   // clear out queries (should not be re-played)
@@ -2017,33 +2005,43 @@ inline void queryosity::dataset::processor::process(
   }
 
   // 2. partition dataset(s)
-  std::vector<std::vector<std::pair<unsigned long long, unsigned long long>>>
-      partitions;
+  // 2.1 get partition from each dataset source
+  std::vector<partition_t> partitions_from_sources;
   for (auto const &ds : sources) {
-    auto partition = ds->partition();
-    if (partition.size())
-      partitions.push_back(partition);
+    auto partition_from_source = ds->partition();
+    if (partition_from_source.size())
+      partitions_from_sources.push_back(std::move(partition_from_source));
   }
-  if (!partitions.size()) {
-    throw std::logic_error("no valid dataset partition implemented");
+  if (!partitions_from_sources.size()) {
+    throw std::runtime_error("no valid dataset partition found");
   }
-  // find common denominator partition
-  auto partition = dataset::partition::align(partitions);
-  // truncate entries to row limit
-  partition = dataset::partition::truncate(partition, nrows);
-  // merge partition to concurrency limit
-  partition = dataset::partition::merge(partition, nslots);
-  // match processor & partition parallelism
-  this->downsize(partition.size());
+  // 2.2 find common denominator partition
+  const auto partition_aligned =
+      dataset::partition::align(partitions_from_sources);
+  // 2.3 truncate entries to row limit
+  const auto partition_truncated =
+      dataset::partition::truncate(partition_aligned, nrows);
+  // 2.3 distribute partition amongst threads
+  std::vector<partition_t> partitions_for_slots(nslots);
+  auto nparts_remaining = partition_truncated.size();
+  const auto nparts = nparts_remaining;
+  while (nparts_remaining) {
+    for (unsigned int islot = 0; islot < nslots; ++islot) {
+      partitions_for_slots[islot].push_back(
+          std::move(partition_truncated[nparts - (nparts_remaining--)]));
+      if (!nparts_remaining)
+        break;
+    }
+  }
+  // todo: can intel tbb distribute slots during parallel processing?
 
   // 3. run event loop
   this->run(
-      [&sources,
-       scale](dataset::player *plyr, unsigned int slot,
-              std::pair<unsigned long long, unsigned long long> part) {
-        plyr->play(sources, scale, slot, part.first, part.second);
-      },
-      m_player_ptrs, m_range_slots, partition);
+      [&sources, scale](
+          dataset::player *plyr, unsigned int slot,
+          std::vector<std::pair<unsigned long long, unsigned long long>> const
+              &parts) { plyr->play(sources, scale, slot, parts); },
+      m_player_ptrs, m_range_slots, partitions_for_slots);
 
   // 4. exit event loop
   for (auto const &ds : sources) {
@@ -2150,7 +2148,7 @@ public:
    * @param[in] cnst Constant value.
    */
   template <typename Val>
-  auto define(column::constant<Val> const &cnst) -> lazy<column::fixed<Val>>;
+  auto define(column::constant<Val> const &cnst) -> lazy<column::valued<Val>>;
 
   /**
    * @brief Define a column using an expression.
@@ -2170,6 +2168,21 @@ public:
    */
   template <typename Def>
   auto define(column::definition<Def> const &defn)
+      -> todo<column::evaluator<Def>>;
+
+  /**
+   * @brief Define a column using an expression.
+   * @tparam Def Custom definition.
+   * @tparam Fn Custom patch. It *must* be a void function whose sole argument is `Def*`.
+   * @param[in] defn Definition type and constructor arguments.
+   * @param[in] patch Patch function to run on the created instance(s) of column definition.
+   * @detail The patch function can be used to access any public member
+   * variables and/or functions of a custom column definition to "configure" it
+   * beyond constructor arguments.
+   * @return Evaluator.
+   */
+  template <typename Def, typename Fn>
+  auto define(column::definition<Def> const &defn, column::customization<Fn> const& patch)
       -> todo<column::evaluator<Def>>;
 
   /**
@@ -2282,7 +2295,7 @@ public:
 
   template <typename Val>
   auto vary(column::constant<Val> const &cnst, std::map<std::string, Val> vars)
-      -> typename lazy<column::fixed<Val>>::varied;
+      -> typename lazy<column::valued<Val>>::varied;
 
   template <typename Fn>
   auto
@@ -2303,7 +2316,7 @@ public:
       -> lazy<column::conversion<To, column::value_t<Col>>>;
 
   template <typename Val>
-  auto _assign(Val const &val) -> lazy<column::fixed<Val>>;
+  auto _assign(Val const &val) -> lazy<column::valued<Val>>;
 
   template <typename Def, typename... Args> auto _define(Args &&...args);
   template <typename Def>
@@ -2468,7 +2481,7 @@ template <typename DS> class loaded
         return m_df->_read<DS, Val>(*m_ds, name);
     }
 
-    template <typename Val> auto read(dataset::column<Val> const &col) -> lazy<read_column_t<DS, Val>>;
+    template <typename Val> auto read(dataset::column<Val> const &col) -> lazy<queryosity::column::valued<Val>>;
 
     template <typename... Vals> auto read(dataset::column<Vals> const &...cols);
 
@@ -2653,8 +2666,7 @@ auto queryosity::dataset::column<Val>::_read(
                        bool> = false>                                          \
   auto operator op_symbol(Arg const &b) const -> typename lazy<                \
       typename decltype(std::declval<lazy<Act>>().operator op_symbol(          \
-          b.nominal()                                                          \
-              .template to<column::value_t<V>>()))::action_type>::varied;
+          b.nominal()))::action_type>::varied;
 
 #define DEFINE_LAZY_VARIED_BINARY_OP(op_symbol)                                \
   template <typename Act>                                                      \
@@ -2666,18 +2678,15 @@ auto queryosity::dataset::column<Val>::_read(
   auto queryosity::lazy<Act>::varied::operator op_symbol(Arg const &b) const   \
       -> typename lazy<                                                        \
           typename decltype(std::declval<lazy<Act>>().operator op_symbol(      \
-              b.nominal()                                                      \
-                  .template to<column::value_t<V>>()))::action_type>::varied { \
+              b.nominal()))::action_type>::varied {                            \
     auto syst = typename lazy<                                                 \
         typename decltype(std::declval<lazy<Act>>().operator op_symbol(        \
-            b.nominal().template to<column::value_t<V>>()))::action_type>::    \
-        varied(this->nominal().operator op_symbol(                             \
-            b.nominal().template to<column::value_t<V>>()));                   \
+            b.nominal()))::action_type>::varied(this->nominal().               \
+                                                operator op_symbol(            \
+                                                    b.nominal()));             \
     for (auto const &var_name : systematic::get_variation_names(*this, b)) {   \
-      syst.set_variation(                                                      \
-          var_name,                                                            \
-          variation(var_name).operator op_symbol(                              \
-              b.variation(var_name).template to<column::value_t<V>>()));       \
+      syst.set_variation(var_name, variation(var_name).operator op_symbol(     \
+                                       b.variation(var_name)));                \
     }                                                                          \
     return syst;                                                               \
   }
@@ -2814,7 +2823,7 @@ public:
 public:
   friend class dataflow;
   template <typename> friend class lazy;
-  template <typename> friend class column::series; // access to dataflow
+  template <typename> friend struct column::series; // access to dataflow
 
 public:
   lazy(dataflow &df, std::vector<Action *> const &slots)
@@ -2824,6 +2833,8 @@ public:
   lazy(dataflow &df, std::vector<Derived *> const &slots);
   template <typename Derived>
   lazy(dataflow &df, std::vector<std::unique_ptr<Derived>> const &slots);
+
+  template <typename Base> operator lazy<Base>() const;
 
   lazy(const lazy &) = default;
   lazy &operator=(const lazy &) = default;
@@ -2905,7 +2916,8 @@ public:
    * @brief Book a query at this selection.
    * @tparam Qry (Varied) query booker type.
    * @param[in] qry Query booker.
-   * @details The query booker should have already been filled with input columns (if applicable).
+   * @details The query booker should have already been filled with input
+   * columns (if applicable).
    * @return (Varied) lazy query.
    */
   template <typename Qry> auto book(Qry &&qry) const;
@@ -2914,7 +2926,8 @@ public:
    * @brief Book multiple queries at this selection.
    * @tparam Qrys (Varied) query booker types.
    * @param[in] qrys Query bookers.
-   * @details The query bookers should have already been filled with input columns (if applicable).
+   * @details The query bookers should have already been filled with input
+   * columns (if applicable).
    * @return (Varied) lazy queries.
    */
   template <typename... Qrys> auto book(Qrys &&...qrys) const;
@@ -3024,6 +3037,11 @@ public:
   varied(varied &&) = default;
   varied &operator=(varied &&) = default;
 
+  template <typename Derived>
+  varied(typename lazy<Derived>::varied const&);
+  template <typename Derived>
+  varied& operator=(typename lazy<Derived>::varied const&);
+
   virtual void set_variation(const std::string &var_name, lazy var) override;
 
   virtual lazy &nominal() override;
@@ -3109,6 +3127,27 @@ protected:
 template <typename Act>
 queryosity::lazy<Act>::varied::varied(lazy<Act> nom)
     : dataflow::node(*nom.m_df), m_nom(std::move(nom)) {}
+
+template <typename Act>
+template <typename Derived>
+queryosity::lazy<Act>::varied::varied(typename lazy<Derived>::varied const& other) {
+  this->m_df = other.m_df;
+  this->m_var_names = other.m_var_names;
+  for (auto const& var : other.m_var_map) {
+    m_var_map.insert(var);
+  }
+}
+
+template <typename Act>
+template <typename Derived>
+typename queryosity::lazy<Act>::varied& queryosity::lazy<Act>::varied::operator=(typename lazy<Derived>::varied const& other) {
+  this->m_df = other.m_df;
+  this->m_var_names = other.m_var_names;
+  for (auto const& var : other.m_var_map) {
+    m_var_map.insert(var);
+  }
+  return *this;
+}
 
 template <typename Act>
 void queryosity::lazy<Act>::varied::set_variation(const std::string &var_name,
@@ -3457,7 +3496,7 @@ namespace column {
  * @tparam Col (Varied) lazy column node.
  * @todo C++20: Use concept to require lazy<column<Val>(::varied)>.
  */
-template <typename Col> class series {
+template <typename Col> struct series {
 
 public:
   using value_type = column::value_t<typename Col::action_type>;
@@ -3528,6 +3567,12 @@ queryosity::lazy<Action>::lazy(
   for (auto const &slot : slots) {
     m_slots.push_back(static_cast<Action *>(slot.get()));
   }
+}
+
+template <typename Action>
+template <typename Base>
+queryosity::lazy<Action>::operator lazy<Base>() const {
+  return lazy<Base>(*this->m_df, this->m_slots);
 }
 
 template <typename Action>
@@ -3776,7 +3821,7 @@ template <typename DS> queryosity::dataset::loaded<DS>::loaded(queryosity::dataf
 
 template <typename DS>
 template <typename Val>
-auto queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col) -> lazy<read_column_t<DS, Val>>
+auto queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col) -> lazy<queryosity::column::valued<Val>>
 {
     return col.template _read(*this);
 }
@@ -3808,20 +3853,24 @@ class dataflow;
 
 template <typename Val> class lazy;
 
+namespace column {
+
 /**
  * @brief Define a constant column in dataflow.
  */
-template <typename Val> class column::constant {
+template <typename Val> struct constant {
 
 public:
   constant(Val const &val);
   ~constant() = default;
 
-  auto _assign(dataflow &df) const -> lazy<column::fixed<Val>>;
+  auto _assign(dataflow &df) const -> lazy<column::valued<Val>>;
 
 protected:
   Val m_val;
 };
+
+} // namespace column
 
 } // namespace queryosity
 
@@ -3830,7 +3879,7 @@ queryosity::column::constant<Val>::constant(Val const &val) : m_val(val) {}
 
 template <typename Val>
 auto queryosity::column::constant<Val>::_assign(queryosity::dataflow &df) const
-    -> lazy<column::fixed<Val>> {
+    -> lazy<column::valued<Val>> {
   return df._assign(this->m_val);
 }
 
@@ -3854,7 +3903,7 @@ namespace column {
 /**
  * @brief Define a column evaluated out of an expression.
  */
-template <typename Expr> class expression {
+template <typename Expr> struct expression {
 
 public:
   using function_type = decltype(std::function(std::declval<Expr>()));
@@ -3918,7 +3967,7 @@ namespace query {
  * @tparam Qry Concrete implementation of
  * queryosity::query::definition<T(Obs...)>.
  */
-template <typename Qry> class output {
+template <typename Qry> struct output {
 
 public:
   /**
@@ -4051,8 +4100,14 @@ auto queryosity::dataflow::read(
 
 template <typename Val>
 auto queryosity::dataflow::define(column::constant<Val> const &cnst)
-    -> lazy<column::fixed<Val>> {
+    -> lazy<column::valued<Val>> {
   return cnst._assign(*this);
+}
+
+template <typename Fn>
+auto queryosity::dataflow::define(column::expression<Fn> const &expr)
+    -> todo<column::evaluator<column::equation_t<Fn>>> {
+  return this->_equate(expr);
 }
 
 template <typename Def>
@@ -4061,10 +4116,16 @@ auto queryosity::dataflow::define(column::definition<Def> const &defn)
   return this->_define(defn);
 }
 
-template <typename Fn>
-auto queryosity::dataflow::define(column::expression<Fn> const &expr)
-    -> todo<column::evaluator<column::equation_t<Fn>>> {
-  return this->_equate(expr);
+template <typename Def, typename Fn>
+auto queryosity::dataflow::define(column::definition<Def> const &defn, column::customization<Fn> const& custom)
+    -> todo<column::evaluator<Def>> {
+  auto eval = this->_define(defn);
+  ensemble::invoke(
+      [&custom](column::evaluator<Def> *eval) {
+        custom.patch(eval);
+      },
+      eval.get_slots());
+  return eval;
 }
 
 template <typename Col>
@@ -4150,7 +4211,8 @@ auto queryosity::dataflow::get(queryosity::column::series<Col> const &col) {
   return col.make(*this);
 }
 
-template <typename... Sels> auto queryosity::dataflow::get(selection::yield<Sels...> const &sels) {
+template <typename... Sels>
+auto queryosity::dataflow::get(selection::yield<Sels...> const &sels) {
   return sels.make(*this);
 }
 
@@ -4214,9 +4276,9 @@ inline void queryosity::dataflow::reset() { m_analyzed = false; }
 template <typename Val>
 auto queryosity::dataflow::vary(column::constant<Val> const &cnst,
                                 std::map<std::string, Val> vars) ->
-    typename lazy<column::fixed<Val>>::varied {
+    typename lazy<column::valued<Val>>::varied {
   auto nom = this->define(cnst);
-  using varied_type = typename decltype(nom)::varied;
+  using varied_type = typename lazy<column::valued<Val>>::varied;
   varied_type syst(std::move(nom));
   for (auto const &var : vars) {
     this->_vary(syst, var.first, column::constant<Val>(var.second));
@@ -4264,11 +4326,12 @@ auto queryosity::dataflow::_read(dataset::reader<DS> &ds,
 }
 
 template <typename Val>
-auto queryosity::dataflow::_assign(Val const &val) -> lazy<column::fixed<Val>> {
+auto queryosity::dataflow::_assign(Val const &val)
+    -> lazy<column::valued<Val>> {
   auto act = ensemble::invoke(
       [&val](dataset::player *plyr) { return plyr->template assign<Val>(val); },
       m_processor.get_slots());
-  auto lzy = lazy<column::fixed<Val>>(*this, act);
+  auto lzy = lazy<column::valued<Val>>(*this, act);
   return lzy;
 }
 
@@ -4531,7 +4594,7 @@ protected:
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto _evaluate(Nodes const &...columns) const
-      -> lazy<column::evaluated_t<V>> {
+      -> lazy<column::valued<column::value_t<column::evaluated_t<V>>>> {
     return this->m_df->_evaluate(*this, columns...);
   }
 
@@ -4540,9 +4603,9 @@ protected:
                                  queryosity::has_variation_v<Nodes...>,
                              bool> = false>
   auto _evaluate(Nodes const &...columns) const ->
-      typename lazy<column::evaluated_t<V>>::varied {
+      typename lazy<column::valued<column::value_t<column::evaluated_t<V>>>>::varied {
 
-    using varied_type = typename lazy<column::evaluated_t<V>>::varied;
+    using varied_type = typename lazy<column::valued<column::value_t<column::evaluated_t<V>>>>::varied;
 
     auto nom = this->m_df->_evaluate(*this, columns.nominal()...);
     auto syst = varied_type(std::move(nom));
@@ -4868,7 +4931,7 @@ protected:
  * @tparam Sel (Varied) lazy column node.
  * @todo C++20: Use concept to require lazy<column<Val>(::varied)>.
  */
-template <typename... Sels> class yield {
+template <typename... Sels> struct yield {
 
 public:
   yield(Sels const &...sels);
@@ -4958,7 +5021,8 @@ public:
       typename... Args, typename V = Bld,
       std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool> = false>
   auto evaluate(Args &&...args) ->
-      typename queryosity::lazy<column::evaluated_t<V>>::varied;
+      typename decltype(this->nominal().evaluate(
+        std::forward<Args>(args.nominal)...))::varied;
 
   template <
       typename... Args, typename V = Bld,
@@ -5064,8 +5128,10 @@ template <typename Bld>
 template <typename... Args, typename V,
           std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool>>
 auto queryosity::todo<Bld>::varied::evaluate(Args &&...args) ->
-    typename queryosity::lazy<column::evaluated_t<V>>::varied {
-  using varied_type = typename queryosity::lazy<column::evaluated_t<V>>::varied;
+    typename decltype(this->nominal().evaluate(
+        std::forward<Args>(args.nominal)...))::varied {
+  using varied_type = typename decltype(this->nominal().evaluate(
+      std::forward<Args>(args.nominal)...))::varied;
   auto syst = varied_type(
       this->nominal().evaluate(std::forward<Args>(args).nominal()...));
   for (auto const &var_name :
@@ -5138,8 +5204,8 @@ auto queryosity::todo<Bld>::varied::at(Nodes const &...selections)
        this](systematic::resolver<lazy<selection::node>> const &sel) {
         auto syst = varied_type(this->nominal().at(sel.nominal()));
         for (auto const &var_name : var_names) {
-          syst.set_variation(var_name, this->variation(var_name).at(
-                                           sel.variation(var_name)));
+          syst.set_variation(
+              var_name, this->variation(var_name).at(sel.variation(var_name)));
         }
         return syst;
       };

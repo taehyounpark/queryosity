@@ -33,7 +33,7 @@ public:
 public:
   friend class dataflow;
   template <typename> friend class lazy;
-  template <typename> friend class column::series; // access to dataflow
+  template <typename> friend struct column::series; // access to dataflow
 
 public:
   lazy(dataflow &df, std::vector<Action *> const &slots)

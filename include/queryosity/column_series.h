@@ -16,7 +16,7 @@ namespace column {
  * @tparam Col (Varied) lazy column node.
  * @todo C++20: Use concept to require lazy<column<Val>(::varied)>.
  */
-template <typename Col> class series {
+template <typename Col> struct series {
 
 public:
   using value_type = column::value_t<typename Col::action_type>;

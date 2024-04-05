@@ -17,7 +17,7 @@ namespace query {
  * @tparam Qry Concrete implementation of
  * queryosity::query::definition<T(Obs...)>.
  */
-template <typename Qry> class output {
+template <typename Qry> struct output {
 
 public:
   /**
