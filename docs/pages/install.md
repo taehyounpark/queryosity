@@ -36,7 +36,7 @@ cmake --install .
 ~~~
 
 ~~~{.cmake}
-find_package(queryosity 0.4.0 REQUIRED)
+find_package(queryosity 0.4.1 REQUIRED)
 ...
 add_library(MyAnalysis ...)
 ...
