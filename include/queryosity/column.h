@@ -172,8 +172,6 @@ template <typename T> struct constant;
 
 template <typename T> struct expression;
 
-template <typename T> struct customization;
-
 template <typename T> struct series;
 
 template <typename T>

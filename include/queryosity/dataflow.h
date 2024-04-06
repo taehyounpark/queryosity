@@ -134,21 +134,6 @@ public:
       -> todo<column::evaluator<Def>>;
 
   /**
-   * @brief Define a column using an expression.
-   * @tparam Def Custom definition.
-   * @tparam Fn Custom patch. It *must* be a void function whose sole argument is `Def*`.
-   * @param[in] defn Definition type and constructor arguments.
-   * @param[in] patch Patch function to run on the created instance(s) of column definition.
-   * @detail The patch function can be used to access any public member
-   * variables and/or functions of a custom column definition to "configure" it
-   * beyond constructor arguments.
-   * @return Evaluator.
-   */
-  template <typename Def, typename Fn>
-  auto define(column::definition<Def> const &defn, column::customization<Fn> const& patch)
-      -> todo<column::evaluator<Def>>;
-
-  /**
    * @brief Select all entries.
    * @return Lazy selection with cut passing for all entries and weight equal to
    * unity.
@@ -494,18 +479,6 @@ template <typename Def>
 auto queryosity::dataflow::define(column::definition<Def> const &defn)
     -> todo<column::evaluator<Def>> {
   return this->_define(defn);
-}
-
-template <typename Def, typename Fn>
-auto queryosity::dataflow::define(column::definition<Def> const &defn, column::customization<Fn> const& custom)
-    -> todo<column::evaluator<Def>> {
-  auto eval = this->_define(defn);
-  ensemble::invoke(
-      [&custom](column::evaluator<Def> *eval) {
-        custom.patch(eval);
-      },
-      eval.get_slots());
-  return eval;
 }
 
 template <typename Col>
