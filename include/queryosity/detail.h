@@ -213,6 +213,8 @@ CHECK_FOR_BINARY_OP(equality, ==)
 CHECK_FOR_BINARY_OP(inequality, !=)
 CHECK_FOR_BINARY_OP(logical_and, &&)
 CHECK_FOR_BINARY_OP(logical_or, ||)
+CHECK_FOR_BINARY_OP(bitwise_or, &)
+CHECK_FOR_BINARY_OP(bitwise_and, |)
 CHECK_FOR_INDEX_OP()
 
 } // namespace detail
