@@ -1,6 +1,6 @@
-# $H\to WW^{\ast}$ analysis
+# $H\to WW^{\ast}$ analysis with systematic variations
 
-- Simulated ggF HWW* events: [ATLAS open data](https://opendata.cern.ch/record/3825).
+- Simulated $gg \to H \to WW* \to \ell\nu\ell\nu$ events: [ATLAS open data](https://opendata.cern.ch/record/3825).
 
 1. Apply the MC event weight.
 2. Select entries for which there are exactly two opposite-sign leptons in the event.

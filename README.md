@@ -9,7 +9,7 @@
 `queryosity` is a row-wise analysis description language for (semi-)structured data.
 
 <p align="center">
-	<strong> <a href="https://taehyounpark.github.io/queryosity/">Documentation</a></strong>
+	<strong> <a href="https://queryosity.readthedocs.io/">Documentation</a></strong>
 </p>
 
 ## Features

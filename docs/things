@@ -1,7 +1,0 @@
-pip install sphinx
-pip install sphinx-sitemap
-pip install pydata-sphinx-theme
-pip install sphinx-design
-pip install myst-parser
-pip install linkify-it-py
-pip install breathe
