@@ -1,51 +1,49 @@
-@page conceptual Conceptual overview
-@tableofcontents
+# Conceptual overview
 
-@section conceptual-dataflow Dataflow
+## Dataflow
 
 A `dataflow` consists of a directed, acyclic graph of tasks performed for each entry.
 
-@image html dataflow.png "The dataflow."
+![dataflow](../images/dataflow.png)
 
 An action is a node belonging to one of three task sub-graphs, each of which are associated with a set of applicable methods.
 Actions of each task graph can receive ones of the previous graphs as inputs:
 
-| Action | Description | Methods | Description | Task Graph | Inputs (optional) |
+| Action | Description | Methods | Description | Task Graph | Inputs |
 | :--- | :-- | :-- | :-- | :-- | :-- | 
-| `column` | Quantity of interest | `read()` | Read a column. | Computation | (`column`) |
-| | | `define()` | Compute a column. | | |
+| `column` | Quantity of interest | `read()` | Read a column. | Computation |  |
+| | | `define()` | Compute a column. | | `column` |
 | `selection` | Boolean decision | `filter()` | Apply a cut. | Cutflow | `column` |
-| | Floating-point decision | `weight()` | Apply a statistical significance. | | |
-| | | `book()` | Perform a query at the selection. | | |
-| `query` | Perform a query | `get()` | Define an output. | Experiment | (`column`) & `selection` |
-| | | `fill()` | Populate with column value(s). | | |
-| | | `at()` | Perform over selected entries. | | |
+| | Floating-point decision | `weight()` | Apply a statistical significance. | | `column` |
+| `query` | Perform a query | `get()` | Define an output. | Experiment | |
+| | | `fill()` | Populate with column value(s). | | `column` |
+| | | `at()` | Run over selected entries. | | `selection` |
 | | | `result()` | Get the result. | | |
 
-@section conceptual-lazy Lazy actions
+## Lazy actions
 
-All actions are "lazy", meaning they are not executed them unless required.
-Accessing the result of a query turns it and all other actions "eager", triggering the dataset traversal.
+All actions are *lazy*, meaning they are not executed them unless required.
+Accessing the result of a query turns it and all other actions *eager*, triggering the dataset traversal.
 The eagerness of actions in each entry is as follows:
 
 1. A query is performed only if its associated selection passes the cut.
 2. A selection is evaluated only if all prior cuts in the cutflow have passed.
 3. A column is evaluated only if it is needed to determine any of the above.
 
-@section conceptual-columns Columns
+## Columns
 
 A `column` holds a value of some data type `T` to be updated for each entry.
 Columns that are read-in from a dataset or user-defined constants are *independent*, i.e. their values do not depend on others, whereas columns evaluated out of existing ones as inputs are *dependent*.
 The tower of dependent columns evaluated out of more independent ones forms the computation graph:
 
-@image html computation.png "Example computation graph."
+![computation](../images/computation.png)
 
 Only the minimum number of computations needed are performed for each entry:
 - If and when a column value is computed for an entry, it is cached and never re-computed.
 - A column value is not copied when used as an input for dependent columns.
     - It *is* copied if a conversion is required.
 
-@section conceptual-selections Selections
+## Selections
 
 A `selection` represents a scalar-valued decision made on an entry:
 
@@ -56,7 +54,7 @@ A `selection` represents a scalar-valued decision made on an entry:
 
 A cutflow can have from the following types connections between selections:
 
-@image html cutflow.png "Example cutflow structure."
+![cutflow](../images/cutflow.png)
 
 - Applying a selection from an existing node, which determines the order in which they are compounded.
 - Branching selections by applying more than one selection from a common node.
@@ -67,7 +65,7 @@ Addditionally, the cutflow imposes the following rules on them:
 - The cut at a selection is evaluated only if all previous cuts have passed.
 - The weight at a selection is evaluated only if its cut has passed.
 
-@section conceptual-query Queries
+## Queries
 
 A `query` specifies an output result obtained from counting entries of the dataset.
 For multithreaded runs, the user must also define how outputs from individual threads should be merged together to yield a result representative of the full dataset.
