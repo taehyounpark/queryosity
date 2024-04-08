@@ -52,17 +52,19 @@ highlight_language = 'c++'
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-# html_theme = "sphinx_book_theme"
+html_title = "Queryosity"
 html_theme = "pydata_sphinx_theme"
 html_static_path = ['_static']
 html_context = {
     # "github_url": "https://github.com", # or your GitHub Enterprise site
     "github_user": "taehyounpark",
     "github_repo": "queryosity",
-    "github_version": "master",
+    "github_version": "docs",
     "doc_path": "docs",
 }
 html_theme_options = {
+    # "github_url": "https://github.com", # or your GitHub Enterprise site
+    "use_edit_page_button": True,
     "icon_links": [
         {
             # Label for this link
@@ -78,8 +80,7 @@ html_theme_options = {
 #    "pygment_light_style": "solarized-light",
 #    "pygment_dark_style": "solarized-dark"
 }
-
-html_title = "Queryosity"
+html_show_sourcelink = False
 
 myst_enable_extensions = [
     "amsmath",
@@ -95,6 +96,8 @@ myst_enable_extensions = [
     "strikethrough",
     "substitution",
     "tasklist",
+    "attrs_block",
+    "attrs_inline"
 ]
 myst_substitutions = {
   "Callable": "[*Callable*](https://en.cppreference.com/w/cpp/named_req/Callable)",

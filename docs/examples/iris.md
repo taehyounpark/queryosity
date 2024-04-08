@@ -133,8 +133,7 @@ int main(int argc, char **argv) {
 }
 ```
 
-```{image} ../../images/task_7.png
-:caption: IRIS-HEP ADL Benchmark 7
+```{image} ../images/task_7.png
 ```
 
 ```

@@ -72,7 +72,7 @@ auto z = systematic::vary(systematic::nominal(z_nom),
 :::
 ::::
 
-## Checking for active variations
+## Checking variations
 
 The set of variations active in a lazy action can be checked as they are propagated through the dataflow by:
 

@@ -6,5 +6,5 @@
 :maxdepth: 2
 
 api/index
-abc
+abc/index
 ```

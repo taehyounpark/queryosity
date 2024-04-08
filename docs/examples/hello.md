@@ -1,17 +1,15 @@
 # Hello World
 
-- Example row (`v` may be empty):
-
-```json
+```{code} json
 [
   { "x": 98.47054757472436, "v": [ 190.07135783114677, 14.80181202905574, 2.8667177988676418 ], "w": 1.0, }
 ]
 ```
 
-- Select entries with `v.size()` and `x > 100.0`.
-- Fill histogram with `v[0]` weighted by `w`.
+1. Select entries with `v.size()` and `x > 100.0`.
+2. Fill histogram with `v[0]` weighted by `w`.
 
-```cpp
+```{code} cpp
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -58,7 +56,7 @@ int main() {
 }
 ```
 
-```sh
+```{code} text
 histogram(regular(20, 0, 200, options=underflow | overflow))
                 ┌────────────────────────────────────────────────────────────┐
 [-inf,   0) 0   │                                                            │

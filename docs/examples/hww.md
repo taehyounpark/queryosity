@@ -1,4 +1,4 @@
-# $H\to WW^{\ast}$ analysis with systematic variations
+# `TTree` analysis with systematic variations
 
 - Simulated $gg \to H \to WW* \to \ell\nu\ell\nu$ events: [ATLAS open data](https://opendata.cern.ch/record/3825).
 
