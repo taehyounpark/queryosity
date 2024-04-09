@@ -16,7 +16,8 @@ public:
   using evaluated_type = typename column::evaluator<Def>::evaluated_type;
 
 public:
-  template <typename... Args> applicator(selection::node const *prev, Args const &...args);
+  template <typename... Args>
+  applicator(selection::node const *prev, Args const &...args);
   virtual ~applicator() = default;
 
   template <typename... Vals>
@@ -24,15 +25,15 @@ public:
   apply(column::view<Vals> const &...columns) const;
 
 protected:
-  selection::node const* m_prev;
-
+  selection::node const *m_prev;
 };
 
 } // namespace queryosity
 
 template <typename Sel, typename Def>
 template <typename... Args>
-queryosity::selection::applicator<Sel, Def>::applicator(selection::node const *prev, Args const &...args)
+queryosity::selection::applicator<Sel, Def>::applicator(
+    selection::node const *prev, Args const &...args)
     : column::evaluator<Def>(args...), m_prev(prev) {}
 
 template <typename Sel, typename Def>

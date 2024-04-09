@@ -77,7 +77,7 @@ auto queryosity::query::booker<T>::set_selection(const selection::node &sel) con
   // call constructor
   auto cnt = m_make_unique_query();
   // fill columns (if set)
-  for (const auto &fill_query : m_add_columns) {
+  for (auto const &fill_query : m_add_columns) {
     fill_query(*cnt);
   }
   // book cnt at the selection

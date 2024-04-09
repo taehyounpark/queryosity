@@ -57,12 +57,12 @@ std::vector<T> queryosity::query::series<T>::merge(std::vector<std::vector<T>> c
 {
     std::vector<T> merged;
     size_t merged_size = 0;
-    for (const auto &result : results)
+    for (auto const &result : results)
     {
         merged_size += result.size();
     }
     merged.reserve(merged_size);
-    for (const auto &result : results)
+    for (auto const &result : results)
     {
         merged.insert(merged.end(), result.begin(), result.end());
     }

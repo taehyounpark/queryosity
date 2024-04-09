@@ -40,10 +40,10 @@ inline queryosity::dataset::partition_t queryosity::dataset::partition::align(
   const unsigned int num_vectors = partitions.size();
 
   // Count appearances of each edge
-  for (const auto &vec : partitions) {
+  for (auto const &vec : partitions) {
     std::map<entry_t, bool>
         seen_edges; // Ensure each edge is only counted once per vector
-    for (const auto &p : vec) {
+    for (auto const &p : vec) {
       if (seen_edges.find(p.first) == seen_edges.end()) {
         edge_counts[p.first]++;
         seen_edges[p.first] = true;
@@ -57,7 +57,7 @@ inline queryosity::dataset::partition_t queryosity::dataset::partition::align(
 
   // Filter edges that appear in all vectors
   std::vector<entry_t> aligned_edges;
-  for (const auto &pair : edge_counts) {
+  for (auto const &pair : edge_counts) {
     if (pair.second == num_vectors) {
       aligned_edges.push_back(pair.first);
     }
@@ -80,7 +80,7 @@ queryosity::dataset::partition::truncate(
 
   partition_t parts_truncated;
 
-  for (const auto &part : parts) {
+  for (auto const &part : parts) {
     auto part_end = nentries_max >= 0
                         ? std::min(part.first + nentries_max, part.second)
                         : part.second;

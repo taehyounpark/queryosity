@@ -1021,10 +1021,10 @@ inline queryosity::dataset::partition_t queryosity::dataset::partition::align(
   const unsigned int num_vectors = partitions.size();
 
   // Count appearances of each edge
-  for (const auto &vec : partitions) {
+  for (auto const &vec : partitions) {
     std::map<entry_t, bool>
         seen_edges; // Ensure each edge is only counted once per vector
-    for (const auto &p : vec) {
+    for (auto const &p : vec) {
       if (seen_edges.find(p.first) == seen_edges.end()) {
         edge_counts[p.first]++;
         seen_edges[p.first] = true;
@@ -1038,7 +1038,7 @@ inline queryosity::dataset::partition_t queryosity::dataset::partition::align(
 
   // Filter edges that appear in all vectors
   std::vector<entry_t> aligned_edges;
-  for (const auto &pair : edge_counts) {
+  for (auto const &pair : edge_counts) {
     if (pair.second == num_vectors) {
       aligned_edges.push_back(pair.first);
     }
@@ -1061,7 +1061,7 @@ queryosity::dataset::partition::truncate(
 
   partition_t parts_truncated;
 
-  for (const auto &part : parts) {
+  for (auto const &part : parts) {
     auto part_end = nentries_max >= 0
                         ? std::min(part.first + nentries_max, part.second)
                         : part.second;
@@ -1445,18 +1445,18 @@ template <typename T> constexpr bool is_bookable_v = is_book<T>::value;
 template <typename Bkr> using booked_t = typename Bkr::query_type;
 
 // mixin class to conditionally add a member variable
-template <typename Action, typename Enable = void> struct result_if_aggregation
+template <typename Action, typename Enable = void> struct result_of
 {
 };
 
 // Specialization for types satisfying is_query
-template <typename Action> struct result_if_aggregation<Action, std::enable_if_t<query::is_aggregation_v<Action>>>
+template <typename Action> struct result_of<Action, std::enable_if_t<query::is_aggregation_v<Action>>>
 {
     using result_type = decltype(std::declval<Action>().result());
-    result_if_aggregation() : m_merged(false)
+    result_of() : m_merged(false)
     {
     }
-    virtual ~result_if_aggregation() = default;
+    virtual ~result_of() = default;
 
   protected:
     result_type m_result;
@@ -1772,7 +1772,7 @@ auto queryosity::query::booker<T>::set_selection(const selection::node &sel) con
   // call constructor
   auto cnt = m_make_unique_query();
   // fill columns (if set)
-  for (const auto &fill_query : m_add_columns) {
+  for (auto const &fill_query : m_add_columns) {
     fill_query(*cnt);
   }
   // book cnt at the selection
@@ -2812,7 +2812,7 @@ template <typename Action>
 class lazy : public dataflow::node,
              public ensemble::slotted<Action>,
              public systematic::resolver<lazy<Action>>,
-             public query::result_if_aggregation<Action> {
+             public query::result_of<Action> {
 
 public:
   class varied;
@@ -3475,12 +3475,12 @@ std::vector<T> queryosity::query::series<T>::merge(std::vector<std::vector<T>> c
 {
     std::vector<T> merged;
     size_t merged_size = 0;
-    for (const auto &result : results)
+    for (auto const &result : results)
     {
         merged_size += result.size();
     }
     merged.reserve(merged_size);
-    for (const auto &result : results)
+    for (auto const &result : results)
     {
         merged.insert(merged.end(), result.begin(), result.end());
     }

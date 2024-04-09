@@ -6371,7 +6371,7 @@ struct JUnitReporter : public IReporter {
     if (opt.no_version == false)
       xml.writeAttribute("doctest_version", DOCTEST_VERSION_STR);
 
-    for (const auto &testCase : testCaseData.testcases) {
+    for (auto const &testCase : testCaseData.testcases) {
       xml.startElement("testcase")
           .writeAttribute("classname", testCase.classname)
           .writeAttribute("name", testCase.name);
@@ -6381,14 +6381,14 @@ struct JUnitReporter : public IReporter {
       // output.
       xml.writeAttribute("status", "run");
 
-      for (const auto &failure : testCase.failures) {
+      for (auto const &failure : testCase.failures) {
         xml.scopedElement("failure")
             .writeAttribute("message", failure.message)
             .writeAttribute("type", failure.type)
             .writeText(failure.details, false);
       }
 
-      for (const auto &error : testCase.errors) {
+      for (auto const &error : testCase.errors) {
         xml.scopedElement("error")
             .writeAttribute("message", error.message)
             .writeText(error.details);
@@ -7519,7 +7519,7 @@ int Context::run() {
   // invoke the registered functions if they match the filter criteria (or just
   // count them)
   for (auto &curr : testArray) {
-    const auto &tc = *curr;
+    auto const &tc = *curr;
 
     bool skip_me = false;
     if (tc.m_skip && !p->no_skip)

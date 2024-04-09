@@ -37,10 +37,9 @@ public:
   varied(varied &&) = default;
   varied &operator=(varied &&) = default;
 
+  template <typename Derived> varied(typename lazy<Derived>::varied const &);
   template <typename Derived>
-  varied(typename lazy<Derived>::varied const&);
-  template <typename Derived>
-  varied& operator=(typename lazy<Derived>::varied const&);
+  varied &operator=(typename lazy<Derived>::varied const &);
 
   virtual void set_variation(const std::string &var_name, lazy var) override;
 
@@ -132,20 +131,23 @@ queryosity::lazy<Act>::varied::varied(lazy<Act> nom)
 
 template <typename Act>
 template <typename Derived>
-queryosity::lazy<Act>::varied::varied(typename lazy<Derived>::varied const& other) {
+queryosity::lazy<Act>::varied::varied(
+    typename lazy<Derived>::varied const &other) {
   this->m_df = other.m_df;
   this->m_var_names = other.m_var_names;
-  for (auto const& var : other.m_var_map) {
+  for (auto const &var : other.m_var_map) {
     m_var_map.insert(var);
   }
 }
 
 template <typename Act>
 template <typename Derived>
-typename queryosity::lazy<Act>::varied& queryosity::lazy<Act>::varied::operator=(typename lazy<Derived>::varied const& other) {
+typename queryosity::lazy<Act>::varied &
+queryosity::lazy<Act>::varied::operator=(
+    typename lazy<Derived>::varied const &other) {
   this->m_df = other.m_df;
   this->m_var_names = other.m_var_names;
-  for (auto const& var : other.m_var_map) {
+  for (auto const &var : other.m_var_map) {
     m_var_map.insert(var);
   }
   return *this;

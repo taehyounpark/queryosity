@@ -113,7 +113,7 @@ queryosity::hist::hist<Vals...>::merge(
     std::vector<std::shared_ptr<hist_t>> const &results) const {
   auto sum = std::make_shared<hist_t>(*results[0]);
   sum->reset();
-  for (const auto &result : results) {
+  for (auto const &result : results) {
     *sum += *result;
   }
   return sum;

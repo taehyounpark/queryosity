@@ -22,7 +22,7 @@ template <typename Action>
 class lazy : public dataflow::node,
              public ensemble::slotted<Action>,
              public systematic::resolver<lazy<Action>>,
-             public query::result_if_aggregation<Action> {
+             public query::result_of<Action> {
 
 public:
   class varied;
