@@ -4,17 +4,12 @@ A dataflow needs at least one input dataset with rows to loop over.
 Presumably, the dataset also has columns containing some data to analyze for each entry.
 Arbitrary dataset formats and column data can be supported by implementing their respective ABCs.
 
-```{admonition} Template
-:class: note
+:::{card} Template
 ```{code} cpp
-auto ds = df.load(dataset::input<FORMAT>(ARGUMENTS...));
+auto ds = df.load(dataset::input<DS>(ARGS...));
 auto col = ds.read(dataset::column<DTYPE>(NAME));
 ```
-
-```{seealso}
-- [`dataset::source`](#dataset-source) and [`dataset::reader`](#dataset-reader)
-- [`column::reader`](#column-reader)
-```
+:::
 
 ## Loading-in a dataset
 
@@ -62,11 +57,10 @@ A dataflow can load multiple datasets of different input formats into one datafl
 
 :::{card} 
 :text-align: center
-<!-- :::{topic} JSON and CSV side-by-side. -->
+JSON and CSV side-by-side.
+^^^
 ```{image} ../images/json_csv.png
 ```
-+++
-JSON and CSV side-by-side.
 :::
 
 ```{code} cpp
@@ -76,10 +70,10 @@ using csv = qty::csv;
 auto y = df.read(dataset::input<csv>(data_csv), dataset::column<double>("y"));
 
 // x from json, y from csv
-auto z = x + y;
+auto z = x + y; // see next section
 ```
 
-```{admonition} Dataset partition requirements
+:::{admonition} Dataset partition requirements
 :class: important
 When multiple datasets are loaded into a dataflow, the `queryosity::dataset::source::partition()` implementation of each dataset **MUST** collectively satisfy:
 - All non-empty partitions **MUST** have the same total number of entries.
@@ -87,4 +81,9 @@ When multiple datasets are loaded into a dataflow, the `queryosity::dataset::sou
 - A dataset can report an empty partition to relinquish the control of the entry loop to the other dataset(s) in the dataflow.
   - Thus, there **MUST** be at least one dataset that reports a non-empty partition.
   - The dataset with an empty partition, as well as its columns, **MUST** remain in a valid state for traversing over any entry numbers as dictated by the other dataset(s).
-```
+:::
+
+:::{seealso}
+- [`dataset::source`](#dataset-source) and [`dataset::reader`](#dataset-reader)
+- [`column::reader`](#column-reader)
+:::

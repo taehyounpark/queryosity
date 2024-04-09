@@ -1,7 +1,3 @@
-@section example-hep More examples
-
-[HepQuery](https://github.com/taehyounpark/queryosity-hep) provides the extensions for ROOT TTree datasets and ROOT `TH1`-based outputs.
-
 # `xAOD` analysis
 
 1. Apply the MC event weight.

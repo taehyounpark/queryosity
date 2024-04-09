@@ -1,14 +1,29 @@
 # Computing quantities
 
-New columns can be computed out of existing ones by calling `queryosity::dataflow::define()` with the appropriate argument, or operators between the underlying value types.
+::::{tab-set}
 
-:::{admonition} Template
-```{code} cpp
-auto cnst = df.define(column::constant<DTYPE>(VALUE));
-auto eqn  = df.define(column::expression(EXPRESSION))(COLUMNS...);
-auto defn = df.define(column::definition<DEFINITION>(ARGUMENTS...))(COLUMNS...);
+:::{tab-item} Constant
+:::{card} Template
+```cpp
+auto cnst = df.define(dataset::constant(VAL));
 ```
 :::
+
+:::{tab-item} Expression
+:::{card} Template
+```cpp
+auto eqn = df.define(column::expression(FUNC))(COLS...);
+```
+:::
+
+:::{tab-item} Definition
+:::{card} Template
+```cpp
+auto defn = df.define(column::definition<DEF>(ARGS...))(COLS...);
+```
+:::
+
+::::
 
 :::{admonition} Requirements on column value type
 :class: important
@@ -17,7 +32,10 @@ A computed column **MUST** output a value of a type `T` that is:
 - {{CopyAssignable}} or {{MoveAssignable}}.
 :::
 
+(computing-columns-operators)=
 ## Basic operations
+
+Binary and unary operators on the underlying value types are supported.
 
 ```cpp
 // constants columns do not change per-entry
@@ -27,8 +45,7 @@ auto two = df.define(column::constant(2));
 
 // binary/unary operators
 auto three = one + two;
-auto v_0 = v[zero];
-// reminder: actions are *lazy*, i.e. no undefined behaviour (yet)
+auto v_0 = v[zero]; // no undefined behaviour (yet), even if v.size()==0.
 
 // can be re-assigned as long as value type remains unchanged
 two = three - one;

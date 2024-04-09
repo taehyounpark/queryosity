@@ -1,3 +1,5 @@
+# Welcome to Queryosity
+
 ![Version](https://img.shields.io/badge/Version-0.4.1-blue.svg)
 ![C++ Standard](https://img.shields.io/badge/C++-17-blue.svg)
 [![Ubuntu](https://github.com/taehyounpark/analogical/actions/workflows/ubuntu.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/ubuntu.yml)

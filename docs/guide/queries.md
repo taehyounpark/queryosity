@@ -7,12 +7,11 @@ There are a total of three steps in fully specifying a query:
 2. Input column(s) with which it is filled with.
 3. Associated selection(s) at which it is performed.
 
-```{admonition} Template
-:class: note
+:::{card} Template
 ```{code} cpp
-auto q = df.get(query::output<DEFINITION>(ARGUMENTS...))
-             .fill(COLUMNS...)
-             .at(SELECTIONS...);
+auto q = df.get(query::output<DEF>(ARGS...))
+             .fill(COLS...)
+             .at(SELS...);
 ```
 :::
 

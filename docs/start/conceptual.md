@@ -72,6 +72,7 @@ Selection
     - A series of two or more cuts becomes their intersection, `and`
   - A floating-point `weight` to assign a statistical significance to the entry.
     - A series of two or more weights becomes to their product, `*`.
+  - A cut is referred to as being *complementary* to weight and vice versa.
 
 ***
 

@@ -74,13 +74,6 @@ public:
       -> std::array<typename lazy<query::booked_t<V>>::varied,
                     sizeof...(Nodes)>;
 
-  /**
-   * @brief Shortcut for `evaluate()`/`apply()`/`fill()` for
-   * columns/selections/queries.
-   * @tparam Cols (Varied) Input column types.
-   * @param[in] cols... Input columns.
-   * @return Lazy column definition
-   */
   template <typename... Cols>
   auto operator()(Cols &&...cols) ->
       typename decltype(std::declval<todo<Helper>>().operator()(

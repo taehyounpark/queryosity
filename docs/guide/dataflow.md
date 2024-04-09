@@ -28,7 +28,8 @@ The dataflow accepts (up to three) optional keyword arguments options to configu
 | `dataset::weight(scale)` | Apply a global `scale` to all weights. | `1.0` |
 | `dataset::head(nrows)` | Process the first `nrows` of the dataset. | `-1` (all entries) |
 
-:::{example}
+:::{admonition} Example
+:class: note
 ```cpp
 dataflow df(multithread::enable(10), dataset::weight(1.234), dataset::head(100));
 ```
