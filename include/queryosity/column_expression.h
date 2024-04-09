@@ -54,7 +54,7 @@ protected:
 
 template <typename Expr>
 queryosity::column::expression<Expr>::expression(Expr expr)
-    : m_expression(expr) {}
+    : m_expression(std::move(expr)) {}
 
 template <typename Expr>
 auto queryosity::column::expression<Expr>::_equate(

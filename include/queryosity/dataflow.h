@@ -134,13 +134,6 @@ public:
       -> todo<column::evaluator<Def>>;
 
   /**
-   * @brief Select all entries.
-   * @return Lazy selection with cut passing for all entries and weight equal to
-   * unity.
-   */
-  auto all() -> lazy<selection::node>;
-
-  /**
    * @brief Initiate a cutflow.
    * @tparam Col Column type.
    * @param[in] column Input column used as cut decision.
@@ -344,8 +337,6 @@ protected:
   std::vector<std::unique_ptr<dataset::source>> m_sources;
   std::vector<unsigned int> m_dslots;
 
-  std::unique_ptr<lazy<selection::node>> m_all;
-
   bool m_analyzed;
 };
 
@@ -395,7 +386,7 @@ protected:
 
 inline queryosity::dataflow::dataflow()
     : m_processor(multithread::disable()), m_weight(1.0), m_nrows(-1),
-      m_all(nullptr), m_analyzed(false) {}
+      m_analyzed(false) {}
 
 template <typename Kwd>
 queryosity::dataflow::dataflow(Kwd &&kwarg) : dataflow() {
@@ -509,14 +500,6 @@ template <typename Col> auto queryosity::dataflow::weight(Col const &col) {
     syst.set_variation(var_name, this->weight(col.variation(var_name)));
   }
   return syst;
-}
-
-inline auto queryosity::dataflow::all() -> lazy<selection::node> {
-  if (!m_all) {
-    m_all = std::make_unique<lazy<selection::node>>(
-        this->filter(column::constant(true)));
-  }
-  return *m_all;
 }
 
 template <typename Fn, typename... Cols>
