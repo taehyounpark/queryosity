@@ -77,6 +77,9 @@ html_theme_options = {
             "type": "fontawesome",
         }
    ],
+  "external_links": [
+      {"name": "How to contribute", "url": "https://github.com/taehyounpark/queryosity/blob/master/CONTRIBUTING.md"},
+  ]
 #    "pygment_light_style": "solarized-light",
 #    "pygment_dark_style": "solarized-dark"
 }
