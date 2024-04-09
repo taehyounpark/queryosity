@@ -61,6 +61,7 @@ html_context = {
     "github_repo": "queryosity",
     "github_version": "docs",
     "doc_path": "docs",
+    "default_mode": "light"
 }
 html_theme_options = {
     # "github_url": "https://github.com", # or your GitHub Enterprise site
