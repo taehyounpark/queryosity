@@ -26,13 +26,7 @@ public:
   using obstuple_type = std::tuple<observable<Ins>...>;
 
 public:
-  /**
-   * @brief Default constructor.
-   */
   definition() = default;
-  /**
-   * @brief Default destructor.
-   */
   virtual ~definition() = default;
 
 public:

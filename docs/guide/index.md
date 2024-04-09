@@ -4,7 +4,7 @@
 :maxdepth: 2
 
 dataflow
-dataset
+datasets
 columns
 selections
 queries

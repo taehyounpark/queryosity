@@ -12,8 +12,8 @@ auto col = ds.read(dataset::column<DTYPE>(NAME));
 ```
 
 ```{seealso}
-- [`dataset::reader`](#dataset-reader)
-- [`dataset::column`](#dataset-column)
+- [`dataset::source`](#dataset-source) and [`dataset::reader`](#dataset-reader)
+- [`column::reader`](#column-reader)
 ```
 
 ## Loading-in a dataset
@@ -58,11 +58,15 @@ An input dataset should be loaded-in *once*, i.e. make sure whatever columns bei
 
 ## Working with multiple datasets
 
-A dataflow can load multiple datasets (of different input formats) into one dataflow.
+A dataflow can load multiple datasets of different input formats into one dataflow.
 
-:::{card} Loading JSON and CSV datasets side-by-side.
+:::{card} 
+:text-align: center
+<!-- :::{topic} JSON and CSV side-by-side. -->
 ```{image} ../images/json_csv.png
 ```
++++
+JSON and CSV side-by-side.
 :::
 
 ```{code} cpp

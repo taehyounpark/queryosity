@@ -3,6 +3,8 @@
 ```{toctree}
 :maxdepth: 2
 
-dataflow
-lazy
+dataflow.md
+lazy.md
+todo.md
+column_observable.md
 ```

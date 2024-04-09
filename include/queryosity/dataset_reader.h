@@ -16,40 +16,65 @@ public:
   source() = default;
   virtual ~source() = default;
 
+  /**
+   * @brief Inform the dataset of parallelism.
+   */
   virtual void parallelize(unsigned int concurrency) = 0;
 
+  /**
+   * @brief Initialize dataset processing
+   */
   virtual void initialize();
 
   /**
    * @brief Determine dataset partition for parallel processing.
-   * @return Dataset entry partition
+   * @return Dataset partition
    *
    * @details
-   *
-   * - The dataflow *must* load at least one dataset with a valid partition.
-   * - A valid partition *must* begin at 0 and be in sorted contiguous order,
-   * e.g. `{{0,100},{100,200}}`.
-   * - If a dataset returns an empty partition, it relinquishes the control to
-   * another dataset in the dataflow.
-   * @attention The empty-partition dataset *must* be able to fulfill
-   * @code{.cpp}execute(entry)@endcode calls for any `entry` as
-   * requested by the other datasets in the dataflow.
-   *
-   * Valid partitions reported by loaded datasets undergo the following changes:
-   * 1. A common alignment partition is calculated across all loaded datasets.
-   * @attention All non-empty partitions in the dataflow *must* have the same
-   * total number of entries in order them to be alignable.
-   * 2. Entries past the maximum to be processed are truncated.
-   * 3. Neighbouring ranges are merged to match thread concurrency.
+   * A non-empty partition **MUST** begin from the `0` and be sorted contiguous
+   * order, e.g.:
+   * @code{.cpp} {{0,100},{100,200}, ..., {900,1000}} @endcode
+   * If a dataset returns an empty partition, it relinquishes its control over
+   * the entry loop to another dataset with a non-empty partition.
+   * @attention
+   * - Non-empty partitions reported from multiple datasets need to be aligned
+   * to form a common denominator partition over which the dataset processing is
+   * parallelized. As such, they **MUST** have (1) at minimum, the same total
+   * number of entries, and (2) ideally, shared sub-range boundaries.
+   * - Any dataset reporting an empty partition **MUST** be able to fulfill
+   * `dataset::source::execute()` calls for any entry number as requested by the
+   * other datasets loaded in the dataflow.
    *
    */
   virtual std::vector<std::pair<unsigned long long, unsigned long long>>
   partition() = 0;
 
+  /**
+   * @brief Enter an entry loop.
+   * @param[in] slot Thread slot number.
+   * @param[in] begin First entry number processed.
+   * @param[in] end Loop stops after `end-1`-th entry has been processed.
+   */
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) override;
+
+  /**
+   * @brief Process an entry.
+   * @param[in] slot Thread slot number.
+   * @param[in] entry Entry being processed.
+   */
   virtual void execute(unsigned int slot, unsigned long long entry) override;
+
+  /**
+   * @brief Exit an entry loop.
+   * @param[in] slot Thread slot number.
+   * @param[in] entry Entry being processed.
+   */
   virtual void finalize(unsigned int slot) override;
+
+  /**
+   * @brief Finalize processing the dataset.
+   */
   virtual void finalize();
 };
 
@@ -66,6 +91,13 @@ public:
   std::unique_ptr<queryosity::column::reader<Val>>
   read_column(unsigned int slot, const std::string &name);
 
+  /**
+   * @brief Read a column.
+   * @tparam Val Column value type.
+   * @param slot Thread slot number.
+   * @param name Column name.
+   * @return Column implementation.
+   */
   template <typename Val>
   std::unique_ptr<queryosity::column::reader<Val>>
   read(unsigned int slot, const std::string &name);
