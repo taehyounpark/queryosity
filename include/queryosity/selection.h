@@ -41,6 +41,11 @@ public:
   virtual bool passed_cut() const = 0;
   virtual double get_weight() const = 0;
 
+  virtual void initialize(unsigned int slot, unsigned long long begin,
+                          unsigned long long end) final override;
+  virtual void execute(unsigned int slot, unsigned long long entry) final override;
+  virtual void finalize(unsigned int slot) final override;
+
 protected:
   const selection::node *const m_preselection;
   column::variable<double> m_decision;
@@ -75,4 +80,17 @@ inline bool queryosity::selection::node::is_initial() const noexcept {
 inline const queryosity::selection::node *
 queryosity::selection::node::get_previous() const noexcept {
   return m_preselection;
+}
+
+inline void queryosity::selection::node::initialize(unsigned int slot, unsigned long long begin,
+                                               unsigned long long end) {
+  column::calculation<double>::initialize(slot, begin, end);
+                                               }
+
+inline void queryosity::selection::node::execute(unsigned int slot, unsigned long long entry) {
+  column::calculation<double>::execute(slot, entry);
+}
+
+inline void queryosity::selection::node::finalize(unsigned int slot) {
+  column::calculation<double>::finalize(slot);
 }

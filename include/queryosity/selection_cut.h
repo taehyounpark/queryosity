@@ -11,9 +11,9 @@ public:
   virtual ~cut() = default;
 
 public:
-  virtual double calculate() const override;
-  virtual bool passed_cut() const override;
-  virtual double get_weight() const override;
+  virtual double calculate() const final override;
+  virtual bool passed_cut() const final override;
+  virtual double get_weight() const final override;
 };
 
 } // namespace queryosity

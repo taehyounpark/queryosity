@@ -27,10 +27,10 @@ public:
   counter() = default;
   virtual ~counter() = default;
 
-  virtual void count(double w) override;
-  virtual count_t result() const override;
-  virtual void finalize(unsigned int) override;
-  virtual count_t merge(std::vector<count_t> const &results) const override;
+  virtual void count(double w) final override;
+  virtual count_t result() const final override;
+  virtual void finalize(unsigned int) final override;
+  virtual count_t merge(std::vector<count_t> const &results) const final override;
 
 protected:
   count_t m_cnt;

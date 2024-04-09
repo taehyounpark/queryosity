@@ -17,11 +17,11 @@ template <typename T> class series : public queryosity::query::definition<std::v
     series() = default;
     ~series() = default;
 
-    virtual void initialize(unsigned int, unsigned long long, unsigned long long) override;
-    virtual void fill(column::observable<T>, double) override;
-    virtual void finalize(unsigned int) override;
-    virtual std::vector<T> result() const override;
-    virtual std::vector<T> merge(std::vector<std::vector<T>> const &results) const override;
+    virtual void initialize(unsigned int, unsigned long long, unsigned long long) final override;
+    virtual void fill(column::observable<T>, double) final override;
+    virtual void finalize(unsigned int) final override;
+    virtual std::vector<T> result() const final override;
+    virtual std::vector<T> merge(std::vector<std::vector<T>> const &results) const final override;
 
   protected:
     std::vector<T> m_result;

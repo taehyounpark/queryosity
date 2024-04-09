@@ -21,7 +21,12 @@ public:
   virtual ~equation() = default;
 
 public:
-  virtual Out evaluate(observable<Ins>... args) const override;
+  virtual Out evaluate(observable<Ins>... args) const final override;
+
+  virtual void initialize(unsigned int slot, unsigned long long begin,
+                          unsigned long long end) final override;
+  virtual void execute(unsigned int slot, unsigned long long entry) final override;
+  virtual void finalize(unsigned int slot) final override;
 
 protected:
   function_type m_evaluate;
@@ -39,4 +44,20 @@ template <typename Out, typename... Ins>
 Out queryosity::column::equation<Out(Ins...)>::evaluate(
     observable<Ins>... args) const {
   return this->m_evaluate(args.value()...);
+}
+
+template <typename Out, typename... Ins>
+void queryosity::column::equation<Out(Ins...)>::initialize(unsigned int slot, unsigned long long begin,
+                                               unsigned long long end) {
+  calculation<Out>::initialize(slot, begin, end);
+                                               }
+
+template <typename Out, typename... Ins>
+void queryosity::column::equation<Out(Ins...)>::execute(unsigned int slot, unsigned long long entry) {
+  calculation<Out>::execute(slot, entry);
+}
+
+template <typename Out, typename... Ins>
+void queryosity::column::equation<Out(Ins...)>::finalize(unsigned int slot) {
+  calculation<Out>::finalize(slot);
 }
