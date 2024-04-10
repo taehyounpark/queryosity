@@ -62,7 +62,7 @@ public:
 
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) override;
-  virtual void execute(unsigned int slot, unsigned long long entry) override;
+  virtual void execute(unsigned int slot, unsigned long long entry) final override;
   virtual void finalize(unsigned int slot) override;
 
   virtual void count(double w) = 0;

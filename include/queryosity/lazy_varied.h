@@ -41,15 +41,15 @@ public:
   template <typename Derived>
   varied &operator=(typename lazy<Derived>::varied const &);
 
-  virtual void set_variation(const std::string &var_name, lazy var) override;
+  virtual void set_variation(const std::string &var_name, lazy var) final override;
 
-  virtual lazy &nominal() override;
-  virtual lazy &variation(const std::string &var_name) override;
-  virtual lazy const &nominal() const override;
-  virtual lazy const &variation(const std::string &var_name) const override;
+  virtual lazy &nominal() final override;
+  virtual lazy &variation(const std::string &var_name) final override;
+  virtual lazy const &nominal() const final override;
+  virtual lazy const &variation(const std::string &var_name) const final override;
 
-  virtual bool has_variation(const std::string &var_name) const override;
-  virtual std::set<std::string> get_variation_names() const override;
+  virtual bool has_variation(const std::string &var_name) const final override;
+  virtual std::set<std::string> get_variation_names() const final override;
 
   /**
    * @brief Compound a cut to this selection.

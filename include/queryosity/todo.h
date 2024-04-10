@@ -32,17 +32,17 @@ public:
   todo(todo &&) = default;
   todo &operator=(todo &&) = default;
 
-  virtual std::vector<Helper *> const &get_slots() const override;
+  virtual std::vector<Helper *> const &get_slots() const final override;
 
-  virtual void set_variation(const std::string &var_name, todo var) override;
+  virtual void set_variation(const std::string &var_name, todo var) final override;
 
-  virtual todo &nominal() override;
-  virtual todo &variation(const std::string &var_name) override;
-  virtual todo const &nominal() const override;
-  virtual todo const &variation(const std::string &var_name) const override;
+  virtual todo &nominal() final override;
+  virtual todo &variation(const std::string &var_name) final override;
+  virtual todo const &nominal() const final override;
+  virtual todo const &variation(const std::string &var_name) const final override;
 
-  virtual bool has_variation(const std::string &var_name) const override;
-  virtual std::set<std::string> get_variation_names() const override;
+  virtual bool has_variation(const std::string &var_name) const final override;
+  virtual std::set<std::string> get_variation_names() const final override;
 
   /**
    * @brief Evaluate the column definition with input columns.

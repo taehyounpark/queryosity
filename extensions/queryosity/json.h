@@ -25,14 +25,14 @@ public:
    * @brief Parallelize the dataset for parallel processing.
    * @param[in] nslots Requested concurrency.
    */
-  virtual void parallelize(unsigned int nslots) override;
+  virtual void parallelize(unsigned int nslots) final override;
 
   /**
    * @brief Partition the dataset for parallel processing.
    * @returns Dataset partition.
    */
   virtual std::vector<std::pair<unsigned long long, unsigned long long>>
-  partition() override;
+  partition() final override;
 
   /**
    * @brief Read a column.
@@ -70,7 +70,7 @@ public:
    * @param[in] entry Entry number.
    */
   virtual const T &read(unsigned int slot,
-                        unsigned long long entry) const override;
+                        unsigned long long entry) const final override;
 
 protected:
   mutable T m_value;

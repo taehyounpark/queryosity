@@ -64,13 +64,13 @@ public:
    * @param weight Selection weight value.
    */
   virtual void fill(queryosity::column::observable<Vals>... columns,
-                    double weight) override;
+                    double weight) final override;
 
   /**
    * @brief Retrieve the result.
    * @return The (smart pointer to) histogram.
    */
-  virtual std::shared_ptr<hist_t> result() const override;
+  virtual std::shared_ptr<hist_t> result() const final override;
 
   /**
    * @brief Merge results from multithreaded runs.
@@ -78,7 +78,7 @@ public:
    * @return Merged histogram.
    */
   virtual std::shared_ptr<hist_t>
-  merge(std::vector<std::shared_ptr<hist_t>> const &results) const override;
+  merge(std::vector<std::shared_ptr<hist_t>> const &results) const final override;
 
 protected:
   std::shared_ptr<hist_t> m_hist;

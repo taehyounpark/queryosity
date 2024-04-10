@@ -22,14 +22,14 @@ public:
    * @brief Parallelize the dataset for parallel processing.
    * @param[in] nslots Requested concurrency.
    */
-  virtual void parallelize(unsigned int nslots) override;
+  virtual void parallelize(unsigned int nslots) final override;
 
   /**
    * @brief Partition the dataset for parallel processing.
    * @returns Dataset partition.
    */
   virtual std::vector<std::pair<unsigned long long, unsigned long long>>
-  partition() override;
+  partition() final override;
 
   /**
    * @brief Read a column.
@@ -58,7 +58,7 @@ public:
       : m_value(), m_document(document), m_column_name(column_name) {};
   virtual ~cell() = default;
 
-  virtual T const &read(unsigned int, unsigned long long) const override;
+  virtual T const &read(unsigned int, unsigned long long) const final override;
 
 protected:
   mutable T m_value;

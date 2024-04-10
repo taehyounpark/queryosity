@@ -54,17 +54,17 @@ public:
 
   virtual ~lazy() = default;
 
-  virtual std::vector<Action *> const &get_slots() const override;
+  virtual std::vector<Action *> const &get_slots() const final override;
 
-  virtual void set_variation(const std::string &var_name, lazy var) override;
+  virtual void set_variation(const std::string &var_name, lazy var) final override;
 
-  virtual lazy &nominal() override;
-  virtual lazy &variation(const std::string &var_name) override;
-  virtual lazy const &nominal() const override;
-  virtual lazy const &variation(const std::string &var_name) const override;
+  virtual lazy &nominal() final override;
+  virtual lazy &variation(const std::string &var_name) final override;
+  virtual lazy const &nominal() const final override;
+  virtual lazy const &variation(const std::string &var_name) const final override;
 
-  virtual bool has_variation(const std::string &var_name) const override;
-  virtual std::set<std::string> get_variation_names() const override;
+  virtual bool has_variation(const std::string &var_name) const final override;
+  virtual std::set<std::string> get_variation_names() const final override;
 
   template <typename To, typename V = Action,
             std::enable_if_t<queryosity::is_column_v<V>, bool> = false>
