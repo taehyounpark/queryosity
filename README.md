@@ -1,23 +1,22 @@
 # Queryosity
 
-![Version](https://img.shields.io/badge/Version-0.4.1-blue.svg)
+![Version](https://img.shields.io/badge/Version-0.5.0-blue.svg)
 ![C++ Standard](https://img.shields.io/badge/C++-17-blue.svg)
 [![Ubuntu](https://github.com/taehyounpark/analogical/actions/workflows/ubuntu.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/ubuntu.yml)
 [![macOS](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml/badge.svg?branch=master)](https://github.com/taehyounpark/analogical/actions/workflows/macos.yml)
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-`queryosity` is a row-wise analysis description language for (semi-)structured data.
 
-<p align="center">
-	<strong> <a href="https://queryosity.readthedocs.io/">Documentation</a></strong>
-</p>
-
-## Features
+Queryosity is a row-wise analysis description language for (semi-)structured data.
 
 - Dataflow interface.
 - Arbitrary data types.
 - Lazy, multithreaded actions.
 - Sensitivity analysis.
+
+<p align="center">
+	<strong> <a href="https://queryosity.readthedocs.io/">Documentation</a></strong>
+</p>
 
 ## Hello World
 ```cpp
@@ -85,7 +84,7 @@ cmake --build .
 cmake --install .
 ```
 ```cmake
-find_package(queryosity 0.4.1 REQUIRED)
+find_package(queryosity 0.5.0 REQUIRED)
 ...
 add_library(Analysis ...)
 ...
