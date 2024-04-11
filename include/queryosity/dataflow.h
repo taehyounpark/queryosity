@@ -255,6 +255,9 @@ public:
 
   /* "public" API for Python layer */
 
+  template <typename DS>
+  auto _load(std::unique_ptr<DS> ds);
+
   template <typename To, typename Col>
   auto _convert(lazy<Col> const &col)
       -> lazy<column::conversion<To, column::value_t<Col>>>;
@@ -440,13 +443,7 @@ template <typename Kwd> void queryosity::dataflow::accept_kwarg(Kwd &&kwarg) {
 template <typename DS>
 auto queryosity::dataflow::load(queryosity::dataset::input<DS> &&in)
     -> queryosity::dataset::loaded<DS> {
-
-  auto ds = in.ds.get();
-
-  m_sources.emplace_back(std::move(in.ds));
-  m_sources.back()->parallelize(m_processor.concurrency());
-
-  return dataset::loaded<DS>(*this, *ds);
+  return this->_load(std::move(in.ds));
 }
 
 template <typename DS, typename Val>
@@ -661,6 +658,14 @@ auto queryosity::dataflow::vary(
     this->_vary(syst, var.first, var.second);
   }
   return syst;
+}
+
+template <typename DS>
+auto queryosity::dataflow::_load(std::unique_ptr<DS> ds) {
+  auto loaded = dataset::loaded<DS>(*this, *ds);
+  m_sources.emplace_back(std::move(ds));
+  m_sources.back()->parallelize(m_processor.concurrency());
+  return loaded;
 }
 
 template <typename DS, typename Val>
