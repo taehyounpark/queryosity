@@ -67,7 +67,7 @@ auto queryosity::dataset::loaded<DS>::vary(
     dataset::column<Val> const &col,
     std::map<std::string, std::string> const &vars) {
   auto nom = this->read(col);
-  typename decltype(nom)::varied varied_column(std::move(nom));
+  varied<decltype(nom)> varied_column(std::move(nom));
   for (auto const &var : vars) {
     varied_column.set_variation(var.first,
                                 this->read(dataset::column<Val>(var.second)));

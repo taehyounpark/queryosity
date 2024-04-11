@@ -11,6 +11,8 @@
 
 namespace queryosity {
 
+template <typename T> class varied;
+
 /**
  * @ingroup api
  * @brief Variations of a lazy action.
@@ -21,7 +23,7 @@ namespace queryosity {
  * behaves functionally identical to a nominal-only one.
  */
 template <typename Act>
-class lazy<Act>::varied : public dataflow::node,
+class varied<lazy<Act>> : public dataflow::node,
                           public systematic::resolver<lazy<Act>> {
 
 public:
@@ -37,16 +39,17 @@ public:
   varied(varied &&) = default;
   varied &operator=(varied &&) = default;
 
-  template <typename Derived> varied(typename lazy<Derived>::varied const &);
-  template <typename Derived>
-  varied &operator=(typename lazy<Derived>::varied const &);
+  template <typename Derived> varied(varied<lazy<Derived>> const &);
+  template <typename Derived> varied &operator=(varied<lazy<Derived>> const &);
 
-  virtual void set_variation(const std::string &var_name, lazy var) final override;
+  virtual void set_variation(const std::string &var_name,
+                             lazy<Act> var) final override;
 
-  virtual lazy &nominal() final override;
-  virtual lazy &variation(const std::string &var_name) final override;
-  virtual lazy const &nominal() const final override;
-  virtual lazy const &variation(const std::string &var_name) const final override;
+  virtual lazy<Act> &nominal() final override;
+  virtual lazy<Act> &variation(const std::string &var_name) final override;
+  virtual lazy<Act> const &nominal() const final override;
+  virtual lazy<Act> const &
+  variation(const std::string &var_name) const final override;
 
   virtual bool has_variation(const std::string &var_name) const final override;
   virtual std::set<std::string> get_variation_names() const final override;
@@ -59,7 +62,7 @@ public:
    */
   template <typename Col, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
-  auto filter(Col const &col) -> typename lazy<selection::node>::varied;
+  auto filter(Col const &col) -> varied<lazy<selection::node>>;
 
   /**
    * @brief Compound a weight to this selection.
@@ -69,18 +72,17 @@ public:
    */
   template <typename Col, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
-  auto weight(Col const &col) -> typename lazy<selection::node>::varied;
+  auto weight(Col const &col) -> varied<lazy<selection::node>>;
 
   template <typename Expr, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
-  auto filter(column::expression<Expr> const &expr) -> typename todo<
-      selection::applicator<selection::cut, column::equation_t<Expr>>>::varied;
+  auto filter(column::expression<Expr> const &expr) -> varied<
+      todo<selection::applicator<selection::cut, column::equation_t<Expr>>>>;
 
   template <typename Expr, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
-  auto weight(column::expression<Expr> const &expr) ->
-      typename todo<selection::applicator<selection::weight,
-                                          column::equation_t<Expr>>>::varied;
+  auto weight(column::expression<Expr> const &expr) -> varied<
+      todo<selection::applicator<selection::weight, column::equation_t<Expr>>>>;
 
   template <typename Agg, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
@@ -126,13 +128,13 @@ protected:
 #include "selection.h"
 
 template <typename Act>
-queryosity::lazy<Act>::varied::varied(lazy<Act> nom)
+queryosity::varied<queryosity::lazy<Act>>::varied(queryosity::lazy<Act> nom)
     : dataflow::node(*nom.m_df), m_nom(std::move(nom)) {}
 
 template <typename Act>
 template <typename Derived>
-queryosity::lazy<Act>::varied::varied(
-    typename lazy<Derived>::varied const &other) {
+queryosity::varied<queryosity::lazy<Act>>::varied(
+    varied<queryosity::lazy<Derived>> const &other) {
   this->m_df = other.m_df;
   this->m_var_names = other.m_var_names;
   for (auto const &var : other.m_var_map) {
@@ -142,9 +144,9 @@ queryosity::lazy<Act>::varied::varied(
 
 template <typename Act>
 template <typename Derived>
-typename queryosity::lazy<Act>::varied &
-queryosity::lazy<Act>::varied::operator=(
-    typename lazy<Derived>::varied const &other) {
+queryosity::varied<queryosity::lazy<Act>> &
+queryosity::varied<queryosity::lazy<Act>>::operator=(
+    varied<queryosity::lazy<Derived>> const &other) {
   this->m_df = other.m_df;
   this->m_var_names = other.m_var_names;
   for (auto const &var : other.m_var_map) {
@@ -154,8 +156,8 @@ queryosity::lazy<Act>::varied::operator=(
 }
 
 template <typename Act>
-void queryosity::lazy<Act>::varied::set_variation(const std::string &var_name,
-                                                  lazy var) {
+void queryosity::varied<queryosity::lazy<Act>>::set_variation(
+    const std::string &var_name, queryosity::lazy<Act> var) {
   ensemble::invoke(
       [var_name](action *act) { act->set_variation_name(var_name); },
       var.get_slots());
@@ -164,46 +166,48 @@ void queryosity::lazy<Act>::varied::set_variation(const std::string &var_name,
 }
 
 template <typename Act>
-auto queryosity::lazy<Act>::varied::nominal() -> lazy & {
+auto queryosity::varied<queryosity::lazy<Act>>::nominal()
+    -> queryosity::lazy<Act> & {
   return this->m_nom;
 }
 
 template <typename Act>
-auto queryosity::lazy<Act>::varied::variation(const std::string &var_name)
-    -> lazy & {
+auto queryosity::varied<queryosity::lazy<Act>>::variation(
+    const std::string &var_name) -> queryosity::lazy<Act> & {
   return (this->has_variation(var_name) ? m_var_map.at(var_name) : m_nom);
 }
 
 template <typename Act>
-auto queryosity::lazy<Act>::varied::nominal() const -> lazy const & {
+auto queryosity::varied<queryosity::lazy<Act>>::nominal() const
+    -> queryosity::lazy<Act> const & {
   return this->m_nom;
 }
 
 template <typename Act>
-auto queryosity::lazy<Act>::varied::variation(const std::string &var_name) const
-    -> lazy const & {
+auto queryosity::varied<queryosity::lazy<Act>>::variation(
+    const std::string &var_name) const -> queryosity::lazy<Act> const & {
   return (this->has_variation(var_name) ? m_var_map.at(var_name) : m_nom);
 }
 
 template <typename Act>
-bool queryosity::lazy<Act>::varied::has_variation(
+bool queryosity::varied<queryosity::lazy<Act>>::has_variation(
     const std::string &var_name) const {
   return m_var_map.find(var_name) != m_var_map.end();
 }
 
 template <typename Act>
 std::set<std::string>
-queryosity::lazy<Act>::varied::get_variation_names() const {
+queryosity::varied<queryosity::lazy<Act>>::get_variation_names() const {
   return m_var_names;
 }
 
 template <typename Act>
 template <typename Col, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
-auto queryosity::lazy<Act>::varied::filter(Col const &col) ->
-    typename lazy<selection::node>::varied {
+auto queryosity::varied<queryosity::lazy<Act>>::filter(Col const &col)
+    -> varied<lazy<selection::node>> {
 
-  using varied_type = typename lazy<selection::node>::varied;
+  using varied_type = varied<lazy<selection::node>>;
 
   auto syst = varied_type(this->nominal().filter(col.nominal()));
 
@@ -217,10 +221,10 @@ auto queryosity::lazy<Act>::varied::filter(Col const &col) ->
 template <typename Act>
 template <typename Col, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
-auto queryosity::lazy<Act>::varied::weight(Col const &col) ->
-    typename lazy<selection::node>::varied {
+auto queryosity::varied<queryosity::lazy<Act>>::weight(Col const &col)
+    -> varied<lazy<selection::node>> {
 
-  using varied_type = typename lazy<selection::node>::varied;
+  using varied_type = varied<lazy<selection::node>>;
 
   auto syst = varied_type(this->nominal().weight(col.nominal()));
 
@@ -234,13 +238,13 @@ auto queryosity::lazy<Act>::varied::weight(Col const &col) ->
 template <typename Act>
 template <typename Expr, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
-auto queryosity::lazy<Act>::varied::filter(
-    queryosity::column::expression<Expr> const &expr) ->
-    typename todo<selection::applicator<selection::cut,
-                                        column::equation_t<Expr>>>::varied {
+auto queryosity::varied<queryosity::lazy<Act>>::filter(
+    queryosity::column::expression<Expr> const &expr)
+    -> varied<
+        todo<selection::applicator<selection::cut, column::equation_t<Expr>>>> {
 
-  using varied_type = typename todo<
-      selection::applicator<selection::cut, column::equation_t<Expr>>>::varied;
+  using varied_type = varied<
+      todo<selection::applicator<selection::cut, column::equation_t<Expr>>>>;
 
   auto syst = varied_type(this->nominal().filter(expr));
 
@@ -253,14 +257,13 @@ auto queryosity::lazy<Act>::varied::filter(
 template <typename Act>
 template <typename Expr, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
-auto queryosity::lazy<Act>::varied::weight(
-    queryosity::column::expression<Expr> const &expr) ->
-    typename todo<selection::applicator<selection::weight,
-                                        column::equation_t<Expr>>>::varied {
+auto queryosity::varied<queryosity::lazy<Act>>::weight(
+    queryosity::column::expression<Expr> const &expr)
+    -> varied<todo<
+        selection::applicator<selection::weight, column::equation_t<Expr>>>> {
 
-  using varied_type =
-      typename todo<selection::applicator<selection::weight,
-                                          column::equation_t<Expr>>>::varied;
+  using varied_type = varied<
+      todo<selection::applicator<selection::weight, column::equation_t<Expr>>>>;
 
   auto syst = varied_type(this->nominal().weight(expr));
 
@@ -273,22 +276,22 @@ auto queryosity::lazy<Act>::varied::weight(
 template <typename Act>
 template <typename Agg, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
-auto queryosity::lazy<Act>::varied::book(Agg &&agg) {
+auto queryosity::varied<queryosity::lazy<Act>>::book(Agg &&agg) {
   return agg.at(*this);
 }
 
 template <typename Act>
 template <typename... Aggs, typename V,
           std::enable_if_t<queryosity::is_selection_v<V>, bool>>
-auto queryosity::lazy<Act>::varied::book(Aggs &&...aggs) {
+auto queryosity::varied<queryosity::lazy<Act>>::book(Aggs &&...aggs) {
   return std::make_tuple((aggs.at(*this), ...));
 }
 
 template <typename Act>
 template <typename V,
           std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
-auto queryosity::lazy<Act>::varied::operator[](const std::string &var_name)
-    -> lazy<V> & {
+auto queryosity::varied<queryosity::lazy<Act>>::operator[](
+    const std::string &var_name) -> queryosity::lazy<V> & {
   if (!this->has_variation(var_name)) {
     throw std::out_of_range("variation does not exist");
   }
@@ -298,8 +301,8 @@ auto queryosity::lazy<Act>::varied::operator[](const std::string &var_name)
 template <typename Act>
 template <typename V,
           std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
-auto queryosity::lazy<Act>::varied::operator[](
-    const std::string &var_name) const -> lazy<V> const & {
+auto queryosity::varied<queryosity::lazy<Act>>::operator[](
+    const std::string &var_name) const -> queryosity::lazy<V> const & {
   if (!this->has_variation(var_name)) {
     throw std::out_of_range("variation does not exist");
   }

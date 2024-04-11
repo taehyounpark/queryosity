@@ -119,9 +119,9 @@
       std::enable_if_t<queryosity::is_column_v<V> &&                           \
                            queryosity::is_column_v<typename Arg::action_type>, \
                        bool> = false>                                          \
-  auto operator op_symbol(Arg const &b) const -> typename lazy<                \
-      typename decltype(std::declval<lazy<Act>>().operator op_symbol(          \
-          b.nominal()))::action_type>::varied;
+  auto operator op_symbol(Arg const &b) const -> varied<                       \
+      lazy<typename decltype(std::declval<queryosity::lazy<Act>>().            \
+                             operator op_symbol(b.nominal()))::action_type>>;
 
 #define DEFINE_LAZY_VARIED_BINARY_OP(op_symbol)                                \
   template <typename Act>                                                      \
@@ -130,15 +130,15 @@
       std::enable_if_t<queryosity::is_column_v<V> &&                           \
                            queryosity::is_column_v<typename Arg::action_type>, \
                        bool>>                                                  \
-  auto queryosity::lazy<Act>::varied::operator op_symbol(Arg const &b) const   \
-      -> typename lazy<                                                        \
-          typename decltype(std::declval<lazy<Act>>().operator op_symbol(      \
-              b.nominal()))::action_type>::varied {                            \
-    auto syst = typename lazy<                                                 \
-        typename decltype(std::declval<lazy<Act>>().operator op_symbol(        \
-            b.nominal()))::action_type>::varied(this->nominal().               \
-                                                operator op_symbol(            \
-                                                    b.nominal()));             \
+  auto queryosity::varied<queryosity::lazy<Act>>::operator op_symbol(          \
+      Arg const &b) const                                                      \
+      -> varied<                                                               \
+          lazy<typename decltype(std::declval<lazy<Act>>().operator op_symbol( \
+              b.nominal()))::action_type>> {                                   \
+    auto syst = varied<                                                        \
+        lazy<typename decltype(std::declval<lazy<Act>>().operator op_symbol(   \
+            b.nominal()))::action_type>>(                                      \
+        this->nominal().operator op_symbol(b.nominal()));                      \
     for (auto const &var_name : systematic::get_variation_names(*this, b)) {   \
       syst.set_variation(var_name, variation(var_name).operator op_symbol(     \
                                        b.variation(var_name)));                \
@@ -149,20 +149,19 @@
 #define DECLARE_LAZY_VARIED_UNARY_OP(op_symbol)                                \
   template <typename V = Act,                                                  \
             std::enable_if_t<queryosity::is_column_v<V>, bool> = false>        \
-  auto operator op_symbol() const -> typename lazy<                            \
-      typename decltype(std::declval<lazy<V>>().                               \
-                        operator op_symbol())::action_type>::varied;
+  auto operator op_symbol() const -> varied<                                   \
+      queryosity::lazy<typename decltype(std::declval<lazy<V>>().              \
+                                         operator op_symbol())::action_type>>;
 #define DEFINE_LAZY_VARIED_UNARY_OP(op_name, op_symbol)                        \
   template <typename Act>                                                      \
   template <typename V, std::enable_if_t<queryosity::is_column_v<V>, bool>>    \
-  auto queryosity::lazy<Act>::varied::operator op_symbol() const ->            \
-      typename lazy<                                                           \
-          typename decltype(std::declval<lazy<V>>().                           \
-                            operator op_symbol())::action_type>::varied {      \
-    auto syst =                                                                \
-        typename lazy<typename decltype(std::declval<lazy<V>>().               \
-                                        operator op_symbol())::action_type>::  \
-            varied(this->nominal().operator op_symbol());                      \
+  auto queryosity::varied<queryosity::lazy<Act>>::operator op_symbol() const   \
+      -> varied<lazy<typename decltype(std::declval<lazy<V>>().                \
+                                       operator op_symbol())::action_type>> {  \
+    auto syst = varied<queryosity::lazy<                                       \
+        typename decltype(std::declval<lazy<V>>().                             \
+                          operator op_symbol())::action_type>>(                \
+        this->nominal().operator op_symbol());                                 \
     for (auto const &var_name : systematic::get_variation_names(*this)) {      \
       syst.set_variation(var_name, variation(var_name).operator op_symbol());  \
     }                                                                          \

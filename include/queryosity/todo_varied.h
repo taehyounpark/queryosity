@@ -12,7 +12,7 @@ namespace queryosity {
  * corresponding to nominal and systematic variations.
  */
 template <typename Helper>
-class todo<Helper>::varied : public dataflow::node,
+class varied<todo<Helper>> : public dataflow::node,
                              systematic::resolver<todo<Helper>> {
 
 public:
@@ -22,12 +22,14 @@ public:
   varied(varied &&) = default;
   varied &operator=(varied &&) = default;
 
-  virtual void set_variation(const std::string &var_name, todo var) final override;
+  virtual void set_variation(const std::string &var_name,
+                             todo<Helper> var) final override;
 
-  virtual todo &nominal() final override;
-  virtual todo &variation(const std::string &var_name) final override;
-  virtual todo const &nominal() const final override;
-  virtual todo const &variation(const std::string &var_name) const final override;
+  virtual todo<Helper> &nominal() final override;
+  virtual todo<Helper> &variation(const std::string &var_name) final override;
+  virtual todo<Helper> const &nominal() const final override;
+  virtual todo<Helper> const &
+  variation(const std::string &var_name) const final override;
 
   virtual bool has_variation(const std::string &var_name) const final override;
   virtual std::set<std::string> get_variation_names() const final override;
@@ -36,14 +38,13 @@ public:
   template <
       typename... Cols, typename V = Helper,
       std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool> = false>
-  auto evaluate(Cols &&...cols) -> typename decltype(this->nominal().evaluate(
-      std::forward<Cols>(cols.nominal)...))::varied;
+  auto evaluate(Cols &&...cols) -> varied<
+      decltype(this->nominal().evaluate(std::forward<Cols>(cols.nominal)...))>;
 
   template <
       typename... Cols, typename V = Helper,
       std::enable_if_t<queryosity::selection::is_applicable_v<V>, bool> = false>
-  auto apply(Cols &&...cols) ->
-      typename queryosity::lazy<selection::applied_t<V>>::varied;
+  auto apply(Cols &&...cols) -> varied<lazy<selection::applied_t<V>>>;
 
   /**
    * @brief Fill the query with input columns.
@@ -61,7 +62,7 @@ public:
    */
   template <typename Node, typename V = Helper,
             std::enable_if_t<queryosity::query::is_bookable_v<V>, bool> = false>
-  auto at(Node const &selection) -> typename lazy<query::booked_t<V>>::varied;
+  auto at(Node const &selection) -> varied<lazy<query::booked_t<V>>>;
 
   /**
    * @brief Book the query at multiple selections.
@@ -71,13 +72,12 @@ public:
   template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::query::is_bookable_v<V>, bool> = false>
   auto at(Nodes const &...selections)
-      -> std::array<typename lazy<query::booked_t<V>>::varied,
-                    sizeof...(Nodes)>;
+      -> std::array<varied<lazy<query::booked_t<V>>>, sizeof...(Nodes)>;
 
   template <typename... Cols>
-  auto operator()(Cols &&...cols) ->
-      typename decltype(std::declval<todo<Helper>>().operator()(
-          std::forward<Cols>(cols).nominal()...))::varied;
+  auto operator()(Cols &&...cols)
+      -> varied<decltype(std::declval<todo<Helper>>().operator()(
+          std::forward<Cols>(cols).nominal()...))>;
 
 protected:
   todo<Helper> m_nominal;
@@ -92,60 +92,62 @@ protected:
 #include "selection.h"
 
 template <typename Helper>
-queryosity::todo<Helper>::varied::varied(todo<Helper> &&nom)
+queryosity::varied<queryosity::todo<Helper>>::varied(
+    queryosity::todo<Helper> &&nom)
     : dataflow::node(*nom.m_df), m_nominal(std::move(nom)) {}
 
 template <typename Helper>
-void queryosity::todo<Helper>::varied::set_variation(
-    const std::string &var_name, todo var) {
+void queryosity::varied<queryosity::todo<Helper>>::set_variation(
+    const std::string &var_name, queryosity::todo<Helper> var) {
   m_variation_map.insert(std::move(std::make_pair(var_name, std::move(var))));
   m_variation_names.insert(var_name);
 }
 
 template <typename Helper>
-auto queryosity::todo<Helper>::varied::nominal() -> todo & {
+auto queryosity::varied<queryosity::todo<Helper>>::nominal() -> todo<Helper> & {
   return m_nominal;
 }
 
 template <typename Helper>
-auto queryosity::todo<Helper>::varied::nominal() const -> todo const & {
+auto queryosity::varied<queryosity::todo<Helper>>::nominal() const
+    -> todo<Helper> const & {
   return m_nominal;
 }
 
 template <typename Helper>
-auto queryosity::todo<Helper>::varied::variation(const std::string &var_name)
-    -> todo & {
+auto queryosity::varied<queryosity::todo<Helper>>::variation(
+    const std::string &var_name) -> todo<Helper> & {
   return (this->has_variation(var_name) ? m_variation_map.at(var_name)
                                         : m_nominal);
 }
 
 template <typename Helper>
-auto queryosity::todo<Helper>::varied::variation(
-    const std::string &var_name) const -> todo const & {
+auto queryosity::varied<queryosity::todo<Helper>>::variation(
+    const std::string &var_name) const -> todo<Helper> const & {
   return (this->has_variation(var_name) ? m_variation_map.at(var_name)
                                         : m_nominal);
 }
 
 template <typename Helper>
-bool queryosity::todo<Helper>::varied::has_variation(
+bool queryosity::varied<queryosity::todo<Helper>>::has_variation(
     const std::string &var_name) const {
   return m_variation_map.find(var_name) != m_variation_map.end();
 }
 
 template <typename Helper>
 std::set<std::string>
-queryosity::todo<Helper>::varied::get_variation_names() const {
+queryosity::varied<queryosity::todo<Helper>>::get_variation_names() const {
   return m_variation_names;
 }
 
 template <typename Helper>
 template <typename... Cols, typename V,
           std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool>>
-auto queryosity::todo<Helper>::varied::evaluate(Cols &&...cols) ->
-    typename decltype(this->nominal().evaluate(
-        std::forward<Cols>(cols.nominal)...))::varied {
-  using varied_type = typename decltype(this->nominal().evaluate(
-      std::forward<Cols>(cols.nominal)...))::varied;
+auto queryosity::varied<queryosity::todo<Helper>>::evaluate(Cols &&...cols)
+    -> varied<decltype(this->nominal().evaluate(
+        std::forward<Cols>(cols.nominal)...))> {
+  using varied_type = varied<decltype(this->nominal().evaluate(
+      std::forward<Cols>(cols.nominal)...))>;
   auto syst = varied_type(
       this->nominal().evaluate(std::forward<Cols>(cols).nominal()...));
   for (auto const &var_name :
@@ -160,10 +162,9 @@ auto queryosity::todo<Helper>::varied::evaluate(Cols &&...cols) ->
 template <typename Helper>
 template <typename... Cols, typename V,
           std::enable_if_t<queryosity::selection::is_applicable_v<V>, bool>>
-auto queryosity::todo<Helper>::varied::apply(Cols &&...cols) ->
-    typename queryosity::lazy<selection::applied_t<V>>::varied {
-  using varied_type =
-      typename queryosity::lazy<selection::applied_t<V>>::varied;
+auto queryosity::varied<queryosity::todo<Helper>>::apply(Cols &&...cols)
+    -> varied<queryosity::lazy<selection::applied_t<V>>> {
+  using varied_type = varied<queryosity::lazy<selection::applied_t<V>>>;
   auto syst =
       varied_type(this->nominal().apply(std::forward<Cols>(cols).nominal()...));
   for (auto const &var_name :
@@ -178,7 +179,8 @@ auto queryosity::todo<Helper>::varied::apply(Cols &&...cols) ->
 template <typename Helper>
 template <typename... Nodes, typename V,
           std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
-auto queryosity::todo<Helper>::varied::fill(Nodes const &...columns) -> varied {
+auto queryosity::varied<queryosity::todo<Helper>>::fill(Nodes const &...columns)
+    -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
   for (auto const &var_name :
        systematic::get_variation_names(*this, columns...)) {
@@ -191,9 +193,9 @@ auto queryosity::todo<Helper>::varied::fill(Nodes const &...columns) -> varied {
 template <typename Helper>
 template <typename Node, typename V,
           std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
-auto queryosity::todo<Helper>::varied::at(Node const &selection) ->
-    typename lazy<query::booked_t<V>>::varied {
-  using varied_type = typename lazy<query::booked_t<V>>::varied;
+auto queryosity::varied<queryosity::todo<Helper>>::at(Node const &selection)
+    -> varied<lazy<query::booked_t<V>>> {
+  using varied_type = varied<lazy<query::booked_t<V>>>;
   auto syst = varied_type(this->nominal().at(selection.nominal()));
   for (auto const &var_name :
        systematic::get_variation_names(*this, selection)) {
@@ -206,12 +208,13 @@ auto queryosity::todo<Helper>::varied::at(Node const &selection) ->
 template <typename Helper>
 template <typename... Nodes, typename V,
           std::enable_if_t<queryosity::query::is_bookable_v<V>, bool>>
-auto queryosity::todo<Helper>::varied::at(Nodes const &...selections)
-    -> std::array<typename lazy<query::booked_t<V>>::varied, sizeof...(Nodes)> {
+auto queryosity::varied<queryosity::todo<Helper>>::at(
+    Nodes const &...selections)
+    -> std::array<varied<lazy<query::booked_t<V>>>, sizeof...(Nodes)> {
   // variations
-  using varied_type = typename lazy<query::booked_t<V>>::varied;
+  using varied_type = varied<lazy<query::booked_t<V>>>;
   using array_of_varied_type =
-      std::array<typename lazy<query::booked_t<V>>::varied, sizeof...(Nodes)>;
+      std::array<varied<lazy<query::booked_t<V>>>, sizeof...(Nodes)>;
   auto var_names = systematic::get_variation_names(*this, selections...);
   auto _book_varied =
       [var_names,
@@ -228,12 +231,12 @@ auto queryosity::todo<Helper>::varied::at(Nodes const &...selections)
 
 template <typename Helper>
 template <typename... Cols>
-auto queryosity::todo<Helper>::varied::operator()(Cols &&...cols) ->
-    typename decltype(std::declval<todo<Helper>>().operator()(
-        std::forward<Cols>(cols).nominal()...))::varied {
+auto queryosity::varied<queryosity::todo<Helper>>::operator()(Cols &&...cols)
+    -> varied<decltype(std::declval<todo<Helper>>().operator()(
+        std::forward<Cols>(cols).nominal()...))> {
 
-  using varied_type = typename decltype(std::declval<todo<Helper>>().operator()(
-      std::forward<Cols>(cols).nominal()...))::varied;
+  using varied_type = varied<decltype(std::declval<todo<Helper>>().operator()(
+      std::forward<Cols>(cols).nominal()...))>;
 
   auto syst = varied_type(
       this->nominal().operator()(std::forward<Cols>(cols).nominal()...));

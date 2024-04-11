@@ -23,6 +23,8 @@ template <typename T> class lazy;
 
 template <typename U> class todo;
 
+template <typename T> class varied;
+
 /**
  * @ingroup api
  * @brief Main dataflow interface.
@@ -33,6 +35,7 @@ public:
   template <typename> friend class dataset::loaded;
   template <typename> friend class lazy;
   template <typename> friend class todo;
+  template <typename> friend class varied;
 
 public:
   class node;
@@ -157,7 +160,7 @@ public:
    * @param[in] column Input column used as cut decision.
    * @return Lazy varied selection.
    */
-  template <typename Col> auto filter(Col const &col);
+  template <typename Lzy> auto filter(varied<Lzy> const &col);
 
   /**
    * @brief Initiate a cutflow.
@@ -165,7 +168,7 @@ public:
    * @param[in] column Input column used as weight decision.
    * @return Lazy varied selection.
    */
-  template <typename Col> auto weight(Col const &col);
+  template <typename Lzy> auto weight(varied<Lzy> const &col);
 
   /**
    * @brief Initiate a cutflow.
@@ -236,19 +239,19 @@ public:
 
   template <typename Val>
   auto vary(column::constant<Val> const &cnst, std::map<std::string, Val> vars)
-      -> typename lazy<column::valued<Val>>::varied;
+      -> varied<lazy<column::valued<Val>>>;
 
   template <typename Fn>
   auto
   vary(column::expression<Fn> const &expr,
        std::map<std::string,
                 typename column::expression<Fn>::function_type> const &vars) ->
-      typename todo<column::evaluator<column::equation_t<Fn>>>::varied;
+      varied<todo<column::evaluator<column::equation_t<Fn>>>>;
 
   template <typename Def>
   auto vary(column::definition<Def> const &defn,
             std::map<std::string, column::definition<Def>> const &vars) ->
-      typename todo<column::evaluator<Def>>::varied;
+      varied<todo<column::evaluator<Def>>>;
 
   /* "public" API for Python layer */
 
@@ -344,6 +347,7 @@ class dataflow::node {
 
 public:
   friend class dataflow;
+  template <typename> friend class varied;
 
 public:
   template <typename Fn, typename... Nodes>
@@ -484,8 +488,8 @@ auto queryosity::dataflow::weight(lazy<Col> const &col)
   return this->_apply<selection::weight>(col);
 }
 
-template <typename Col> auto queryosity::dataflow::filter(Col const &col) {
-  using varied_type = typename lazy<selection::node>::varied;
+template <typename Lzy> auto queryosity::dataflow::filter(varied<Lzy> const &col) {
+  using varied_type = varied<lazy<selection::node>>;
   varied_type syst(this->filter(col.nominal()));
   for (auto const &var_name : col.get_variation_names()) {
     syst.set_variation(var_name, this->filter(col.variation(var_name)));
@@ -493,8 +497,8 @@ template <typename Col> auto queryosity::dataflow::filter(Col const &col) {
   return syst;
 }
 
-template <typename Col> auto queryosity::dataflow::weight(Col const &col) {
-  using varied_type = typename lazy<selection::node>::varied;
+template <typename Lzy> auto queryosity::dataflow::weight(varied<Lzy> const &col) {
+  using varied_type = varied<lazy<selection::node>>;
   varied_type syst(this->weight(col.nominal()));
   for (auto const &var_name : col.get_variation_names()) {
     syst.set_variation(var_name, this->weight(col.variation(var_name)));
@@ -612,9 +616,9 @@ inline void queryosity::dataflow::reset() { m_analyzed = false; }
 template <typename Val>
 auto queryosity::dataflow::vary(column::constant<Val> const &cnst,
                                 std::map<std::string, Val> vars) ->
-    typename lazy<column::valued<Val>>::varied {
+    varied<lazy<column::valued<Val>>> {
   auto nom = this->define(cnst);
-  using varied_type = typename lazy<column::valued<Val>>::varied;
+  using varied_type = varied<lazy<column::valued<Val>>>;
   varied_type syst(std::move(nom));
   for (auto const &var : vars) {
     this->_vary(syst, var.first, column::constant<Val>(var.second));
@@ -627,9 +631,9 @@ auto queryosity::dataflow::vary(
     column::expression<Fn> const &expr,
     std::map<std::string, typename column::expression<Fn>::function_type> const
         &vars) ->
-    typename todo<column::evaluator<column::equation_t<Fn>>>::varied {
+    varied<todo<column::evaluator<column::equation_t<Fn>>>> {
   auto nom = this->_equate(expr);
-  using varied_type = typename decltype(nom)::varied;
+  using varied_type = varied<decltype(nom)>;
   using function_type = typename column::expression<Fn>::function_type;
   varied_type syst(std::move(nom));
   for (auto const &var : vars) {
@@ -642,9 +646,9 @@ template <typename Def>
 auto queryosity::dataflow::vary(
     column::definition<Def> const &defn,
     std::map<std::string, column::definition<Def>> const &vars) ->
-    typename todo<column::evaluator<Def>>::varied {
+    varied<todo<column::evaluator<Def>>> {
   auto nom = this->_define(defn);
-  using varied_type = typename decltype(nom)::varied;
+  using varied_type = varied<decltype(nom)>;
   varied_type syst(std::move(nom));
   for (auto const &var : vars) {
     this->_vary(syst, var.first, var.second);

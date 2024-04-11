@@ -25,9 +25,6 @@ class lazy : public dataflow::node,
              public query::result_of<Action> {
 
 public:
-  class varied;
-
-public:
   using action_type = Action;
 
 public:
@@ -56,12 +53,14 @@ public:
 
   virtual std::vector<Action *> const &get_slots() const final override;
 
-  virtual void set_variation(const std::string &var_name, lazy var) final override;
+  virtual void set_variation(const std::string &var_name,
+                             lazy var) final override;
 
   virtual lazy &nominal() final override;
   virtual lazy &variation(const std::string &var_name) final override;
   virtual lazy const &nominal() const final override;
-  virtual lazy const &variation(const std::string &var_name) const final override;
+  virtual lazy const &
+  variation(const std::string &var_name) const final override;
 
   virtual bool has_variation(const std::string &var_name) const final override;
   virtual std::set<std::string> get_variation_names() const final override;
@@ -163,8 +162,8 @@ public:
    */
   template <typename Col,
             std::enable_if_t<queryosity::is_varied_v<Col>, bool> = false>
-  auto get(column::series<Col> const &col) -> typename lazy<
-      query::series<typename column::series<Col>::value_type>>::varied;
+  auto get(column::series<Col> const &col)
+      -> varied<lazy<query::series<typename column::series<Col>::value_type>>>;
 
   /**
    * @brief (Process and) retrieve the result of a query.
@@ -338,7 +337,7 @@ template <typename Action>
 template <typename Col>
 auto queryosity::lazy<Action>::filter(Col const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
-    using varied_type = typename lazy<selection::node>::varied;
+    using varied_type = varied<lazy<selection::node>>;
     auto syst = varied_type(this->filter(col.nominal()));
     for (auto const &var_name : col.get_variation_names()) {
       syst.set_variation(var_name, this->filter(col.variation(var_name)));
@@ -354,7 +353,7 @@ template <typename Action>
 template <typename Col>
 auto queryosity::lazy<Action>::weight(Col const &col) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
-    using varied_type = typename lazy<selection::node>::varied;
+    using varied_type = varied<lazy<selection::node>>;
     auto syst = varied_type(this->weight(col.nominal()));
     for (auto const &var_name : col.get_variation_names()) {
       syst.set_variation(var_name, this->weight(col.variation(var_name)));
@@ -416,8 +415,7 @@ auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
 template <typename Action>
 template <typename Col, std::enable_if_t<queryosity::is_varied_v<Col>, bool>>
 auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
-    -> typename lazy<
-        query::series<typename column::series<Col>::value_type>>::varied {
+    -> varied<lazy<query::series<typename column::series<Col>::value_type>>> {
   return col.make(*this);
 }
 
