@@ -21,4 +21,7 @@ bld/
 docs/html
 docs/xml
 
+
 *.DS_Store
+__pycache__/
+*.pyc
