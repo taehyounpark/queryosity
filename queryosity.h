@@ -2316,13 +2316,13 @@ public:
   auto
   vary(column::expression<Fn> const &expr,
        std::map<std::string,
-                typename column::expression<Fn>::function_type> const &vars) ->
-      varied<todo<column::evaluator<column::equation_t<Fn>>>>;
+                typename column::expression<Fn>::function_type> const &vars)
+      -> varied<todo<column::evaluator<column::equation_t<Fn>>>>;
 
   template <typename Def>
   auto vary(column::definition<Def> const &defn,
-            std::map<std::string, column::definition<Def>> const &vars) ->
-      varied<todo<column::evaluator<Def>>>;
+            std::map<std::string, column::definition<Def>> const &vars)
+      -> varied<todo<column::evaluator<Def>>>;
 
   /* "public" API for Python layer */
 
@@ -2332,6 +2332,12 @@ public:
 
   template <typename Val>
   auto _assign(Val const &val) -> lazy<column::valued<Val>>;
+
+  template <typename Col>
+  auto _cut(lazy<Col> const &column) -> lazy<selection::node>;
+
+  template <typename Lzy>
+  auto _cut(varied<Lzy> const &column) -> varied<lazy<selection::node>>;
 
   template <typename Def, typename... Args> auto _define(Args &&...args);
   template <typename Def>
@@ -4148,7 +4154,8 @@ auto queryosity::dataflow::weight(lazy<Col> const &col)
   return this->_apply<selection::weight>(col);
 }
 
-template <typename Lzy> auto queryosity::dataflow::filter(varied<Lzy> const &col) {
+template <typename Lzy>
+auto queryosity::dataflow::filter(varied<Lzy> const &col) {
   using varied_type = varied<lazy<selection::node>>;
   varied_type syst(this->filter(col.nominal()));
   for (auto const &var_name : col.get_variation_names()) {
@@ -4157,7 +4164,8 @@ template <typename Lzy> auto queryosity::dataflow::filter(varied<Lzy> const &col
   return syst;
 }
 
-template <typename Lzy> auto queryosity::dataflow::weight(varied<Lzy> const &col) {
+template <typename Lzy>
+auto queryosity::dataflow::weight(varied<Lzy> const &col) {
   using varied_type = varied<lazy<selection::node>>;
   varied_type syst(this->weight(col.nominal()));
   for (auto const &var_name : col.get_variation_names()) {
@@ -4275,8 +4283,8 @@ inline void queryosity::dataflow::reset() { m_analyzed = false; }
 
 template <typename Val>
 auto queryosity::dataflow::vary(column::constant<Val> const &cnst,
-                                std::map<std::string, Val> vars) ->
-    varied<lazy<column::valued<Val>>> {
+                                std::map<std::string, Val> vars)
+    -> varied<lazy<column::valued<Val>>> {
   auto nom = this->define(cnst);
   using varied_type = varied<lazy<column::valued<Val>>>;
   varied_type syst(std::move(nom));
@@ -4290,8 +4298,7 @@ template <typename Fn>
 auto queryosity::dataflow::vary(
     column::expression<Fn> const &expr,
     std::map<std::string, typename column::expression<Fn>::function_type> const
-        &vars) ->
-    varied<todo<column::evaluator<column::equation_t<Fn>>>> {
+        &vars) -> varied<todo<column::evaluator<column::equation_t<Fn>>>> {
   auto nom = this->_equate(expr);
   using varied_type = varied<decltype(nom)>;
   using function_type = typename column::expression<Fn>::function_type;
@@ -4305,8 +4312,8 @@ auto queryosity::dataflow::vary(
 template <typename Def>
 auto queryosity::dataflow::vary(
     column::definition<Def> const &defn,
-    std::map<std::string, column::definition<Def>> const &vars) ->
-    varied<todo<column::evaluator<Def>>> {
+    std::map<std::string, column::definition<Def>> const &vars)
+    -> varied<todo<column::evaluator<Def>>> {
   auto nom = this->_define(defn);
   using varied_type = varied<decltype(nom)>;
   varied_type syst(std::move(nom));
@@ -4333,6 +4340,16 @@ auto queryosity::dataflow::_assign(Val const &val)
       m_processor.get_slots());
   auto lzy = lazy<column::valued<Val>>(*this, act);
   return lzy;
+}
+
+template <typename Col>
+auto queryosity::dataflow::_cut(lazy<Col> const &col) -> lazy<selection::node> {
+  return this->filter(col);
+}
+
+template <typename Lzy>
+auto queryosity::dataflow::_cut(varied<Lzy> const &col) -> varied<lazy<selection::node>> {
+  return this->filter(col);
 }
 
 template <typename To, typename Col>
