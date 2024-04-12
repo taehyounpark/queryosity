@@ -8,11 +8,11 @@ namespace ak {
 
 template <typename T> class view;
 
-template <typename T> class row;
+template <typename T> class record;
 
 template <typename Array> class view : public dataset::reader<view<Array>> {
 public:
-  using row_type = decltype(std::declval<Array>()[0]);
+  using record_type = decltype(std::declval<Array>()[0]);
 
 public:
   view(Array const &array);
@@ -24,26 +24,27 @@ public:
   partition() final override;
 
   template <typename T>
-  std::unique_ptr<row<Array>> read(unsigned int slot,
-                                   const std::string &key) const;
+  std::unique_ptr<record<Array>> read(unsigned int slot,
+                                      const std::string &key) const;
 
 protected:
   Array const &m_array;
   unsigned int m_nslots;
 };
 
-template <typename Array> using row_t = typename view<Array>::row_type;
+template <typename Array> using record_t = typename view<Array>::record_type;
 
-template <typename Array> class row : public column::reader<row_t<Array>> {
+template <typename Array>
+class record : public column::reader<record_t<Array>> {
 public:
-  using value_type = row_t<Array>;
+  using value_type = record_t<Array>;
 
 public:
-  row(Array const &array);
-  ~row() = default;
+  record(Array const &array);
+  ~record() = default;
 
-  row_t<Array> const &read(unsigned int,
-                           unsigned long long entry) const final override;
+  record_t<Array> const &read(unsigned int,
+                              unsigned long long entry) const final override;
 
 protected:
   Array const &m_array;
@@ -88,21 +89,21 @@ queryosity::ak::view<Array>::partition() {
 
 template <typename Array>
 template <typename T>
-std::unique_ptr<queryosity::ak::row<Array>>
-queryosity::ak::view<Array>::read(unsigned int,
-                                       const std::string &) const {
-  // static_assert(std::is_same_v<row_t<Array>, Row>);
-  assert(name.empty());
-  return std::make_unique<queryosity::ak::row<Array>>(this->m_array);
+std::unique_ptr<queryosity::ak::record<Array>>
+queryosity::ak::view<Array>::read(unsigned int, const std::string &name) const {
+  if (!name.empty()) {
+    throw std::runtime_error(
+        "C++ Awkward Array fields cannot be read-in by their names at runtime");
+  }
+  return std::make_unique<queryosity::ak::record<Array>>(this->m_array);
 }
 
 template <typename Array>
-queryosity::ak::row<Array>::row(Array const &array) : m_array(array) {}
+queryosity::ak::record<Array>::record(Array const &array) : m_array(array) {}
 
 template <typename Array>
-queryosity::ak::row_t<Array> const &
-queryosity::ak::row<Array>::read(unsigned int,
-                                      unsigned long long i) const {
+queryosity::ak::record_t<Array> const &
+queryosity::ak::record<Array>::read(unsigned int, unsigned long long i) const {
   // std::cout << this->m_array[i][0].x() << std::endl;
   return this->m_array[i];
 }

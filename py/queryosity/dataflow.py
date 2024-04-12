@@ -1,7 +1,6 @@
 import os
 import cppyy
 import awkward as ak
-import akarray
 
 module_dir = os.path.dirname(__file__)
 queryosity_h = os.path.join(module_dir, "queryosity.h")
@@ -9,21 +8,6 @@ ak_h = os.path.join(module_dir, "ak.h")
 cppyy.include(queryosity_h)
 cppyy.include(ak_h)
 qty = cppyy.gbl.queryosity
-
-# trigger queryosity to be loaded
-df = qty.dataflow()
-cppyy.cppdef(
-    """
-using dataflow = qty::dataflow;
-namespace multithread = qty::multithread;
-namespace dataset = qty::dataset;
-namespace column = qty::column;
-namespace selection = qty::selection;
-namespace query = qty::query;
-namespace systematic = qty::systematic;
-"""
-)
-
 
 class LazyNode:
     def __init__(self, node):
@@ -50,13 +34,16 @@ class LazyFlow:
         self._queries = []
 
     def load(self, *, dataset: dict = {}):
-        pass
+        if not len(dataset) == 1:
+            raise ValueError(
+                "dataset specification can only have one (key, value) pair: the dataset input format and constructor arguments."
+            )
+        ds_type = next(iter(dataset))
+        ds_args = dataset[ds_type]
+        return self._df._load[ds_type](cppyy.gbl.std.make_unique[ds_type](*ds_args))
 
-    def read(self, *, dataset: dict = {}, columns: dict = {}, awkward=None):
-        if not awkward is None:
-            # print(cppyy.gbl.std.make_unique[qty.ak.view[awkward.cpp_type]](awkward))
-            ds = self._df._load[qty.ak.view[awkward.cpp_type]](cppyy.gbl.std.make_unique[qty.ak.view[awkward.cpp_type]](awkward))
-            return ds.read(qty.dataset.column[cppyy.gbl.queryosity.ak.row_t[awkward.cpp_type]](""))
+    def read(self, *, dataset: dict = {}, columns: dict = {}):
+        pass
 
     def define(self, constant=None):
         if constant:
@@ -75,23 +62,29 @@ class LazyFlow:
         pass
 
 
+def from_ak(arrays, **kwargs):
+    df = LazyFlow(**kwargs)
+    cols = []
+    for array in arrays:
+        ds = df.load(dataset={qty.ak.view[array.cpp_type]: [array]})
+        cols.append(
+            ds.read(
+                qty.dataset.column[cppyy.gbl.queryosity.ak.record_t[array.cpp_type]]("")
+            )
+        )
+    return df, cols
+
 if __name__ == "__main__":
-    df = LazyFlow()
-    c = df.define(constant=1.0)
-    print(c)
-
-    _df = df._df
-    # print(c.initialize())
-    s = df.filter(c)
-    print(s)
-
+    
     arr = ak.Array(
         [
-            {"x": 1, "y": [1.1]}, {"x": 2, "y": [2.2, 0.2]},
-            {},
-            {"x": 3, "y": [3.0, 0.3, 3.3]},
+            [{"x": 1, "y": [1.1]},
+            {"x": 2, "y": [2.2, 0.2]}],
+            [{}],
+            [{"x": 3, "y": [3.0, 0.3, 3.3]}],
         ]
     )
 
-    arr = df.read(awkward=arr)
+    print(arr.cpp_type)
+    df, [arr] = from_ak([arr], multithread=True)
     print(arr)
