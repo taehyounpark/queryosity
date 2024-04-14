@@ -11,8 +11,8 @@
 	- Scale electron(muon) energy scale by $\pm 1(2)\,\%$ as systematic variations.
 
 ```cpp
-#include "HepQuery/Hist.h"
-#include "HepQuery/Tree.h"
+#include "AnaQuery/Hist.h"
+#include "AnaQuery/Tree.h"
 
 #include "queryosity.h"
 

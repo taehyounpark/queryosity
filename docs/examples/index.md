@@ -1,6 +1,6 @@
 # Examples
 
-[HepQuery](https://github.com/taehyounpark/queryosity-hep) provides the extensions for ROOT `TTree`-based datasets and `TH1`-based outputs.
+[AnaQuery](https://github.com/taehyounpark/queryosity-hep) provides the extensions for ROOT `TTree`-based datasets and `TH1`-based outputs.
 
 ```{toctree}
 :maxdepth: 1
