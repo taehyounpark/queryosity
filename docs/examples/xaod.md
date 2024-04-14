@@ -106,7 +106,7 @@ float DiElectronsMass(ConstDataVector<xAOD::ElectronContainer> const &els) {
 int main() {  
   dataflow df(multithread::enable());
 
-  auto ds = df.load(dataset::input<HepQ::Event>(daodFiles, treeName));
+  auto ds = df.load(dataset::input<AnaQ::Event>(daodFiles, treeName));
   auto eventInfo = ds.read(dataset::column<xAOD::EventInfo>("EventInfo"));
   auto allElectrons =
       ds.read(dataset::column<xAOD::ElectronContainer>("Electrons"));
@@ -124,7 +124,7 @@ int main() {
           .filter(column::expression(TwoElectrons))(selectedElectrons);
 
   auto selectedElectronsPtHist =
-      df.get(query::plan<HepQ::Hist<1, float>>("diElectronMass", 100, 0, 500))
+      df.get(query::plan<AnaQ::Hist<1, float>>("diElectronMass", 100, 0, 500))
           .fill(diElectronsMassGeV)
           .at(atLeastTwoSelectedElectrons);
 
