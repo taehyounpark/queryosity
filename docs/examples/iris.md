@@ -75,7 +75,7 @@ void task(int n) {
 
   std::vector<std::string> tree_files{"Run2012B_SingleMu.root"};
   std::string tree_name = "Events";
-  auto ds = df.load(dataset::input<HepQ::Tree>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<AnaQ::Tree>(tree_files, tree_name));
 
   auto n_jet = ds.read(dataset::column<unsigned int>("nJet"));
   auto jets_pt = ds.read(dataset::column<VecF>("Jet_pt"));
@@ -109,7 +109,7 @@ void task(int n) {
       [](VecI const &goodjet) { return Sum(goodjet); }))(goodjet_mask);
 
   auto h_sumpt_goodjet =
-      df.get(query::output<HepQ::Hist<1, float>>("goodjet_sumpt", 185, 15, 200))
+      df.get(query::output<AnaQ::Hist<1, float>>("goodjet_sumpt", 185, 15, 200))
           .fill(goodjet_sumpt)
           .at(cut_goodjet);
 

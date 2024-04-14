@@ -67,7 +67,7 @@ int main() {
   std::vector<std::string> tree_files{"hww.root"};
   std::string tree_name = "mini";
   dataflow df(multithread::disable());
-  auto ds = df.load(dataset::input<HepQ::Tree>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<AnaQ::Tree>(tree_files, tree_name));
 
   // weights
   auto mc_weight = ds.read(dataset::column<float>("mcWeight"));
@@ -210,7 +210,7 @@ int main() {
 
   // make histograms
   auto [pTH_2los_presel, pTH_df_presel, pTH_ee_presel, pTH_mm_presel] =
-      df.get(query::output<HepQ::Hist<1, float>>("pTH", 30, 0, 150))
+      df.get(query::output<AnaQ::Hist<1, float>>("pTH", 30, 0, 150))
           .fill(higgs_pT)
           .at(cut_2los, cut_df_presel, cut_ee_presel, cut_mm_presel);
 
