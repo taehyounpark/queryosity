@@ -125,7 +125,7 @@ protected:
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto _evaluate(Nodes const &...columns) const
-      -> lazy<column::valued<column::value_t<column::evaluated_t<V>>>> {
+      -> lazy<column::evaluated_t<V>> {
     return this->m_df->_evaluate(*this, columns...);
   }
 
@@ -134,10 +134,10 @@ protected:
                                  queryosity::has_variation_v<Nodes...>,
                              bool> = false>
   auto _evaluate(Nodes const &...columns) const
-      -> varied<lazy<column::valued<column::value_t<column::evaluated_t<V>>>>> {
+      -> varied<lazy<column::evaluated_t<V>>> {
 
     using varied_type =
-        varied<lazy<column::valued<column::value_t<column::evaluated_t<V>>>>>;
+        varied<lazy<column::evaluated_t<V>>>;
 
     auto nom = this->m_df->_evaluate(*this, columns.nominal()...);
     auto syst = varied_type(std::move(nom));

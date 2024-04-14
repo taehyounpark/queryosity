@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(queryosity)
 
-option(QUERYOSITY_INSTALL "Install target" OFF)
+option(QUERYOSITY_INSTALL "Install target" ON)
 option(QUERYOSITY_DOCS "Documentation" OFF)
 option(QUERYOSITY_EXTENSIONS "Extensions" OFF)
 option(QUERYOSITY_TESTS "Tests" OFF)
