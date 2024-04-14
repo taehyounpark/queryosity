@@ -56,7 +56,7 @@ inline queryosity::dataset::processor queryosity::multithread::disable() {
 }
 
 inline queryosity::dataset::processor::processor(int suggestion)
-    : multithread::core::core(suggestion) {
+    : multithread::core::core(suggestion), m_range_slots(), m_players(), m_player_ptrs() {
   const auto nslots = this->concurrency();
   m_players = std::vector<player>(nslots);
   m_player_ptrs = std::vector<player *>(nslots, nullptr);
