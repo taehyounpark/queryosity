@@ -1472,7 +1472,7 @@ constexpr bool is_fillable_v =
 
 template <typename T> constexpr bool is_bookable_v = is_book<T>::value;
 
-template <typename Bkr> using booked_t = typename Bkr::query_type;
+template <typename Bkr> using booked_t = typename Bkr::booked_type;
 
 // mixin class to conditionally add a member variable
 template <typename Action, typename Enable = void> struct result_of {};
@@ -1741,7 +1741,7 @@ namespace queryosity {
 template <typename T> class query::booker {
 
 public:
-  using query_type = T;
+  using booked_type = T;
 
 public:
   template <typename... Args> booker(Args... args);

@@ -27,8 +27,8 @@ protected:
   template <typename Qry> auto add_query(std::unique_ptr<Qry> qry) -> Qry *;
 
 protected:
-  std::vector<std::unique_ptr<query::node>> m_query_history;
   std::vector<query::node *> m_queries;
+  std::vector<std::unique_ptr<query::node>> m_queries_history;
 };
 
 } // namespace queryosity
@@ -51,7 +51,7 @@ template <typename Qry>
 auto queryosity::query::experiment::add_query(std::unique_ptr<Qry> qry)
     -> Qry * {
   auto out = qry.get();
-  m_queries.push_back(out);
-  m_query_history.push_back(std::move(qry));
+  m_queries_history.push_back(std::move(qry));
+  m_queries.push_back(m_queries_history.back().get());
   return out;
 }

@@ -40,11 +40,15 @@ class experiment;
 
 template <typename T> class aggregation;
 
+template <typename... Ts> class fillable;
+
 template <typename T> class definition;
 
 template <typename T> class booker;
 
 template <typename T> class series;
+
+template <typename T> class calculation;
 
 template <typename T> struct output;
 
@@ -73,16 +77,16 @@ protected:
 };
 
 template <typename T>
-constexpr std::true_type check_implemented(const query::aggregation<T> &);
+constexpr std::true_type check_implemented(query::aggregation<T> const &);
 constexpr std::false_type check_implemented(...);
 
-template <typename Out, typename... Vals>
+template <typename... Vals>
 constexpr std::true_type
-check_fillable(const typename query::definition<Out(Vals...)> &);
+check_fillable(query::fillable<Vals...> const &);
 constexpr std::false_type check_fillable(...);
 
-template <typename T> struct is_book : std::false_type {};
-template <typename T> struct is_book<query::booker<T>> : std::true_type {};
+template <typename T> struct is_bookable : std::false_type {};
+template <typename T> struct is_bookable<query::booker<T>> : std::true_type {};
 
 template <typename T>
 constexpr bool is_aggregation_v =
@@ -92,9 +96,9 @@ template <typename T>
 constexpr bool is_fillable_v =
     decltype(check_fillable(std::declval<T>()))::value;
 
-template <typename T> constexpr bool is_bookable_v = is_book<T>::value;
+template <typename T> constexpr bool is_bookable_v = is_bookable<T>::value;
 
-template <typename Bkr> using booked_t = typename Bkr::query_type;
+template <typename Bkr> using booked_t = typename Bkr::booked_type;
 
 // mixin class to conditionally add a member variable
 template <typename Action, typename Enable = void> struct result_of {};

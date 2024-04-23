@@ -72,7 +72,7 @@ TEST_CASE("propagation of systematic variations")
 
     auto one = df.define(column::constant<unsigned int>(1));
     auto two = df.define(column::constant<unsigned int>(2));
-    auto one_or_two = systematic::vary(systematic::nominal(one), systematic::variation("two", two));
+    auto one_or_two = df.vary(column::nominal(one), {{"two", two}});
 
     auto two_or_two = df.vary(column::expression([](unsigned long long a) { return a*2; }),
                                {{"two", [](long long a) { return a; }}})(one_or_two);
