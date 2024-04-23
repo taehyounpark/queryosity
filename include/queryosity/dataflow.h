@@ -253,6 +253,11 @@ public:
             std::map<std::string, column::definition<Def>> const &vars)
       -> varied<todo<column::evaluator<Def>>>;
 
+  template <typename Col>
+  auto vary(column::nominal<Col> const &nom,
+            std::map<std::string, column::variation<column::value_t<Col>>> const
+                &vars) -> varied<lazy<column::value_t<Col>>>;
+
   /* "public" API for Python layer */
 
   template <typename DS>
@@ -391,6 +396,8 @@ protected:
 
 #include "column_constant.h"
 #include "column_expression.h"
+#include "column_nominal.h"
+#include "column_variation.h"
 #include "query_output.h"
 
 #include "systematic_nominal.h"
@@ -660,12 +667,17 @@ auto queryosity::dataflow::vary(
   return syst;
 }
 
-template <typename DS>
-auto queryosity::dataflow::_load(std::unique_ptr<DS> ds) {
-  auto loaded = dataset::loaded<DS>(*this, *ds);
-  m_sources.emplace_back(std::move(ds));
-  m_sources.back()->parallelize(m_processor.concurrency());
-  return loaded;
+template <typename Col>
+auto queryosity::dataflow::vary(
+    column::nominal<Col> const &nom,
+    std::map<std::string, column::variation<column::value_t<Col>>> const &vars)
+    -> varied<lazy<column::value_t<Col>>> {
+  using varied_type = varied<lazy<column::value_t<Col>>>;
+  auto sys = varied_type(std::move(nom.get()));
+  for (auto const &var : vars) {
+    sys.set_variation(var.first, std::move(var.second.get()));
+  }
+  return sys;
 }
 
 template <typename DS, typename Val>
@@ -693,7 +705,8 @@ auto queryosity::dataflow::_cut(lazy<Col> const &col) -> lazy<selection::node> {
 }
 
 template <typename Lzy>
-auto queryosity::dataflow::_cut(varied<Lzy> const &col) -> varied<lazy<selection::node>> {
+auto queryosity::dataflow::_cut(varied<Lzy> const &col)
+    -> varied<lazy<selection::node>> {
   return this->filter(col);
 }
 

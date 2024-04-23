@@ -29,6 +29,9 @@ class varied<lazy<Act>> : public dataflow::node,
 public:
   using action_type = typename lazy<Act>::action_type;
 
+  template <typename> friend class lazy;
+  template <typename> friend class varied;
+
 public:
   varied(lazy<Act> nom);
   virtual ~varied() = default;

@@ -152,27 +152,31 @@ std::unique_ptr<view<To>> view_as(view<From> const &from);
 
 class computation;
 
-template <typename T> class reader;
+template <typename> class reader;
 
-template <typename T> class fixed;
+template <typename> class fixed;
 
-template <typename T> class calculation;
+template <typename> class calculation;
 
-template <typename T> class definition;
+template <typename> class definition;
 
-template <typename T, typename U> class conversion;
+template <typename, typename U> class conversion;
 
-template <typename T> class equation;
+template <typename> class equation;
 
-template <typename T> class composition;
+template <typename> class composition;
 
-template <typename T> class evaluator;
+template <typename> class evaluator;
 
-template <typename T> struct constant;
+template <typename> struct constant;
 
-template <typename T> struct expression;
+template <typename> struct expression;
 
-template <typename T> struct series;
+template <typename> struct series;
+
+template <typename> struct nominal;
+
+template <typename> struct variation;
 
 template <typename T>
 constexpr std::true_type check_reader(typename column::reader<T> const &);

@@ -12,7 +12,7 @@ namespace queryosity {
 template <typename T> class query::booker {
 
 public:
-  using query_type = T;
+  using booked_type = T;
 
 public:
   template <typename... Args> booker(Args... args);

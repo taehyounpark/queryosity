@@ -77,7 +77,7 @@ public:
    * @returns Updated query plan filled with input columns.
    */
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::is_bookable_v<V>, bool> = false>
+            std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>>, bool> = false>
   auto fill(Nodes &&...columns) const
       -> decltype(std::declval<todo<V>>()._fill(std::declval<Nodes>()...)) {
     return this->_fill(std::forward<Nodes>(columns)...);
@@ -114,7 +114,7 @@ public:
       return this->evaluate(std::forward<Args>(columns)...);
     } else if constexpr (selection::is_applicable_v<Helper>) {
       return this->apply(std::forward<Args>(columns)...);
-    } else if constexpr (query::is_fillable_v<Helper>) {
+    } else if constexpr (query::is_bookable_v<Helper>) {
       return this->fill(std::forward<Args>(columns)...);
     }
   }
@@ -140,14 +140,14 @@ protected:
         varied<lazy<column::evaluated_t<V>>>;
 
     auto nom = this->m_df->_evaluate(*this, columns.nominal()...);
-    auto syst = varied_type(std::move(nom));
+    auto sys = varied_type(std::move(nom));
 
     for (auto const &var_name : systematic::get_variation_names(columns...)) {
       auto var = this->m_df->_evaluate(*this, columns.variation(var_name)...);
-      syst.set_variation(var_name, std::move(var));
+      sys.set_variation(var_name, std::move(var));
     }
 
-    return syst;
+    return sys;
   }
 
   template <typename... Nodes, typename V = Helper,
@@ -166,19 +166,19 @@ protected:
   auto _apply(Nodes const &...columns) const -> varied<lazy<selection::node>> {
 
     using selection_type = typename V::selection_type;
-    using varied_type = varied<lazy<column::evaluated_t<V>>>;
+    using varied_type = varied<lazy<selection::node>>;
 
     auto nom = this->m_df->template _apply<selection_type>(
         *this, columns.nominal()...);
-    auto syst = varied_type(std::move(nom));
+    auto sys = varied_type(nom);
 
     for (auto const &var_name : systematic::get_variation_names(columns...)) {
       auto var = this->m_df->template _apply<selection_type>(
           *this, columns.variation(var_name)...);
-      syst.set_variation(var_name, std::move(var));
+      sys.set_variation(var_name, var);
     }
 
-    return syst;
+    return sys;
   }
 
   template <typename Node, typename V = Helper,
@@ -195,12 +195,12 @@ protected:
                              bool> = false>
   auto _book(Node const &sel) const -> varied<lazy<query::booked_t<V>>> {
     using varied_type = varied<lazy<query::booked_t<V>>>;
-    auto syst = varied_type(this->m_df->_book(*this, sel.nominal()));
+    auto sys = varied_type(this->m_df->_book(*this, sel.nominal()));
     for (auto const &var_name : systematic::get_variation_names(sel)) {
-      syst.set_variation(var_name,
+      sys.set_variation(var_name,
                          this->m_df->_book(*this, sel.variation(var_name)));
     }
-    return syst;
+    return sys;
   }
 
   template <typename... Nodes, typename V = Helper,
@@ -225,18 +225,18 @@ protected:
     auto _book_varied =
         [var_names,
          this](systematic::resolver<lazy<selection::node>> const &sel) {
-          auto syst = varied_type(this->m_df->_book(*this, sel.nominal()));
+          auto sys = varied_type(this->m_df->_book(*this, sel.nominal()));
           for (auto const &var_name : var_names) {
-            syst.set_variation(
+            sys.set_variation(
                 var_name, this->m_df->_book(*this, sel.variation(var_name)));
           }
-          return syst;
+          return sys;
         };
     return array_of_varied_type{_book_varied(sels)...};
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>> &&
                                  queryosity::has_no_variation_v<Nodes...>,
                              bool> = false>
   auto _fill(Nodes const &...columns) const -> todo<V> {
@@ -249,17 +249,17 @@ protected:
   }
 
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::is_bookable_v<V> &&
+            std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>> &&
                                  has_variation_v<Nodes...>,
                              bool> = false>
   auto _fill(Nodes const &...columns) const -> varied<todo<Helper>> {
     using varied_type = varied<todo<V>>;
-    auto syst = varied_type(std::move(this->_fill(columns.nominal()...)));
+    auto sys = varied_type(std::move(this->_fill(columns.nominal()...)));
     for (auto const &var_name : systematic::get_variation_names(columns...)) {
-      syst.set_variation(
+      sys.set_variation(
           var_name, std::move(this->_fill(columns.variation(var_name)...)));
     }
-    return syst;
+    return sys;
   }
 
 protected:

@@ -2,6 +2,7 @@
 
 #include "query.h"
 #include "query_aggregation.h"
+#include "query_fillable.h"
 
 namespace queryosity {
 
@@ -11,7 +12,8 @@ namespace queryosity {
  * @tparam Ins Input column data types.
  */
 template <typename Out, typename... Ins>
-class query::definition<Out(Ins...)> : public query::aggregation<Out> {
+class query::definition<Out(Ins...)> : public query::aggregation<Out>,
+                                       public query::fillable<Ins...> {
 
 public:
   using vartup_type = std::tuple<column::variable<Ins>...>;
@@ -28,36 +30,18 @@ public:
    * @details This action is performed N times for a passed entry, where N is
    * the number of `fill()` calls made to its lazy node.
    */
-  virtual void fill(column::observable<Ins>... observables, double weight) = 0;
   virtual void count(double w) final override;
-
-  template <typename... Vals>
-  void enter_columns(column::view<Vals> const &...cols);
-
-protected:
-  std::vector<vartup_type> m_fills;
 };
 
 } // namespace queryosity
 
-#include "column.h"
-
-template <typename Out, typename... Ins>
-template <typename... Vals>
-void queryosity::query::definition<Out(Ins...)>::enter_columns(
-    column::view<Vals> const &...cols) {
-  static_assert(sizeof...(Ins) == sizeof...(Vals),
-                "dimension mis-match between filled variables & columns.");
-  m_fills.emplace_back(cols...);
-}
-
 template <typename Out, typename... Ins>
 void queryosity::query::definition<Out(Ins...)>::count(double w) {
-  for (unsigned int ifill = 0; ifill < m_fills.size(); ++ifill) {
+  for (unsigned int ifill = 0; ifill < this->m_fills.size(); ++ifill) {
     std::apply(
         [this, w](const column::variable<Ins> &...obs) {
           this->fill(obs..., w);
         },
-        m_fills[ifill]);
+        this->m_fills[ifill]);
   }
 }
