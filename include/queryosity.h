@@ -28,6 +28,4 @@
 #include "queryosity/todo.h"
 #include "queryosity/todo_varied.h"
 
-#include "queryosity/systematic_vary.h"
-
 namespace qty = queryosity;

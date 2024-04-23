@@ -400,9 +400,7 @@ protected:
 #include "column_variation.h"
 #include "query_output.h"
 
-#include "systematic_nominal.h"
 #include "systematic_resolver.h"
-#include "systematic_variation.h"
 
 inline queryosity::dataflow::dataflow()
     : m_processor(multithread::disable()), m_weight(1.0), m_nrows(-1),
