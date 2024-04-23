@@ -23,12 +23,12 @@ using VecI = Vec<int>;
 using VecF = Vec<float>;
 using VecD = Vec<double>;
 
-using dataflow = queryosity::dataflow;
-namespace multithread = queryosity::multithread;
-namespace dataset = queryosity::dataset;
-namespace column = queryosity::column;
-namespace query = queryosity::query;
-namespace systematic = queryosity::systematic;
+using dataflow = qty::dataflow;
+namespace multithread = qty::multithread;
+namespace dataset = qty::dataset;
+namespace column = qty::column;
+namespace query = qty::query;
+namespace systematic = qty::systematic;
 
 class DRMinMaxSel
     : public column::definition<VecI(VecF, VecF, VecF, VecF, VecF)> {

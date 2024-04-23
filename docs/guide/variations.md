@@ -1,6 +1,6 @@
 # Systematic variations
 
-To specifying systematic variations on a column, provide the nominal argument and a mapping of variation name to alternate arguments to queryosity::dataflow::vary() instead of the usual queryosity::dataflow::define().
+To specifying systematic variations on a column, provide the nominal argument and a mapping of variation name to alternate arguments to `dataflow::vary()` instead of the usual `dataflow::define()`.
 
 ## Varying columns
 

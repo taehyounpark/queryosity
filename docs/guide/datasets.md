@@ -13,7 +13,7 @@ auto col = ds.read(dataset::column<DTYPE>(NAME));
 
 ## Loading-in a dataset
 
-Call `queryosity::dataflow::load()` with an input dataset and its constructor arguments.
+Call `dataflow::load()` with an input dataset and its constructor arguments.
 
 ```cpp
 using json = qty::json;
