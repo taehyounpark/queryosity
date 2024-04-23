@@ -4,7 +4,7 @@
 
 namespace queryosity {
 
-class action : public systematic::mode {
+class action {
 
 public:
   action() = default;

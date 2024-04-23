@@ -161,9 +161,6 @@ queryosity::varied<queryosity::lazy<Act>>::operator=(
 template <typename Act>
 void queryosity::varied<queryosity::lazy<Act>>::set_variation(
     const std::string &var_name, queryosity::lazy<Act> var) {
-  ensemble::invoke(
-      [var_name](action *act) { act->set_variation_name(var_name); },
-      var.get_slots());
   m_var_map.insert(std::make_pair(var_name, std::move(var)));
   m_var_names.insert(var_name);
 }

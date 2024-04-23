@@ -41,7 +41,6 @@ protected:
 #include "dataset_column.h"
 #include "lazy.h"
 #include "lazy_varied.h"
-#include "systematic_variation.h"
 
 template <typename DS>
 queryosity::dataset::loaded<DS>::loaded(queryosity::dataflow &df, DS &ds)
