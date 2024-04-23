@@ -256,7 +256,7 @@ public:
   template <typename Col>
   auto vary(column::nominal<Col> const &nom,
             std::map<std::string, column::variation<column::value_t<Col>>> const
-                &vars) -> varied<lazy<column::value_t<Col>>>;
+                &vars) -> varied<lazy<column::valued<column::value_t<Col>>>>;
 
   /* "public" API for Python layer */
 
@@ -674,8 +674,8 @@ template <typename Col>
 auto queryosity::dataflow::vary(
     column::nominal<Col> const &nom,
     std::map<std::string, column::variation<column::value_t<Col>>> const &vars)
-    -> varied<lazy<column::value_t<Col>>> {
-  using varied_type = varied<lazy<column::value_t<Col>>>;
+    -> varied<lazy<column::valued<column::value_t<Col>>>> {
+  using varied_type = varied<lazy<column::valued<column::value_t<Col>>>>;
   auto sys = varied_type(std::move(nom.get()));
   for (auto const &var : vars) {
     sys.set_variation(var.first, std::move(var.second.get()));
