@@ -17,7 +17,7 @@ auto q = df.get(query::output<DEF>(ARGS...))
 
 ## Defining a query
 
-Call `queryosity::dataflow::get()` specifying the definition and constructor arguments of the query.
+Call `dataflow::get()` specifying the definition and constructor arguments of the query.
 
 ```{code} cpp
 using h1d = qty::hist::hist<double>;
