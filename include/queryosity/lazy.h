@@ -53,7 +53,6 @@ public:
   virtual ~lazy() = default;
 
   virtual std::vector<Action *> const &get_slots() const final override;
-  operator std::vector<Action *>() const;
 
   virtual void set_variation(const std::string &var_name,
                              lazy var) final override;
@@ -256,11 +255,6 @@ queryosity::lazy<Action>::operator lazy<Base>() const {
 template <typename Action>
 std::vector<Action *> const &queryosity::lazy<Action>::get_slots() const {
   return this->m_slots;
-}
-
-template <typename Action>
-queryosity::lazy<Action>::operator std::vector<Action *>() const {
-  return this->get_slots();
 }
 
 template <typename Action>
