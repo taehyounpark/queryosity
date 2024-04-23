@@ -8,7 +8,7 @@ template <typename> class lazy;
 
 namespace column {
 
-template <typename Col> class nominal {
+template <typename Col> struct nominal {
 
 public:
   using column_type = valued<value_t<Col>>;

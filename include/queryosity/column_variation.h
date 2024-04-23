@@ -12,7 +12,7 @@ namespace queryosity {
 
 namespace column {
 
-template <typename Val> class variation {
+template <typename Val> struct variation {
 
 public:
   template <typename Col>
