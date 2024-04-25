@@ -7,7 +7,7 @@
 [![MIT License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 
-Queryosity is a row-wise analysis description language for (semi-)structured data.
+Queryosity is a row-wise data analysis library for (semi-)structured data.
 
 - Dataflow interface.
 - Arbitrary data types.
