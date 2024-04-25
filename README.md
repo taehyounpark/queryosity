@@ -51,7 +51,7 @@ int main() {
   auto sel =
       df.weight(w)
           .filter(column::expression(
-              [](std::vector<double> const &v) { return v.size(); }))(v);
+              [](std::vector<double> const &v) { return v.size(); }))(x);
 
   auto h_x0_w = df.get(query::output<h1d>(linax(20, 0.0, 200.0)))
                     .fill(x0)
