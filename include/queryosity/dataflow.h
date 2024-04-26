@@ -410,7 +410,7 @@ queryosity::dataflow::dataflow(Kwd &&kwarg) : dataflow() {
 
 template <typename Kwd1, typename Kwd2>
 queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2) : dataflow() {
-  static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<Kwd1, Kwd2>, "each keyword argument must be unique");
   this->accept_kwarg(std::forward<Kwd1>(kwarg1));
   this->accept_kwarg(std::forward<Kwd2>(kwarg2));
 }
@@ -418,9 +418,9 @@ queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2) : dataflow() {
 template <typename Kwd1, typename Kwd2, typename Kwd3>
 queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2, Kwd3 &&kwarg3)
     : dataflow() {
-  static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
-  static_assert(!std::is_same_v<Kwd1, Kwd3>, "repeated keyword arguments.");
-  static_assert(!std::is_same_v<Kwd2, Kwd3>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<Kwd1, Kwd2>, "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd1, Kwd3>, "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd2, Kwd3>, "each keyword argument must be unique");
   this->accept_kwarg(std::forward<Kwd1>(kwarg1));
   this->accept_kwarg(std::forward<Kwd2>(kwarg2));
   this->accept_kwarg(std::forward<Kwd3>(kwarg3));
@@ -431,11 +431,11 @@ template <typename Kwd> void queryosity::dataflow::accept_kwarg(Kwd &&kwarg) {
   constexpr bool is_weight_v = std::is_same_v<Kwd, dataset::weight>;
   constexpr bool is_nrows_v = std::is_same_v<Kwd, dataset::head>;
   if constexpr (is_mt_v) {
-    m_processor = std::move(kwarg);
-  } else if (is_weight_v) {
-    m_weight = kwarg;
-  } else if (is_nrows_v) {
-    m_nrows = kwarg;
+    m_processor = std::forward<Kwd>(kwarg);
+  } else if constexpr (is_weight_v) {
+    m_weight = std::forward<Kwd>(kwarg);
+  } else if constexpr (is_nrows_v) {
+    m_nrows = std::forward<Kwd>(kwarg);
   } else {
     static_assert(is_mt_v || is_weight_v || is_nrows_v,
                   "unrecognized keyword argument");
