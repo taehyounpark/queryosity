@@ -16,12 +16,12 @@ using VecD = ROOT::RVec<double>;
 
 #include "queryosity.h"
 
-using dataflow = queryosity::dataflow;
-namespace multithread = queryosity::multithread;
-namespace dataset = queryosity::dataset;
-namespace column = queryosity::column;
-namespace query = queryosity::query;
-namespace systematic = queryosity::systematic;
+using dataflow = qty::dataflow;
+namespace multithread = qty::multithread;
+namespace dataset = qty::dataset;
+namespace column = qty::column;
+namespace query = qty::query;
+namespace systematic = qty::systematic;
 
 #include "TCanvas.h"
 #include "TH1F.h"

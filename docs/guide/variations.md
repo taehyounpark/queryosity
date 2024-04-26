@@ -1,6 +1,6 @@
 # Systematic variations
 
-To specifying systematic variations on a column, provide the nominal argument and a mapping of variation name to alternate arguments to queryosity::dataflow::vary() instead of the usual queryosity::dataflow::define().
+To specifying systematic variations on a column, provide the nominal argument and a mapping of variation name to alternate arguments to `dataflow::vary()` instead of the usual `dataflow::define()`.
 
 ## Varying columns
 
@@ -15,7 +15,7 @@ auto x = ds.read(dataset::column<double>("x_nom"));
 :sync: var
 ```{code} cpp 
 auto x = ds.vary(dataset::column<double>("x_nom"),
-                 {{"shift_x", "x_shifted"}, {"smear_x", "x_smeared"}});
+                 {{"x_up", "x_up"}, {"x_down", "x_dn"}});
 ```
 :::
 ::::
@@ -24,13 +24,13 @@ auto x = ds.vary(dataset::column<double>("x_nom"),
 :::{tab-item} Constant
 :sync: nom
 ```{code} cpp 
-auto zero = df.define(column::constant(0));
+auto x = df.define(column::constant(0));
 ```
 :::
 :::{tab-item} Varied
 :sync: var
 ```{code} cpp 
-auto pm1 = df.vary(column::constant(0), {{"plus_1", 1}, {"minus_1", -1}});
+auto x = df.vary(column::constant(0), {{"plus_1", 1}, {"minus_1", -1}});
 ```
 :::
 ::::
@@ -39,15 +39,31 @@ auto pm1 = df.vary(column::constant(0), {{"plus_1", 1}, {"minus_1", -1}});
 :::{tab-item} Expression
 :sync: nom
 ```cpp
-auto x = df.define(column::constant(0));
+auto z = df.define(column::expression([](float x, double y) { return x + y; })(x, y);
 ```
 :::
 :::{tab-item} Varied
 :sync: var
 ```cpp
-auto x =
-    df.vary(column::expression([](float x, float y) { return x + y; }),
-            {{"kill_x", [](double x, double y) { return x * y; }}})(x, pm1);
+auto z =
+    df.vary(column::expression([](float x, double y) { return x + y; }),
+            {{"times", [](double x, float y) { return x * y; }}})(x, y);
+```
+:::
+::::
+
+::::{tab-set}
+:::{tab-item} Definition
+:sync: nom
+```cpp
+auto z = df.define(column::definition<DEF>(ARGS...))(x, y);
+```
+:::
+:::{tab-item} Varied
+:sync: var
+```cpp
+auto z = df.vary(column::definition<DEF>(ARGS_NOM...),
+                 {{"var_name", {ARGS_VAR...}}})(x, y);
 ```
 :::
 ::::
@@ -65,9 +81,8 @@ auto z_half =
 :::{tab-item} Varied
 :sync: var
 ```cpp
-auto z = systematic::vary(systematic::nominal(z_nom),
-                          systematic::variation("z_fixed", f_fixed),
-                          systematic::variation("z_half", z_half));
+auto z =
+    df.vary(column::nominal(z_nom), {{"z_fixed", f_fixed}, {"z_half", z_half}});
 ```
 :::
 ::::
@@ -77,43 +92,37 @@ auto z = systematic::vary(systematic::nominal(z_nom),
 The set of variations active in a lazy action can be checked as they are propagated through the dataflow by:
 
 ```cpp
-// check variations
-x.has_variation("shift_x"); // true, x_shifted + 0
-x.has_variation("smear_x"); // true, x_smeared + 0
-x.has_variation("plus_1");  // true, x_nom + 1
-x.has_variation("minus_1"); // true, x_nom - 1
-x.has_variation("kill_x");  // true: x_nom * 0
-x.has_variation("no");      // false
-
-// propagation through selection and query
+auto x = ds.vary(dataset::column<double>("x_nom"),
+                 {{"x_up", "x_up"}, {"x_down", "x_dn"}});
 auto yn = df.vary(column::constant(true), {{"no", false}});
 
-systematic::get_variation_names(
-    x, yn); // {"shift_x", "smear_x", "plus_1", "minus_1", "kill_x", "no"}
+// check variations
+x.has_variation("x_up"); // true
+x.has_variation("x_dn"); // true
+x.has_variation("no");   // false
 
+// helper function to get active systematic variations in a set of actions
+systematic::get_variation_names(x, yn); // {"x_up", "x_dn", "no"}
+
+// systematic variations get propagated through selections & queries
 auto cut = df.filter(yn);
 auto q = df.get(column::series(x)).at(cut);
-
-q.get_variation_names(); // same set as (x, yn) above
+q.get_variation_names(); // {"x_up", "x_dn", "no"}
 ```
 
 ## Accessing varied results
 
 ```cpp
-// access nominal+variation results
-q.nominal().result();  // {x_nom_0, ..., x_nom_N}
-q["shift_x"].result(); // {x_shifted_0, ..., x_shifted_N}
-q["plus_1"].result();  // {x_nom_0 + 1, ..., x_nom_N + 1}
-q["kill_x"].result();  // {0, ..., 0}
-q["no"].result();      // {}
-```
+// access nominal+variation queries and their results
+q.nominal().result(); // {x_nom_0, ..., x_nom_N}
+q["x_up"].result();   // {x_up_0, ..., x_up_N}
+q["x_dn"].result();   // {x_dn_0, ..., x_dn_N}
+q["no"].result();     // {}
 
-```cpp
+// alternatively, use this helper function to retrieve the results
 auto q_results = systematic::get_results(q);
-
-q_results.nominal;    // {x_nom_0, ..., x_nom_N}
-q_results["shift_x"]; // {x_shifted_0, ..., x_shifted_N}
-q_results["plus_1"];  // {x_nom_0 + 1, ..., x_nom_N + 1}
-q_results["kill_x"];  // {0, ..., 0}
-q_results["no"];      // {}
+q_results.nominal;
+q_results["x_up"];
+q_results["x_dn"];
+q_results["no"];
 ```

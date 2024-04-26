@@ -237,10 +237,24 @@ public:
    */
   template <typename... Sels> auto get(selection::yield<Sels...> const &sels);
 
+  /**
+   * @brief Vary a column constant.
+   * @tparam Val Constant value type.
+   * @param[in] cnst Column constant.
+   * @param[in] vars Map of variation to value.
+   * @return Varied lazy column.
+   */
   template <typename Val>
   auto vary(column::constant<Val> const &cnst, std::map<std::string, Val> vars)
       -> varied<lazy<column::valued<Val>>>;
 
+  /**
+   * @brief Vary a column expression.
+   * @tparam Fn Expression function type.
+   * @param[in] expr Column expression.
+   * @param[in] vars Map of variation to expression.
+   * @return Varied todo column evaluator.
+   */
   template <typename Fn>
   auto
   vary(column::expression<Fn> const &expr,
@@ -248,11 +262,25 @@ public:
                 typename column::expression<Fn>::function_type> const &vars)
       -> varied<todo<column::evaluator<column::equation_t<Fn>>>>;
 
+  /**
+   * @brief Vary a column definition.
+   * @tparam Def Definition type.
+   * @param[in] defn Column definition.
+   * @param[in] vars Map of variation to definition.
+   * @return Varied todo column evaluator.
+   */
   template <typename Def>
   auto vary(column::definition<Def> const &defn,
             std::map<std::string, column::definition<Def>> const &vars)
       -> varied<todo<column::evaluator<Def>>>;
 
+  /**
+   * @brief Vary a column.
+   * @tparam Col Column type.
+   * @param[in] nom Nominal lazy column.
+   * @param[in] vars Map of variation to lazy column.
+   * @return Varied lazy column.
+   */
   template <typename Col>
   auto vary(column::nominal<Col> const &nom,
             std::map<std::string, column::variation<column::value_t<Col>>> const
