@@ -21,7 +21,9 @@ class node;
 namespace column {
 
 /**
- * @brief Define a column evaluated out of an expression.
+ * @brief Argument to define a column evaluated out of an expression in the
+ * dataflow.
+ * @tparam Expr Concrete type of C++ function, functor, or lambda.
  */
 template <typename Expr> struct expression {
 
@@ -30,6 +32,10 @@ public:
   using equation_type = equation_t<Expr>;
 
 public:
+  /**
+   * @brief Argument constructor.
+   * @param[in] expr The callable expression.
+   */
   expression(Expr expr);
   ~expression() = default;
 

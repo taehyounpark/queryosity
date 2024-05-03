@@ -13,14 +13,14 @@ class dataflow;
 
 /**
  * @ingroup api
- * @brief Argument for queryosity::dataflow::read().
+ * @brief Argument to read a column from a loaded dataset.
  * @tparam Val Column data type.
  */
 template <typename Val> class dataset::column {
 
 public:
   /**
-   * @brief Constructor.
+   * @brief Argument constructor.
    * @param[in] column_name Name of column.
    */
   column(const std::string &column_name);

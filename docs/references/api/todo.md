@@ -1,4 +1,4 @@
-# todo
+# `todo`
 
 ```{eval-rst}
 .. doxygenclass::  queryosity::todo

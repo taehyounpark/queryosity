@@ -34,9 +34,9 @@ public:
 
   /**
    * @brief Compute the quantity of interest for the entry
-   * @note Columns passed in as observables are not computed until `value()` is
+   * @note Columns observables are not computed until `value()` is
    * called.
-   * @param[in] args Input observables.
+   * @param[in] args Input column observables.
    */
   virtual Out evaluate(observable<Ins>... args) const = 0;
 
@@ -48,16 +48,16 @@ protected:
 
 /**
  * @ingroup api
- * @brief Define a custom column in dataflow.
- * @tparam Def Concrete queryosity::column::definition<Out(Ins...)>
- * implementation
+ * @brief Argument to define a custom column in the dataflow.
+ * @tparam Def Concrete implementation of
+ * `queryosity::column::definition<Out(Ins...)>`
  */
 template <typename Def> class column::definition {
 
 public:
   /**
+   * @brief Argument constructor.
    * @param[in] args Constructor arguments of @p Def.
-   * @brief Define a custom column in dataflow.
    */
   template <typename... Args> definition(Args const &...args);
 
