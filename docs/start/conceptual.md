@@ -27,7 +27,7 @@ Actions of each task sub-graph belongs to its own sub-type, and can receive acti
 ## Lazy actions
 
 Lazy action
-: An action that is not performed, i.e. initialized/executed/finalized, unless requested by the user.
+: An action that is not performed unless required by the user.
 
 ***
 
@@ -72,7 +72,6 @@ Selection
     - A series of two or more cuts becomes their intersection, `and`
   - A floating-point `weight` to assign a statistical significance to the entry.
     - A series of two or more weights becomes to their product, `*`.
-  - A cut is referred to as being *complementary* to weight and vice versa.
 
 ***
 
@@ -124,8 +123,8 @@ In the context of a dataflow, the inputs are column values and outputs are query
 
 The nominal and variations of a column can be encapsulted within a *varied* node, which can be treated functionally identical to a nominal-only one except that all nominal+variations are propagated through downstream actions implicitly:
 
-- Any column definitions and selections evaluated out of varied input columns will be varied.
-- Any queries performed with varied input columns and/or at varied selections will be varied.
+- Any dependent columns and selections evaluated out of varied columns will be varied.
+- Any queries performed with varied columns and/or selections will be varied.
 
 The propagation proceeds in the following fashion:
 
