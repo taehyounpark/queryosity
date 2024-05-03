@@ -2280,10 +2280,24 @@ public:
    */
   template <typename... Sels> auto get(selection::yield<Sels...> const &sels);
 
+  /**
+   * @brief Vary a column constant.
+   * @tparam Val Constant value type.
+   * @param[in] cnst Column constant.
+   * @param[in] vars Map of variation to value.
+   * @return Varied lazy column.
+   */
   template <typename Val>
   auto vary(column::constant<Val> const &cnst, std::map<std::string, Val> vars)
       -> varied<lazy<column::valued<Val>>>;
 
+  /**
+   * @brief Vary a column expression.
+   * @tparam Fn Expression function type.
+   * @param[in] expr Column expression.
+   * @param[in] vars Map of variation to expression.
+   * @return Varied todo column evaluator.
+   */
   template <typename Fn>
   auto
   vary(column::expression<Fn> const &expr,
@@ -2291,11 +2305,25 @@ public:
                 typename column::expression<Fn>::function_type> const &vars)
       -> varied<todo<column::evaluator<column::equation_t<Fn>>>>;
 
+  /**
+   * @brief Vary a column definition.
+   * @tparam Def Definition type.
+   * @param[in] defn Column definition.
+   * @param[in] vars Map of variation to definition.
+   * @return Varied todo column evaluator.
+   */
   template <typename Def>
   auto vary(column::definition<Def> const &defn,
             std::map<std::string, column::definition<Def>> const &vars)
       -> varied<todo<column::evaluator<Def>>>;
 
+  /**
+   * @brief Vary a column.
+   * @tparam Col Column type.
+   * @param[in] nom Nominal lazy column.
+   * @param[in] vars Map of variation to lazy column.
+   * @return Varied lazy column.
+   */
   template <typename Col>
   auto vary(column::nominal<Col> const &nom,
             std::map<std::string, column::variation<column::value_t<Col>>> const
@@ -2434,14 +2462,14 @@ namespace dataset {
 
 /**
  * @ingroup api
- * @brief Argument for queryosity::dataflow::load().
- * @tparam DS queryosity::dataset::reader implementation.
+ * @brief Argument to load a dataset input in the dataflow.
+ * @tparam DS Concrete implementation of `queryosity::dataset::reader`.
  */
 template <typename DS> struct input {
   /**
-   * @brief Constructor.
-   * @tparam Args `DS` constructor argument types.
-   * @param[in] args Constructor arguments for `DS`.
+   * @brief Argument constructor.
+   * @tparam Args Constructor arguments types for @p DS.
+   * @param[in] args Constructor arguments for @p DS.
    */
   input() = default;
   template <typename... Args> input(Args &&...args);
@@ -2504,14 +2532,14 @@ class dataflow;
 
 /**
  * @ingroup api
- * @brief Argument for queryosity::dataflow::read().
+ * @brief Argument to read a column from a loaded dataset.
  * @tparam Val Column data type.
  */
 template <typename Val> class dataset::column {
 
 public:
   /**
-   * @brief Constructor.
+   * @brief Argument constructor.
    * @param[in] column_name Name of column.
    */
   column(const std::string &column_name);
@@ -3861,11 +3889,17 @@ template <typename Val> class lazy;
 namespace column {
 
 /**
- * @brief Define a constant column in dataflow.
+ * @ingroup api
+ * @brief Argument to define a column of constant value in the dataflow.
+ * @tparam Val Data type of the constant value.
  */
 template <typename Val> struct constant {
 
 public:
+  /**
+   * @brief Argument constructor.
+   * @param[in] val Constant value.
+   */
   constant(Val const &val);
   ~constant() = default;
 
@@ -3906,7 +3940,9 @@ class node;
 namespace column {
 
 /**
- * @brief Define a column evaluated out of an expression.
+ * @brief Argument to define a column evaluated out of an expression in the
+ * dataflow.
+ * @tparam Expr Concrete type of C++ function, functor, or lambda.
  */
 template <typename Expr> struct expression {
 
@@ -3915,6 +3951,10 @@ public:
   using equation_type = equation_t<Expr>;
 
 public:
+  /**
+   * @brief Argument constructor.
+   * @param[in] expr The callable expression.
+   */
   expression(Expr expr);
   ~expression() = default;
 
@@ -4036,17 +4076,18 @@ class dataflow;
 namespace query {
 
 /**
- * @brief Plan a query
+ * @ingroup api
+ * @brief Argument to specify a query in the dataflow.
  * @tparam Qry Concrete implementation of
- * queryosity::query::definition<T(Obs...)>.
+ * `queryosity::query::definition<T(Obs...)>`.
  */
 template <typename Qry> struct output {
 
 public:
   /**
-   * @brief Constructor.
-   * @tparam Args `Qry` constructor argument types.
-   * @param args Constructor arguments.
+   * @brief Argument constructor.
+   * @tparam Args Constructor argument types for @p Qry.
+   * @param args Constructor arguments for @p Qry.
    */
   template <typename... Args> output(Args const &...args);
   ~output() = default;
@@ -4082,7 +4123,7 @@ queryosity::dataflow::dataflow(Kwd &&kwarg) : dataflow() {
 
 template <typename Kwd1, typename Kwd2>
 queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2) : dataflow() {
-  static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<Kwd1, Kwd2>, "each keyword argument must be unique");
   this->accept_kwarg(std::forward<Kwd1>(kwarg1));
   this->accept_kwarg(std::forward<Kwd2>(kwarg2));
 }
@@ -4090,9 +4131,9 @@ queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2) : dataflow() {
 template <typename Kwd1, typename Kwd2, typename Kwd3>
 queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2, Kwd3 &&kwarg3)
     : dataflow() {
-  static_assert(!std::is_same_v<Kwd1, Kwd2>, "repeated keyword arguments.");
-  static_assert(!std::is_same_v<Kwd1, Kwd3>, "repeated keyword arguments.");
-  static_assert(!std::is_same_v<Kwd2, Kwd3>, "repeated keyword arguments.");
+  static_assert(!std::is_same_v<Kwd1, Kwd2>, "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd1, Kwd3>, "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd2, Kwd3>, "each keyword argument must be unique");
   this->accept_kwarg(std::forward<Kwd1>(kwarg1));
   this->accept_kwarg(std::forward<Kwd2>(kwarg2));
   this->accept_kwarg(std::forward<Kwd3>(kwarg3));
@@ -4103,11 +4144,11 @@ template <typename Kwd> void queryosity::dataflow::accept_kwarg(Kwd &&kwarg) {
   constexpr bool is_weight_v = std::is_same_v<Kwd, dataset::weight>;
   constexpr bool is_nrows_v = std::is_same_v<Kwd, dataset::head>;
   if constexpr (is_mt_v) {
-    m_processor = std::move(kwarg);
-  } else if (is_weight_v) {
-    m_weight = kwarg;
-  } else if (is_nrows_v) {
-    m_nrows = kwarg;
+    m_processor = std::forward<Kwd>(kwarg);
+  } else if constexpr (is_weight_v) {
+    m_weight = std::forward<Kwd>(kwarg);
+  } else if constexpr (is_nrows_v) {
+    m_nrows = std::forward<Kwd>(kwarg);
   } else {
     static_assert(is_mt_v || is_weight_v || is_nrows_v,
                   "unrecognized keyword argument");
@@ -4870,9 +4911,9 @@ public:
 
   /**
    * @brief Compute the quantity of interest for the entry
-   * @note Columns passed in as observables are not computed until `value()` is
+   * @note Columns observables are not computed until `value()` is
    * called.
-   * @param[in] args Input observables.
+   * @param[in] args Input column observables.
    */
   virtual Out evaluate(observable<Ins>... args) const = 0;
 
@@ -4884,16 +4925,16 @@ protected:
 
 /**
  * @ingroup api
- * @brief Define a custom column in dataflow.
- * @tparam Def Concrete queryosity::column::definition<Out(Ins...)>
- * implementation
+ * @brief Argument to define a custom column in the dataflow.
+ * @tparam Def Concrete implementation of
+ * `queryosity::column::definition<Out(Ins...)>`
  */
 template <typename Def> class column::definition {
 
 public:
   /**
+   * @brief Argument constructor.
    * @param[in] args Constructor arguments of @p Def.
-   * @brief Define a custom column in dataflow.
    */
   template <typename... Args> definition(Args const &...args);
 
@@ -5031,7 +5072,7 @@ namespace queryosity {
 /**
  * @ingroup api
  * @brief Varied version of a todo item.
- * @details A todo varied item is functionally equivalent to a todo
+ * @details A todo varied item is functionally equivalent to a @p todo
  * node with each method being propagated to independent todo nodes
  * corresponding to nominal and systematic variations.
  */
