@@ -24,3 +24,9 @@ guide/index
 examples/index
 references/index
 ```
+
+## How to get in touch
+
+- For bug reports: [GitHub Issues](https://github.com/taehyounpark/queryosity/issues)
+- For questions/suggestions: [GitHub Discussions](https://github.com/taehyounpark/queryosity/discussions)
+- For in-person messages: [Matrix](https://matrix.to/#/#queryosity:matrix.org)
