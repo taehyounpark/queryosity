@@ -1,6 +1,6 @@
 # Systematic variations
 
-To specifying systematic variations on a column, substitute a `dataflow::define()` call with `dataflow::vary()` and a mapping of variation name to alternate column definitions as a secondary argument.
+To create systematic variations of a column, substitute its `dataflow::define()` with `dataflow::vary()` and provide a mapping of variation name to alternate column definitions as a secondary argument.
 
 ## Varying columns
 
