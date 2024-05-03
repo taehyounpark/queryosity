@@ -7,8 +7,8 @@
 3. Separate into different/same-flavour channels for electrons and muons.
 4. Require $m_{\ell\ell} > 10(12)\,\mathrm{GeV}$ for different(same)-flavour channel.
 5. Merge channels to form flavour-inclusive opposite-sign region post-$m_{\ell\ell}$ cut.
-6. In each region, plot the distribution of $p_{\mathrm{T}}^H = \left| \mathbf{p}_{\mathrm{T}}^{\ell\ell} + \mathbf{p}_{\mathrm{T}}^{\mathrm{miss}} \right|$.
-	- Scale electron(muon) energy scale by $\pm 1(2)\,\%$ as systematic variations.
+6. In each region, plot the distribution of $m_{\ell\ell}$.
+	- Vary the electron(muon) energy scale by $\pm 1(2)\,\%$ as systematic variations.
 
 ```cpp
 #include "AnaQuery/Hist.h"
@@ -74,18 +74,18 @@ int main() {
   auto mu_SF = ds.read(dataset::column<float>("scaleFactor_MUON"));
   auto el_SF = ds.read(dataset::column<float>("scaleFactor_ELE"));
   // leptons
-  auto [lep_pT, lep_eta, lep_phi, lep_E, lep_Q, lep_type] = ds.read(
+  auto [lep_pT_GeV, lep_eta, lep_phi, lep_E_GeV, lep_Q, lep_type] = ds.read(
       dataset::column<VecF>("lep_pt"), dataset::column<VecF>("lep_eta"),
       dataset::column<VecF>("lep_phi"), dataset::column<VecF>("lep_E"),
       dataset::column<VecF>("lep_charge"), dataset::column<VecUI>("lep_type"));
   // missing transverse energy
-  auto [met, met_phi] = ds.read(dataset::column<float>("met_et"),
+  auto [met_GeV, met_phi] = ds.read(dataset::column<float>("met_et"),
                                     dataset::column<float>("met_phi"));
   // units
   auto MeV = df.define(column::constant<float>(1000.0));
-  lep_pT = lep_pT / MeV;
-  lep_E = lep_E / MeV;
-  met = met / MeV;
+  auto lep_pT = lep_pT_GeV / MeV;
+  auto lep_E = lep_E_GeV / MeV;
+  auto met = met_GeV / MeV;
 
   // select electrons
   auto el_sel = lep_type == df.define(column::constant(11));
@@ -162,14 +162,6 @@ int main() {
   auto llp4 = l1p4 + l2p4;
   auto mll =
       df.define(column::expression([](const P4 &p4) { return p4.M(); }))(llp4);
-  auto higgs_pT =
-      df.define(column::expression([](const P4 &p4, float q, float q_phi) {
-        TVector2 p2;
-        p2.SetMagPhi(p4.Pt(), p4.Phi());
-        TVector2 q2;
-        q2.SetMagPhi(q, q_phi);
-        return (p2 + q2).Mod();
-      }))(llp4, met, met_phi);
 
   // compute number of leptons
   auto nlep_req = df.define(column::constant<unsigned int>(2));
@@ -209,9 +201,9 @@ int main() {
       cut_2los.filter(cut_df_presel || cut_ee_presel || cut_mm_presel);
 
   // make histograms
-  auto [pTH_2los_presel, pTH_df_presel, pTH_ee_presel, pTH_mm_presel] =
-      df.get(query::output<AnaQ::Hist<1, float>>("pTH", 30, 0, 150))
-          .fill(higgs_pT)
+  auto [h_mll_2los_presel, h_mll_df_presel, h_mll_ee_presel, h_mll_mm_presel] =
+      df.get(query::output<AnaQ::Hist<1, float>>("#it{m}_{#it{ll}}", 30, 0, 100))
+          .fill(mll)
           .at(cut_2los, cut_df_presel, cut_ee_presel, cut_mm_presel);
 
   // plot results
@@ -221,44 +213,44 @@ int main() {
   c.SetWindowSize(w + (w - c.GetWw()), h + (h - c.GetWh()));
   c.Divide(2, 2);
   c.cd(1);
-  pTH_2los_presel.nominal()->SetTitle("2LOS");
-  pTH_2los_presel.nominal()->SetLineColor(kBlack);
-  pTH_2los_presel.nominal()->Draw("ep");
-  pTH_2los_presel["el_up"]->SetLineColor(kRed);
-  pTH_2los_presel["el_up"]->Draw("same hist");
-  pTH_2los_presel["mu_dn"]->SetLineColor(kBlue);
-  pTH_2los_presel["mu_dn"]->Draw("same hist");
-  pTH_2los_presel.nominal()->Draw("same hist");
+  h_mll_2los_presel.nominal()->SetTitle("2LOS");
+  h_mll_2los_presel.nominal()->SetLineColor(kBlack);
+  h_mll_2los_presel.nominal()->Draw("ep");
+  h_mll_2los_presel["el_up"]->SetLineColor(kRed);
+  h_mll_2los_presel["el_up"]->Draw("same hist");
+  h_mll_2los_presel["mu_dn"]->SetLineColor(kBlue);
+  h_mll_2los_presel["mu_dn"]->Draw("same hist");
+  h_mll_2los_presel.nominal()->Draw("same hist");
   c.cd(2);
-  pTH_df_presel.nominal()->SetTitle("2LDF");
-  pTH_df_presel.nominal()->SetLineColor(kBlack);
-  pTH_df_presel.nominal()->Draw("ep");
-  pTH_df_presel["el_up"]->SetLineColor(kRed);
-  pTH_df_presel["el_up"]->Draw("same hist");
-  pTH_df_presel["mu_dn"]->SetLineColor(kBlue);
-  pTH_df_presel["mu_dn"]->Draw("same hist");
-  pTH_df_presel.nominal()->Draw("same hist");
+  h_mll_df_presel.nominal()->SetTitle("2LDF");
+  h_mll_df_presel.nominal()->SetLineColor(kBlack);
+  h_mll_df_presel.nominal()->Draw("ep");
+  h_mll_df_presel["el_up"]->SetLineColor(kRed);
+  h_mll_df_presel["el_up"]->Draw("same hist");
+  h_mll_df_presel["mu_dn"]->SetLineColor(kBlue);
+  h_mll_df_presel["mu_dn"]->Draw("same hist");
+  h_mll_df_presel.nominal()->Draw("same hist");
   c.cd(3);
-  pTH_ee_presel.nominal()->SetTitle("2LSF (ee)");
-  pTH_ee_presel.nominal()->SetLineColor(kBlack);
-  pTH_ee_presel.nominal()->Draw("ep");
-  pTH_ee_presel["el_up"]->SetLineColor(kRed);
-  pTH_ee_presel["el_up"]->Draw("same hist");
-  pTH_ee_presel["mu_dn"]->SetLineColor(kBlue);
-  pTH_ee_presel["mu_dn"]->Draw("same hist");
-  pTH_ee_presel.nominal()->Draw("same hist");
+  h_mll_ee_presel.nominal()->SetTitle("2LSF (#it{ee})");
+  h_mll_ee_presel.nominal()->SetLineColor(kBlack);
+  h_mll_ee_presel.nominal()->Draw("ep");
+  h_mll_ee_presel["el_up"]->SetLineColor(kRed);
+  h_mll_ee_presel["el_up"]->Draw("same hist");
+  h_mll_ee_presel["mu_dn"]->SetLineColor(kBlue);
+  h_mll_ee_presel["mu_dn"]->Draw("same hist");
+  h_mll_ee_presel.nominal()->Draw("same hist");
   c.cd(4);
-  pTH_mm_presel.nominal()->SetTitle("2LSF (mm)");
-  pTH_mm_presel.nominal()->SetLineColor(kBlack);
-  pTH_mm_presel.nominal()->Draw("ep");
-  pTH_mm_presel["el_up"]->SetLineColor(kRed);
-  pTH_mm_presel["el_up"]->Draw("same hist");
-  pTH_mm_presel["mu_dn"]->SetLineColor(kBlue);
-  pTH_mm_presel["mu_dn"]->Draw("same hist");
-  pTH_mm_presel.nominal()->Draw("same hist");
-  c.SaveAs("pTH.png");
+  h_mll_mm_presel.nominal()->SetTitle("2LSF (#it{#mu#mu})");
+  h_mll_mm_presel.nominal()->SetLineColor(kBlack);
+  h_mll_mm_presel.nominal()->Draw("ep");
+  h_mll_mm_presel["el_up"]->SetLineColor(kRed);
+  h_mll_mm_presel["el_up"]->Draw("same hist");
+  h_mll_mm_presel["mu_dn"]->SetLineColor(kBlue);
+  h_mll_mm_presel["mu_dn"]->Draw("same hist");
+  h_mll_mm_presel.nominal()->Draw("same hist");
+  c.SaveAs("mll.png");
 
   return 0;
 }
 ```
-![hww](../images/pth.png)
+![hww](../images/mll.png)

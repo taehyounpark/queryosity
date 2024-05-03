@@ -24,7 +24,7 @@ Hello World
 :::
 :::{grid-item-card}
 :link: https://queryosity.readthedocs.io/en/latest/examples/hww.html
-![hww](../images/pth.png)
+![hww](../images/mll.png)
 +++
 `TTree` analysis with systematic variations
 :::
