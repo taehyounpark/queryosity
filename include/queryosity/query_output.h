@@ -13,17 +13,18 @@ class dataflow;
 namespace query {
 
 /**
- * @brief Plan a query
+ * @ingroup api
+ * @brief Argument to specify a query in the dataflow.
  * @tparam Qry Concrete implementation of
- * queryosity::query::definition<T(Obs...)>.
+ * `queryosity::query::definition<T(Obs...)>`.
  */
 template <typename Qry> struct output {
 
 public:
   /**
-   * @brief Constructor.
-   * @tparam Args `Qry` constructor argument types.
-   * @param args Constructor arguments.
+   * @brief Argument constructor.
+   * @tparam Args Constructor argument types for @p Qry.
+   * @param args Constructor arguments for @p Qry.
    */
   template <typename... Args> output(Args const &...args);
   ~output() = default;

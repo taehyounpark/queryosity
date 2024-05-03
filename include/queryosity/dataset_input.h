@@ -10,14 +10,14 @@ namespace dataset {
 
 /**
  * @ingroup api
- * @brief Argument for queryosity::dataflow::load().
- * @tparam DS queryosity::dataset::reader implementation.
+ * @brief Argument to load a dataset input in the dataflow.
+ * @tparam DS Concrete implementation of `queryosity::dataset::reader`.
  */
 template <typename DS> struct input {
   /**
-   * @brief Constructor.
-   * @tparam Args `DS` constructor argument types.
-   * @param[in] args Constructor arguments for `DS`.
+   * @brief Argument constructor.
+   * @tparam Args Constructor arguments types for @p DS.
+   * @param[in] args Constructor arguments for @p DS.
    */
   input() = default;
   template <typename... Args> input(Args &&...args);

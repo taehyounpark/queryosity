@@ -1,4 +1,4 @@
-# dataflow
+# `dataflow`
 
 ```{eval-rst}
 .. doxygenclass:: queryosity::dataflow

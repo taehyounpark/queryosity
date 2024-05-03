@@ -1,5 +1,5 @@
 (dataset-reader)=
-# dataset::reader
+# `dataset::reader`
 
 ```{eval-rst}
 .. doxygenclass:: queryosity::dataset::reader

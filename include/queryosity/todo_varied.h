@@ -7,7 +7,7 @@ namespace queryosity {
 /**
  * @ingroup api
  * @brief Varied version of a todo item.
- * @details A todo varied item is functionally equivalent to a todo
+ * @details A todo varied item is functionally equivalent to a @p todo
  * node with each method being propagated to independent todo nodes
  * corresponding to nominal and systematic variations.
  */

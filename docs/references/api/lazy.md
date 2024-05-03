@@ -1,4 +1,4 @@
-# lazy
+# `lazy`
 
 ```{eval-rst}
 .. doxygenclass::  queryosity::lazy

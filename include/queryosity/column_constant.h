@@ -11,11 +11,17 @@ template <typename Val> class lazy;
 namespace column {
 
 /**
- * @brief Define a constant column in dataflow.
+ * @ingroup api
+ * @brief Argument to define a column of constant value in the dataflow.
+ * @tparam Val Data type of the constant value.
  */
 template <typename Val> struct constant {
 
 public:
+  /**
+   * @brief Argument constructor.
+   * @param[in] val Constant value.
+   */
   constant(Val const &val);
   ~constant() = default;
 
