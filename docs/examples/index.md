@@ -35,9 +35,9 @@ Hello World
 IRIS-HEP ADL benchmark
 :::
 :::{grid-item-card}
-:link: https://queryosity.readthedocs.io/en/latest/examples/xaod.html
+:link: https://gitlab.cern.ch/tapark/MyAnalysis/-/blob/master/utils/mee.cxx?ref_type=heads
 ![hww](../images/mee.png)
 +++
-`xAOD` analysis
+ATLAS `xAOD` analysis
 :::
 ::::
