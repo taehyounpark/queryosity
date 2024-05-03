@@ -57,23 +57,19 @@ auto all = df.filter(column::constant(true));
 auto q1x_all = q1x.at(all);
 ```
 
-Alternatively, multiple queries can be called in one line in two ways:
-::::{tab-set}
-:::{tab-item} Book a query at multiple selections
+A given query can be booked at multiple selections:
 ```{code} cpp
 auto [q1x_a, q1x_b] = q1x.at(cut_a, cut_b);
 ```
-:::
-:::{tab-item} Book multiple queries at a selection
+
+Or, multiple different queries can be booked from a selection:
 ```{code} cpp
-auto [q1x_c, q2xy_c] = c.book(q1x, q2xy);
+auto [q1x_c, q2xy_c] = cut.book(q1x, q2xy);
 ```
-:::
-::::
 
 ## Accessing results
 
-Access the result of a query turn *all* actions in the dataflow---its associated selections and columns, as well as those of all other queries---eager.
+Access the result of any query to trigger the dataset traversal for all.
 
 ```{code} cpp
 auto h1x_a = q1x_a.result(); // takes a while
