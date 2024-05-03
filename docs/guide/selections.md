@@ -85,8 +85,8 @@ auto sel_b_or_c  = df.weight(w).filter(sel_b || sel_c);
 ```
 
 :::{important}
-The mechanism for joining selections is simply that of [Basic operations](#computing-columns-operators) between columns.
-Therefore, a joined cut/weight constitutes the first selection in a new cutflow, while its complementary decision, is discarded.
+The mechanism for joining selections is provided through [Basic operations](#computing-columns-operators) between columns.
+Therefore, a joined cut/weight constitutes the first selection in a new cutflow, while its weight/cut decision, is discarded.
 These can (and should) be re-applied at any point in the new cutflow.
 :::
 
