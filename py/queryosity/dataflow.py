@@ -45,11 +45,14 @@ class LazyFlow:
     def read(self, *, dataset: dict = {}, columns: dict = {}):
         pass
 
-    def define(self, constant=None):
+    def define(self, *, constant=None):
         if constant:
             cnst = self._df._assign[type(constant)](constant)
             self._columns.append(cnst)
             return cnst
+
+    def vary(self, *, nominal=None, constsant=None, expression=None, definition=None):
+        pass
 
     def filter(self, column=None, *, constant=None, expression=None, definition=None):
         if column:
@@ -62,7 +65,7 @@ class LazyFlow:
         pass
 
 
-def from_ak(arrays, **kwargs):
+def from_awkward(arrays, **kwargs):
     df = LazyFlow(**kwargs)
     cols = []
     for array in arrays:
@@ -86,5 +89,5 @@ if __name__ == "__main__":
     )
 
     print(arr.cpp_type)
-    df, [arr] = from_ak([arr], multithread=True)
+    df, [arr] = from_awkward([arr], multithread=True)
     print(arr)
