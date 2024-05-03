@@ -1,7 +1,5 @@
 # Examples
 
-[AnaQuery](https://github.com/taehyounpark/queryosity-hep) provides the extensions for ROOT `TTree`-based datasets and `TH1`-based outputs.
-
 ```{toctree}
 :maxdepth: 1
 :hidden:
@@ -12,6 +10,10 @@ xaod.md
 iris.md
 ```
 
+## Full examples
+
+- The basic example loads a [nlohmann::json](https://github.com/nlohmann/json) to output a [boost::histogram](https://www.boost.org/doc/libs/1_85_0/libs/histogram/doc/html/index.html).
+- Extensions for [ROOT](https://root.cern/) objects are provided by [AnaQuery](https://github.com/taehyounpark/AnaQuery).
 
 ::::{grid} 2
 :gutter: 2
@@ -20,13 +22,13 @@ iris.md
 :link: https://queryosity.readthedocs.io/en/latest/examples/hello.html
 ![hist](../images/hist.png)
 +++
-Hello World
+Basic example
 :::
 :::{grid-item-card}
 :link: https://queryosity.readthedocs.io/en/latest/examples/hww.html
 ![hww](../images/mll.png)
 +++
-`TTree` analysis with systematic variations
+`TTree` + systematic variations
 :::
 :::{grid-item-card}
 :link: https://queryosity.readthedocs.io/en/latest/examples/iris.html
@@ -38,6 +40,6 @@ IRIS-HEP ADL benchmark
 :link: https://gitlab.cern.ch/tapark/MyAnalysis/-/blob/master/utils/mee.cxx?ref_type=heads
 ![hww](../images/mee.png)
 +++
-ATLAS `xAOD` analysis
+ATLAS `xAOD` + systematic variations
 :::
 ::::
