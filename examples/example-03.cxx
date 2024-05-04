@@ -3,7 +3,7 @@
 #include <vector>
 
 #include <queryosity.hpp>
-#include "queryosity/hist.h"
+#include <queryosity/hist.hpp>
 #include <queryosity/json.hpp>
 
 using dataflow = qty::dataflow;

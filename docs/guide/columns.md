@@ -87,7 +87,7 @@ Consider the following example of computing the factorial of a number, $ n! = 1 
 #include <vector>
 
 #include <queryosity.hpp>
-#include "queryosity/hist.h"
+#include <queryosity/hist.hpp>
 #include <queryosity/json.hpp>
 
 using dataflow = qty::dataflow;
