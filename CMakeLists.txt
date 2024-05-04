@@ -38,7 +38,7 @@ target_compile_features(queryosity
 
 target_compile_options(
   queryosity
-  INTERFACE -Wall -Wextra $<$<CONFIG:Release>:-O3>
+  INTERFACE -Wall -Wextra -Winvalid-pch $<$<CONFIG:Release>:-O3>
             $<$<CONFIG:RelWithDebInfo>:-O3> $<$<CONFIG:Debug>:-O0>
             $<$<CONFIG:Debug>:-ggdb3>)
 
