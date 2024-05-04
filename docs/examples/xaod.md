@@ -1,4 +1,4 @@
-# `xAOD` analysis
+# ATLAS `xAOD` + systematic variations
 
 1. Apply the MC event weight.
 2. Select for events with exactly 2 electrons with $p_{\mathrm{T}} > 10\,\mathrm{GeV}$ and $ \eta < 2.4 $.
@@ -14,7 +14,7 @@
 using VecF = ROOT::RVec<float>;
 using VecD = ROOT::RVec<double>;
 
-#include "queryosity.h"
+#include <queryosity.hpp>
 
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;

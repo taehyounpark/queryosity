@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <functional>
 
-#include "queryosity.h"
+#include <queryosity.hpp>
 
 #include "TCanvas.h"
 #include <ROOT/RVec.hxx>

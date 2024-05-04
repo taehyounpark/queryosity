@@ -18,8 +18,6 @@ bld/
 *.html
 *.temp
 *.cache
-docs/html
-docs/xml
 
 
 *.DS_Store

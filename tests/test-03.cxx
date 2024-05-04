@@ -5,10 +5,10 @@
 #include <random>
 #include <unordered_map>
 
-#include "queryosity.h"
+#include <queryosity.hpp>
 
-#include "queryosity/json.h"
-#include "queryosity/wsum.h"
+#include <queryosity/json.hpp>
+#include <queryosity/wsum.hpp>
 
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;

@@ -1,4 +1,4 @@
-# Hello World
+# Basic example
 
 ```{code} json
 [
@@ -14,9 +14,9 @@
 #include <sstream>
 #include <vector>
 
-#include "queryosity.h"
-#include "queryosity/hist.h"
-#include "queryosity/json.h"
+#include <queryosity.hpp>
+#include <queryosity/hist.hpp>
+#include <queryosity/json.hpp>
 
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;

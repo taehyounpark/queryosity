@@ -1,9 +1,9 @@
-#include "queryosity/json.h"
+#include <queryosity/json.hpp>
 #include <nlohmann/json.hpp>
 
 using json = qty::json;
 
-#include "queryosity.h"
+#include <queryosity.hpp>
 
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
