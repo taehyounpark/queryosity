@@ -16,7 +16,7 @@
 ## Single-header
 
 ```cpp
-#include "queryosity.h"
+#include <queryosity.hpp>
 ```
 
 ## CMake
@@ -43,7 +43,7 @@ target_link_libraries(MyAnalysis INTERFACE queryosity::queryosity)
 ```
 
 ```cpp
-#include "queryosity.h"
+#include <queryosity.hpp>
 ```
 
 ### Integrated
@@ -57,5 +57,5 @@ target_link_libraries(MyAnalysis INTERFACE queryosity::queryosity)
 ```
 
 ```cpp
-#include "queryosity.h"
+#include <queryosity.hpp>
 ```

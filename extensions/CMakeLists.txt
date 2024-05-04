@@ -1,4 +1,4 @@
-file(GLOB QUERYOSITY_EXT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/queryosity/*.h)
+file(GLOB QUERYOSITY_EXT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/queryosity/*.hpp)
 add_library(
   queryosity_extensions
   SHARED

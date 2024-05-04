@@ -1,10 +1,10 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include "queryosity/json.h"
+#include <queryosity/json.hpp>
 #include <nlohmann/json.hpp>
 
-#include "queryosity.h"
+#include <queryosity.hpp>
 
 #include <random>
 #include <unordered_map>

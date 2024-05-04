@@ -14,7 +14,7 @@
 using VecF = ROOT::RVec<float>;
 using VecD = ROOT::RVec<double>;
 
-#include "queryosity.h"
+#include <queryosity.hpp>
 
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;

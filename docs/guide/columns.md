@@ -86,9 +86,9 @@ Consider the following example of computing the factorial of a number, $ n! = 1 
 #include <sstream>
 #include <vector>
 
-#include "queryosity.h"
+#include <queryosity.hpp>
 #include "queryosity/hist.h"
-#include "queryosity/json.h"
+#include <queryosity/json.hpp>
 
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
