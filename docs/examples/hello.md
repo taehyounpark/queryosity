@@ -1,4 +1,4 @@
-# Hello World
+# Basic example
 
 ```{code} json
 [
