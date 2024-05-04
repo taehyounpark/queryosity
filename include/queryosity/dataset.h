@@ -32,9 +32,7 @@ template <typename T> struct input;
 
 template <typename T> class loaded;
 
-template <typename T> class column;
-
-template <typename... Ts> class columns;
+template <typename T> struct column;
 
 struct head {
   head(long long nrows) : nrows(nrows) {}

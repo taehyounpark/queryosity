@@ -7,8 +7,8 @@
 namespace queryosity {
 
 /**
- * @ingroup abcs
- * @brief The ABC of all dataflow actions (columns, selections, and queries).
+ * @ingroup abc
+ * @brief The abstract base class of all dataflow actions (columns, selections, and queries).
  * @details The order of execution of an action's methods are as follows:
  * 1. `vary()` immediately after the instantiation of an action (if it is not nominal).
  * 2. `initialize()` before entering the entry loop.

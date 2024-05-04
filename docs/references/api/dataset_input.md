@@ -1,7 +1,8 @@
+(dataset-input)=
 # `dataset::input`
 
 ```{eval-rst}
-.. doxygenclass::  queryosity::dataset::input
+.. doxygenstruct::  queryosity::dataset::input
    :project: queryosity
    :members:
 ```

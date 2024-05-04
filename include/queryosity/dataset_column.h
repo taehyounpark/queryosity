@@ -16,7 +16,7 @@ class dataflow;
  * @brief Argument to read a column from a loaded dataset.
  * @tparam Val Column data type.
  */
-template <typename Val> class dataset::column {
+template <typename Val> struct dataset::column {
 
 public:
   /**
