@@ -25,7 +25,7 @@ examples/index
 references/index
 ```
 
-## How to get in touch
+## Getting in touch
 
 - For bug reports: [GitHub Issues](https://github.com/taehyounpark/queryosity/issues)
 - For questions/suggestions: [GitHub Discussions](https://github.com/taehyounpark/queryosity/discussions)
