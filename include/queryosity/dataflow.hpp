@@ -32,13 +32,14 @@ template <typename T> class varied;
 class dataflow {
 
 public:
-  template <typename> friend class dataset::loaded;
+  template <typename> class input;
+  class node;
+
+public:
+  template <typename> friend class input;
   template <typename> friend class lazy;
   template <typename> friend class todo;
   template <typename> friend class varied;
-
-public:
-  class node;
 
 public:
   /**
@@ -80,7 +81,7 @@ public:
    * worst(as an entry will be read out multiple times concurrently).
    */
   template <typename DS>
-  auto load(dataset::input<DS> &&in) -> dataset::loaded<DS>;
+  auto load(dataset::input<DS> &&in) -> dataflow::input<DS>;
 
   /**
    * @brief Read a column from an input dataset.
@@ -379,7 +380,7 @@ protected:
   std::vector<std::unique_ptr<dataset::source>> m_sources;
   std::vector<unsigned int> m_dslots;
 
-  bool m_analyzed;
+  mutable bool m_analyzed;
 };
 
 class dataflow::node {
@@ -412,7 +413,7 @@ protected:
 } // namespace queryosity
 
 #include "dataset_input.hpp"
-#include "dataset_loaded.hpp"
+#include "dataflow_input.hpp"
 #include "dataset_player.hpp"
 
 #include "lazy.hpp"
@@ -472,14 +473,14 @@ template <typename Kwd> void queryosity::dataflow::accept_kwarg(Kwd &&kwarg) {
 
 template <typename DS>
 auto queryosity::dataflow::load(queryosity::dataset::input<DS> &&in)
-    -> queryosity::dataset::loaded<DS> {
+    -> queryosity::dataflow::input<DS> {
 
   auto ds = in.ds.get();
 
   m_sources.emplace_back(std::move(in.ds));
   m_sources.back()->parallelize(m_processor.concurrency());
 
-  return dataset::loaded<DS>(*this, *ds);
+  return dataflow::input<DS>(*this, *ds);
 }
 
 template <typename DS, typename Val>

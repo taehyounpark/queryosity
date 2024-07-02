@@ -11,8 +11,8 @@
 	- Vary the electron(muon) energy scale by $\pm 1(2)\,\%$ as systematic variations.
 
 ```cpp
-#include "AnaQuery/Hist.h"
-#include "AnaQuery/Tree.h"
+#include "AnalysisQuery/Hist.h"
+#include "AnalysisQuery/TreeData.h"
 
 #include <queryosity.hpp>
 
@@ -67,7 +67,7 @@ int main() {
   std::vector<std::string> tree_files{"hww.root"};
   std::string tree_name = "mini";
   dataflow df(multithread::disable());
-  auto ds = df.load(dataset::input<AnaQ::Tree>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<TreeData>(tree_files, tree_name));
 
   // weights
   auto mc_weight = ds.read(dataset::column<float>("mcWeight"));
@@ -202,7 +202,7 @@ int main() {
 
   // make histograms
   auto [h_mll_2los_presel, h_mll_df_presel, h_mll_ee_presel, h_mll_mm_presel] =
-      df.get(query::output<AnaQ::Hist<1, float>>("#it{m}_{#it{ll}}", 30, 0, 100))
+      df.get(query::output<Hist<1, float>>("#it{m}_{#it{ll}}", 30, 0, 100))
           .fill(mll)
           .at(cut_2los, cut_df_presel, cut_ee_presel, cut_mm_presel);
 

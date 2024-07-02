@@ -111,8 +111,8 @@ struct result_of<Action, std::enable_if_t<query::is_aggregation_v<Action>>> {
   virtual ~result_of() = default;
 
 protected:
-  result_type m_result;
-  bool m_merged;
+  mutable result_type m_result;
+  mutable bool m_merged;
 };
 
 } // namespace query

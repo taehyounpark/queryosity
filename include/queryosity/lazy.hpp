@@ -174,7 +174,7 @@ public:
   template <
       typename V = Action,
       std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
-  auto result() -> decltype(std::declval<V>().result());
+  auto result() const -> decltype(std::declval<V>().result());
 
   /**
    * @brief Shortcut for `result()`.
@@ -182,7 +182,7 @@ public:
   template <
       typename V = Action,
       std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
-  auto operator->() -> decltype(std::declval<V>().result()) {
+  auto operator->() const -> decltype(std::declval<V>().result()) {
     return this->result();
   }
 
@@ -208,7 +208,7 @@ protected:
   template <
       typename V = Action,
       std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
-  void merge_results();
+  void merge_results() const;
 
 protected:
   std::vector<Action *> m_slots;
@@ -423,7 +423,7 @@ auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
 template <typename Action>
 template <typename V,
           std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
-auto queryosity::lazy<Action>::result()
+auto queryosity::lazy<Action>::result() const
     -> decltype(std::declval<V>().result()) {
   this->m_df->analyze();
   this->merge_results();
@@ -433,7 +433,7 @@ auto queryosity::lazy<Action>::result()
 template <typename Action>
 template <typename V,
           std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> e>
-void queryosity::lazy<Action>::merge_results() {
+void queryosity::lazy<Action>::merge_results() const {
   if (this->m_merged)
     return;
   auto model = this->get_slot(0);
