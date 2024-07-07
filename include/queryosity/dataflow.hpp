@@ -403,6 +403,7 @@ public:
                           void>;
 
 public:
+  node();
   node(dataflow &df);
   virtual ~node() = default;
 
@@ -857,6 +858,8 @@ void queryosity::dataflow::_vary(Syst &syst, const std::string &name,
                                  column::definition<Def> const &defn) {
   syst.set_variation(name, this->_define(defn));
 }
+
+inline queryosity::dataflow::node::node() : m_df(nullptr) {}
 
 inline queryosity::dataflow::node::node(dataflow &df) : m_df(&df) {}
 

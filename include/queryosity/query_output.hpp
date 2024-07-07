@@ -26,7 +26,7 @@ public:
    * @tparam Args Constructor argument types for @p Qry.
    * @param args Constructor arguments for @p Qry.
    */
-  template <typename... Args> output(Args const &...args);
+  template <typename... Args> output(Args... args);
   ~output() = default;
 
   auto make(dataflow &df) const;
@@ -43,7 +43,7 @@ protected:
 
 template <typename Qry>
 template <typename... Args>
-queryosity::query::output<Qry>::output(Args const &...args)
+queryosity::query::output<Qry>::output(Args... args)
     : m_make([args...](dataflow &df) { return df._make<Qry>(args...); }) {}
 
 template <typename Qry>

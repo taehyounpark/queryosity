@@ -34,6 +34,9 @@ public:
   template <typename> friend struct column::series; // access to dataflow
 
 public:
+  lazy() = default;
+  virtual ~lazy() = default;
+
   lazy(dataflow &df, std::vector<Action *> const &slots)
       : dataflow::node(df), m_slots(slots) {}
 
@@ -49,8 +52,6 @@ public:
 
   lazy(lazy &&) = default;
   lazy &operator=(lazy &&) = default;
-
-  virtual ~lazy() = default;
 
   virtual std::vector<Action *> const &get_slots() const final override;
 
@@ -131,6 +132,16 @@ public:
    * @return (Varied) lazy query.
    */
   template <typename Qry> auto book(Qry &&qry) const;
+
+  /**
+   * @brief Book multiple queries (of the same definition) at this selection.
+   * @tparam Bkr (Varied) query booker type.
+   * @param[in] bkrs Query bookers.
+   * @details The query bookers should have already been filled with input
+   * columns (if applicable).
+   * @return List of (varied) lazy queries.
+   */
+  template <typename Bkr> auto book(std::vector<Bkr> const& bkrs) const;
 
   /**
    * @brief Book multiple queries at this selection.
@@ -399,6 +410,19 @@ auto queryosity::lazy<Action>::book(Qry &&qry) const {
 }
 
 template <typename Action>
+template <typename Bkr>
+auto queryosity::lazy<Action>::book(std::vector<Bkr> const& bkrs) const {
+  static_assert(std::is_base_of_v<selection::node, Action>,
+                "book must be called from a selection");
+  using lzy_qrys_t = std::vector<decltype(bkrs[0].at(*this))>;
+  lzy_qrys_t lzy_qrys;
+  for (auto const& bkr : bkrs) {
+    lzy_qrys.push_back(bkr.at(*this));
+  }
+  return lzy_qrys;
+}
+
+template <typename Action>
 template <typename... Qrys>
 auto queryosity::lazy<Action>::book(Qrys &&...qrys) const {
   static_assert(std::is_base_of_v<selection::node, Action>,
@@ -440,14 +464,14 @@ void queryosity::lazy<Action>::merge_results() const {
   using result_type = decltype(model->result());
   const auto nslots = this->size();
   if (nslots == 1) {
-    this->m_result = std::move(model->result());
+    this->m_result = model->result();
   } else {
     std::vector<result_type> results;
     results.reserve(nslots);
     for (size_t islot = 0; islot < nslots; ++islot) {
       results.push_back(std::move(this->get_slot(islot)->result()));
     }
-    this->m_result = std::move(model->merge(results));
+    this->m_result = model->merge(results);
   }
   this->m_merged = true;
 }
