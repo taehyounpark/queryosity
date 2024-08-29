@@ -61,15 +61,21 @@ public:
    */
   template <typename... Args> definition(Args const &...args);
 
-  auto _define(dataflow &df) const;
+  auto _define(computation &comp) const;
+
+  template <typename Sel> auto _select(selection::cutflow &cflw) const;
+
+  template <typename Sel>
+  auto _select(selection::cutflow &cflw, selection::node const &presel) const;
 
 protected:
-  std::function<todo<evaluator<Def>>(dataflow &)> m_define;
+  std::function<std::unique_ptr<evaluator<Def>>(computation &)> m_define;
 };
 
 } // namespace queryosity
 
 #include "dataflow.hpp"
+#include "selection_applicator.hpp"
 
 template <typename Out, typename... Ins>
 template <typename... Args>
@@ -93,10 +99,25 @@ Out queryosity::column::definition<Out(Ins...)>::calculate() const {
 template <typename Def>
 template <typename... Args>
 queryosity::column::definition<Def>::definition(Args const &...args) {
-  m_define = [args...](dataflow &df) { return df._define<Def>(args...); };
+  m_define = [args...](computation &comp) { return comp.define<Def>(args...); };
 }
 
 template <typename Def>
-auto queryosity::column::definition<Def>::_define(dataflow &df) const {
-  return this->m_define(df);
+auto queryosity::column::definition<Def>::_define(
+    queryosity::column::computation &comp) const {
+  return this->m_define(comp);
+}
+
+template <typename Def>
+template <typename Sel>
+auto queryosity::column::definition<Def>::_select(
+    selection::cutflow &cflw) const {
+  return cflw.template select<Sel>(nullptr, this->m_define(cflw));
+}
+
+template <typename Def>
+template <typename Sel>
+auto queryosity::column::definition<Def>::_select(
+    selection::cutflow &cflw, selection::node const &presel) const {
+  return cflw.template select<Sel>(&presel, this->m_define(cflw));
 }

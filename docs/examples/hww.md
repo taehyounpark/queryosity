@@ -11,8 +11,8 @@
 	- Vary the electron(muon) energy scale by $\pm 1(2)\,\%$ as systematic variations.
 
 ```cpp
-#include "AnalysisQuery/Hist.h"
-#include "AnalysisQuery/TreeData.h"
+#include "EventFlow/Hist.h"
+#include "EventFlow/TreeData.h"
 
 #include <queryosity.hpp>
 

@@ -124,6 +124,24 @@ public:
   auto weight(queryosity::column::expression<Expr> const &expr) const;
 
   /**
+   * @brief Compound a cut to this selection.
+   * @tparam Def Column definition type.
+   * @param[in] defn Column definition whose value is the cut decision.
+   * @return Selection evaluator.
+   */
+  template <typename Def>
+  auto filter(queryosity::column::definition<Def> const &defn) const;
+
+  /**
+   * @brief Compound a weight to from this selection.
+   * @tparam Def Column definition type.
+   * @param[in] defn Column definition whose value is the weight decision.
+   * @return Selection evaluator.
+   */
+  template <typename Def>
+  auto weight(queryosity::column::definition<Def> const &defn) const;
+
+  /**
    * @brief Book a query at this selection.
    * @tparam Qry (Varied) query booker type.
    * @param[in] qry Query booker.
@@ -395,6 +413,31 @@ auto queryosity::lazy<Action>::weight(
     queryosity::column::expression<Expr> const &expr) const {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     return this->m_df->template _select<selection::weight>(*this, expr);
+  } else {
+    static_assert(std::is_base_of_v<selection::node, Action>,
+                  "filter must be called from a selection");
+  }
+}
+
+
+template <typename Action>
+template <typename Def>
+auto queryosity::lazy<Action>::filter(
+    queryosity::column::definition<Def> const &defn) const {
+  if constexpr (std::is_base_of_v<selection::node, Action>) {
+    return this->m_df->template _select<selection::cut>(*this, defn);
+  } else {
+    static_assert(std::is_base_of_v<selection::node, Action>,
+                  "filter must be called from a selection");
+  }
+}
+
+template <typename Action>
+template <typename Def>
+auto queryosity::lazy<Action>::weight(
+    queryosity::column::definition<Def> const &defn) const {
+  if constexpr (std::is_base_of_v<selection::node, Action>) {
+    return this->m_df->template _select<selection::weight>(*this, defn);
   } else {
     static_assert(std::is_base_of_v<selection::node, Action>,
                   "filter must be called from a selection");

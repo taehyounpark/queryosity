@@ -5,8 +5,8 @@
 3. Compute & plot their di-invariant mass, $ m_{ee} $.
 
 ```cpp
-#include "AnalysisQuery/EventData.h"
-#include "AnalysisQuery/Hist.h"
+#include "EventFlow/EventData.h"
+#include "EventFlow/Hist.h"
 
 #include <xAODEgamma/ElectronContainer.h>
 #include <xAODEventInfo/EventInfo.h>

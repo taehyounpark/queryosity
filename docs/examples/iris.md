@@ -14,8 +14,8 @@
 #include "TCanvas.h"
 #include <ROOT/RVec.hxx>
 
-#include "AnalysisQuery/Hist.h"
-#include "AnalysisQuery/TreeData.h"
+#include "EventFlow/Hist.h"
+#include "EventFlow/TreeData.h"
 
 template <typename T> using Vec = ROOT::RVec<T>;
 using VecUI = Vec<unsigned int>;
