@@ -1,7 +1,7 @@
-# `query::output`
+# `query::result`
 
 ```{eval-rst}
-.. doxygenstruct::  queryosity::query::output
+.. doxygenstruct::  queryosity::query::result
    :project: queryosity
    :members:
 ```

@@ -45,13 +45,13 @@ queryosity::column::series<Col>::series(Col const &col) : m_column(col){};
 
 template <typename Col>
 auto queryosity::column::series<Col>::make(dataflow &df) const {
-  return df.get(query::output<query::series<value_type>>()).fill(m_column);
+  return df.get(query::result<query::series<value_type>>()).fill(m_column);
 }
 
 template <typename Col>
 auto queryosity::column::series<Col>::make(lazy<selection::node> &sel) const {
   auto df = sel.m_df;
-  return df->get(query::output<query::series<value_type>>())
+  return df->get(query::result<query::series<value_type>>())
       .fill(m_column)
       .at(sel);
 }
@@ -60,7 +60,7 @@ template <typename Col>
 auto queryosity::column::series<Col>::make(varied<lazy<selection::node>> &sel)
     const -> varied<lazy<query::series<value_type>>> {
   auto df = sel.nominal().m_df;
-  return df->get(query::output<query::series<value_type>>())
+  return df->get(query::result<query::series<value_type>>())
       .fill(m_column)
       .at(sel);
 }

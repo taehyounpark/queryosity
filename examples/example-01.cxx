@@ -33,7 +33,7 @@ int main() {
               [](std::vector<double> const &v) { return v.size(); }))(v)
           .filter(column::expression([](double x) { return x > 100.0; }))(x);
 
-  auto h_x0_w = df.get(query::output<h1d>(linax(20, 0.0, 200.0)))
+  auto h_x0_w = df.get(query::result<h1d>(linax(20, 0.0, 200.0)))
                     .fill(v0)
                     .at(sel)
                     .result();

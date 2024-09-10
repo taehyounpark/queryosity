@@ -202,7 +202,7 @@ int main() {
 
   // make histograms
   auto [h_mll_2los_presel, h_mll_df_presel, h_mll_ee_presel, h_mll_mm_presel] =
-      df.get(query::output<Hist<1, float>>("#it{m}_{#it{ll}}", 30, 0, 100))
+      df.get(query::result<Hist<1, float>>("#it{m}_{#it{ll}}", 30, 0, 100))
           .fill(mll)
           .at(cut_2los, cut_df_presel, cut_ee_presel, cut_mm_presel);
 

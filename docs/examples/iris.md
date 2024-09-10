@@ -109,7 +109,7 @@ void task(int n) {
       [](VecI const &goodjet) { return Sum(goodjet); }))(goodjet_mask);
 
   auto h_sumpt_goodjet =
-      df.get(query::output<Hist<1, float>>("goodjet_sumpt", 185, 15, 200))
+      df.get(query::result<Hist<1, float>>("goodjet_sumpt", 185, 15, 200))
           .fill(goodjet_sumpt)
           .at(cut_goodjet);
 

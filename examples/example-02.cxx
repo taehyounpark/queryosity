@@ -31,7 +31,7 @@ int main() {
 
   auto all = df.filter(column::constant(true));
 
-  auto h_z = df.get(query::output<h1d>(linax(20,90.0,110.0)))
+  auto h_z = df.get(query::result<h1d>(linax(20,90.0,110.0)))
                     .fill(z)
                     .at(all)
                     .result();

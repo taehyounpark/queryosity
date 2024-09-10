@@ -18,7 +18,7 @@ namespace query {
  * @tparam Qry Concrete implementation of
  * `queryosity::query::definition<T(Obs...)>`.
  */
-template <typename Qry> struct output {
+template <typename Qry> struct result {
 
 public:
   /**
@@ -26,8 +26,8 @@ public:
    * @tparam Args Constructor argument types for @p Qry.
    * @param args Constructor arguments for @p Qry.
    */
-  template <typename... Args> output(Args... args);
-  ~output() = default;
+  template <typename... Args> result(Args... args);
+  ~result() = default;
 
   auto make(dataflow &df) const;
 
@@ -43,10 +43,10 @@ protected:
 
 template <typename Qry>
 template <typename... Args>
-queryosity::query::output<Qry>::output(Args... args)
+queryosity::query::result<Qry>::result(Args... args)
     : m_make([args...](dataflow &df) { return df._make<Qry>(args...); }) {}
 
 template <typename Qry>
-auto queryosity::query::output<Qry>::make(queryosity::dataflow &df) const {
+auto queryosity::query::result<Qry>::make(queryosity::dataflow &df) const {
   return this->m_make(df);
 }

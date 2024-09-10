@@ -9,7 +9,7 @@ There are a total of three steps in fully specifying a query:
 
 :::{card} Template
 ```{code} cpp
-auto q = df.get(query::output<DEF>(ARGS...))
+auto q = df.get(query::result<DEF>(ARGS...))
              .fill(COLS...)
              .at(SELS...);
 ```
@@ -23,7 +23,7 @@ Call `dataflow::get()` specifying the definition and constructor arguments of th
 using h1d = qty::hist::hist<double>;
 using linax = qty::hist::axis::regular;
 
-auto q1 = df.get(query::output<h1d>(linax(100, 0.0, 1.0)));
+auto q1 = df.get(query::result<h1d>(linax(100, 0.0, 1.0)));
 ```
 
 ## Filling a query
@@ -37,14 +37,14 @@ A query can be filled multiple times, as long as the dimensionality of each fill
 ::::{tab-set}
 :::{tab-item} 1D histogram filled twice per-entry
 ```{code} cpp
-auto q1xy = df.get(query::output<h1d>(linax(10, 0.0, 1.0)))(x)(y);
+auto q1xy = df.get(query::result<h1d>(linax(10, 0.0, 1.0)))(x)(y);
 ```
 :::
 :::{tab-item} 2D histogram filled once per-entry
 ```{code} cpp
 using h2d = qty::hist::hist<double, double>;
 auto q2xy =
-    df.get(query::output<h2d>(linax(10, 0.0, 1.0), linax(10, 0.0, 1.0)))(x, y);
+    df.get(query::result<h2d>(linax(10, 0.0, 1.0), linax(10, 0.0, 1.0)))(x, y);
 ```
 :::
 ::::

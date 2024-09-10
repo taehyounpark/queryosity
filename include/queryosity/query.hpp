@@ -52,6 +52,8 @@ template <typename T> class calculation;
 
 template <typename T> struct output;
 
+template <typename T> struct result;
+
 class node : public action {
 
 public:

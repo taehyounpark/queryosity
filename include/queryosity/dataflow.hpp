@@ -33,10 +33,12 @@ class dataflow {
 
 public:
   template <typename> class input;
+  template <typename> class output;
   class node;
 
 public:
   template <typename> friend class input;
+  template <typename> friend class output;
   template <typename> friend class lazy;
   template <typename> friend class todo;
   template <typename> friend class varied;
@@ -242,7 +244,7 @@ public:
    * @return queryosity::todo query booker.
    */
   template <typename Qry>
-  auto get(query::output<Qry> const &output) -> todo<query::booker<Qry>>;
+  auto get(query::result<Qry> const &output) -> todo<query::booker<Qry>>;
 
   /**
    * @brief Get a column series.
@@ -455,7 +457,7 @@ protected:
 #include "column_expression.hpp"
 #include "column_nominal.hpp"
 #include "column_variation.hpp"
-#include "query_output.hpp"
+#include "query_result.hpp"
 
 #include "systematic_resolver.hpp"
 
@@ -630,7 +632,7 @@ auto queryosity::dataflow::_make(Args &&...args) -> todo<query::booker<Qry>> {
 }
 
 template <typename Qry>
-auto queryosity::dataflow::get(queryosity::query::output<Qry> const &qry)
+auto queryosity::dataflow::get(queryosity::query::result<Qry> const &qry)
     -> todo<query::booker<Qry>> {
   return qry.make(*this);
 }

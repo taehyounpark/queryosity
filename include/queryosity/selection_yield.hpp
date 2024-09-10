@@ -2,7 +2,7 @@
 
 #include "column.hpp"
 #include "dataflow.hpp"
-#include "query_output.hpp"
+#include "query_result.hpp"
 #include "selection.hpp"
 
 #include <cmath>
@@ -91,7 +91,7 @@ template <typename... Sels>
 auto queryosity::selection::yield<Sels...>::make(dataflow &df) const {
   return std::apply(
       [&df](Sels const &...sels) {
-        return df.get(query::output<counter>()).at(sels...);
+        return df.get(query::result<counter>()).at(sels...);
       },
       m_selections);
 }

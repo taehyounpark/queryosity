@@ -2262,7 +2262,7 @@ public:
    * @return queryosity::todo query booker.
    */
   template <typename Qry>
-  auto get(query::output<Qry> const &output) -> todo<query::booker<Qry>>;
+  auto get(query::result<Qry> const &output) -> todo<query::booker<Qry>>;
 
   /**
    * @brief Get a column series.
@@ -3598,13 +3598,13 @@ queryosity::column::series<Col>::series(Col const &col) : m_column(col){};
 
 template <typename Col>
 auto queryosity::column::series<Col>::make(dataflow &df) const {
-  return df.get(query::output<query::series<value_type>>()).fill(m_column);
+  return df.get(query::result<query::series<value_type>>()).fill(m_column);
 }
 
 template <typename Col>
 auto queryosity::column::series<Col>::make(lazy<selection::node> &sel) const {
   auto df = sel.m_df;
-  return df->get(query::output<query::series<value_type>>())
+  return df->get(query::result<query::series<value_type>>())
       .fill(m_column)
       .at(sel);
 }
@@ -3613,7 +3613,7 @@ template <typename Col>
 auto queryosity::column::series<Col>::make(varied<lazy<selection::node>> &sel)
     const -> varied<lazy<query::series<value_type>>> {
   auto df = sel.nominal().m_df;
-  return df->get(query::output<query::series<value_type>>())
+  return df->get(query::result<query::series<value_type>>())
       .fill(m_column)
       .at(sel);
 }
@@ -4104,11 +4104,11 @@ protected:
 
 template <typename Qry>
 template <typename... Args>
-queryosity::query::output<Qry>::output(Args const &...args)
+queryosity::query::result<Qry>::output(Args const &...args)
     : m_make([args...](dataflow &df) { return df._make<Qry>(args...); }) {}
 
 template <typename Qry>
-auto queryosity::query::output<Qry>::make(queryosity::dataflow &df) const {
+auto queryosity::query::result<Qry>::make(queryosity::dataflow &df) const {
   return this->m_make(df);
 }
 
@@ -4267,7 +4267,7 @@ auto queryosity::dataflow::_make(Args &&...args) -> todo<query::booker<Qry>> {
 }
 
 template <typename Qry>
-auto queryosity::dataflow::get(queryosity::query::output<Qry> const &qry)
+auto queryosity::dataflow::get(queryosity::query::result<Qry> const &qry)
     -> todo<query::booker<Qry>> {
   return qry.make(*this);
 }
@@ -5062,7 +5062,7 @@ template <typename... Sels>
 auto queryosity::selection::yield<Sels...>::make(dataflow &df) const {
   return std::apply(
       [&df](Sels const &...sels) {
-        return df.get(query::output<counter>()).at(sels...);
+        return df.get(query::result<counter>()).at(sels...);
       },
       m_selections);
 }
