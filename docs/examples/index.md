@@ -10,11 +10,6 @@ hww.md
 xaod.md
 ```
 
-## Full examples
-
-- The basic example loads a [nlohmann::json](https://github.com/nlohmann/json) to output a [boost::histogram](https://www.boost.org/doc/libs/1_85_0/libs/histogram/doc/html/index.html).
-- Extensions for [ROOT](https://root.cern/) objects are provided by [AnaQuery](https://github.com/taehyounpark/AnaQuery).
-
 ::::{grid} 2
 :gutter: 2
 
