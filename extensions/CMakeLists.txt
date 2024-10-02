@@ -1,4 +1,4 @@
-file(GLOB QUERYOSITY_EXT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/queryosity/*.hpp)
+file(GLOB QUERYOSITY_EXT_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/queryosity/*.hpp ${CMAKE_CURRENT_SOURCE_DIR}/queryosity/*/*.hpp)
 add_library(
   queryosity_extensions
   SHARED
@@ -18,6 +18,9 @@ target_compile_options(
 )
 
 # boost::histogram
+find_package(ROOT REQUIRED COMPONENTS Core Imt RIO Net Hist Graf Graf3d Gpad ROOTVecOps Tree TreePlayer Postscript Matrix Physics MathCore Thread MultiProc ROOTDataFrame )
+
+# boost::histogram
 find_package(Boost REQUIRED)
 
 # nlohmann::json
@@ -33,12 +36,12 @@ FetchContent_MakeAvailable(csv)
 
 target_include_directories(
   queryosity_extensions 
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS}
+  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${Boost_INCLUDE_DIRS} ${ROOT_INCLUDE_DIRS}
 )
 include(ExternalProject)
 
 target_link_libraries(
   queryosity_extensions
   INTERFACE queryosity::queryosity
-  PUBLIC nlohmann_json::nlohmann_json rapidcsv ${Boost_LIBRARIES}
+  PUBLIC nlohmann_json::nlohmann_json rapidcsv ROOT::Core ROOT::RIO ROOT::Hist ROOT::Tree ROOT::TreePlayer ROOT::Imt ROOT::ROOTVecOps ROOT::ROOTDataFrame ROOT::Physics ${Boost_LIBRARIES}
 )
