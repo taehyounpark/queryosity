@@ -9,13 +9,12 @@
 #include <cstdlib>
 #include <functional>
 
+#include <queryosity/ROOT/Hist.h>
+#include <queryosity/ROOT/Tree.h>
 #include <queryosity.hpp>
 
 #include "TCanvas.h"
 #include <ROOT/RVec.hxx>
-
-#include "EventFlow/Hist.h"
-#include "EventFlow/TreeData.h"
 
 template <typename T> using Vec = ROOT::RVec<T>;
 using VecUI = Vec<unsigned int>;
@@ -75,7 +74,7 @@ void task(int n) {
 
   std::vector<std::string> tree_files{"Run2012B_SingleMu.root"};
   std::string tree_name = "Events";
-  auto ds = df.load(dataset::input<TreeData>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<Tree>(tree_files, tree_name));
 
   auto n_jet = ds.read(dataset::column<unsigned int>("nJet"));
   auto jets_pt = ds.read(dataset::column<VecF>("Jet_pt"));

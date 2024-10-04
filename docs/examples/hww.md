@@ -11,9 +11,8 @@
 	- Vary the electron(muon) energy scale by $\pm 1(2)\,\%$ as systematic variations.
 
 ```cpp
-#include "EventFlow/Hist.h"
-#include "EventFlow/TreeData.h"
-
+#include <queryosity/ROOT/Hist.h>
+#include <queryosity/ROOT/Tree.h>
 #include <queryosity.hpp>
 
 namespace qty = queryosity;
@@ -67,7 +66,7 @@ int main() {
   std::vector<std::string> tree_files{"hww.root"};
   std::string tree_name = "mini";
   dataflow df(multithread::disable());
-  auto ds = df.load(dataset::input<TreeData>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<Tree>(tree_files, tree_name));
 
   // weights
   auto mc_weight = ds.read(dataset::column<float>("mcWeight"));
