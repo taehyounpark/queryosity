@@ -2075,7 +2075,7 @@ template <typename T> class varied;
 class dataflow {
 
 public:
-  template <typename> friend class dataset::loaded;
+  template <typename> friend class dataflow::input;
   template <typename> friend class lazy;
   template <typename> friend class todo;
   template <typename> friend class varied;
@@ -2123,7 +2123,7 @@ public:
    * worst(as an entry will be read out multiple times concurrently).
    */
   template <typename DS>
-  auto load(dataset::input<DS> &&in) -> dataset::loaded<DS>;
+  auto load(dataset::input<DS> &&in) -> dataflow::input<DS>;
 
   /**
    * @brief Read a column from an input dataset.
@@ -2545,7 +2545,7 @@ public:
   column(const std::string &column_name);
   ~column() = default;
 
-  template <typename DS> auto _read(dataset::loaded<DS> &ds) const;
+  template <typename DS> auto _read(dataflow::input<DS> &ds) const;
 
 protected:
   std::string m_name;
@@ -2560,7 +2560,7 @@ queryosity::dataset::column<Val>::column(const std::string &name)
 template <typename Val>
 template <typename DS>
 auto queryosity::dataset::column<Val>::_read(
-    queryosity::dataset::loaded<DS> &ds) const {
+    queryosity::dataflow::input<DS> &ds) const {
   return ds.template _read<Val>(this->m_name);
 }
 
@@ -3849,26 +3849,26 @@ void queryosity::lazy<Action>::merge_results() {
 }
 
 template <typename DS>
-queryosity::dataset::loaded<DS>::loaded(queryosity::dataflow &df, DS &ds)
+queryosity::dataflow::input<DS>::loaded(queryosity::dataflow &df, DS &ds)
     : m_df(&df), m_ds(&ds) {}
 
 template <typename DS>
 template <typename Val>
-auto queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col)
+auto queryosity::dataflow::input<DS>::read(dataset::column<Val> const &col)
     -> lazy<queryosity::column::valued<Val>> {
   return col.template _read(*this);
 }
 
 template <typename DS>
 template <typename... Vals>
-auto queryosity::dataset::loaded<DS>::read(
+auto queryosity::dataflow::input<DS>::read(
     dataset::column<Vals> const &...cols) {
   return std::make_tuple(cols.template _read(*this)...);
 }
 
 template <typename DS>
 template <typename Val>
-auto queryosity::dataset::loaded<DS>::vary(
+auto queryosity::dataflow::input<DS>::vary(
     dataset::column<Val> const &col,
     std::map<std::string, std::string> const &vars) {
   auto nom = this->read(col);
@@ -4157,14 +4157,14 @@ template <typename Kwd> void queryosity::dataflow::accept_kwarg(Kwd &&kwarg) {
 
 template <typename DS>
 auto queryosity::dataflow::load(queryosity::dataset::input<DS> &&in)
-    -> queryosity::dataset::loaded<DS> {
+    -> queryosity::dataflow::input<DS> {
 
   auto ds = in.ds.get();
 
   m_sources.emplace_back(std::move(in.ds));
   m_sources.back()->parallelize(m_processor.concurrency());
 
-  return dataset::loaded<DS>(*this, *ds);
+  return dataflow::input<DS>(*this, *ds);
 }
 
 template <typename DS, typename Val>

@@ -4,7 +4,7 @@ project(queryosity)
 
 option(QUERYOSITY_INSTALL "Install target" ON)
 option(QUERYOSITY_DOCS "Documentation" OFF)
-option(QUERYOSITY_EXTENSIONS "Extensions" OFF)
+option(QUERYOSITY_BACKENDS "Extensions" OFF)
 option(QUERYOSITY_TESTS "Tests" OFF)
 option(QUERYOSITY_EXAMPLES "Examples" OFF)
 
@@ -17,7 +17,7 @@ set(QUERYOSITY_VERSION
 )
 
 if(QUERYOSITY_TESTS OR QUERYOSITY_EXAMPLES)
-  set(QUERYOSITY_EXTENSIONS ON)
+  set(QUERYOSITY_BACKENDS ON)
 endif()
 
 set(QUERYOSITY_CXX_STANDARD
@@ -38,7 +38,7 @@ target_compile_features(queryosity
 
 target_compile_options(
   queryosity
-  INTERFACE -Wall -Wextra $<$<CONFIG:Release>:-O3>
+  INTERFACE -Wall -Wextra -Winvalid-pch $<$<CONFIG:Release>:-O3>
             $<$<CONFIG:RelWithDebInfo>:-O3> $<$<CONFIG:Debug>:-O0>
             $<$<CONFIG:Debug>:-ggdb3>)
 
@@ -85,10 +85,10 @@ if(QUERYOSITY_INSTALL)
 
 endif()
 
-if(QUERYOSITY_EXTENSIONS
+if(QUERYOSITY_BACKENDS
    OR QUERYOSITY_TESTS
    OR QUERYOSITY_EXAMPLES)
-  add_subdirectory("extensions")
+  add_subdirectory("backends")
 endif()
 
 if(QUERYOSITY_TESTS)

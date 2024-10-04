@@ -32,13 +32,14 @@ template <typename T> class varied;
 class dataflow {
 
 public:
-  template <typename> friend class dataset::loaded;
+  template <typename> class input;
+  class node;
+
+public:
+  template <typename> friend class input;
   template <typename> friend class lazy;
   template <typename> friend class todo;
   template <typename> friend class varied;
-
-public:
-  class node;
 
 public:
   /**
@@ -80,7 +81,7 @@ public:
    * worst(as an entry will be read out multiple times concurrently).
    */
   template <typename DS>
-  auto load(dataset::input<DS> &&in) -> dataset::loaded<DS>;
+  auto load(dataset::input<DS> &&in) -> dataflow::input<DS>;
 
   /**
    * @brief Read a column from an input dataset.
@@ -133,8 +134,8 @@ public:
    * @return Evaluator.
    */
   template <typename Def>
-  auto define(column::definition<Def> const &defn)
-      -> todo<column::evaluator<Def>>;
+  auto
+  define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
 
   /**
    * @brief Initiate a cutflow.
@@ -211,6 +212,28 @@ public:
   template <typename Fn>
   auto weight(column::expression<Fn> const &expr)
       -> todo<selection::applicator<selection::weight, column::equation_t<Fn>>>;
+
+  /**
+   * @brief Initiate a cutflow.
+   * @tparam Def Column definition type.
+   * @tparam Cols Column types.
+   * @param[in] Input (varied) columns used to evaluate cut decision.
+   * @return Lazy selection.
+   */
+  template <typename Def>
+  auto filter(column::definition<Def> const &defn)
+      -> todo<selection::applicator<selection::cut, Def>>;
+
+  /**
+   * @brief Initiate a cutflow.
+   * @tparam Def Column definition type.
+   * @tparam Cols Column types.
+   * @param[in] Input (varied) columns used to evaluate weight decision.
+   * @return Lazy (varied) selection.
+   */
+  template <typename Def>
+  auto weight(column::definition<Def> const &defn)
+      -> todo<selection::applicator<selection::weight, Def>>;
 
   /**
    * @brief Plan a query.
@@ -301,10 +324,9 @@ public:
   template <typename Lzy>
   auto _cut(varied<Lzy> const &column) -> varied<lazy<selection::node>>;
 
-  template <typename Def, typename... Args> auto _define(Args &&...args);
   template <typename Def>
-  auto _define(column::definition<Def> const &defn)
-      -> todo<column::evaluator<Def>>;
+  auto
+  _define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
 
   template <typename Fn> auto _equate(Fn fn);
   template <typename Fn>
@@ -313,15 +335,24 @@ public:
 
   template <typename Sel, typename Fn> auto _select(Fn fn);
   template <typename Sel, typename Fn>
-  auto _select(column::expression<Fn> const &expr)
-      -> todo<selection::applicator<Sel, column::equation_t<Fn>>>;
+  auto _select(lazy<selection::node> const &prev, Fn fn);
 
   template <typename Sel, typename Fn>
-  auto _select(lazy<selection::node> const &prev, Fn fn);
+  auto _select(column::expression<Fn> const &expr)
+      -> todo<selection::applicator<Sel, column::equation_t<Fn>>>;
   template <typename Sel, typename Fn>
   auto _select(lazy<selection::node> const &prev,
                column::expression<Fn> const &expr)
       -> todo<selection::applicator<Sel, column::equation_t<Fn>>>;
+
+  template <typename Sel, typename Def>
+  auto _select(column::definition<Def> const &defn)
+      -> todo<selection::applicator<Sel, Def>>;
+
+  template <typename Sel, typename Def>
+  auto _select(lazy<selection::node> const &prev,
+               column::definition<Def> const &defn)
+      -> todo<selection::applicator<Sel, Def>>;
 
   template <typename Qry, typename... Args>
   auto _make(Args &&...args) -> todo<query::booker<Qry>>;
@@ -333,8 +364,8 @@ protected:
   void reset();
 
   template <typename DS, typename Val>
-  auto _read(dataset::reader<DS> &ds, const std::string &name)
-      -> lazy<read_column_t<DS, Val>>;
+  auto _read(dataset::reader<DS> &ds,
+             const std::string &name) -> lazy<read_column_t<DS, Val>>;
 
   template <typename Def, typename... Cols>
   auto _evaluate(todo<column::evaluator<Def>> const &calc,
@@ -344,8 +375,8 @@ protected:
   auto _apply(lazy<Col> const &col) -> lazy<selection::node>;
 
   template <typename Sel, typename Col>
-  auto _apply(lazy<selection::node> const &prev, lazy<Col> const &col)
-      -> lazy<selection::node>;
+  auto _apply(lazy<selection::node> const &prev,
+              lazy<Col> const &col) -> lazy<selection::node>;
 
   template <typename Sel, typename Def, typename... Cols>
   auto _apply(todo<selection::applicator<Sel, Def>> const &calc,
@@ -379,7 +410,7 @@ protected:
   std::vector<std::unique_ptr<dataset::source>> m_sources;
   std::vector<unsigned int> m_dslots;
 
-  bool m_analyzed;
+  mutable bool m_analyzed;
 };
 
 class dataflow::node {
@@ -390,10 +421,12 @@ public:
 
 public:
   template <typename Fn, typename... Nodes>
-  static auto invoke(Fn fn, Nodes const &...nodes) -> std::enable_if_t<
-      !std::is_void_v<
-          std::invoke_result_t<Fn, typename Nodes::action_type *...>>,
-      std::vector<std::invoke_result_t<Fn, typename Nodes::action_type *...>>>;
+  static auto invoke(Fn fn, Nodes const &...nodes)
+      -> std::enable_if_t<
+          !std::is_void_v<
+              std::invoke_result_t<Fn, typename Nodes::action_type *...>>,
+          std::vector<
+              std::invoke_result_t<Fn, typename Nodes::action_type *...>>>;
 
   template <typename Fn, typename... Nodes>
   static auto invoke(Fn fn, Nodes const &...nodes)
@@ -402,6 +435,7 @@ public:
                           void>;
 
 public:
+  node();
   node(dataflow &df);
   virtual ~node() = default;
 
@@ -411,8 +445,8 @@ protected:
 
 } // namespace queryosity
 
+#include "dataflow_input.hpp"
 #include "dataset_input.hpp"
-#include "dataset_loaded.hpp"
 #include "dataset_player.hpp"
 
 #include "lazy.hpp"
@@ -438,7 +472,8 @@ queryosity::dataflow::dataflow(Kwd &&kwarg) : dataflow() {
 
 template <typename Kwd1, typename Kwd2>
 queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2) : dataflow() {
-  static_assert(!std::is_same_v<Kwd1, Kwd2>, "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd1, Kwd2>,
+                "each keyword argument must be unique");
   this->accept_kwarg(std::forward<Kwd1>(kwarg1));
   this->accept_kwarg(std::forward<Kwd2>(kwarg2));
 }
@@ -446,9 +481,12 @@ queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2) : dataflow() {
 template <typename Kwd1, typename Kwd2, typename Kwd3>
 queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2, Kwd3 &&kwarg3)
     : dataflow() {
-  static_assert(!std::is_same_v<Kwd1, Kwd2>, "each keyword argument must be unique");
-  static_assert(!std::is_same_v<Kwd1, Kwd3>, "each keyword argument must be unique");
-  static_assert(!std::is_same_v<Kwd2, Kwd3>, "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd1, Kwd2>,
+                "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd1, Kwd3>,
+                "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd2, Kwd3>,
+                "each keyword argument must be unique");
   this->accept_kwarg(std::forward<Kwd1>(kwarg1));
   this->accept_kwarg(std::forward<Kwd2>(kwarg2));
   this->accept_kwarg(std::forward<Kwd3>(kwarg3));
@@ -472,14 +510,14 @@ template <typename Kwd> void queryosity::dataflow::accept_kwarg(Kwd &&kwarg) {
 
 template <typename DS>
 auto queryosity::dataflow::load(queryosity::dataset::input<DS> &&in)
-    -> queryosity::dataset::loaded<DS> {
+    -> queryosity::dataflow::input<DS> {
 
   auto ds = in.ds.get();
 
   m_sources.emplace_back(std::move(in.ds));
   m_sources.back()->parallelize(m_processor.concurrency());
 
-  return dataset::loaded<DS>(*this, *ds);
+  return dataflow::input<DS>(*this, *ds);
 }
 
 template <typename DS, typename Val>
@@ -569,6 +607,18 @@ template <typename Fn>
 auto queryosity::dataflow::weight(column::expression<Fn> const &expr)
     -> todo<selection::applicator<selection::weight, column::equation_t<Fn>>> {
   return this->_select<selection::weight>(expr);
+}
+
+template <typename Def>
+auto queryosity::dataflow::filter(column::definition<Def> const &defn)
+    -> todo<selection::applicator<selection::cut, Def>> {
+  return this->_select<selection::cut>(defn);
+}
+
+template <typename Def>
+auto queryosity::dataflow::weight(column::definition<Def> const &defn)
+    -> todo<selection::applicator<selection::weight, Def>> {
+  return this->_select<selection::weight>(defn);
 }
 
 template <typename Qry, typename... Args>
@@ -751,21 +801,13 @@ auto queryosity::dataflow::_convert(lazy<Col> const &col)
   return lzy;
 }
 
-template <typename Def, typename... Args>
-auto queryosity::dataflow::_define(Args &&...args) {
-  return todo<column::evaluator<Def>>(*this,
-                                      ensemble::invoke(
-                                          [&args...](dataset::player *plyr) {
-                                            return plyr->template define<Def>(
-                                                std::forward<Args>(args)...);
-                                          },
-                                          m_processor.get_slots()));
-}
-
 template <typename Def>
 auto queryosity::dataflow::_define(column::definition<Def> const &defn)
     -> todo<column::evaluator<Def>> {
-  return defn._define(*this);
+  return todo<column::evaluator<Def>>(
+      *this, ensemble::invoke(
+                 [&defn](dataset::player *plyr) { return defn._define(*plyr); },
+                 m_processor.get_slots()));
 }
 
 template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
@@ -776,12 +818,6 @@ template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
           m_processor.get_slots()));
 }
 
-template <typename Fn>
-auto queryosity::dataflow::_equate(column::expression<Fn> const &expr)
-    -> todo<column::evaluator<column::equation_t<Fn>>> {
-  return expr._equate(*this);
-}
-
 template <typename Sel, typename Fn> auto queryosity::dataflow::_select(Fn fn) {
   return todo<selection::applicator<Sel, typename column::equation_t<Fn>>>(
       *this, ensemble::invoke(
@@ -789,6 +825,12 @@ template <typename Sel, typename Fn> auto queryosity::dataflow::_select(Fn fn) {
                    return plyr->template select<Sel>(nullptr, fn);
                  },
                  m_processor.get_slots()));
+}
+
+template <typename Fn>
+auto queryosity::dataflow::_equate(column::expression<Fn> const &expr)
+    -> todo<column::evaluator<column::equation_t<Fn>>> {
+  return expr._equate(*this);
 }
 
 template <typename Sel, typename Fn>
@@ -812,6 +854,29 @@ auto queryosity::dataflow::_select(lazy<selection::node> const &prev,
                                    column::expression<Fn> const &expr)
     -> todo<selection::applicator<Sel, column::equation_t<Fn>>> {
   return expr.template _select<Sel>(*this, prev);
+}
+
+template <typename Sel, typename Def>
+auto queryosity::dataflow::_select(column::definition<Def> const &defn)
+    -> todo<selection::applicator<Sel, Def>> {
+  return todo<selection::applicator<Sel, Def>>(
+      *this, ensemble::invoke(
+                 [&defn](dataset::player *plyr) {
+                   return defn.template _select<Sel>(*plyr);
+                 },
+                 m_processor.get_slots()));
+}
+
+template <typename Sel, typename Def>
+auto queryosity::dataflow::_select(lazy<selection::node> const &prev,
+                                   column::definition<Def> const &defn)
+    -> todo<selection::applicator<Sel, Def>> {
+  return todo<selection::applicator<Sel, Def>>(
+      *this, ensemble::invoke(
+                 [&defn](dataset::player *plyr, selection::node const *prev) {
+                   return defn.template _select<Sel>(*plyr, *prev);
+                 },
+                 m_processor.get_slots(), prev.get_slots()));
 }
 
 template <typename Sel, typename Col>
@@ -856,6 +921,8 @@ void queryosity::dataflow::_vary(Syst &syst, const std::string &name,
                                  column::definition<Def> const &defn) {
   syst.set_variation(name, this->_define(defn));
 }
+
+inline queryosity::dataflow::node::node() : m_df(nullptr) {}
 
 inline queryosity::dataflow::node::node(dataflow &df) : m_df(&df) {}
 

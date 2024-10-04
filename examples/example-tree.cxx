@@ -1,28 +1,18 @@
-# `TTree` analysis with systematic variations
-
-- Simulated $gg \to H \to WW* \to \ell\nu\ell\nu$ events: [ATLAS open data](https://opendata.cern.ch/record/3825).
-
-1. Apply the MC event weight.
-2. Select entries for which there are exactly two opposite-sign leptons in the event.
-3. Separate into different/same-flavour channels for electrons and muons.
-4. Require $m_{\ell\ell} > 10(12)\,\mathrm{GeV}$ for different(same)-flavour channel.
-5. Merge channels to form flavour-inclusive opposite-sign region post-$m_{\ell\ell}$ cut.
-6. In each region, plot the distribution of $m_{\ell\ell}$.
-	- Vary the electron(muon) energy scale by $\pm 1(2)\,\%$ as systematic variations.
-
-```cpp
-#include "EventFlow/Hist.h"
-#include "EventFlow/TreeData.h"
 
 #include <queryosity.hpp>
+#include <queryosity/ROOT/Hist.hpp>
+#include <queryosity/ROOT/Tree.hpp>
 
-namespace qty = queryosity;
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
 namespace dataset = qty::dataset;
 namespace column = qty::column;
 namespace query = qty::query;
 namespace systematic = qty::systematic;
+
+using Tree = qty::ROOT::Tree;
+template <unsigned int Dim, typename Prec>
+using Hist = qty::ROOT::Hist<Dim, Prec>;
 
 #include "Math/Vector4D.h"
 #include "TCanvas.h"
@@ -67,7 +57,7 @@ int main() {
   std::vector<std::string> tree_files{"hww.root"};
   std::string tree_name = "mini";
   dataflow df(multithread::disable());
-  auto ds = df.load(dataset::input<TreeData>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<Tree>(tree_files, tree_name));
 
   // weights
   auto mc_weight = ds.read(dataset::column<float>("mcWeight"));
@@ -162,6 +152,14 @@ int main() {
   auto llp4 = l1p4 + l2p4;
   auto mll =
       df.define(column::expression([](const P4 &p4) { return p4.M(); }))(llp4);
+  auto higgs_pT =
+      df.define(column::expression([](const P4 &p4, float q, float q_phi) {
+        TVector2 p2;
+        p2.SetMagPhi(p4.Pt(), p4.Phi());
+        TVector2 q2;
+        q2.SetMagPhi(q, q_phi);
+        return (p2 + q2).Mod();
+      }))(llp4, met, met_phi);
 
   // compute number of leptons
   auto nlep_req = df.define(column::constant<unsigned int>(2));
@@ -201,9 +199,9 @@ int main() {
       cut_2los.filter(cut_df_presel || cut_ee_presel || cut_mm_presel);
 
   // make histograms
-  auto [h_mll_2los_presel, h_mll_df_presel, h_mll_ee_presel, h_mll_mm_presel] =
-      df.get(query::output<Hist<1, float>>("#it{m}_{#it{ll}}", 30, 0, 100))
-          .fill(mll)
+  auto [pTH_2los_presel, pTH_df_presel, pTH_ee_presel, pTH_mm_presel] =
+      df.get(query::output<Hist<1, float>>("pTH", 30, 0, 150))
+          .fill(higgs_pT)
           .at(cut_2los, cut_df_presel, cut_ee_presel, cut_mm_presel);
 
   // plot results
@@ -213,44 +211,42 @@ int main() {
   c.SetWindowSize(w + (w - c.GetWw()), h + (h - c.GetWh()));
   c.Divide(2, 2);
   c.cd(1);
-  h_mll_2los_presel.nominal()->SetTitle("2LOS");
-  h_mll_2los_presel.nominal()->SetLineColor(kBlack);
-  h_mll_2los_presel.nominal()->Draw("ep");
-  h_mll_2los_presel["el_up"]->SetLineColor(kRed);
-  h_mll_2los_presel["el_up"]->Draw("same hist");
-  h_mll_2los_presel["mu_dn"]->SetLineColor(kBlue);
-  h_mll_2los_presel["mu_dn"]->Draw("same hist");
-  h_mll_2los_presel.nominal()->Draw("same hist");
+  pTH_2los_presel.nominal()->SetTitle("2LOS");
+  pTH_2los_presel.nominal()->SetLineColor(kBlack);
+  pTH_2los_presel.nominal()->Draw("ep");
+  pTH_2los_presel["el_up"]->SetLineColor(kRed);
+  pTH_2los_presel["el_up"]->Draw("same hist");
+  pTH_2los_presel["mu_dn"]->SetLineColor(kBlue);
+  pTH_2los_presel["mu_dn"]->Draw("same hist");
+  pTH_2los_presel.nominal()->Draw("same hist");
   c.cd(2);
-  h_mll_df_presel.nominal()->SetTitle("2LDF");
-  h_mll_df_presel.nominal()->SetLineColor(kBlack);
-  h_mll_df_presel.nominal()->Draw("ep");
-  h_mll_df_presel["el_up"]->SetLineColor(kRed);
-  h_mll_df_presel["el_up"]->Draw("same hist");
-  h_mll_df_presel["mu_dn"]->SetLineColor(kBlue);
-  h_mll_df_presel["mu_dn"]->Draw("same hist");
-  h_mll_df_presel.nominal()->Draw("same hist");
+  pTH_df_presel.nominal()->SetTitle("2LDF");
+  pTH_df_presel.nominal()->SetLineColor(kBlack);
+  pTH_df_presel.nominal()->Draw("ep");
+  pTH_df_presel["el_up"]->SetLineColor(kRed);
+  pTH_df_presel["el_up"]->Draw("same hist");
+  pTH_df_presel["mu_dn"]->SetLineColor(kBlue);
+  pTH_df_presel["mu_dn"]->Draw("same hist");
+  pTH_df_presel.nominal()->Draw("same hist");
   c.cd(3);
-  h_mll_ee_presel.nominal()->SetTitle("2LSF (#it{ee})");
-  h_mll_ee_presel.nominal()->SetLineColor(kBlack);
-  h_mll_ee_presel.nominal()->Draw("ep");
-  h_mll_ee_presel["el_up"]->SetLineColor(kRed);
-  h_mll_ee_presel["el_up"]->Draw("same hist");
-  h_mll_ee_presel["mu_dn"]->SetLineColor(kBlue);
-  h_mll_ee_presel["mu_dn"]->Draw("same hist");
-  h_mll_ee_presel.nominal()->Draw("same hist");
+  pTH_ee_presel.nominal()->SetTitle("2LSF (ee)");
+  pTH_ee_presel.nominal()->SetLineColor(kBlack);
+  pTH_ee_presel.nominal()->Draw("ep");
+  pTH_ee_presel["el_up"]->SetLineColor(kRed);
+  pTH_ee_presel["el_up"]->Draw("same hist");
+  pTH_ee_presel["mu_dn"]->SetLineColor(kBlue);
+  pTH_ee_presel["mu_dn"]->Draw("same hist");
+  pTH_ee_presel.nominal()->Draw("same hist");
   c.cd(4);
-  h_mll_mm_presel.nominal()->SetTitle("2LSF (#it{#mu#mu})");
-  h_mll_mm_presel.nominal()->SetLineColor(kBlack);
-  h_mll_mm_presel.nominal()->Draw("ep");
-  h_mll_mm_presel["el_up"]->SetLineColor(kRed);
-  h_mll_mm_presel["el_up"]->Draw("same hist");
-  h_mll_mm_presel["mu_dn"]->SetLineColor(kBlue);
-  h_mll_mm_presel["mu_dn"]->Draw("same hist");
-  h_mll_mm_presel.nominal()->Draw("same hist");
-  c.SaveAs("mll.png");
+  pTH_mm_presel.nominal()->SetTitle("2LSF (mm)");
+  pTH_mm_presel.nominal()->SetLineColor(kBlack);
+  pTH_mm_presel.nominal()->Draw("ep");
+  pTH_mm_presel["el_up"]->SetLineColor(kRed);
+  pTH_mm_presel["el_up"]->Draw("same hist");
+  pTH_mm_presel["mu_dn"]->SetLineColor(kBlue);
+  pTH_mm_presel["mu_dn"]->Draw("same hist");
+  pTH_mm_presel.nominal()->Draw("same hist");
+  c.SaveAs("pTH.png");
 
   return 0;
 }
-```
-![hww](../images/mll.png)

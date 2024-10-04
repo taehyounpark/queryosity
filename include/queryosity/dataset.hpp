@@ -30,8 +30,6 @@ template <typename T> class reader;
 
 template <typename T> struct input;
 
-template <typename T> class loaded;
-
 template <typename T> struct column;
 
 struct head {

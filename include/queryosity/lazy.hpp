@@ -34,6 +34,9 @@ public:
   template <typename> friend struct column::series; // access to dataflow
 
 public:
+  lazy() = default;
+  virtual ~lazy() = default;
+
   lazy(dataflow &df, std::vector<Action *> const &slots)
       : dataflow::node(df), m_slots(slots) {}
 
@@ -49,8 +52,6 @@ public:
 
   lazy(lazy &&) = default;
   lazy &operator=(lazy &&) = default;
-
-  virtual ~lazy() = default;
 
   virtual std::vector<Action *> const &get_slots() const final override;
 
@@ -123,6 +124,24 @@ public:
   auto weight(queryosity::column::expression<Expr> const &expr) const;
 
   /**
+   * @brief Compound a cut to this selection.
+   * @tparam Def Column definition type.
+   * @param[in] defn Column definition whose value is the cut decision.
+   * @return Selection evaluator.
+   */
+  template <typename Def>
+  auto filter(queryosity::column::definition<Def> const &defn) const;
+
+  /**
+   * @brief Compound a weight to from this selection.
+   * @tparam Def Column definition type.
+   * @param[in] defn Column definition whose value is the weight decision.
+   * @return Selection evaluator.
+   */
+  template <typename Def>
+  auto weight(queryosity::column::definition<Def> const &defn) const;
+
+  /**
    * @brief Book a query at this selection.
    * @tparam Qry (Varied) query booker type.
    * @param[in] qry Query booker.
@@ -131,6 +150,16 @@ public:
    * @return (Varied) lazy query.
    */
   template <typename Qry> auto book(Qry &&qry) const;
+
+  /**
+   * @brief Book multiple queries (of the same definition) at this selection.
+   * @tparam Bkr (Varied) query booker type.
+   * @param[in] bkrs Query bookers.
+   * @details The query bookers should have already been filled with input
+   * columns (if applicable).
+   * @return List of (varied) lazy queries.
+   */
+  template <typename Bkr> auto book(std::vector<Bkr> const &bkrs) const;
 
   /**
    * @brief Book multiple queries at this selection.
@@ -174,7 +203,7 @@ public:
   template <
       typename V = Action,
       std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
-  auto result() -> decltype(std::declval<V>().result());
+  auto result() const -> decltype(std::declval<V>().result());
 
   /**
    * @brief Shortcut for `result()`.
@@ -182,7 +211,7 @@ public:
   template <
       typename V = Action,
       std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
-  auto operator->() -> decltype(std::declval<V>().result()) {
+  auto operator->() const -> decltype(std::declval<V>().result()) {
     return this->result();
   }
 
@@ -208,7 +237,7 @@ protected:
   template <
       typename V = Action,
       std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
-  void merge_results();
+  void merge_results() const;
 
 protected:
   std::vector<Action *> m_slots;
@@ -391,11 +420,48 @@ auto queryosity::lazy<Action>::weight(
 }
 
 template <typename Action>
+template <typename Def>
+auto queryosity::lazy<Action>::filter(
+    queryosity::column::definition<Def> const &defn) const {
+  if constexpr (std::is_base_of_v<selection::node, Action>) {
+    return this->m_df->template _select<selection::cut>(*this, defn);
+  } else {
+    static_assert(std::is_base_of_v<selection::node, Action>,
+                  "filter must be called from a selection");
+  }
+}
+
+template <typename Action>
+template <typename Def>
+auto queryosity::lazy<Action>::weight(
+    queryosity::column::definition<Def> const &defn) const {
+  if constexpr (std::is_base_of_v<selection::node, Action>) {
+    return this->m_df->template _select<selection::weight>(*this, defn);
+  } else {
+    static_assert(std::is_base_of_v<selection::node, Action>,
+                  "filter must be called from a selection");
+  }
+}
+
+template <typename Action>
 template <typename Qry>
 auto queryosity::lazy<Action>::book(Qry &&qry) const {
   static_assert(std::is_base_of_v<selection::node, Action>,
                 "book must be called from a selection");
   return qry.at(*this);
+}
+
+template <typename Action>
+template <typename Bkr>
+auto queryosity::lazy<Action>::book(std::vector<Bkr> const &bkrs) const {
+  static_assert(std::is_base_of_v<selection::node, Action>,
+                "book must be called from a selection");
+  using lzy_qrys_t = std::vector<decltype(bkrs[0].at(*this))>;
+  lzy_qrys_t lzy_qrys;
+  for (auto const &bkr : bkrs) {
+    lzy_qrys.push_back(bkr.at(*this));
+  }
+  return lzy_qrys;
 }
 
 template <typename Action>
@@ -423,7 +489,7 @@ auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
 template <typename Action>
 template <typename V,
           std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
-auto queryosity::lazy<Action>::result()
+auto queryosity::lazy<Action>::result() const
     -> decltype(std::declval<V>().result()) {
   this->m_df->analyze();
   this->merge_results();
@@ -433,21 +499,21 @@ auto queryosity::lazy<Action>::result()
 template <typename Action>
 template <typename V,
           std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> e>
-void queryosity::lazy<Action>::merge_results() {
+void queryosity::lazy<Action>::merge_results() const {
   if (this->m_merged)
     return;
   auto model = this->get_slot(0);
   using result_type = decltype(model->result());
   const auto nslots = this->size();
   if (nslots == 1) {
-    this->m_result = std::move(model->result());
+    this->m_result = model->result();
   } else {
     std::vector<result_type> results;
     results.reserve(nslots);
     for (size_t islot = 0; islot < nslots; ++islot) {
       results.push_back(std::move(this->get_slot(islot)->result()));
     }
-    this->m_result = std::move(model->merge(results));
+    this->m_result = model->merge(results);
   }
   this->m_merged = true;
 }

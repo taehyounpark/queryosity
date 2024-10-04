@@ -18,6 +18,9 @@ public:
 public:
   template <typename... Args>
   applicator(selection::node const *prev, Args const &...args);
+
+  applicator(selection::node const *prev, column::evaluator<Def> &&eval);
+
   virtual ~applicator() = default;
 
   template <typename... Vals>
@@ -35,6 +38,11 @@ template <typename... Args>
 queryosity::selection::applicator<Sel, Def>::applicator(
     selection::node const *prev, Args const &...args)
     : column::evaluator<Def>(args...), m_prev(prev) {}
+
+template <typename Sel, typename Def>
+queryosity::selection::applicator<Sel, Def>::applicator(
+    selection::node const *prev, column::evaluator<Def> &&eval)
+    : column::evaluator<Def>(std::move(eval)), m_prev(prev) {}
 
 template <typename Sel, typename Def>
 template <typename... Vals>

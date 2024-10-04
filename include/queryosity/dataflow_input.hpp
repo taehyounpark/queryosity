@@ -7,13 +7,11 @@
 
 namespace queryosity {
 
-namespace dataset {
-
-template <typename DS> class loaded {
+template <typename DS> class dataflow::input {
 
 public:
-  loaded(dataflow &df, DS &ds);
-  ~loaded() = default;
+  input(dataflow &df, DS &ds);
+  ~input() = default;
 
   template <typename Val> auto _read(const std::string &name) {
     return m_df->_read<DS, Val>(*m_ds, name);
@@ -34,8 +32,6 @@ protected:
   dataset::reader<DS> *m_ds;
 };
 
-} // namespace dataset
-
 } // namespace queryosity
 
 #include "dataset_column.hpp"
@@ -43,26 +39,26 @@ protected:
 #include "lazy_varied.hpp"
 
 template <typename DS>
-queryosity::dataset::loaded<DS>::loaded(queryosity::dataflow &df, DS &ds)
+queryosity::dataflow::input<DS>::input(queryosity::dataflow &df, DS &ds)
     : m_df(&df), m_ds(&ds) {}
 
 template <typename DS>
 template <typename Val>
-auto queryosity::dataset::loaded<DS>::read(dataset::column<Val> const &col)
+auto queryosity::dataflow::input<DS>::read(dataset::column<Val> const &col)
     -> lazy<queryosity::column::valued<Val>> {
   return col.template _read(*this);
 }
 
 template <typename DS>
 template <typename... Vals>
-auto queryosity::dataset::loaded<DS>::read(
+auto queryosity::dataflow::input<DS>::read(
     dataset::column<Vals> const &...cols) {
   return std::make_tuple(cols.template _read(*this)...);
 }
 
 template <typename DS>
 template <typename Val>
-auto queryosity::dataset::loaded<DS>::vary(
+auto queryosity::dataflow::input<DS>::vary(
     dataset::column<Val> const &col,
     std::map<std::string, std::string> const &vars) {
   auto nom = this->read(col);

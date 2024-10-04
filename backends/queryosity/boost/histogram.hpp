@@ -8,10 +8,12 @@
 
 namespace queryosity {
 
+namespace boost {
+
 /**
  * @brief `boost::histogram` extension for queryosity
  */
-namespace hist {
+namespace histogram {
 
 /**
  * @ingroup ext
@@ -20,21 +22,21 @@ namespace hist {
 namespace axis {
 
 /// Boolean bin edges.
-using boolean = boost::histogram::axis::boolean<>;
+using boolean = ::boost::histogram::axis::boolean<>;
 /// Integer bin edges.
-using integer = boost::histogram::axis::integer<>;
+using integer = ::boost::histogram::axis::integer<>;
 /// Numerical bin edges (regular width).
-using regular = boost::histogram::axis::regular<>;
+using regular = ::boost::histogram::axis::regular<>;
 /// Numerical bin edges (variable width).
-using variable = boost::histogram::axis::variable<>;
+using variable = ::boost::histogram::axis::variable<>;
 
 using axis_t =
-    boost::histogram::axis::variant<boolean, regular, integer, variable>;
+    ::boost::histogram::axis::variant<boolean, regular, integer, variable>;
 
 } // namespace axis
 
 using axes_t = std::vector<axis::axis_t>;
-using hist_t = boost::histogram::histogram<axes_t>;
+using histogram_t = ::boost::histogram::histogram<axes_t>;
 
 /**
  * @ingroup ext
@@ -44,8 +46,8 @@ using hist_t = boost::histogram::histogram<axes_t>;
  * dimensionality of the histogram.
  */
 template <typename... Vals>
-class hist
-    : public queryosity::query::definition<std::shared_ptr<hist_t>(Vals...)> {
+class histogram
+    : public queryosity::query::definition<std::shared_ptr<histogram_t>(Vals...)> {
 
 public:
 public:
@@ -55,8 +57,8 @@ public:
    * @details The number of axis arguments provided must match the
    * dimensionality of the histogram.
    */
-  template <typename... Axes> hist(Axes &&...axes);
-  ~hist() = default;
+  template <typename... Axes> histogram(Axes &&...axes);
+  ~histogram() = default;
 
   /**
    * @brief Fill histogram with input columns.
@@ -70,48 +72,51 @@ public:
    * @brief Retrieve the result.
    * @return The (smart pointer to) histogram.
    */
-  virtual std::shared_ptr<hist_t> result() const final override;
+  virtual std::shared_ptr<histogram_t> result() const final override;
 
   /**
    * @brief Merge results from multithreaded runs.
    * @param[in] results Result from each multithreaded slot.
    * @return Merged histogram.
    */
-  virtual std::shared_ptr<hist_t>
-  merge(std::vector<std::shared_ptr<hist_t>> const &results) const final override;
+  virtual std::shared_ptr<histogram_t>
+  merge(std::vector<std::shared_ptr<histogram_t>> const &results) const final override;
 
 protected:
-  std::shared_ptr<hist_t> m_hist;
+  std::shared_ptr<histogram_t> m_histogram;
 };
 
-} // namespace hist
+} // namespace histogram
+
+
+}
 
 } // namespace queryosity
 
 template <typename... Vals>
 template <typename... Axes>
-queryosity::hist::hist<Vals...>::hist(Axes &&...axes) {
-  m_hist = std::make_shared<hist_t>(std::move(
-      boost::histogram::make_weighted_histogram(std::forward<Axes>(axes)...)));
+queryosity::boost::histogram::histogram<Vals...>::histogram(Axes &&...axes) {
+  m_histogram = std::make_shared<histogram_t>(std::move(
+      ::boost::histogram::make_weighted_histogram(std::forward<Axes>(axes)...)));
 }
 
 template <typename... Vals>
-void queryosity::hist::hist<Vals...>::fill(
+void queryosity::boost::histogram::histogram<Vals...>::fill(
     queryosity::column::observable<Vals>... columns, double w) {
-  (*m_hist)(columns.value()..., boost::histogram::weight(w));
+  (*m_histogram)(columns.value()..., ::boost::histogram::weight(w));
 }
 
 template <typename... Vals>
-std::shared_ptr<queryosity::hist::hist_t>
-queryosity::hist::hist<Vals...>::result() const {
-  return m_hist;
+std::shared_ptr<queryosity::boost::histogram::histogram_t>
+queryosity::boost::histogram::histogram<Vals...>::result() const {
+  return m_histogram;
 }
 
 template <typename... Vals>
-std::shared_ptr<queryosity::hist::hist_t>
-queryosity::hist::hist<Vals...>::merge(
-    std::vector<std::shared_ptr<hist_t>> const &results) const {
-  auto sum = std::make_shared<hist_t>(*results[0]);
+std::shared_ptr<queryosity::boost::histogram::histogram_t>
+queryosity::boost::histogram::histogram<Vals...>::merge(
+    std::vector<std::shared_ptr<histogram_t>> const &results) const {
+  auto sum = std::make_shared<histogram_t>(*results[0]);
   sum->reset();
   for (auto const &result : results) {
     *sum += *result;

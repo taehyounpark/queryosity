@@ -1,7 +1,7 @@
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 
-#include <queryosity/json.hpp>
+#include <queryosity/nlohmann/json.hpp>
 #include <nlohmann/json.hpp>
 
 #include <queryosity.hpp>
@@ -43,7 +43,7 @@ std::vector<int> get_correct_result(nlohmann::json const &test_data) {
 std::vector<int> get_queryosity_result(nlohmann::json const &test_data,
                                        int ncores) {
   dataflow df(multithread::enable(ncores));
-  auto ds = df.load(dataset::input<qty::json>(test_data));
+  auto ds = df.load(dataset::input<qty::nlohmann::json>(test_data));
   auto entry_value = ds.read(dataset::column<int>("x"));
   auto all = df.filter(column::constant<bool>(true));
   auto col = df.get(column::series(entry_value)).at(all);

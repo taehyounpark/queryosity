@@ -23,4 +23,14 @@ if(QUERYOSITY_EXAMPLES)
   target_link_libraries(example-03 queryosity::extensions pthread) 
   add_test(NAME example-03 COMMAND example-03)
 
+  add_executable(example-04 ./example-04.cxx)
+  target_compile_features(example-04 PUBLIC cxx_std_17)
+  target_link_libraries(example-04 queryosity::extensions pthread) 
+  add_test(NAME example-04 COMMAND example-04)
+
+  add_executable(example-tree ./example-tree.cxx)
+  target_compile_features(example-tree PUBLIC cxx_std_17)
+  target_link_libraries(example-tree queryosity::extensions pthread) 
+  add_test(NAME example-tree COMMAND example-tree)
+
 endif()

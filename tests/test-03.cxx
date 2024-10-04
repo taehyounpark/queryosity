@@ -7,7 +7,7 @@
 
 #include <queryosity.hpp>
 
-#include <queryosity/json.hpp>
+#include <queryosity/nlohmann/json.hpp>
 #include <queryosity/wsum.hpp>
 
 using dataflow = qty::dataflow;
@@ -56,7 +56,7 @@ TEST_CASE("propagation of systematic variations")
     }
 
     qty::dataflow df;
-    auto ds = df.load(dataset::input<qty::json>(test_data));
+    auto ds = df.load(dataset::input<qty::nlohmann::json>(test_data));
 
     auto x = ds.vary(dataset::column<double>("x"), {{"vary_x", "x_var"}});
     auto w = ds.vary(dataset::column<unsigned int>("w"), {{"vary_w", "w_var"}, {"vary_test", "w"}});

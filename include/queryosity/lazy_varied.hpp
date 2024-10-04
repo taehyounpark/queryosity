@@ -49,12 +49,14 @@ public:
                              lazy<Act> var) final override;
 
   virtual lazy<Act> &nominal() final override;
-  virtual lazy<Act> &variation(const std::string &variation_name) final override;
+  virtual lazy<Act> &
+  variation(const std::string &variation_name) final override;
   virtual lazy<Act> const &nominal() const final override;
   virtual lazy<Act> const &
   variation(const std::string &variation_name) const final override;
 
-  virtual bool has_variation(const std::string &variation_name) const final override;
+  virtual bool
+  has_variation(const std::string &variation_name) const final override;
   virtual std::set<std::string> get_variation_names() const final override;
 
   /**
@@ -79,13 +81,15 @@ public:
 
   template <typename Expr, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
-  auto filter(column::expression<Expr> const &expr) -> varied<
-      todo<selection::applicator<selection::cut, column::equation_t<Expr>>>>;
+  auto filter(column::expression<Expr> const &expr)
+      -> varied<todo<
+          selection::applicator<selection::cut, column::equation_t<Expr>>>>;
 
   template <typename Expr, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
-  auto weight(column::expression<Expr> const &expr) -> varied<
-      todo<selection::applicator<selection::weight, column::equation_t<Expr>>>>;
+  auto weight(column::expression<Expr> const &expr)
+      -> varied<todo<
+          selection::applicator<selection::weight, column::equation_t<Expr>>>>;
 
   template <typename Agg, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
@@ -157,7 +161,8 @@ queryosity::varied<queryosity::lazy<Act>>::operator=(
 template <typename Act>
 void queryosity::varied<queryosity::lazy<Act>>::set_variation(
     const std::string &variation_name, queryosity::lazy<Act> var) {
-  dataflow::node::invoke([variation_name](action* act){ act->vary(variation_name); }, var);
+  dataflow::node::invoke(
+      [variation_name](action *act) { act->vary(variation_name); }, var);
   m_variation_map.insert(std::make_pair(variation_name, std::move(var)));
   m_variation_names.insert(variation_name);
 }
@@ -171,7 +176,9 @@ auto queryosity::varied<queryosity::lazy<Act>>::nominal()
 template <typename Act>
 auto queryosity::varied<queryosity::lazy<Act>>::variation(
     const std::string &variation_name) -> queryosity::lazy<Act> & {
-  return (this->has_variation(variation_name) ? m_variation_map.at(variation_name) : m_nominal);
+  return (this->has_variation(variation_name)
+              ? m_variation_map.at(variation_name)
+              : m_nominal);
 }
 
 template <typename Act>
@@ -183,7 +190,9 @@ auto queryosity::varied<queryosity::lazy<Act>>::nominal() const
 template <typename Act>
 auto queryosity::varied<queryosity::lazy<Act>>::variation(
     const std::string &variation_name) const -> queryosity::lazy<Act> const & {
-  return (this->has_variation(variation_name) ? m_variation_map.at(variation_name) : m_nominal);
+  return (this->has_variation(variation_name)
+              ? m_variation_map.at(variation_name)
+              : m_nominal);
 }
 
 template <typename Act>
@@ -208,9 +217,11 @@ auto queryosity::varied<queryosity::lazy<Act>>::filter(Col const &col)
 
   auto syst = varied_type(this->nominal().filter(col.nominal()));
 
-  for (auto const &variation_name : systematic::get_variation_names(*this, col)) {
+  for (auto const &variation_name :
+       systematic::get_variation_names(*this, col)) {
     syst.set_variation(
-        variation_name, this->variation(variation_name).filter(col.variation(variation_name)));
+        variation_name,
+        this->variation(variation_name).filter(col.variation(variation_name)));
   }
   return syst;
 }
@@ -225,9 +236,11 @@ auto queryosity::varied<queryosity::lazy<Act>>::weight(Col const &col)
 
   auto syst = varied_type(this->nominal().weight(col.nominal()));
 
-  for (auto const &variation_name : systematic::get_variation_names(*this, col)) {
+  for (auto const &variation_name :
+       systematic::get_variation_names(*this, col)) {
     syst.set_variation(
-        variation_name, this->variation(variation_name).weight(col.variation(variation_name)));
+        variation_name,
+        this->variation(variation_name).weight(col.variation(variation_name)));
   }
   return syst;
 }
@@ -246,7 +259,8 @@ auto queryosity::varied<queryosity::lazy<Act>>::filter(
   auto syst = varied_type(this->nominal().filter(expr));
 
   for (auto const &variation_name : systematic::get_variation_names(*this)) {
-    syst.set_variation(variation_name, this->variation(variation_name).filter(expr));
+    syst.set_variation(variation_name,
+                       this->variation(variation_name).filter(expr));
   }
   return syst;
 }
@@ -265,7 +279,8 @@ auto queryosity::varied<queryosity::lazy<Act>>::weight(
   auto syst = varied_type(this->nominal().weight(expr));
 
   for (auto const &variation_name : systematic::get_variation_names(*this)) {
-    syst.set_variation(variation_name, this->variation(variation_name).weight(expr));
+    syst.set_variation(variation_name,
+                       this->variation(variation_name).weight(expr));
   }
   return syst;
 }
