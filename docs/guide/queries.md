@@ -20,8 +20,8 @@ auto q = df.get(query::output<DEF>(ARGS...))
 Call `dataflow::get()` specifying the definition and constructor arguments of the query.
 
 ```{code} cpp
-using h1d = qty::hist::hist<double>;
-using linax = qty::hist::axis::regular;
+using h1d = qty::boost::histogram::histogram<double>;
+using linax = qty::boost::histogram::axis::regular;
 
 auto q1 = df.get(query::output<h1d>(linax(100, 0.0, 1.0)));
 ```
@@ -42,7 +42,7 @@ auto q1xy = df.get(query::output<h1d>(linax(10, 0.0, 1.0)))(x)(y);
 :::
 :::{tab-item} 2D histogram filled once per-entry
 ```{code} cpp
-using h2d = qty::hist::hist<double, double>;
+using h2d = qty::boost::histogram::histogram<double, double>;
 auto q2xy =
     df.get(query::output<h2d>(linax(10, 0.0, 1.0), linax(10, 0.0, 1.0)))(x, y);
 ```

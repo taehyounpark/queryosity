@@ -3,8 +3,8 @@
 #include <vector>
 
 #include <queryosity.hpp>
-#include <queryosity/hist.hpp>
-#include <queryosity/json.hpp>
+#include <queryosity/boost/histogram.hpp>
+#include <queryosity/nlohmann/json.hpp>
 
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
@@ -12,9 +12,9 @@ namespace dataset = qty::dataset;
 namespace column = qty::column;
 namespace query = qty::query;
 
-using json = qty::json;
-using h1d = qty::hist::hist<double>;
-using linax = qty::hist::axis::regular;
+using json = qty::nlohmann::json;
+using hist1d = qty::boost::histogram::histogram<double>;
+using linbin = qty::boost::histogram::axis::regular;
 
 int main() {
   dataflow df(multithread::enable(10));
@@ -33,7 +33,7 @@ int main() {
               [](std::vector<double> const &v) { return v.size(); }))(v)
           .filter(column::expression([](double x) { return x > 100.0; }))(x);
 
-  auto h_x0_w = df.get(query::output<h1d>(linax(20, 0.0, 200.0)))
+  auto h_x0_w = df.get(query::output<hist1d>(linbin(20, 0.0, 200.0)))
                     .fill(v0)
                     .at(sel)
                     .result();

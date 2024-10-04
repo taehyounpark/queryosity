@@ -134,8 +134,8 @@ public:
    * @return Evaluator.
    */
   template <typename Def>
-  auto define(column::definition<Def> const &defn)
-      -> todo<column::evaluator<Def>>;
+  auto
+  define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
 
   /**
    * @brief Initiate a cutflow.
@@ -325,8 +325,8 @@ public:
   auto _cut(varied<Lzy> const &column) -> varied<lazy<selection::node>>;
 
   template <typename Def>
-  auto _define(column::definition<Def> const &defn)
-      -> todo<column::evaluator<Def>>;
+  auto
+  _define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
 
   template <typename Fn> auto _equate(Fn fn);
   template <typename Fn>
@@ -364,8 +364,8 @@ protected:
   void reset();
 
   template <typename DS, typename Val>
-  auto _read(dataset::reader<DS> &ds, const std::string &name)
-      -> lazy<read_column_t<DS, Val>>;
+  auto _read(dataset::reader<DS> &ds,
+             const std::string &name) -> lazy<read_column_t<DS, Val>>;
 
   template <typename Def, typename... Cols>
   auto _evaluate(todo<column::evaluator<Def>> const &calc,
@@ -375,8 +375,8 @@ protected:
   auto _apply(lazy<Col> const &col) -> lazy<selection::node>;
 
   template <typename Sel, typename Col>
-  auto _apply(lazy<selection::node> const &prev, lazy<Col> const &col)
-      -> lazy<selection::node>;
+  auto _apply(lazy<selection::node> const &prev,
+              lazy<Col> const &col) -> lazy<selection::node>;
 
   template <typename Sel, typename Def, typename... Cols>
   auto _apply(todo<selection::applicator<Sel, Def>> const &calc,
@@ -421,10 +421,12 @@ public:
 
 public:
   template <typename Fn, typename... Nodes>
-  static auto invoke(Fn fn, Nodes const &...nodes) -> std::enable_if_t<
-      !std::is_void_v<
-          std::invoke_result_t<Fn, typename Nodes::action_type *...>>,
-      std::vector<std::invoke_result_t<Fn, typename Nodes::action_type *...>>>;
+  static auto invoke(Fn fn, Nodes const &...nodes)
+      -> std::enable_if_t<
+          !std::is_void_v<
+              std::invoke_result_t<Fn, typename Nodes::action_type *...>>,
+          std::vector<
+              std::invoke_result_t<Fn, typename Nodes::action_type *...>>>;
 
   template <typename Fn, typename... Nodes>
   static auto invoke(Fn fn, Nodes const &...nodes)

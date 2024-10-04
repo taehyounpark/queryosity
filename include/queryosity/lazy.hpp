@@ -159,7 +159,7 @@ public:
    * columns (if applicable).
    * @return List of (varied) lazy queries.
    */
-  template <typename Bkr> auto book(std::vector<Bkr> const& bkrs) const;
+  template <typename Bkr> auto book(std::vector<Bkr> const &bkrs) const;
 
   /**
    * @brief Book multiple queries at this selection.
@@ -419,7 +419,6 @@ auto queryosity::lazy<Action>::weight(
   }
 }
 
-
 template <typename Action>
 template <typename Def>
 auto queryosity::lazy<Action>::filter(
@@ -454,12 +453,12 @@ auto queryosity::lazy<Action>::book(Qry &&qry) const {
 
 template <typename Action>
 template <typename Bkr>
-auto queryosity::lazy<Action>::book(std::vector<Bkr> const& bkrs) const {
+auto queryosity::lazy<Action>::book(std::vector<Bkr> const &bkrs) const {
   static_assert(std::is_base_of_v<selection::node, Action>,
                 "book must be called from a selection");
   using lzy_qrys_t = std::vector<decltype(bkrs[0].at(*this))>;
   lzy_qrys_t lzy_qrys;
-  for (auto const& bkr : bkrs) {
+  for (auto const &bkr : bkrs) {
     lzy_qrys.push_back(bkr.at(*this));
   }
   return lzy_qrys;

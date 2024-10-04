@@ -16,7 +16,7 @@ auto col = ds.read(dataset::column<DTYPE>(NAME));
 Call `dataflow::load()` with an input dataset and its constructor arguments.
 
 ```cpp
-using json = qty::json;
+using json = qty::nlohmann::json;
 
 std::ifstream data_json("data.json");
 auto ds = df.load(dataset::input<json>(data_json));

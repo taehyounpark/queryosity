@@ -1,7 +1,7 @@
-#include <queryosity/json.hpp>
+#include <queryosity/nlohmann/json.hpp>
 #include <nlohmann/json.hpp>
 
-using json = qty::json;
+using json = qty::nlohmann::json;
 
 #include <queryosity.hpp>
 

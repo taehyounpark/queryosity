@@ -7,6 +7,8 @@
 
 namespace queryosity {
 
+namespace nlohmann {
+
 /**
  * @ingroup ext
  * @brief JSON dataset for queryosity.
@@ -17,7 +19,7 @@ public:
   template <typename T> class item;
 
 public:
-  json(const nlohmann::json &data);
+  json(const ::nlohmann::json &data);
   json(std::ifstream &data);
   ~json() = default;
 
@@ -45,7 +47,7 @@ public:
                                 const std::string &column_name) const;
 
 protected:
-  nlohmann::json const m_data;
+  ::nlohmann::json const m_data;
   unsigned int m_nslots;
 };
 
@@ -61,7 +63,7 @@ public:
    * @param[in] data JSON data.
    * @param[in] key Object key.
    */
-  item(const nlohmann::json &data, const std::string &key);
+  item(const ::nlohmann::json &data, const std::string &key);
   ~item() = default;
 
   /**
@@ -74,26 +76,29 @@ public:
 
 protected:
   mutable T m_value;
-  const nlohmann::json &m_data;
+  const ::nlohmann::json &m_data;
   const std::string m_key;
 };
 
+
+}
+
 } // namespace queryosity
 
-queryosity::json::json(nlohmann::json const &data) : m_data(data) {}
+queryosity::nlohmann::json::json(::nlohmann::json const &data) : m_data(data) {}
 
-queryosity::json::json(std::ifstream &data)
-    : m_data(nlohmann::json::parse(data)) {}
+queryosity::nlohmann::json::json(std::ifstream &data)
+    : m_data(::nlohmann::json::parse(data)) {}
 
 template <typename T>
-queryosity::json::item<T>::item(nlohmann::json const &data,
+queryosity::nlohmann::json::item<T>::item(::nlohmann::json const &data,
                                 const std::string &name)
     : m_data(data), m_key(name) {}
 
-void queryosity::json::parallelize(unsigned int nslots) { m_nslots = nslots; }
+void queryosity::nlohmann::json::parallelize(unsigned int nslots) { m_nslots = nslots; }
 
 std::vector<std::pair<unsigned long long, unsigned long long>>
-queryosity::json::partition() {
+queryosity::nlohmann::json::partition() {
   if (m_nslots == 1)
     return {{0, m_data.size()}};
 
@@ -116,13 +121,13 @@ queryosity::json::partition() {
 }
 
 template <typename Val>
-std::unique_ptr<queryosity::json::item<Val>>
-queryosity::json::read(unsigned int, const std::string &name) const {
+std::unique_ptr<queryosity::nlohmann::json::item<Val>>
+queryosity::nlohmann::json::read(unsigned int, const std::string &name) const {
   return std::make_unique<item<Val>>(this->m_data, name);
 }
 
 template <typename T>
-const T &queryosity::json::item<T>::read(unsigned int,
+const T &queryosity::nlohmann::json::item<T>::read(unsigned int,
                                          unsigned long long item) const {
   m_value = this->m_data[item][m_key].template get<T>();
   return m_value;

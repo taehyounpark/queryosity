@@ -25,8 +25,8 @@ Queryosity is a row-wise data analysis library for (semi-)structured data.
 #include <vector>
 
 #include <queryosity.hpp>
-#include <queryosity/hist.hpp>
-#include <queryosity/json.hpp>
+#include <queryosity/boost/histogram.hpp>
+#include <queryosity/nlohmann/json.hpp>
 
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
@@ -34,9 +34,9 @@ namespace dataset = qty::dataset;
 namespace column = qty::column;
 namespace query = qty::query;
 
-using json = qty::json;
-using h1d = qty::hist::hist<double>;
-using linax = qty::hist::axis::regular;
+using json = qty::nlohmann::json;
+using h1d = qty::boost::histogram::histogram<double>;
+using linax = qty::boost::histogram::axis::regular;
 
 int main() {
   dataflow df(multithread::enable(10));

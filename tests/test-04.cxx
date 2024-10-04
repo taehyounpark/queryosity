@@ -7,7 +7,7 @@
 
 #include <queryosity.hpp>
 
-#include <queryosity/json.hpp>
+#include <queryosity/nlohmann/json.hpp>
 #include <queryosity/wsum.hpp>
 
 using dataflow = qty::dataflow;

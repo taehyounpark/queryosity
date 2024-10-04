@@ -1,11 +1,6 @@
 # Installation
 
-- Core requirements:
-  - C++17
-- Optional dependencies: 
-  - [nlohmann::json](https://json.nlohmann.me)
-  - [radpidcsv](https://github.com/d99kris/rapidcsv) 
-  - [boost::histogram](https://www.boost.org/doc/libs/1_84_0/libs/histogram/doc/html/index.html)
+- Core requirement: C++17
 - The following environments are included in CI:
 
 | OS | Compiler | Versions |
@@ -25,14 +20,19 @@
 git clone https://github.com/taehyounpark/queryosity.git
 ```
 
-### Standalone
-
 ```sh
 cd queryosity/ && mkdir build/ && cd build/
 cmake -DQUERYOSITY_INSTALL=ON ../
 cmake --build .
 cmake --install .
 ```
+
+| CMake flag | Default | Description |
+| --- | --- | --- |
+| `-DQUERYOSITY_INSTALL=ON` | `OFF` | Install the library so it can be found by a different CMake project. |
+| `-DQUERYOSITY_BACKENDS=ON` | `OFF` | Compile pre-existing backends for input datasets & output queries. |
+| `-DQUERYOSITY_TESTS=ON` | `OFF` | Compile tests. |
+| `-DQUERYOSITY_EXAMPLES=ON` | `OFF` | Compile examples. |
 
 ```cmake
 find_package(queryosity 0.5.0 REQUIRED)
@@ -46,16 +46,13 @@ target_link_libraries(MyAnalysis INTERFACE queryosity::queryosity)
 #include <queryosity.hpp>
 ```
 
-### Integrated
+## Optional dependencies
 
-```cmake
-add_subdirectory(queryosity)
-...
-add_library(MyAnalysis ...)
-...
-target_link_libraries(MyAnalysis INTERFACE queryosity::queryosity)
-```
+Several backend implementations are used in examples throughout the documentation, which are also available for general use.
+In order to enable them, the project should be configured with `-DQUERYOSITY_BACKENDS=ON` option set.
 
-```cpp
-#include <queryosity.hpp>
-```
+| Input datasets | Output queries |
+| :-- | --: |
+| [radpidcsv](https://github.com/d99kris/rapidcsv)  | [boost::histogram](https://www.boost.org/doc/libs/1_86_0/libs/histogram/doc/html/index.html) |
+| [nlohmann::json](https://json.nlohmann.me) | [ROOT::TH1](https://root.cern.ch/doc/master/classTH1.html) |
+| [ROOT::TTree](https://root.cern.ch/doc/v630/classTTree.html) | [ROOT::TTree](https://root.cern.ch/doc/v630/classTTree.html) |

@@ -141,6 +141,10 @@ std::shared_ptr<TH1> cloneHist(std::shared_ptr<TH1> hist) {
 
 } // namespace
 
+namespace queryosity {
+
+namespace ROOT {
+
 template <int Dim, typename Prec> class Hist;
 
 template <typename Prec>
@@ -203,15 +207,15 @@ protected:
 };
 
 template <typename Prec>
-class Hist<1, ROOT::RVec<Prec>>
-    : public qty::query::definition<std::shared_ptr<TH1>(ROOT::RVec<Prec>)> {
+class Hist<1, ::ROOT::RVec<Prec>>
+    : public qty::query::definition<std::shared_ptr<TH1>(::ROOT::RVec<Prec>)> {
 
 public:
   Hist(const std::string &hname, unsigned int nbins, double min, double xmax);
   Hist(const std::string &hname, const std::vector<double> &xbins);
   virtual ~Hist() = default;
 
-  virtual void fill(qty::column::observable<ROOT::RVec<Prec>>,
+  virtual void fill(qty::column::observable<::ROOT::RVec<Prec>>,
                     double) final override;
   virtual std::shared_ptr<TH1> result() const final override;
   virtual std::shared_ptr<TH1>
@@ -223,17 +227,17 @@ protected:
 };
 
 template <typename Prec>
-class Hist<2, ROOT::RVec<Prec>>
-    : public qty::query::definition<std::shared_ptr<TH2>(ROOT::RVec<Prec>,
-                                                         ROOT::RVec<Prec>)> {
+class Hist<2, ::ROOT::RVec<Prec>>
+    : public qty::query::definition<std::shared_ptr<TH2>(::ROOT::RVec<Prec>,
+                                                         ::ROOT::RVec<Prec>)> {
 
 public:
   Hist(const std::string &hname, const std::vector<double> &,
        const std::vector<double> &);
   virtual ~Hist() = default;
 
-  virtual void fill(qty::column::observable<ROOT::RVec<Prec>>,
-                    qty::column::observable<ROOT::RVec<Prec>>,
+  virtual void fill(qty::column::observable<::ROOT::RVec<Prec>>,
+                    qty::column::observable<::ROOT::RVec<Prec>>,
                     double) final override;
   virtual std::shared_ptr<TH2> result() const final override;
   virtual std::shared_ptr<TH2>
@@ -245,18 +249,18 @@ protected:
 };
 
 template <typename Prec>
-class Hist<3, ROOT::RVec<Prec>>
+class Hist<3, ::ROOT::RVec<Prec>>
     : public qty::query::definition<std::shared_ptr<TH3>(
-          ROOT::RVec<Prec>, ROOT::RVec<Prec>, ROOT::RVec<Prec>)> {
+          ::ROOT::RVec<Prec>, ::ROOT::RVec<Prec>, ::ROOT::RVec<Prec>)> {
 
 public:
   Hist(const std::string &hname, const std::vector<double> &,
        const std::vector<double> &, const std::vector<double> &);
   virtual ~Hist() = default;
 
-  virtual void fill(qty::column::observable<ROOT::RVec<Prec>>,
-                    qty::column::observable<ROOT::RVec<Prec>>,
-                    qty::column::observable<ROOT::RVec<Prec>>,
+  virtual void fill(qty::column::observable<::ROOT::RVec<Prec>>,
+                    qty::column::observable<::ROOT::RVec<Prec>>,
+                    qty::column::observable<::ROOT::RVec<Prec>>,
                     double) final override;
   virtual std::shared_ptr<TH3> result() const final override;
   virtual std::shared_ptr<TH3>
@@ -267,8 +271,13 @@ protected:
   std::shared_ptr<TH3> m_hist; //!
 };
 
+
+}
+
+}
+
 template <typename Prec>
-Hist<1, Prec>::Hist(const std::string &hname, unsigned int nbins, double xmin,
+queryosity::ROOT::Hist<1, Prec>::Hist(const std::string &hname, unsigned int nbins, double xmin,
                     double xmax)
     : qty::query::definition<std::shared_ptr<TH1>(Prec)>() {
   m_hist = makeHist<1, Prec>(nbins, xmin, xmax);
@@ -276,7 +285,7 @@ Hist<1, Prec>::Hist(const std::string &hname, unsigned int nbins, double xmin,
 }
 
 template <typename Prec>
-Hist<1, Prec>::Hist(const std::string &hname, const std::vector<Prec> &xbins)
+queryosity::ROOT::Hist<1, Prec>::Hist(const std::string &hname, const std::vector<Prec> &xbins)
     : m_xbins(xbins) {
   if constexpr (std::is_same_v<Prec, std::string>) {
     m_hist = makeHist<1, int>(m_xbins.size(), 0, m_xbins.size());
@@ -289,7 +298,7 @@ Hist<1, Prec>::Hist(const std::string &hname, const std::vector<Prec> &xbins)
 }
 
 template <typename Prec>
-void Hist<1, Prec>::fill(qty::column::observable<Prec> x, double w) {
+void queryosity::ROOT::Hist<1, Prec>::fill(qty::column::observable<Prec> x, double w) {
   if constexpr (std::is_same_v<Prec, std::string>) {
     auto xpos = std::find(m_xbins.begin(), m_xbins.end(), x.value());
     if (xpos == m_xbins.end())
@@ -301,13 +310,13 @@ void Hist<1, Prec>::fill(qty::column::observable<Prec> x, double w) {
   }
 }
 
-template <typename Prec> std::shared_ptr<TH1> Hist<1, Prec>::result() const {
+template <typename Prec> std::shared_ptr<TH1> queryosity::ROOT::Hist<1, Prec>::result() const {
   return m_hist;
 }
 
 template <typename Prec>
 std::shared_ptr<TH1>
-Hist<1, Prec>::merge(std::vector<std::shared_ptr<TH1>> const &results) const {
+queryosity::ROOT::Hist<1, Prec>::merge(std::vector<std::shared_ptr<TH1>> const &results) const {
   auto merged_result = cloneHist(results[0]);
   for (size_t islot = 1; islot < results.size(); ++islot) {
     merged_result->Add(results[islot].get());
@@ -325,21 +334,21 @@ Hist<1, Prec>::merge(std::vector<std::shared_ptr<TH1>> const &results) const {
 }
 
 template <typename Prec>
-Hist<2, Prec>::Hist(const std::string &hname, const std::vector<double> &xbins,
+queryosity::ROOT::Hist<2, Prec>::Hist(const std::string &hname, const std::vector<double> &xbins,
                     const std::vector<double> &ybins) {
   m_hist = std::static_pointer_cast<TH2>(makeHist<2, Prec>(xbins, ybins));
   m_hist->SetNameTitle(hname.c_str(), hname.c_str());
 }
 
 template <typename Prec>
-void Hist<2, Prec>::fill(qty::column::observable<Prec> x,
+void queryosity::ROOT::Hist<2, Prec>::fill(qty::column::observable<Prec> x,
                          qty::column::observable<Prec> y, double w) {
   m_hist->Fill(x.value(), y.value(), w);
 }
 
 template <typename Prec>
 std::shared_ptr<TH2>
-Hist<2, Prec>::merge(std::vector<std::shared_ptr<TH2>> const &results) const {
+queryosity::ROOT::Hist<2, Prec>::merge(std::vector<std::shared_ptr<TH2>> const &results) const {
   auto merged_result =
       std::shared_ptr<TH2>(static_cast<TH2 *>(results[0]->Clone()));
   for (size_t islot = 1; islot < results.size(); ++islot) {
@@ -348,12 +357,12 @@ Hist<2, Prec>::merge(std::vector<std::shared_ptr<TH2>> const &results) const {
   return merged_result;
 }
 
-template <typename Prec> std::shared_ptr<TH2> Hist<2, Prec>::result() const {
+template <typename Prec> std::shared_ptr<TH2> queryosity::ROOT::Hist<2, Prec>::result() const {
   return m_hist;
 }
 
 template <typename Prec>
-Hist<3, Prec>::Hist(const std::string &hname, const std::vector<double> &xbins,
+queryosity::ROOT::Hist<3, Prec>::Hist(const std::string &hname, const std::vector<double> &xbins,
                     const std::vector<double> &ybins,
                     const std::vector<double> &zbins)
     : qty::query::definition<std::shared_ptr<TH3>(Prec, Prec, Prec)>() {
@@ -363,7 +372,7 @@ Hist<3, Prec>::Hist(const std::string &hname, const std::vector<double> &xbins,
 }
 
 template <typename Prec>
-void Hist<3, Prec>::fill(qty::column::observable<Prec> x,
+void queryosity::ROOT::Hist<3, Prec>::fill(qty::column::observable<Prec> x,
                          qty::column::observable<Prec> y,
                          qty::column::observable<Prec> z, double w) {
   m_hist->Fill(x.value(), y.value(), z.value(), w);
@@ -371,7 +380,7 @@ void Hist<3, Prec>::fill(qty::column::observable<Prec> x,
 
 template <typename Prec>
 std::shared_ptr<TH3>
-Hist<3, Prec>::merge(std::vector<std::shared_ptr<TH3>> const &results) const {
+queryosity::ROOT::Hist<3, Prec>::merge(std::vector<std::shared_ptr<TH3>> const &results) const {
   auto merged_result =
       std::shared_ptr<TH3>(static_cast<TH3 *>(results[0]->Clone()));
   for (size_t islot = 1; islot < results.size(); ++islot) {
@@ -380,36 +389,36 @@ Hist<3, Prec>::merge(std::vector<std::shared_ptr<TH3>> const &results) const {
   return merged_result;
 }
 
-template <typename Prec> std::shared_ptr<TH3> Hist<3, Prec>::result() const {
+template <typename Prec> std::shared_ptr<TH3> queryosity::ROOT::Hist<3, Prec>::result() const {
   return m_hist;
 }
 
 // vector<T>
 
 template <typename Prec>
-Hist<1, ROOT::RVec<Prec>>::Hist(const std::string &hname, unsigned int nbins,
+queryosity::ROOT::Hist<1, ::ROOT::RVec<Prec>>::Hist(const std::string &hname, unsigned int nbins,
                                 double xmin, double xmax) {
   m_hist = makeHist<1, Prec>(nbins, xmin, xmax);
   m_hist->SetNameTitle(hname.c_str(), hname.c_str());
 }
 
 template <typename Prec>
-Hist<1, ROOT::RVec<Prec>>::Hist(const std::string &hname,
+queryosity::ROOT::Hist<1, ::ROOT::RVec<Prec>>::Hist(const std::string &hname,
                                 const std::vector<double> &xbins) {
   m_hist = makeHist<1, Prec>(xbins);
   m_hist->SetNameTitle(hname.c_str(), hname.c_str());
 }
 
 template <typename Prec>
-void Hist<1, ROOT::RVec<Prec>>::fill(
-    qty::column::observable<ROOT::RVec<Prec>> xs, double w) {
+void queryosity::ROOT::Hist<1, ::ROOT::RVec<Prec>>::fill(
+    qty::column::observable<::ROOT::RVec<Prec>> xs, double w) {
   for (size_t ix = 0; ix < xs->size(); ++ix) {
     m_hist->Fill(xs.value()[ix], w);
   }
 }
 
 template <typename Prec>
-std::shared_ptr<TH1> Hist<1, ROOT::RVec<Prec>>::merge(
+std::shared_ptr<TH1> queryosity::ROOT::Hist<1, ::ROOT::RVec<Prec>>::merge(
     std::vector<std::shared_ptr<TH1>> const &results) const {
   auto merged_result =
       std::shared_ptr<TH1>(static_cast<TH1 *>(results[0]->Clone()));
@@ -420,12 +429,12 @@ std::shared_ptr<TH1> Hist<1, ROOT::RVec<Prec>>::merge(
 }
 
 template <typename Prec>
-std::shared_ptr<TH1> Hist<1, ROOT::RVec<Prec>>::result() const {
+std::shared_ptr<TH1> queryosity::ROOT::Hist<1, ::ROOT::RVec<Prec>>::result() const {
   return m_hist;
 }
 
 template <typename Prec>
-Hist<2, ROOT::RVec<Prec>>::Hist(const std::string &hname,
+queryosity::ROOT::Hist<2, ::ROOT::RVec<Prec>>::Hist(const std::string &hname,
                                 const std::vector<double> &xbins,
                                 const std::vector<double> &ybins) {
   m_hist = std::static_pointer_cast<TH2>(makeHist<2, Prec>(xbins, ybins));
@@ -433,9 +442,9 @@ Hist<2, ROOT::RVec<Prec>>::Hist(const std::string &hname,
 }
 
 template <typename Prec>
-void Hist<2, ROOT::RVec<Prec>>::fill(
-    qty::column::observable<ROOT::RVec<Prec>> xs,
-    qty::column::observable<ROOT::RVec<Prec>> ys, double w) {
+void queryosity::ROOT::Hist<2, ::ROOT::RVec<Prec>>::fill(
+    qty::column::observable<::ROOT::RVec<Prec>> xs,
+    qty::column::observable<::ROOT::RVec<Prec>> ys, double w) {
   if (xs->size() != ys->size()) {
     throw std::runtime_error("x- and y-arrays do not share the same size");
   }
@@ -445,7 +454,7 @@ void Hist<2, ROOT::RVec<Prec>>::fill(
 }
 
 template <typename Prec>
-std::shared_ptr<TH2> Hist<2, ROOT::RVec<Prec>>::merge(
+std::shared_ptr<TH2> queryosity::ROOT::Hist<2, ::ROOT::RVec<Prec>>::merge(
     std::vector<std::shared_ptr<TH2>> const &results) const {
   auto merged_result =
       std::shared_ptr<TH2>(static_cast<TH2 *>(results[0]->Clone()));
@@ -456,12 +465,12 @@ std::shared_ptr<TH2> Hist<2, ROOT::RVec<Prec>>::merge(
 }
 
 template <typename Prec>
-std::shared_ptr<TH2> Hist<2, ROOT::RVec<Prec>>::result() const {
+std::shared_ptr<TH2> queryosity::ROOT::Hist<2, ::ROOT::RVec<Prec>>::result() const {
   return m_hist;
 }
 
 template <typename Prec>
-Hist<3, ROOT::RVec<Prec>>::Hist(const std::string &hname,
+queryosity::ROOT::Hist<3, ::ROOT::RVec<Prec>>::Hist(const std::string &hname,
                                 const std::vector<double> &xbins,
                                 const std::vector<double> &ybins,
                                 const std::vector<double> &zbins) {
@@ -471,10 +480,10 @@ Hist<3, ROOT::RVec<Prec>>::Hist(const std::string &hname,
 }
 
 template <typename Prec>
-void Hist<3, ROOT::RVec<Prec>>::fill(
-    qty::column::observable<ROOT::RVec<Prec>> xs,
-    qty::column::observable<ROOT::RVec<Prec>> ys,
-    qty::column::observable<ROOT::RVec<Prec>> zs, double w) {
+void queryosity::ROOT::Hist<3, ::ROOT::RVec<Prec>>::fill(
+    qty::column::observable<::ROOT::RVec<Prec>> xs,
+    qty::column::observable<::ROOT::RVec<Prec>> ys,
+    qty::column::observable<::ROOT::RVec<Prec>> zs, double w) {
   if (xs->size() != ys->size()) {
     throw std::runtime_error("x- and y-arrays do not share the same size");
   }
@@ -487,7 +496,7 @@ void Hist<3, ROOT::RVec<Prec>>::fill(
 }
 
 template <typename Prec>
-std::shared_ptr<TH3> Hist<3, ROOT::RVec<Prec>>::merge(
+std::shared_ptr<TH3> queryosity::ROOT::Hist<3, ::ROOT::RVec<Prec>>::merge(
     std::vector<std::shared_ptr<TH3>> const &results) const {
   auto merged_result =
       std::shared_ptr<TH3>(static_cast<TH3 *>(results[0]->Clone()));
@@ -498,13 +507,13 @@ std::shared_ptr<TH3> Hist<3, ROOT::RVec<Prec>>::merge(
 }
 
 template <typename Prec>
-std::shared_ptr<TH3> Hist<3, ROOT::RVec<Prec>>::result() const {
+std::shared_ptr<TH3> queryosity::ROOT::Hist<3, ::ROOT::RVec<Prec>>::result() const {
   return m_hist;
 }
 
-template class Hist<1, float>;
-template class Hist<2, float>;
-template class Hist<3, float>;
-template class Hist<1, ROOT::RVec<float>>;
-template class Hist<2, ROOT::RVec<float>>;
-template class Hist<3, ROOT::RVec<float>>;
+template class queryosity::ROOT::Hist<1, float>;
+template class queryosity::ROOT::Hist<2, float>;
+template class queryosity::ROOT::Hist<3, float>;
+template class queryosity::ROOT::Hist<1, ::ROOT::RVec<float>>;
+template class queryosity::ROOT::Hist<2, ::ROOT::RVec<float>>;
+template class queryosity::ROOT::Hist<3, ::ROOT::RVec<float>>;

@@ -17,6 +17,10 @@
 
 #include <queryosity.hpp>
 
+namespace queryosity {
+  
+namespace ROOT {
+
 class Tree : public queryosity::dataset::reader<Tree> {
 
 public:
@@ -78,8 +82,8 @@ protected:
 };
 
 template <typename T>
-class Tree::Branch<ROOT::RVec<T>>
-    : public queryosity::column::reader<ROOT::RVec<T>> {
+class Tree::Branch<::ROOT::RVec<T>>
+    : public queryosity::column::reader<::ROOT::RVec<T>> {
 
 public:
   Branch(const std::string &branchName, TTreeReader &treeReader)
@@ -92,13 +96,13 @@ public:
   virtual void initialize(unsigned int, unsigned long long,
                           unsigned long long) final override {}
 
-  virtual ROOT::RVec<T> const &read(unsigned int,
+  virtual ::ROOT::RVec<T> const &read(unsigned int,
                                     unsigned long long) const final override {
     if (auto arraySize = m_treeReaderArray->GetSize()) {
-      ROOT::RVec<T> readArray(&m_treeReaderArray->At(0), arraySize);
+      ::ROOT::RVec<T> readArray(&m_treeReaderArray->At(0), arraySize);
       std::swap(m_readArray, readArray);
     } else {
-      ROOT::RVec<T> emptyVector{};
+      ::ROOT::RVec<T> emptyVector{};
       std::swap(m_readArray, emptyVector);
     }
     return m_readArray;
@@ -107,12 +111,12 @@ public:
 protected:
   std::string m_branchName;
   std::unique_ptr<TTreeReaderArray<T>> m_treeReaderArray;
-  mutable ROOT::RVec<T> m_readArray;
+  mutable ::ROOT::RVec<T> m_readArray;
 };
 
 template <>
-class Tree::Branch<ROOT::RVec<bool>>
-    : public queryosity::column::reader<ROOT::RVec<bool>> {
+class Tree::Branch<::ROOT::RVec<bool>>
+    : public queryosity::column::reader<::ROOT::RVec<bool>> {
 
 public:
   Branch(const std::string &branchName, TTreeReader &treeReader)
@@ -122,14 +126,14 @@ public:
   }
   ~Branch() = default;
 
-  virtual ROOT::RVec<bool> const &
+  virtual ::ROOT::RVec<bool> const &
   read(unsigned int, unsigned long long) const final override {
     if (m_treeReaderArray->GetSize()) {
-      ROOT::RVec<bool> readArray(m_treeReaderArray->begin(),
+      ::ROOT::RVec<bool> readArray(m_treeReaderArray->begin(),
                                  m_treeReaderArray->end());
       std::swap(m_readArray, readArray);
     } else {
-      ROOT::RVec<bool> emptyVector{};
+      ::ROOT::RVec<bool> emptyVector{};
       std::swap(m_readArray, emptyVector);
     }
     return m_readArray;
@@ -138,7 +142,7 @@ public:
 protected:
   std::string m_branchName;
   std::unique_ptr<TTreeReaderArray<bool>> m_treeReaderArray;
-  mutable ROOT::RVec<bool> m_readArray;
+  mutable ::ROOT::RVec<bool> m_readArray;
 };
 
 template <typename... ColumnTypes>
@@ -206,15 +210,20 @@ protected:
   ColumnTuple_t m_columns;
 };
 
-inline Tree::Tree(const std::vector<std::string> &inputFiles,
+
+}
+
+}
+
+inline queryosity::ROOT::Tree::Tree(const std::vector<std::string> &inputFiles,
                   const std::string &treeName)
     : m_inputFiles(inputFiles), m_treeName(treeName) {}
 
-inline Tree::Tree(std::initializer_list<std::string> inputFiles,
+inline queryosity::ROOT::Tree::Tree(std::initializer_list<std::string> inputFiles,
                   const std::string &treeName)
     : m_inputFiles(inputFiles), m_treeName(treeName) {}
 
-inline void Tree::parallelize(unsigned int nslots) {
+inline void queryosity::ROOT::Tree::parallelize(unsigned int nslots) {
   m_trees.resize(nslots);
   m_treeReaders.resize(nslots);
   for (unsigned int islot = 0; islot < nslots; ++islot) {
@@ -231,9 +240,9 @@ inline void Tree::parallelize(unsigned int nslots) {
 }
 
 inline std::vector<std::pair<unsigned long long, unsigned long long>>
-Tree::partition() {
-  ROOT::EnableThreadSafety();
-  // ROOT::EnableImplicitMT(m_nslots);
+queryosity::ROOT::Tree::partition() {
+  ::ROOT::EnableThreadSafety();
+  // ::ROOT::EnableImplicitMT(m_nslots);
 
   TDirectory::TContext c;
   std::vector<std::pair<unsigned long long, unsigned long long>> parts;
@@ -270,28 +279,28 @@ Tree::partition() {
   return parts;
 }
 
-inline void Tree::initialize(unsigned int slot, unsigned long long begin,
+inline void queryosity::ROOT::Tree::initialize(unsigned int slot, unsigned long long begin,
                              unsigned long long end) {
   m_treeReaders[slot]->SetEntriesRange(begin, end);
 }
 
-inline void Tree::execute(unsigned int slot, unsigned long long entry) {
+inline void queryosity::ROOT::Tree::execute(unsigned int slot, unsigned long long entry) {
   m_treeReaders[slot]->SetEntry(entry);
 }
 
-inline void Tree::finalize(unsigned int) {
+inline void queryosity::ROOT::Tree::finalize(unsigned int) {
   // m_treeReaders[slot].reset(nullptr);
 }
 
 template <typename U>
-std::unique_ptr<Tree::Branch<U>> Tree::read(unsigned int slot,
+std::unique_ptr<queryosity::ROOT::Tree::Branch<U>> queryosity::ROOT::Tree::read(unsigned int slot,
                                             const std::string &branchName) {
   return std::make_unique<Branch<U>>(branchName, *m_treeReaders[slot]);
 }
 
 template <typename... ColumnTypes>
 template <typename... Names>
-Tree::Snapshot<ColumnTypes...>::Snapshot(const std::string &treeName,
+queryosity::ROOT::Tree::Snapshot<ColumnTypes...>::Snapshot(const std::string &treeName,
                                          Names const &...branchNames)
     : m_snapshot(std::make_shared<TTree>(treeName.c_str(), treeName.c_str())),
       m_branches(makeBranches(std::index_sequence_for<ColumnTypes...>(),
@@ -300,7 +309,7 @@ Tree::Snapshot<ColumnTypes...>::Snapshot(const std::string &treeName,
 }
 
 template <typename... ColumnTypes>
-Tree::Snapshot<ColumnTypes...>::Snapshot(
+queryosity::ROOT::Tree::Snapshot<ColumnTypes...>::Snapshot(
     const std::string &treeName, std::vector<std::string> const &branchNames)
     : m_snapshot(std::make_shared<TTree>(treeName.c_str(), treeName.c_str())),
       m_branches(std::apply(
@@ -313,19 +322,19 @@ Tree::Snapshot<ColumnTypes...>::Snapshot(
 }
 
 template <typename... ColumnTypes>
-void Tree::Snapshot<ColumnTypes...>::fill(
+void queryosity::ROOT::Tree::Snapshot<ColumnTypes...>::fill(
     qty::column::observable<ColumnTypes>... columns, double) {
   this->fillBranches(std::index_sequence_for<ColumnTypes...>(), columns...);
   m_snapshot->Fill();
 }
 
 template <typename... ColumnTypes>
-std::shared_ptr<TTree> Tree::Snapshot<ColumnTypes...>::result() const {
+std::shared_ptr<TTree> queryosity::ROOT::Tree::Snapshot<ColumnTypes...>::result() const {
   return m_snapshot;
 }
 
 template <typename... ColumnTypes>
-std::shared_ptr<TTree> Tree::Snapshot<ColumnTypes...>::merge(
+std::shared_ptr<TTree> queryosity::ROOT::Tree::Snapshot<ColumnTypes...>::merge(
     std::vector<std::shared_ptr<TTree>> const &results) const {
   TList list;
   for (auto const &result : results) {
