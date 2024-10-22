@@ -1,6 +1,6 @@
 (abc)=
 
-# ABC
+# ABCs
 
 ```{toctree}
 :maxdepth: 2

@@ -1,6 +1,4 @@
 {#applying-selections}
-# Applying selections
-
 ::::{tab-set}
 
 :::{tab-item} Existing column
@@ -38,14 +36,14 @@ auto wgt = df.weight(column::definition<DEF>(ARGS...))(COLS...);
 ::::
 
 
-## Initiating a cutflow
+# Initiating a cutflow
 Call `dataflow::filter()` or `dataflow::weight()` to initiate a selection in the cutflow.
 ```cpp
 auto all = df.filter(column::constant(true));
 ```
 
 
-## Compounding selections
+# Compounding selections
 
 Selections can be compounded onto existing ones regardless of their cut/weight specification:
 a cut simply passes through the weight decision of its previous selection (if one exists), and vice versa.
@@ -59,7 +57,7 @@ auto sel = all.weight(w).filter(
 // weight = (1.0)   *    (w)  *  (1.0);
 ```
 
-## Branching selections
+# Branching selections
 
 Applying multiple selections from a common node creates a branching in the cutflow.
 
@@ -74,7 +72,7 @@ auto sel_b = sel.filter(cat == b);
 auto sel_c = sel.filter(cat == c);
 ```
 
-## Joining selections
+# Joining selections
 
 Any set of selections can be merged back together by `&&`/`||`/`*`-ing them.
 
@@ -90,7 +88,7 @@ Therefore, a joined cut/weight constitutes the first selection in a new cutflow,
 These can (and should) be re-applied at any point in the new cutflow.
 :::
 
-## Yield at a selection
+# Yield at a selection
 
 ```cpp
 // single selection

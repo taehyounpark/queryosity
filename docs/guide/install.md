@@ -51,7 +51,7 @@ target_link_libraries(MyAnalysis INTERFACE queryosity::queryosity)
 Several backend implementations are used in examples throughout the documentation, which are also available for general use.
 In order to enable them, the project should be configured with `-DQUERYOSITY_BACKENDS=ON` option set.
 
-| Input datasets | Output queries |
+| Input | Output |
 | :-- | --: |
 | [radpidcsv](https://github.com/d99kris/rapidcsv)  | [boost::histogram](https://www.boost.org/doc/libs/1_86_0/libs/histogram/doc/html/index.html) |
 | [nlohmann::json](https://json.nlohmann.me) | [ROOT::TH1](https://root.cern.ch/doc/master/classTH1.html) |
