@@ -1,5 +1,33 @@
 # Systematic variations
 
+Systematic variation
+: A change in a column value that affects the outcomes of associated selections and queries.
+
+***
+
+A sensitivity analysis means to study how changes in the system's inputs affect its output. 
+In the context of a dataflow, the inputs are column values and outputs are query results.
+
+The nominal and variations of a column can be encapsulted within a *varied* node, which can be treated functionally identical to a nominal-only one except that all nominal+variations are propagated through downstream actions implicitly:
+
+- Any dependent columns and selections evaluated out of varied columns will be varied.
+- Any queries performed with varied columns and/or selections will be varied.
+
+The propagation proceeds in the following fashion:
+
+- **Lockstep.** If two actions each have a variation of the same name, they are in effect together.
+- **Transparent.** If only one action has a given variation, then the nominal is in effect for the other.
+
+All variations are processed at once in a single dataset traversal; in other words, they do not incur any additional runtime overhead other than what is needed to perform the actions themselves.
+
+:::{card}
+:text-align: center
+```{image} ../images/variation.png
+```
++++
+Propagation of systematic variations on $z = x+y$.
+:::
+
 To create systematic variations of a column, substitute its `dataflow::define()` with `dataflow::vary()` and provide a mapping of variation name to alternate column definitions as a secondary argument.
 
 ## Varying columns

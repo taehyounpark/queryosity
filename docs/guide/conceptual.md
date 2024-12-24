@@ -1,17 +1,11 @@
 # Conceptual overview
 
-## Dataflow
+Queryosity enables a [*dataflow*](https://en.wikipedia.org/wiki/Dataflow_programming) model of data analysis, in which a data (edges) flow between actions (nodes) in to form a directed, acyclic graph.
 
-Dataflow
-: A directed, acyclic graph of task performed for each entry of a tabular dataset.
-  ![dataflow](../images/dataflow.png)
+![dataflow](../images/dataflow.png)
 
-Action
-: A node in the dataflow belonging to one of three task sub-graphs.
-
-***
-
-Actions of each task sub-graph belongs to its own sub-type, and can receive actions from the previous graph(s) as inputs:
+An *action* belongs to one of three categories, depending on the nature of the operation.
+A sub-graph of tasks within each category expresses the dependencies of each action on others, potentially of other categories, as inputs.
 
 | Action | Description | Methods | Description | Task Graph | Inputs |
 | :--- | :-- | :-- | :-- | :-- | :-- | 
@@ -24,18 +18,11 @@ Actions of each task sub-graph belongs to its own sub-type, and can receive acti
 | | | `at()` | Run over selected entries. | | `selection` |
 | | | `result()` | Get the result. | | |
 
-## Lazy actions
-
-Lazy action
-: An action that is not performed unless required by the user.
-
-***
-
-Accessing the result of a lazy query turns it and all other actions *eager*, triggering the dataset traversal.
+All actions are first defined in a *lazy* fashion, meaning they are not performed unless its result is accessed by the user.
 The eagerness of actions in each entry is as follows:
 
 1. A query is performed only if its associated selection passes the cut.
-2. A selection is evaluated only if all prior cuts in the cutflow have passed.
+2. A selection is applied only if all prior cuts in the cutflow have passed.
 3. A column is evaluated only if it is needed to determine any of the above.
 
 ## Columns
@@ -110,35 +97,3 @@ Query
 +++
 Making, filling, and booking a query.
 :::
-
-## Systematic variations
-
-Systematic variation
-: A change in a column value that affects the outcomes of associated selections and queries.
-
-***
-
-A sensitivity analysis means to study how changes in the system's inputs affect its output. 
-In the context of a dataflow, the inputs are column values and outputs are query results.
-
-The nominal and variations of a column can be encapsulted within a *varied* node, which can be treated functionally identical to a nominal-only one except that all nominal+variations are propagated through downstream actions implicitly:
-
-- Any dependent columns and selections evaluated out of varied columns will be varied.
-- Any queries performed with varied columns and/or selections will be varied.
-
-The propagation proceeds in the following fashion:
-
-- **Lockstep.** If two actions each have a variation of the same name, they are in effect together.
-- **Transparent.** If only one action has a given variation, then the nominal is in effect for the other.
-
-All variations are processed at once in a single dataset traversal; in other words, they do not incur any additional runtime overhead other than what is needed to perform the actions themselves.
-
-:::{card}
-:text-align: center
-```{image} ../images/variation.png
-```
-+++
-Propagation of systematic variations on $z = x+y$.
-:::
-
-@see @ref guide
