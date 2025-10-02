@@ -228,6 +228,13 @@ template <typename T> constexpr bool is_evaluatable_v = is_evaluator<T>::value;
 
 template <typename Fn> struct deduce_equation;
 
+// generic fallback for constants / non-function types
+template <typename T>
+struct deduce_equation {
+    using type = column::constant<T>;
+};
+
+// targeted specialization for std::functions
 template <typename Ret, typename... Args>
 struct deduce_equation<std::function<Ret(Args...)>> {
   using type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;

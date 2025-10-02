@@ -79,7 +79,7 @@ public:
    * prerequisites must pass in order for a downstream selection to pass.
    * @return Compounded lazy weight.
    */
-  template <typename Col> auto filter(lazy<Col> const &column) const;
+  template <typename Col> auto filter(lazy<Col> const &column) const -> queryosity::lazy<selection::node>;
 
   /**
    * @brief Compound a weight to from this selection.
@@ -87,7 +87,7 @@ public:
    * @param[in] column Input lazy column used as weight decision.
    * @return Compounded lazy weight.
    */
-  template <typename Col> auto weight(lazy<Col> const &column) const;
+  template <typename Col> auto weight(lazy<Col> const &column) const -> queryosity::lazy<selection::node>;
 
   /**
    * @brief Compound a varied cut to this selection.
@@ -343,7 +343,7 @@ auto queryosity::lazy<Action>::to() const -> lazy<column::valued<To>> {
 
 template <typename Action>
 template <typename Col>
-auto queryosity::lazy<Action>::filter(lazy<Col> const &col) const {
+auto queryosity::lazy<Action>::filter(lazy<Col> const &col) const -> queryosity::lazy<selection::node> {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     return this->m_df->template _apply<selection::cut>(*this, col);
   } else {
@@ -354,7 +354,7 @@ auto queryosity::lazy<Action>::filter(lazy<Col> const &col) const {
 
 template <typename Action>
 template <typename Col>
-auto queryosity::lazy<Action>::weight(lazy<Col> const &col) const {
+auto queryosity::lazy<Action>::weight(lazy<Col> const &col) const -> queryosity::lazy<selection::node> {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     return this->m_df->template _apply<selection::weight>(*this, col);
   } else {

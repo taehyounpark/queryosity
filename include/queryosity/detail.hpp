@@ -44,7 +44,11 @@
                          column::value_t<V>,                                   \
                          column::value_t<typename Arg::action_type>>::value),  \
                 bool>::type = true>                                            \
-  auto operator op_symbol(Arg const &arg) const {                              \
+  auto operator op_symbol(Arg const &arg) const                                \
+      -> queryosity::lazy<queryosity::column::valued<                          \
+          decltype(std::declval<column::value_t<V>>()                          \
+                   op_symbol std::declval<column::value_t<typename Arg::action_type>>())>> \
+  {                                                                            \
     return this->m_df                                                          \
         ->define(queryosity::column::expression(                               \
             [](column::value_t<V> const &me,                                   \

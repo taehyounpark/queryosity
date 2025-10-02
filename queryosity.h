@@ -2643,10 +2643,13 @@ auto queryosity::dataset::column<Val>::_read(
                            detail::has_##op_name##_v<column::value_t<V>>,      \
                        bool> = false>                                          \
   auto operator op_symbol() const {                                            \
-    return this->m_df                                                          \
-        ->define(queryosity::column::expression(                               \
-            [](column::value_t<V> const &me) { return (op_symbol me); }))      \
+    return queryosity::column::expression(                               \
+            [](column::value_t<V> const &me) { return (op_symbol me); })._equate(*this->m_df).                                                          \
         .template evaluate(*this);                                             \
+    // return this->m_df                                                          \
+    //     ->define(queryosity::column::expression(                               \
+    //         [](column::value_t<V> const &me) { return (op_symbol me); }))      \
+    //     .template evaluate(*this);                                             \
   }
 
 #define CHECK_FOR_INDEX_OP()                                                   \

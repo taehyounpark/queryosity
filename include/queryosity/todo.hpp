@@ -43,82 +43,6 @@ public:
   virtual bool has_variation(const std::string &var_name) const final override;
   virtual std::set<std::string> get_variation_names() const final override;
 
-  /**
-   * @brief Evaluate the column definition with input columns.
-   * @param[in] columns Input columns.
-   * @param[in][out] Evaluated column.
-   */
-  template <
-      typename... Nodes, typename V = Helper,
-      std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool> = false>
-  auto evaluate(Nodes &&...columns) const
-      -> decltype(std::declval<todo<V>>()._evaluate(
-          std::forward<Nodes>(columns)...)) {
-    return this->_evaluate(std::forward<Nodes>(columns)...);
-  }
-
-  /**
-   * @brief Apply the selection with input columns.
-   * @param[in] columns Input columns.
-   * @param[in][out] Applied selection.
-   */
-  template <
-      typename... Nodes, typename V = Helper,
-      std::enable_if_t<queryosity::selection::is_applicable_v<V>, bool> = false>
-  auto apply(Nodes &&...columns) const
-      -> decltype(std::declval<todo<V>>()._apply(
-          std::forward<Nodes>(columns)...)) {
-    return this->template _apply(std::forward<Nodes>(columns)...);
-  }
-
-  /**
-   * @brief Fill query with input columns per-entry.
-   * @param[in] columns Input columns.
-   * @returns Updated query plan filled with input columns.
-   */
-  template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>>, bool> = false>
-  auto fill(Nodes &&...columns) const
-      -> decltype(std::declval<todo<V>>()._fill(std::declval<Nodes>()...)) {
-    return this->_fill(std::forward<Nodes>(columns)...);
-  }
-
-  /**
-   * @brief Book a query at a selection.
-   * @param[in] sel Selection node at which query is counted/filled.
-   * @return The query booked at the selection.
-   */
-  template <typename Node> auto at(Node &&selection) const {
-    return this->_book(std::forward<Node>(selection));
-  }
-
-  /**
-   * @brief Book a query at multiple selections.
-   * @tparam Sels... Selections.
-   * @param[in] sels... selection nodes.
-   * @return `std::tuple` of queries booked at each selection.
-   */
-  template <typename... Sels> auto at(Sels &&...sels) const {
-    static_assert(query::is_bookable_v<Helper>, "not bookable");
-    return this->_book(std::forward<Sels>(sels)...);
-  }
-
-  /**
-   * @brief Shorthand for `evaluate()`.
-   * @tparam Args... Input column types.
-   * @param[in] columns... Input columns.
-   * @return Evaluated column.
-   */
-  template <typename... Args> auto operator()(Args &&...columns) const {
-    if constexpr (column::is_evaluatable_v<Helper>) {
-      return this->evaluate(std::forward<Args>(columns)...);
-    } else if constexpr (selection::is_applicable_v<Helper>) {
-      return this->apply(std::forward<Args>(columns)...);
-    } else if constexpr (query::is_bookable_v<Helper>) {
-      return this->fill(std::forward<Args>(columns)...);
-    }
-  }
-
 protected:
   template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::column::is_evaluatable_v<V> &&
@@ -257,9 +181,84 @@ protected:
     auto sys = varied_type(std::move(this->_fill(columns.nominal()...)));
     for (auto const &var_name : systematic::get_variation_names(columns...)) {
       sys.set_variation(
-          var_name, std::move(this->_fill(columns.variation(var_name)...)));
+          var_name, this->_fill(columns.variation(var_name)...));
     }
     return sys;
+  }
+
+public:
+
+  /**
+   * @brief Evaluate the column definition with input columns.
+   * @param[in] columns Input columns.
+   * @param[in][out] Evaluated column.
+   */
+  template <
+      typename... Nodes, typename V = Helper,
+      std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool> = false>
+  auto evaluate(Nodes &&...columns) const
+      -> decltype(std::declval<todo<V>>()._evaluate(
+          std::forward<Nodes>(columns)...)) {
+    return this->_evaluate(std::forward<Nodes>(columns)...);
+  }
+
+  /**
+   * @brief Apply the selection with input columns.
+   * @param[in] columns Input columns.
+   * @param[in][out] Applied selection.
+   */
+  template <
+      typename... Nodes, typename V = Helper,
+      std::enable_if_t<queryosity::selection::is_applicable_v<V>, bool> = false>
+  auto apply(Nodes &&...columns) const
+      -> decltype(std::declval<todo<V>>()._apply(
+          std::forward<Nodes>(columns)...)) {
+    return this->template _apply(std::forward<Nodes>(columns)...);
+  }
+
+  /**
+   * @brief Fill query with input columns per-entry.
+   * @param[in] columns Input columns.
+   * @returns Updated query plan filled with input columns.
+   */
+  template <typename... Nodes, typename V = Helper,
+            std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>>, bool> = false>
+  auto fill(Nodes &&...columns) const
+      -> decltype(std::declval<todo<V>>()._fill(std::declval<Nodes>()...)) {
+    return this->_fill(std::forward<Nodes>(columns)...);
+  }
+
+  /**
+   * @brief Book a query at multiple selections.
+   * @tparam Sels... Selections.
+   * @param[in] sels... selection nodes.
+   * @return `std::tuple` of queries booked at each selection.
+   */
+  template <typename... Sels> auto at(Sels &&...sels) const -> decltype(this->_book(std::forward<Sels>(sels)...)){
+    static_assert(query::is_bookable_v<Helper>, "not bookable");
+    return this->_book(std::forward<Sels>(sels)...);
+  }
+
+  /**
+   * @brief Shorthand for `evaluate()`.
+   * @tparam Args... Input column types.
+   * @param[in] columns... Input columns.
+   * @return Evaluated column.
+   */
+  template <typename... Args> auto operator()(Args &&...columns) const {
+    if constexpr (column::is_evaluatable_v<Helper>) {
+      return this->evaluate(std::forward<Args>(columns)...);
+    } else if constexpr (selection::is_applicable_v<Helper>) {
+      return this->apply(std::forward<Args>(columns)...);
+    } else if constexpr (query::is_bookable_v<Helper>) {
+      return this->fill(std::forward<Args>(columns)...);
+    }
+  }
+
+  template <typename Node>
+  auto fill(Node&& node) const
+      -> decltype(this->_fill(std::forward<Node>(node))) {
+      return this->_fill(std::forward<Node>(node));
   }
 
 protected:

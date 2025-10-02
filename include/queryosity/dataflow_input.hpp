@@ -21,7 +21,9 @@ public:
   auto read(dataset::column<Val> const &col)
       -> lazy<queryosity::column::valued<Val>>;
 
-  template <typename... Vals> auto read(dataset::column<Vals> const &...cols);
+template <typename... Vals>
+auto read(dataset::column<Vals> const &...cols)
+    -> std::tuple<lazy<queryosity::column::valued<Vals>>...>;
 
   template <typename Val>
   auto vary(dataset::column<Val> const &col,
@@ -52,7 +54,7 @@ auto queryosity::dataflow::input<DS>::read(dataset::column<Val> const &col)
 template <typename DS>
 template <typename... Vals>
 auto queryosity::dataflow::input<DS>::read(
-    dataset::column<Vals> const &...cols) {
+    dataset::column<Vals> const &...cols) -> std::tuple<lazy<queryosity::column::valued<Vals>>...> {
   return std::make_tuple(cols.template _read(*this)...);
 }
 

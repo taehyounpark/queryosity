@@ -244,21 +244,21 @@ public:
   template <typename Qry>
   auto get(query::output<Qry> const &output) -> todo<query::booker<Qry>>;
 
-  /**
-   * @brief Get a column series.
-   * @tparam Col (Varied) lazy column.
-   * @param[in] col Column as series constructor argument.
-   * @return (Varied) lazy column series query.
-   */
-  template <typename Col> auto get(column::series<Col> const &col);
+  // /**
+  //  * @brief Get a column series.
+  //  * @tparam Col (Varied) lazy column.
+  //  * @param[in] col Column as series constructor argument.
+  //  * @return (Varied) lazy column series query.
+  //  */
+  // template <typename Col> auto get(column::series<Col> const &col);
 
-  /**
-   * @brief Get selection yield.
-   * @tparam Sels (Varied) lazy selection(s).
-   * @param[in] sel Selection(s) as yield constructor argument(s).
-   * @return (Varied) lazy selection yield query(ies).
-   */
-  template <typename... Sels> auto get(selection::yield<Sels...> const &sels);
+  // /**
+  //  * @brief Get selection yield.
+  //  * @tparam Sels (Varied) lazy selection(s).
+  //  * @param[in] sel Selection(s) as yield constructor argument(s).
+  //  * @return (Varied) lazy selection yield query(ies).
+  //  */
+  // template <typename... Sels> auto get(selection::yield<Sels...> const &sels);
 
   /**
    * @brief Vary a column constant.
@@ -357,19 +357,20 @@ public:
   template <typename Qry, typename... Args>
   auto _make(Args &&...args) -> todo<query::booker<Qry>>;
 
+  template <typename Def, typename... Cols>
+  auto _evaluate(todo<column::evaluator<Def>> const &calc,
+                 lazy<Cols> const &...columns) -> lazy<Def>;
+
 protected:
   template <typename Kwd> void accept_kwarg(Kwd &&kwarg);
 
   void analyze();
   void reset();
 
+public:
   template <typename DS, typename Val>
   auto _read(dataset::reader<DS> &ds,
              const std::string &name) -> lazy<read_column_t<DS, Val>>;
-
-  template <typename Def, typename... Cols>
-  auto _evaluate(todo<column::evaluator<Def>> const &calc,
-                 lazy<Cols> const &...columns) -> lazy<Def>;
 
   template <typename Sel, typename Col>
   auto _apply(lazy<Col> const &col) -> lazy<selection::node>;
@@ -637,15 +638,15 @@ auto queryosity::dataflow::get(queryosity::query::output<Qry> const &qry)
   return qry.make(*this);
 }
 
-template <typename Col>
-auto queryosity::dataflow::get(queryosity::column::series<Col> const &col) {
-  return col.make(*this);
-}
+// template <typename Col>
+// auto queryosity::dataflow::get(queryosity::column::series<Col> const &col) {
+//   return col.make(*this);
+// }
 
-template <typename... Sels>
-auto queryosity::dataflow::get(selection::yield<Sels...> const &sels) {
-  return sels.make(*this);
-}
+// template <typename... Sels>
+// auto queryosity::dataflow::get(selection::yield<Sels...> const &sels) {
+//   return sels.make(*this);
+// }
 
 template <typename Def, typename... Cols>
 auto queryosity::dataflow::_evaluate(todo<column::evaluator<Def>> const &calc,

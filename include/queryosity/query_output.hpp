@@ -26,7 +26,7 @@ public:
    * @tparam Args Constructor argument types for @p Qry.
    * @param args Constructor arguments for @p Qry.
    */
-  template <typename... Args> output(Args... args);
+  template <typename... Args> output(Args &&...args);
   ~output() = default;
 
   auto make(dataflow &df) const;
@@ -43,8 +43,15 @@ protected:
 
 template <typename Qry>
 template <typename... Args>
-queryosity::query::output<Qry>::output(Args... args)
-    : m_make([args...](dataflow &df) { return df._make<Qry>(args...); }) {}
+queryosity::query::output<Qry>::output(Args &&...args)
+    : m_make([args_tuple = std::make_tuple(std::forward<Args>(args)...)](
+                 dataflow &df) mutable {
+        return std::apply(
+            [&df](auto &&...args) {
+              return df._make<Qry>(std::forward<decltype(args)>(args)...);
+            },
+            args_tuple);
+      }) {}
 
 template <typename Qry>
 auto queryosity::query::output<Qry>::make(queryosity::dataflow &df) const {

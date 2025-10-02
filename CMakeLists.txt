@@ -16,13 +16,13 @@ set(QUERYOSITY_VERSION
     ${QUERYOSITY_MAJOR_VERSION}.${QUERYOSITY_MINOR_VERSION}.${QUERYOSITY_PATCH_VERSION}
 )
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 if(QUERYOSITY_TESTS OR QUERYOSITY_EXAMPLES)
   set(QUERYOSITY_BACKENDS ON)
 endif()
-
-set(QUERYOSITY_CXX_STANDARD
-    17
-    CACHE STRING "Minimum C++ standard")
 
 add_library(queryosity INTERFACE)
 add_library(queryosity::queryosity ALIAS queryosity)
@@ -32,9 +32,6 @@ set_target_properties(queryosity PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(
   queryosity INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
                        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
-
-target_compile_features(queryosity
-                        INTERFACE "cxx_std_${QUERYOSITY_CXX_STANDARD}")
 
 target_compile_options(
   queryosity
