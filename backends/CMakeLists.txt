@@ -17,12 +17,12 @@ target_compile_options(
 )
 
 # ROOT
-find_package( ROOT 6.36.00 REQUIRED COMPONENTS Core Hist RIO Tree ROOTDataFrame ROOTVecOps)
+find_package( ROOT 6.36.00 REQUIRED COMPONENTS Core Hist RIO Tree ROOTDataFrame ROOTVecOps )
 
 # boost::histogram
 find_package( Boost CONFIG REQUIRED )
 
-#find_package( BootstrapGenerator CONFIG REQUIRED )
+# find_package( BootstrapGenerator REQUIRED )
 
 # nlohmann::json
 include(FetchContent)
@@ -53,7 +53,7 @@ include(ExternalProject)
 target_link_libraries(
   queryosity_backends
   INTERFACE queryosity::queryosity
-  PUBLIC nlohmann_json::nlohmann_json rapidcsv ROOT::Core ROOT::RIO ROOT::Hist ROOT::Tree ROOT::TreePlayer ROOT::Imt ROOT::ROOTVecOps ROOT::ROOTDataFrame ROOT::Physics ${Boost_LIBRARIES}
+  PUBLIC nlohmann_json::nlohmann_json rapidcsv ${Boost_LIBRARIES} ROOT::Core ROOT::Gpad ROOT::Graf3d ROOT::Graf ROOT::Hist ROOT::Imt ROOT::MathCore ROOT::Matrix ROOT::MultiProc ROOT::Net ROOT::Physics ROOT::Postscript ROOT::RIO ROOT::ROOTDataFrame ROOT::ROOTVecOps ROOT::Rint ROOT::Thread ROOT::TreePlayer ROOT::Tree
 )
 
 # ROOT Dictionary

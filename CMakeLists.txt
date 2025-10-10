@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 
 project(queryosity)
 
-option(QUERYOSITY_INSTALL "Install target" ON)
+option(QUERYOSITY_INSTALL "Install target" OFF)
 option(QUERYOSITY_DOCS "Documentation" OFF)
 option(QUERYOSITY_BACKENDS "Extensions" OFF)
 option(QUERYOSITY_TESTS "Tests" OFF)
@@ -46,39 +46,65 @@ if(QUERYOSITY_INSTALL)
   include(CMakePackageConfigHelpers)
   include(GNUInstallDirs)
 
+  # 1) Generate the config + version file
   configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/queryosityConfig.cmake.in"
+    "${CMAKE_CURRENT_SOURCE_DIR}/queryosityConfig.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/queryosityConfig.cmake"
-    INSTALL_DESTINATION lib/cmake/queryosity)
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/queryosity
+  )
 
   write_basic_package_version_file(
-    queryosityConfigVersion.cmake
+    "${CMAKE_CURRENT_BINARY_DIR}/queryosityConfigVersion.cmake"
     VERSION ${QUERYOSITY_VERSION}
-    COMPATIBILITY SameMajorVersion ARCH_INDEPENDENT)
+    COMPATIBILITY SameMajorVersion
+  )
 
-  install(FILES "${CMAKE_CURRENT_BINARY_DIR}/queryosityConfigVersion.cmake"
-                "${CMAKE_CURRENT_BINARY_DIR}/queryosityConfig.cmake"
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/queryosity)
+  # 2) Install config + version files
+  install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/queryosityConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/queryosityConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/queryosity
+  )
 
+  # 3) Install headers
+  install(DIRECTORY ${QUERYOSITY_INCLUDE_DIRS}/queryosity
+          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+  # 4) Install target + export file
   install(
     TARGETS queryosity
     EXPORT queryosityTargets
-    INCLUDES
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
-
-  install(DIRECTORY ${QUERYOSITY_INCLUDE_DIRS}/queryosity
-          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+  )
 
   install(
     EXPORT queryosityTargets
     FILE queryosityTargets.cmake
     NAMESPACE queryosity::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/queryosity)
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/queryosity
+  )
 
-  export(
-    EXPORT queryosityTargets
-    FILE "${CMAKE_CURRENT_BINARY_DIR}/queryosityTargets.cmake"
-    NAMESPACE queryosity::)
+else()  # ====== BUILD-TREE USAGE ONLY ======
+
+  export(PACKAGE queryosity)
+
+  # # 1) Export targets locally
+  # export(
+  #   EXPORT queryosityTargets
+  #   FILE "${PROJECT_BINARY_DIR}/queryosityTargets.cmake"
+  #   NAMESPACE queryosity::
+  # )
+
+  # 2) Configure a local config file that references the above
+  set(CONF_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  set(CONF_LIBRARY_DIRS "${PROJECT_BINARY_DIR}")
+  set(CONF_LIBRARIES    queryosity)
+
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/queryosityConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/queryosityConfig.cmake"
+    @ONLY
+  )
 
 endif()
 

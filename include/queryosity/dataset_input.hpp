@@ -20,8 +20,8 @@ template <typename DS> struct input {
    * @param[in] args Constructor arguments for @p DS.
    */
   input() = default;
+  ~input() = default;
   template <typename... Args> input(Args &&...args);
-  virtual ~input() = default;
   std::unique_ptr<DS> ds; //!
 };
 

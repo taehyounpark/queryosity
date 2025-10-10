@@ -38,9 +38,11 @@ namespace query {
 
 class experiment;
 
-template <typename T> class aggregation;
-
 template <typename... Ts> class fillable;
+
+template <typename... Ts> class callback;
+
+template <typename T> class aggregation;
 
 template <typename T> class definition;
 
@@ -77,8 +79,8 @@ protected:
 };
 
 template <typename T>
-constexpr std::true_type check_implemented(query::aggregation<T> const &);
-constexpr std::false_type check_implemented(...);
+constexpr std::true_type check_aggregation(query::aggregation<T> const &);
+constexpr std::false_type check_aggregation(...);
 
 template <typename... Vals>
 constexpr std::true_type
@@ -90,7 +92,7 @@ template <typename T> struct is_bookable<query::booker<T>> : std::true_type {};
 
 template <typename T>
 constexpr bool is_aggregation_v =
-    decltype(check_implemented(std::declval<T>()))::value;
+    decltype(check_aggregation(std::declval<T>()))::value;
 
 template <typename T>
 constexpr bool is_fillable_v =

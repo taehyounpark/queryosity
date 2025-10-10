@@ -40,7 +40,6 @@ public:
   template <typename> friend class lazy;
   template <typename> friend class todo;
   template <typename> friend class varied;
-
 public:
   /**
    * @brief Default constructor.
@@ -408,7 +407,7 @@ protected:
   dataset::weight m_weight;
   long long m_nrows;
 
-  std::vector<std::unique_ptr<dataset::source>> m_sources;
+  std::vector<std::unique_ptr<dataset::source>> m_sources;  //!
   std::vector<unsigned int> m_dslots;
 
   mutable bool m_analyzed;
@@ -513,6 +512,7 @@ template <typename DS>
 auto queryosity::dataflow::load(queryosity::dataset::input<DS> &&in)
     -> queryosity::dataflow::input<DS> {
 
+  // auto ds = in.ds.get();
   auto ds = in.ds.get();
 
   m_sources.emplace_back(std::move(in.ds));

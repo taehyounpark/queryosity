@@ -57,8 +57,8 @@ protected:
   std::vector<std::string> m_inputFiles;
   std::string m_treeName;
 
-  std::vector<std::unique_ptr<TTree>> m_trees;             //!
-  std::vector<std::unique_ptr<TTreeReader>> m_treeReaders; //!
+  std::vector<std::unique_ptr<TTree>> m_trees;              //!
+  std::vector<std::unique_ptr<TTreeReader>> m_treeReaders;  //!
 };
 
 template <typename T>
@@ -78,7 +78,7 @@ public:
 
 protected:
   std::string m_branchName;
-  std::unique_ptr<TTreeReaderValue<T>> m_treeReaderValue;
+  std::unique_ptr<TTreeReaderValue<T>> m_treeReaderValue; //!
 };
 
 template <typename T>
@@ -110,8 +110,8 @@ public:
 
 protected:
   std::string m_branchName;
-  std::unique_ptr<TTreeReaderArray<T>> m_treeReaderArray;
-  mutable ::ROOT::RVec<T> m_readArray;
+  std::unique_ptr<TTreeReaderArray<T>> m_treeReaderArray;  //!
+  mutable ::ROOT::RVec<T> m_readArray;  //!
 };
 
 template <>
@@ -141,8 +141,8 @@ public:
 
 protected:
   std::string m_branchName;
-  std::unique_ptr<TTreeReaderArray<bool>> m_treeReaderArray;
-  mutable ::ROOT::RVec<bool> m_readArray;
+  std::unique_ptr<TTreeReaderArray<bool>> m_treeReaderArray; //!
+  mutable ::ROOT::RVec<bool> m_readArray;  //!
 };
 
 template <typename... ColumnTypes>
@@ -224,8 +224,8 @@ inline queryosity::ROOT::Tree::Tree(std::initializer_list<std::string> inputFile
     : m_inputFiles(inputFiles), m_treeName(treeName) {}
 
 inline void queryosity::ROOT::Tree::parallelize(unsigned int nslots) {
-  m_trees.resize(nslots);
-  m_treeReaders.resize(nslots);
+  m_trees.clear(); m_trees.resize(nslots);
+  m_treeReaders.clear(); m_treeReaders.resize(nslots);
   for (unsigned int islot = 0; islot < nslots; ++islot) {
     auto tree =
         std::make_unique<TChain>(m_treeName.c_str(), m_treeName.c_str());
@@ -233,7 +233,7 @@ inline void queryosity::ROOT::Tree::parallelize(unsigned int nslots) {
     for (auto const &filePath : m_inputFiles) {
       tree->Add(filePath.c_str());
     }
-    auto treeReader = std::make_unique<TTreeReader>(tree.get());
+    auto treeReader = std::make_unique<TTreeReader>(tree.release());
     m_trees[islot] = std::move(tree);
     m_treeReaders[islot] = std::move(treeReader);
   }

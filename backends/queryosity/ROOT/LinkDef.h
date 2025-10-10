@@ -7,18 +7,19 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ namespace queryosity;
 #pragma link C++ nestedclasses;
 #pragma link C++ nestedtypedefs;
 
+#pragma link C++ namespace queryosity;
+
 #pragma link C++ class queryosity::dataflow+;
 
-#pragma link C++ class queryosity::column::constant<int>+;
-#pragma link C++ class queryosity::column::expression<int(int)>+;
+#pragma link C++ class queryosity::ROOT::Tree+;
+#pragma link C++ struct queryosity::dataset::input<queryosity::ROOT::Tree>+;
 
-#pragma link C++ class queryosity::dataset::input<queryosity::ROOT::Tree>+;
+#pragma link C++ class queryosity::column::constant<float>+;
+#pragma link C++ class queryosity::column::expression<float(float)>+;
+
 #pragma link C++ class queryosity::query::output<queryosity::ROOT::Hist<1,float>>+;
-
-template <typename Fn> struct deduce_equation; // only visible to C++
 
 #endif

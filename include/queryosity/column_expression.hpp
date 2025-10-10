@@ -20,6 +20,8 @@ class node;
 
 namespace column {
 
+template <typename Fn> struct expression;
+
 /**
  * @brief Argument to define a column evaluated out of an expression in the
  * dataflow.
@@ -53,33 +55,33 @@ protected:
   function_type m_expression;
 };
 
-template <typename Ret, typename... Args> struct expression<Ret(Args...)> {
+// template <typename Ret, typename... Args> struct expression<Ret(Args...)> {
 
-public:
-  using function_type = std::function<Ret(Args...)>;
-  using equation_type = equation<Ret(Args...)>;
+// public:
+//   using function_type = std::function<Ret(Args const&...)>;
+//   using equation_type = equation<Ret(Args...)>;
 
-public:
-  /**
-   * @brief Argument constructor.
-   * @param[in] expr The callable expression.
-   */
-  expression(std::function<Ret(Args...)> func);
-  ~expression() = default;
+// public:
+//   /**
+//    * @brief Argument constructor.
+//    * @param[in] expr The callable expression.
+//    */
+//   expression(std::function<Ret(Args const&...)> func);
+//   ~expression() = default;
 
-  expression(expression const &) = delete;
-  expression &operator=(expression const &) = delete;
+//   expression(expression const &) = delete;
+//   expression &operator=(expression const &) = delete;
 
-  auto _equate(dataflow &df) const -> todo<evaluator<equation_type>>;
+//   auto _equate(dataflow &df) const -> todo<evaluator<equation_type>>;
 
-  template <typename Sel> auto _select(dataflow &df) const;
+//   template <typename Sel> auto _select(dataflow &df) const;
 
-  template <typename Sel>
-  auto _select(dataflow &df, lazy<selection::node> const &presel) const;
+//   template <typename Sel>
+//   auto _select(dataflow &df, lazy<selection::node> const &presel) const;
 
-protected:
-  function_type m_expression;
-};
+// protected:
+//   function_type m_expression;
+// };
 
 } // namespace column
 
@@ -113,26 +115,26 @@ auto queryosity::column::expression<Expr>::_select(
   return df._select<Sel>(presel, this->m_expression);
 }
 
-template <typename Ret, typename... Args>
-queryosity::column::expression<Ret(Args...)>::expression(std::function<Ret(Args...)> func)
-    : m_expression(std::move(func)) {}
+// template <typename Ret, typename... Args>
+// queryosity::column::expression<Ret(Args...)>::expression(std::function<Ret(Args const&...)> func)
+//     : m_expression(std::move(func)) {}
 
-template <typename Ret, typename... Args>
-auto queryosity::column::expression<Ret(Args...)>::_equate(
-    queryosity::dataflow &df) const -> todo<evaluator<equation_type>> {
-  return df._equate(this->m_expression);
-}
+// template <typename Ret, typename... Args>
+// auto queryosity::column::expression<Ret(Args...)>::_equate(
+//     queryosity::dataflow &df) const -> todo<evaluator<equation_type>> {
+//   return df._equate(this->m_expression);
+// }
 
-template <typename Ret, typename... Args>
-template <typename Sel>
-auto queryosity::column::expression<Ret(Args...)>::_select(
-    queryosity::dataflow &df) const {
-  return df._select<Sel>(this->m_expression);
-}
+// template <typename Ret, typename... Args>
+// template <typename Sel>
+// auto queryosity::column::expression<Ret(Args...)>::_select(
+//     queryosity::dataflow &df) const {
+//   return df._select<Sel>(this->m_expression);
+// }
 
-template <typename Ret, typename... Args>
-template <typename Sel>
-auto queryosity::column::expression<Ret(Args...)>::_select(
-    queryosity::dataflow &df, lazy<selection::node> const &presel) const {
-  return df._select<Sel>(presel, this->m_expression);
-}
+// template <typename Ret, typename... Args>
+// template <typename Sel>
+// auto queryosity::column::expression<Ret(Args...)>::_select(
+//     queryosity::dataflow &df, lazy<selection::node> const &presel) const {
+//   return df._select<Sel>(presel, this->m_expression);
+// }
