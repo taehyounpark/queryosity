@@ -11,7 +11,7 @@ namespace queryosity {
  * @tparam Cols Input column data types.
  */
 template <typename... Cols>
-class query::callback<Cols...> : public node,
+class query::callback : public node,
                                  public query::fillable<Cols...> {
 
 public:

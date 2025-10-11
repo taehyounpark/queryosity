@@ -19,6 +19,7 @@
 
 #include "queryosity/query_aggregation.hpp"
 #include "queryosity/query_definition.hpp"
+#include "queryosity/query_callback.hpp"
 #include "queryosity/query_series.hpp"
 
 #include "queryosity/dataflow.hpp"
