@@ -16,10 +16,10 @@ concurrency:
 
 jobs:
   ubuntu_gcc:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       matrix:
-        gcc: ['11', '12', '13']
+        gcc: ['12', '13', '14']
     env:
       CC: gcc-${{ matrix.gcc }}
       CXX: g++-${{ matrix.gcc }}
