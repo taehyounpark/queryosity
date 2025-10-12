@@ -4,7 +4,12 @@ project(queryosity)
 
 option(QUERYOSITY_INSTALL "Install target" OFF)
 option(QUERYOSITY_DOCS "Documentation" OFF)
-option(QUERYOSITY_BACKENDS "Extensions" OFF)
+
+option(QUERYOSITY_JSON  "Extension: nlohmann::json" OFF)
+option(QUERYOSITY_CSV   "Extension: rapidcsv" OFF)
+option(QUERYOSITY_BOOST "Extension: boost::histogram" OFF)
+option(QUERYOSITY_ROOT  "Extension: ROOT" OFF)
+
 option(QUERYOSITY_TESTS "Tests" OFF)
 option(QUERYOSITY_EXAMPLES "Examples" OFF)
 
@@ -111,7 +116,7 @@ endif()
 if(QUERYOSITY_BACKENDS
    OR QUERYOSITY_TESTS
    OR QUERYOSITY_EXAMPLES)
-  add_subdirectory("backends")
+  add_subdirectory("extensions")
 endif()
 
 if(QUERYOSITY_TESTS)

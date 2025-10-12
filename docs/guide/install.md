@@ -30,7 +30,7 @@ cmake --install .
 | CMake flag | Default | Description |
 | --- | --- | --- |
 | `-DQUERYOSITY_INSTALL=ON` | `OFF` | Install the library so it can be found by a different CMake project. |
-| `-DQUERYOSITY_BACKENDS=ON` | `OFF` | Compile pre-existing backends for input datasets & output queries. |
+| `-DQUERYOSITY_BACKENDS=ON` | `OFF` | Compile pre-existing extensions for input datasets & output queries. |
 | `-DQUERYOSITY_TESTS=ON` | `OFF` | Compile tests. |
 | `-DQUERYOSITY_EXAMPLES=ON` | `OFF` | Compile examples. |
 
