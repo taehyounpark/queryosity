@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "Python frontend for ROOT data analyses written in queryosity"
 license-files = ["LICENSE"]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 authors = [
   { name = "Tae Hyoun Park", email = "taehyounpark@icloud.com" },
 ]
@@ -22,9 +22,6 @@ dependencies = [
   "tree-sitter",
   "tree-sitter-cpp",
 ]
-
-[project.scripts]
-analyze = "qtypy.cli:main"
 
 [project.urls]
 Homepage = "https://queryosity.readthedocs.io/en/latest/"

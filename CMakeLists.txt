@@ -135,3 +135,13 @@ endif()
 if(QUERYOSITY_EXAMPLES)
   add_subdirectory("examples")
 endif()
+
+# hack-ish solution for ROOT
+if(QUERYOSITY_ROOT)
+  set(SETUP ${CMAKE_CURRENT_BINARY_DIR}/setup.sh)
+  file(WRITE ${SETUP} "#!/bin/bash\n")
+  file(APPEND ${SETUP} "# this is an auto-generated setup script\n" )
+  file(APPEND ${SETUP} "export PYTHONPATH=\${PYTHONPATH}:${CMAKE_CURRENT_SOURCE_DIR}/\n")
+  file(APPEND ${SETUP} "export QUERYOSITY_DIR=${CMAKE_CURRENT_SOURCE_DIR}\n")
+  file(APPEND ${SETUP} "source ${CMAKE_CURRENT_BINARY_DIR}/extensions/setup.sh")
+endif()
