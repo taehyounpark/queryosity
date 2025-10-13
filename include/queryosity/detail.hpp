@@ -14,7 +14,7 @@
       : std::true_type {};                                                     \
                                                                                \
   template <typename T, typename Arg>                                          \
-  auto operator op_symbol(const T &, const Arg &) -> priority_tag<0>;          \
+  auto operator op_symbol(const T &, const Arg &)->priority_tag<0>;            \
                                                                                \
   template <typename T, typename Arg> struct has_custom_only_##op_name {       \
   private:                                                                     \
@@ -44,18 +44,17 @@
                          column::value_t<V>,                                   \
                          column::value_t<typename Arg::action_type>>::value),  \
                 bool>::type = true>                                            \
-  auto operator op_symbol(Arg const &arg) const                                \
-      -> queryosity::lazy<queryosity::column::valued<                          \
-          decltype(std::declval<column::value_t<V>>()                          \
-                   op_symbol std::declval<column::value_t<typename Arg::action_type>>())>> \
-  {                                                                            \
+  auto operator op_symbol(Arg const &arg)                                      \
+      const->queryosity::lazy<queryosity::column::valued<                      \
+          decltype(std::declval<column::value_t<V>>() op_symbol std::declval<  \
+                   column::value_t<typename Arg::action_type>>())>> {          \
     return this->m_df                                                          \
-        ->template define(queryosity::column::expression(                               \
+        ->define(queryosity::column::expression(                               \
             [](column::value_t<V> const &me,                                   \
                column::value_t<typename Arg::action_type> const &you) {        \
               return me op_symbol you;                                         \
             }))                                                                \
-        .template evaluate(*this, arg);                                        \
+        .evaluate(*this, arg);                                                 \
   }
 
 #define CHECK_FOR_UNARY_OP(op_name, op_symbol)                                 \
@@ -78,9 +77,9 @@
                        bool> = false>                                          \
   auto operator op_symbol() const {                                            \
     return this->m_df                                                          \
-        ->template define(queryosity::column::expression(                               \
+        ->define(queryosity::column::expression(                               \
             [](column::value_t<V> const &me) { return (op_symbol me); }))      \
-        .template evaluate(*this);                                             \
+        .evaluate(*this);                                                      \
   }
 
 #define CHECK_FOR_INDEX_OP()                                                   \
@@ -109,12 +108,12 @@
                        bool> = false>                                          \
   auto operator[](Arg const &arg) const {                                      \
     return this->m_df                                                          \
-        ->template define(queryosity::column::expression(                               \
+        ->define(queryosity::column::expression(                               \
             [](column::value_t<V> me,                                          \
                column::value_t<typename Arg::action_type> index) {             \
               return me[index];                                                \
             }))                                                                \
-        .template evaluate(*this, arg);                                        \
+        .evaluate(*this, arg);                                                 \
   }
 
 #define DECLARE_LAZY_VARIED_BINARY_OP(op_symbol)                               \
@@ -123,7 +122,7 @@
       std::enable_if_t<queryosity::is_column_v<V> &&                           \
                            queryosity::is_column_v<typename Arg::action_type>, \
                        bool> = false>                                          \
-  auto operator op_symbol(Arg const &b) const -> varied<                       \
+  auto operator op_symbol(Arg const &b) const->varied<                         \
       lazy<typename decltype(std::declval<queryosity::lazy<Act>>().            \
                              operator op_symbol(b.nominal()))::action_type>>;
 
@@ -135,8 +134,8 @@
                            queryosity::is_column_v<typename Arg::action_type>, \
                        bool>>                                                  \
   auto queryosity::varied<queryosity::lazy<Act>>::operator op_symbol(          \
-      Arg const &b) const                                                      \
-      -> varied<                                                               \
+      Arg const &b)                                                            \
+      const->varied<                                                           \
           lazy<typename decltype(std::declval<lazy<Act>>().operator op_symbol( \
               b.nominal()))::action_type>> {                                   \
     auto syst = varied<                                                        \
@@ -153,18 +152,18 @@
 #define DECLARE_LAZY_VARIED_UNARY_OP(op_symbol)                                \
   template <typename V = Act,                                                  \
             std::enable_if_t<queryosity::is_column_v<V>, bool> = false>        \
-  auto operator op_symbol() const -> varied<                                   \
+  auto operator op_symbol() const->varied<                                     \
       queryosity::lazy<typename decltype(std::declval<lazy<V>>().              \
                                          operator op_symbol())::action_type>>;
 #define DEFINE_LAZY_VARIED_UNARY_OP(op_name, op_symbol)                        \
   template <typename Act>                                                      \
   template <typename V, std::enable_if_t<queryosity::is_column_v<V>, bool>>    \
   auto queryosity::varied<queryosity::lazy<Act>>::operator op_symbol() const   \
-      -> varied<lazy<typename decltype(std::declval<lazy<V>>().                \
-                                       operator op_symbol())::action_type>> {  \
+      ->varied<lazy<typename decltype(std::declval<lazy<V>>().                 \
+                                      operator op_symbol())::action_type>> {   \
     auto syst = varied<queryosity::lazy<                                       \
-        typename decltype(std::declval<lazy<V>>().                             \
-                          operator op_symbol())::action_type>>(                \
+        typename decltype(std::declval<lazy<V>>()                              \
+                              .operator op_symbol())::action_type>>(           \
         this->nominal().operator op_symbol());                                 \
     for (auto const &var_name : systematic::get_variation_names(*this)) {      \
       syst.set_variation(var_name, variation(var_name).operator op_symbol());  \
