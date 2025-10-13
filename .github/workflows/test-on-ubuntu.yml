@@ -1,4 +1,4 @@
-name: Ubuntu
+name: Run tests 🔎 on Linux 🐧
 
 on:
   push:

@@ -114,8 +114,16 @@ myst_substitutions = {
 
 # -- Breathe configuration -------------------------------------------------
 
-breathe_projects = {
-	"queryosity": "_build/xml/"
-}
+import os, subprocess
+
+docs_dir = os.path.dirname(__file__)
+
+# Run Doxygen with the Doxyfile located in the parent docs dir
+doxyfile_path = os.path.join(docs_dir, "Doxyfile")
+subprocess.call(["doxygen", doxyfile_path])
+
+# Point Breathe to the actual doxygen XML output directory
+doxygen_xml_dir = os.path.join(docs_dir, "_build", "xml")
+breathe_projects = {"queryosity": doxygen_xml_dir}
 breathe_default_project = "queryosity"
 breathe_default_members = ('members',)
