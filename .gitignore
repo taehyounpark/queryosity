@@ -13,6 +13,11 @@ bld/
 [Oo]bj/
 [Ll]og/
 
+dist/
+__pycache__/
+*.egg-info/
+
+*.pyc
 *.xslt
 *.xsd
 *.html

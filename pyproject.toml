@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "queryosity-py"
+version = "0.2.0"
+description = "Python frontend for ROOT data analyses written in queryosity"
+license-files = ["LICENSE"]
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+  { name = "Tae Hyoun Park", email = "taehyounpark@icloud.com" },
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "numpy",
+  "tree-sitter",
+  "tree-sitter-cpp",
+]
+
+[project.scripts]
+analyze = "qtypy.cli:main"
+
+[project.urls]
+Homepage = "https://queryosity.readthedocs.io/en/latest/"
+Issues = "https://github.com/taehyounpark/queryosity/issues"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+exclude = ["tests", "tests.*"]

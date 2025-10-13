@@ -60,7 +60,7 @@ html_context = {
     "github_user": "taehyounpark",
     "github_repo": "queryosity",
     "github_version": "docs",
-    "doc_path": "docs",
+    "doc_path": "docs/cpp/",
     "default_mode": "light"
 }
 html_theme_options = {

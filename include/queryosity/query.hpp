@@ -142,10 +142,7 @@ inline void queryosity::query::node::apply_scale(double scale) {
 
 inline void queryosity::query::node::initialize(unsigned int,
                                                 unsigned long long,
-                                                unsigned long long) {
-  if (!m_selection)
-    throw std::runtime_error("no booked selection");
-}
+                                                unsigned long long) {}
 
 inline void queryosity::query::node::execute(unsigned int, unsigned long long) {
   if (m_selection->passed_cut()) {

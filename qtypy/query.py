@@ -1,0 +1,120 @@
+import cppyy
+import numpy as np
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
+
+from .cpp import cpp_binding
+
+@dataclass
+class report:
+    """Keep track of results @ selections"""
+    hists: dict = field(default_factory=dict)
+    trees: dict = field(default_factory=dict)
+
+class query(cpp_binding):
+
+    def __init__(self, bookkeeper, selection):
+        super().__init__()
+        self.bookkeeper = bookkeeper
+        self.selection = selection
+
+    def instantiate(self, df):
+        fill_calls = []
+        for column_names in self.bookkeeper.filled_columns:
+            fill_call = 'fill('
+            fill_call += ', '.join([f'{df.columns[column_name].cpp_identifier}' for column_name in column_names])
+            fill_call += ')'
+            fill_calls.append(fill_call)
+        at_call = f'at({self.selection.cpp_identifier})'
+        cppyy.cppdef(f'auto {self.cpp_identifier} = {df.cpp_identifier}.{self.bookkeeper.get_call}.{".".join(fill_calls)}.{at_call};')
+
+class result(cpp_binding):
+    def __init__(self, query):
+        super().__init__()
+        self.query = query
+        self.name = f'result_{query.name}'
+
+    def instantiate(self):
+        cppyy.cppdef(f'auto {self.cpp_identifier} = {self.query.cpp_identifier}.{self.query.bookkeeper.result_call};')
+
+    def get(self):
+        return self.cpp_instance
+
+@dataclass
+class bookkeeper(ABC):
+    filled_columns: list = field(default_factory=list)
+    booked_selections: list = field(default_factory=list)
+
+    def fill(self, *columns):
+        # TODO: support more than one fill() calls
+        self.filled_columns.append(columns)
+        return self
+
+    def at(self, *selections):
+        self.booked_selections.extend(selections)
+        return self
+
+    @property
+    @abstractmethod
+    def result_type(self):
+        """C++ typename of lazy::result()"""
+        pass
+
+    @property
+    @abstractmethod
+    def result_call(self):
+        """C++ code string to retrieve lazy::result()"""
+        pass
+
+    @property
+    @abstractmethod
+    def get_call(self):
+        """C++ code string call dataflow::get()"""
+        pass
+
+class hist(bookkeeper):
+
+    def __init__(self, hname : str, *, 
+            dtype : str = 'float', 
+            nx : int = None, xmin : float = None, xmax : float = None,
+            ny : int = None, ymin : float = None, ymax : float = None,
+            nz : int = None, zmin : float = None, zmax : float = None,
+            xbins : np.array = None, 
+            ybins : np.array = None, 
+            zbins : np.array = None):
+        super().__init__()
+
+        self.hname = hname
+        self.ndim = 1 if ybins is None and zbins is None else 2 if zbins is None else 3
+        self.dtype = dtype
+
+        if xbins is None:
+            self.xbinning = f"{nx},{xmin},{xmax}"
+        else:
+            xbins = [str(edge) for edge in xbins]
+            self.xbinning = f"std::vector<{self.dtype}>({{{', '.join(xbins)}}})"
+
+        self._bootstrapped = False
+
+    def bootstrap(self, toys):
+        self.toys = toys
+
+    @property
+    def result_type(self):
+        return "TH{}{}".format(
+            self.ndim,
+            'Bootstrap' if self._bootstrapped else ''
+        )
+
+    @property
+    def result_call(self):
+        # std::shared_ptr::get()
+        return 'result().get()'
+
+    @property
+    def get_call(self):
+        return (
+            f'get(qty::query::output<qty::ROOT::Hist<{self.ndim},{self.dtype}>>'
+            f'("{self.hname}",{self.xbinning}))'
+        ) 

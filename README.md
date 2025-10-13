@@ -19,6 +19,7 @@ Queryosity is a row-wise data analysis library for (semi-)structured data.
 </p>
 
 ## Hello World
+
 ```cpp
 #include <fstream>
 #include <sstream>
