@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   macos_xcode:
-    runs-on: macos-12
+    runs-on: macos-15
     strategy:
       matrix:
         xcode: ['14.0', '14.0.1', '14.1', '15.0']

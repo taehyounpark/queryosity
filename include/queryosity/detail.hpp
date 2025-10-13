@@ -50,7 +50,7 @@
                    op_symbol std::declval<column::value_t<typename Arg::action_type>>())>> \
   {                                                                            \
     return this->m_df                                                          \
-        ->define(queryosity::column::expression(                               \
+        ->template define(queryosity::column::expression(                               \
             [](column::value_t<V> const &me,                                   \
                column::value_t<typename Arg::action_type> const &you) {        \
               return me op_symbol you;                                         \
@@ -78,7 +78,7 @@
                        bool> = false>                                          \
   auto operator op_symbol() const {                                            \
     return this->m_df                                                          \
-        ->define(queryosity::column::expression(                               \
+        ->template define(queryosity::column::expression(                               \
             [](column::value_t<V> const &me) { return (op_symbol me); }))      \
         .template evaluate(*this);                                             \
   }
@@ -109,7 +109,7 @@
                        bool> = false>                                          \
   auto operator[](Arg const &arg) const {                                      \
     return this->m_df                                                          \
-        ->define(queryosity::column::expression(                               \
+        ->template define(queryosity::column::expression(                               \
             [](column::value_t<V> me,                                          \
                column::value_t<typename Arg::action_type> index) {             \
               return me[index];                                                \
