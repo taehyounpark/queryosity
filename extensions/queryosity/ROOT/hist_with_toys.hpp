@@ -80,7 +80,7 @@ make_hist_with_toys(size_t nxbins, double xmin, double xmax, size_t nybins = 1,
 }
 
 std::shared_ptr<TH1Bootstrap>
-clonehist_with_toys(std::shared_ptr<TH1Bootstrap> hist) {
+clone_hist_with_toys(std::shared_ptr<TH1Bootstrap> hist) {
   auto cloned =
       std::shared_ptr<TH1Bootstrap>(static_cast<TH1Bootstrap *>(hist->Clone()));
   cloned->SetDirectory(nullptr);
@@ -186,7 +186,7 @@ queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
     : toy_generator(n_toys),
       m_hist(make_hist_with_toys<1, Prec>(nx, xmin, xmax)) {
   m_hist->SetNameTitle(hname.c_str(), hname.c_str());
-  m_hist->SetGenerator(this->generator.get());
+  // m_hist->SetGenerator(this->generator.get());
 }
 
 template <typename Prec>
@@ -195,7 +195,7 @@ queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
     unsigned int n_toys)
     : toy_generator(n_toys), m_hist(make_hist_with_toys<1, Prec>(xbins)) {
   m_hist->SetNameTitle(hname.c_str(), hname.c_str());
-  m_hist->SetGenerator(this->generator.get());
+  // m_hist->SetGenerator(this->generator.get());
 }
 
 template <typename Prec>
@@ -221,7 +221,7 @@ queryosity::ROOT::hist_with_toys<1, Prec>::result() const {
 template <typename Prec>
 std::shared_ptr<TH1Bootstrap> queryosity::ROOT::hist_with_toys<1, Prec>::merge(
     std::vector<std::shared_ptr<TH1Bootstrap>> const &results) const {
-  auto merged_result = clonehist_with_toys(results[0]);
+  auto merged_result = clone_hist_with_toys(results[0]);
   for (size_t islot = 1; islot < results.size(); ++islot) {
     merged_result->Add(results[islot].get());
   }
