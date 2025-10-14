@@ -2,8 +2,8 @@
 #include <sstream>
 #include <vector>
 
-#include <queryosity/ROOT/Hist.hpp>
-#include <queryosity/ROOT/Tree.hpp>
+#include <queryosity/ROOT/hist.hpp>
+#include <queryosity/ROOT/tree.hpp>
 
 #include <queryosity.hpp>
 
@@ -13,7 +13,7 @@ namespace dataset = qty::dataset;
 namespace column = qty::column;
 namespace query = qty::query;
 
-using Tree = qty::ROOT::Tree;
+using tree = qty::ROOT::tree;
 
 using ull_t = unsigned long long;
 auto factorial(ull_t n) {
@@ -47,7 +47,7 @@ protected:
 int main() {
   dataflow df;
 
-  auto n = df.load(dataset::input<Tree>(std::vector<std::string>{".root"},"tree"))
+  auto n = df.load(dataset::input<tree>(std::vector<std::string>{".root"},"tree"))
                .read(dataset::column<ull_t>("n"));
 
   auto n_f_fast = df.define(column::expression(stirling))(n);

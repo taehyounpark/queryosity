@@ -66,7 +66,7 @@ int main() {
   std::vector<std::string> tree_files{"hww.root"};
   std::string tree_name = "mini";
   dataflow df(multithread::disable());
-  auto ds = df.load(dataset::input<Tree>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<tree>(tree_files, tree_name));
 
   // weights
   auto mc_weight = ds.read(dataset::column<float>("mcWeight"));

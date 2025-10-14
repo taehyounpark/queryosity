@@ -1,7 +1,7 @@
 
 #include <queryosity.hpp>
-#include <queryosity/ROOT/Hist.hpp>
-#include <queryosity/ROOT/Tree.hpp>
+#include <queryosity/ROOT/hist.hpp>
+#include <queryosity/ROOT/tree.hpp>
 
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
@@ -10,9 +10,9 @@ namespace column = qty::column;
 namespace query = qty::query;
 namespace systematic = qty::systematic;
 
-using Tree = qty::ROOT::Tree;
+using tree = qty::ROOT::tree;
 template <unsigned int Dim, typename Prec>
-using Hist = qty::ROOT::Hist<Dim, Prec>;
+using hist = qty::ROOT::hist<Dim, Prec>;
 
 #include "Math/Vector4D.h"
 #include "TCanvas.h"
@@ -57,7 +57,7 @@ int main() {
   std::vector<std::string> tree_files{"hww.root"};
   std::string tree_name = "mini";
   dataflow df(multithread::disable());
-  auto ds = df.load(dataset::input<Tree>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<tree>(tree_files, tree_name));
 
   // weights
   auto mc_weight = ds.read(dataset::column<float>("mcWeight"));
@@ -200,7 +200,7 @@ int main() {
 
   // make histograms
   auto [pTH_2los_presel, pTH_df_presel, pTH_ee_presel, pTH_mm_presel] =
-      df.get(query::output<Hist<1, float>>("pTH", 30, 0, 150))
+      df.get(query::output<hist<1, float>>("pTH", 30, 0, 150))
           .fill(higgs_pT)
           .at(cut_2los, cut_df_presel, cut_ee_presel, cut_mm_presel);
 

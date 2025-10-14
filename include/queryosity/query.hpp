@@ -91,7 +91,7 @@ template <typename T> struct is_bookable : std::false_type {};
 template <typename T> struct is_bookable<query::booker<T>> : std::true_type {};
 
 template <typename T>
-constexpr bool is_aggregation_v =
+constexpr bool has_result_v =
     decltype(check_aggregation(std::declval<T>()))::value;
 
 template <typename T>
@@ -107,7 +107,7 @@ template <typename Action, typename Enable = void> struct result_of {};
 
 // Specialization for types satisfying is_query
 template <typename Action>
-struct result_of<Action, std::enable_if_t<query::is_aggregation_v<Action>>> {
+struct result_of<Action, std::enable_if_t<query::has_result_v<Action>>> {
   using result_type = decltype(std::declval<Action>().result());
   result_of() : m_merged(false) {}
   virtual ~result_of() = default;

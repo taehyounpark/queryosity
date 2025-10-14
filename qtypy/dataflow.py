@@ -1,7 +1,7 @@
 import cppyy
 
 from .cpp import cpp_binding
-from .query import query, result
+from .query import lazy, result
 
 class dataflow(cpp_binding):
     """
@@ -58,7 +58,6 @@ class dataflow(cpp_binding):
         self.columns = {}
         self.selections = {}
         self.queries = {}
-        self.callbacks = {}
 
         self.results = {}
 
@@ -134,7 +133,7 @@ class dataflow(cpp_binding):
         for query_name, bookkeeper in bookkeepers.items():
             self.queries[query_name] = {}
             for selection_name in bookkeeper.booked_selections:
-                query_node = query(bookkeeper, self.selections[selection_name])
+                query_node = lazy(bookkeeper, self.selections[selection_name])
                 query_node.name = f"{query_name}_at_{selection_name}"
                 self.queries[query_name][selection_name] = query_node
         return self
@@ -159,11 +158,12 @@ class dataflow(cpp_binding):
         for query_name, queries_across_selections in self.queries.items():
             for selection_name, query_node in queries_across_selections.items():
                 query_node.instantiate(self)
+                result_node = result(query_node)
+                self.results[selection_name][query_name] = result_node
 
         # results
         for selection_name, results_at_selection in self.results.items():
             for query_name, result_node in results_at_selection.items():
-                result_node = result(query_node)
                 result_node.instantiate()
                 self.results[selection_name][query_name] = result_node.get()
 

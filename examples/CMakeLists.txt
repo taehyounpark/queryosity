@@ -1,5 +1,8 @@
 if(QUERYOSITY_EXAMPLES)
 
+  find_package(ROOT 6.36.00 QUIET COMPONENTS Core Hist RIO Tree ROOTDataFrame ROOTVecOps)
+  find_package(BootstrapGenerator QUIET)
+
   install(FILES ${CMAKE_SOURCE_DIR}/data/data.json
           DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/)
 
@@ -30,6 +33,12 @@ if(QUERYOSITY_EXAMPLES)
     add_executable(example-tree ./example-tree.cxx)
     target_link_libraries(example-tree queryosity::extensions pthread) 
     add_test(NAME example-tree COMMAND example-tree)
+  endif()
+
+  if (BootstrapGenerator_FOUND)
+    add_executable(example-toys ./example-toys.cxx)
+    target_link_libraries(example-toys queryosity::extensions pthread BootstrapGenerator) 
+    add_test(NAME example-toys COMMAND example-toys)
   endif()
 
 endif()

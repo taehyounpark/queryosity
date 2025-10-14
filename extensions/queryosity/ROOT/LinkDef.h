@@ -1,10 +1,9 @@
 #ifdef BOOTSTRAP_HISTOGRAM
-#include "queryosity/ROOT/ToySeed.hpp"
-#include "queryosity/ROOT/ToyHist.hpp"
+#include "queryosity/ROOT/hist_with_toys.hpp"
 #endif
 
-#include "queryosity/ROOT/Tree.hpp"
-#include "queryosity/ROOT/Hist.hpp"
+#include "queryosity/ROOT/tree.hpp"
+#include "queryosity/ROOT/hist.hpp"
 
 #include <queryosity.hpp>
 
@@ -20,17 +19,13 @@
 #pragma link C++ namespace queryosity;
 
 #pragma link C++ class queryosity::dataflow+;
-
-#pragma link C++ class queryosity::ROOT::Tree+;
-
 #pragma link C++ class queryosity::column::constant<float>+;
 #pragma link C++ class queryosity::column::expression<float(float)>+;
-
-#pragma link C++ class queryosity::ROOT::Hist<1,float>+;
-
+#pragma link C++ class queryosity::ROOT::tree+;
+#pragma link C++ class queryosity::ROOT::hist<1,float>+;
 #ifdef BOOTSTRAP_HISTOGRAM
-#pragma link C++ class queryosity::ROOT::ToySeed+;
-#pragma link C++ class queryosity::ROOT::ToyHist<1,float>+;
+#pragma link C++ class queryosity::ROOT::toy_generator+;
+#pragma link C++ class queryosity::ROOT::hist_with_toys<1,float>+;
 #endif
 
 #endif

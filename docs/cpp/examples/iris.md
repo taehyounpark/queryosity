@@ -74,7 +74,7 @@ void task(int n) {
 
   std::vector<std::string> tree_files{"Run2012B_SingleMu.root"};
   std::string tree_name = "Events";
-  auto ds = df.load(dataset::input<Tree>(tree_files, tree_name));
+  auto ds = df.load(dataset::input<tree>(tree_files, tree_name));
 
   auto n_jet = ds.read(dataset::column<unsigned int>("nJet"));
   auto jets_pt = ds.read(dataset::column<VecF>("Jet_pt"));

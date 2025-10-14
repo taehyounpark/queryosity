@@ -1435,7 +1435,7 @@ template <typename T> struct is_bookable : std::false_type {};
 template <typename T> struct is_bookable<query::booker<T>> : std::true_type {};
 
 template <typename T>
-constexpr bool is_aggregation_v =
+constexpr bool has_result_v =
     decltype(check_implemented(std::declval<T>()))::value;
 
 template <typename T>
@@ -1451,7 +1451,7 @@ template <typename Action, typename Enable = void> struct result_of {};
 
 // Specialization for types satisfying is_query
 template <typename Action>
-struct result_of<Action, std::enable_if_t<query::is_aggregation_v<Action>>> {
+struct result_of<Action, std::enable_if_t<query::has_result_v<Action>>> {
   using result_type = decltype(std::declval<Action>().result());
   result_of() : m_merged(false) {}
   virtual ~result_of() = default;
@@ -2992,7 +2992,7 @@ public:
    */
   template <
       typename V = Action,
-      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto result() -> decltype(std::declval<V>().result());
 
   /**
@@ -3000,7 +3000,7 @@ public:
    */
   template <
       typename V = Action,
-      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto operator->() -> decltype(std::declval<V>().result()) {
     return this->result();
   }
@@ -3026,7 +3026,7 @@ public:
 protected:
   template <
       typename V = Action,
-      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   void merge_results();
 
 protected:
@@ -3128,11 +3128,11 @@ public:
 
   template <
       typename V = Act,
-      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto operator[](const std::string &var_name) -> lazy<V> &;
   template <
       typename V = Act,
-      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto operator[](const std::string &var_name) const -> lazy<V> const &;
 
   DECLARE_LAZY_VARIED_UNARY_OP(-)
@@ -3318,7 +3318,7 @@ auto queryosity::varied<queryosity::lazy<Act>>::book(Aggs &&...aggs) {
 
 template <typename Act>
 template <typename V,
-          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
+          std::enable_if_t<queryosity::query::has_result_v<V>, bool>>
 auto queryosity::varied<queryosity::lazy<Act>>::operator[](
     const std::string &var_name) -> queryosity::lazy<V> & {
   if (!this->has_variation(var_name)) {
@@ -3329,7 +3329,7 @@ auto queryosity::varied<queryosity::lazy<Act>>::operator[](
 
 template <typename Act>
 template <typename V,
-          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
+          std::enable_if_t<queryosity::query::has_result_v<V>, bool>>
 auto queryosity::varied<queryosity::lazy<Act>>::operator[](
     const std::string &var_name) const -> queryosity::lazy<V> const & {
   if (!this->has_variation(var_name)) {
@@ -3821,7 +3821,7 @@ auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
 
 template <typename Action>
 template <typename V,
-          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
+          std::enable_if_t<queryosity::query::has_result_v<V>, bool>>
 auto queryosity::lazy<Action>::result()
     -> decltype(std::declval<V>().result()) {
   this->m_df->analyze();
@@ -3831,7 +3831,7 @@ auto queryosity::lazy<Action>::result()
 
 template <typename Action>
 template <typename V,
-          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> e>
+          std::enable_if_t<queryosity::query::has_result_v<V>, bool> e>
 void queryosity::lazy<Action>::merge_results() {
   if (this->m_merged)
     return;

@@ -11,8 +11,7 @@ namespace queryosity {
  * @tparam Cols Input column data types.
  */
 template <typename... Cols>
-class query::callback : public node,
-                                 public query::fillable<Cols...> {
+class query::callback : public node, public query::fillable<Cols...> {
 
 public:
   using vartup_type = std::tuple<column::variable<Cols>...>;

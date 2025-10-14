@@ -178,7 +178,7 @@ public:
    * @return Lazy (varied) selection.
    */
   template <typename Fn, typename... Cols>
-  auto filter(column::constant<Fn> const &expr) -> lazy<selection::node>;
+  auto filter(column::constant<Fn> const &cnst) -> lazy<selection::node>;
 
   /**
    * @brief Initiate a cutflow.

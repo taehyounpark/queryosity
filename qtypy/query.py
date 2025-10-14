@@ -12,7 +12,7 @@ class report:
     hists: dict = field(default_factory=dict)
     trees: dict = field(default_factory=dict)
 
-class query(cpp_binding):
+class lazy(cpp_binding):
 
     def __init__(self, bookkeeper, selection):
         super().__init__()
@@ -30,13 +30,13 @@ class query(cpp_binding):
         cppyy.cppdef(f'auto {self.cpp_identifier} = {df.cpp_identifier}.{self.bookkeeper.get_call}.{".".join(fill_calls)}.{at_call};')
 
 class result(cpp_binding):
-    def __init__(self, query):
+    def __init__(self, lazy):
         super().__init__()
-        self.query = query
-        self.name = f'result_{query.name}'
+        self.lazy = lazy
+        self.name = f'result_{lazy.name}'
 
     def instantiate(self):
-        cppyy.cppdef(f'auto {self.cpp_identifier} = {self.query.cpp_identifier}.{self.query.bookkeeper.result_call};')
+        cppyy.cppdef(f'auto {self.cpp_identifier} = {self.lazy.cpp_identifier}.{self.lazy.bookkeeper.result_call};')
 
     def get(self):
         return self.cpp_instance
@@ -82,7 +82,9 @@ class hist(bookkeeper):
             nz : int = None, zmin : float = None, zmax : float = None,
             xbins : np.array = None, 
             ybins : np.array = None, 
-            zbins : np.array = None):
+            zbins : np.array = None,
+            n_toys : int = 0
+            ):
         super().__init__()
 
         self.hname = hname
@@ -95,16 +97,13 @@ class hist(bookkeeper):
             xbins = [str(edge) for edge in xbins]
             self.xbinning = f"std::vector<{self.dtype}>({{{', '.join(xbins)}}})"
 
-        self._bootstrapped = False
-
-    def bootstrap(self, toys):
-        self.toys = toys
+        self.n_toys = n_toys
 
     @property
     def result_type(self):
         return "TH{}{}".format(
             self.ndim,
-            'Bootstrap' if self._bootstrapped else ''
+            'Bootstrap' if self.n_toys > 0 else ''
         )
 
     @property
@@ -115,6 +114,10 @@ class hist(bookkeeper):
     @property
     def get_call(self):
         return (
-            f'get(qty::query::output<qty::ROOT::Hist<{self.ndim},{self.dtype}>>'
-            f'("{self.hname}",{self.xbinning}))'
-        ) 
+            f'get(qty::query::output<qty::ROOT::'
+            f'{"hist_with_toys" if self.n_toys > 0 else "hist"}'
+            f'<{self.ndim},{self.dtype}>>'
+            f'("{self.hname}",{self.xbinning}'
+            f'{"," + str(self.n_toys) if self.n_toys > 0 else ""}))'
+        )
+

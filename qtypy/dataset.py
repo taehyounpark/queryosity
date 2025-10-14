@@ -4,7 +4,7 @@ from .cpp import cpp_binding
 
 class tree(cpp_binding):
     """
-    qtypy layer for `qty::dataset::input<qty::ROOT::Tree>`.
+    qtypy layer for `qty::dataset::input<qty::ROOT::tree>`.
 
     Parameters
     ----------
@@ -25,7 +25,7 @@ class tree(cpp_binding):
         file_paths_braced = '{' + ', '.join(['"{}"'.format(fp) for fp in self.file_paths]) + '}'
         tree_name_quoted = '"{}"'.format(self.tree_name)
         return cppyy.cppdef(
-            "auto {cpp_id} = {df_id}.load(qty::dataset::input<qty::ROOT::Tree>(std::vector<std::string>{file_paths}, std::string({tree_name})));".format(
+            "auto {cpp_id} = {df_id}.load(qty::dataset::input<qty::ROOT::tree>(std::vector<std::string>{file_paths}, std::string({tree_name})));".format(
                 cpp_id=self.cpp_identifier,
                 df_id=df.cpp_identifier,
                 file_paths=file_paths_braced,

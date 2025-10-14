@@ -202,7 +202,7 @@ public:
    */
   template <
       typename V = Action,
-      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto result() const -> decltype(std::declval<V>().result());
 
   /**
@@ -210,7 +210,7 @@ public:
    */
   template <
       typename V = Action,
-      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto operator->() const -> decltype(std::declval<V>().result()) {
     return this->result();
   }
@@ -236,7 +236,7 @@ public:
 protected:
   template <
       typename V = Action,
-      std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> = false>
+      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   void merge_results() const;
 
 protected:
@@ -488,7 +488,7 @@ auto queryosity::lazy<Action>::get(queryosity::column::series<Col> const &col)
 
 template <typename Action>
 template <typename V,
-          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool>>
+          std::enable_if_t<queryosity::query::has_result_v<V>, bool>>
 auto queryosity::lazy<Action>::result() const
     -> decltype(std::declval<V>().result()) {
   this->m_df->analyze();
@@ -498,7 +498,7 @@ auto queryosity::lazy<Action>::result() const
 
 template <typename Action>
 template <typename V,
-          std::enable_if_t<queryosity::query::is_aggregation_v<V>, bool> e>
+          std::enable_if_t<queryosity::query::has_result_v<V>, bool> e>
 void queryosity::lazy<Action>::merge_results() const {
   if (this->m_merged)
     return;
