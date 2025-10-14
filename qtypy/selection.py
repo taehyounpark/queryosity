@@ -67,18 +67,17 @@ class cut(cpp_binding):
         self.cpp_prefix = '_df_cut'
 
     def instantiate(self, df):
-        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in self.args]
-        lmbd_defn = '[]'
-        lmbd_defn += '(' + ', '.join(lmbd_args) + ')'
-        lmbd_defn += '{'+f'return ({self.expr});'+'}'
-
-        lazy_args = [f'{df.columns[arg].cpp_identifier}' for arg in self.args]
+        column_args = [arg for arg in self.args if arg in df.columns]
+        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in column_args]
+        lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
+        lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
 
         presel = df.current_selection if self.preselection is None else df.selections[self.preselection]
-
         cppyy.cppdef(f'auto {self.cpp_identifier} = {presel.cpp_identifier}.filter(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)});')
 
-        self.value_type = f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'
+    @property
+    def value_type(self):
+        return f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'
 
 class weight(cpp_binding):
     """
@@ -105,15 +104,13 @@ class weight(cpp_binding):
         self.cpp_prefix = '_df_weight'
 
     def instantiate(self, df):
-        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in self.args]
-        lmbd_defn = '[]'
-        lmbd_defn += '(' + ', '.join(lmbd_args) + ')'
-        lmbd_defn += '{'+f'return ({self.expr});'+'}'
-
-        lazy_args = [f'{df.columns[arg].cpp_identifier}' for arg in self.args]
-
+        column_args = [arg for arg in self.args if arg in df.columns]
+        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in column_args]
+        lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
+        lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
         presel = df.current_selection if self.preselection is None else df.selections[self.preselection]
-
         cppyy.cppdef(f'auto {self.cpp_identifier} = {presel.cpp_identifier}.weight(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)});')
 
-        self.value_type = f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'
+    @property
+    def value_type(self):
+        return f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'

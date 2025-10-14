@@ -9,10 +9,11 @@ def parse_cpp_identifiers(expr_str) -> list:
     tree = cpp_parser.parse(expr_bytes)
     root = tree.root_node
     identifiers = []
+
     def walk(node):
         if node.type == "identifier":
             identifiers.append(expr_bytes[node.start_byte:node.end_byte].decode())
         for child in node.children:
             walk(child)
     walk(root)
-    return [str(name) for name in identifiers]
+    return list(set([str(name) for name in identifiers]))

@@ -50,12 +50,11 @@ class expression(cpp_binding):
         self.cpp_prefix = '_df_column'
 
     def instantiate(self, df):
-        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in self.args]
-        lmbd_defn = '[]'
-        lmbd_defn += '(' + ', '.join(lmbd_args) + ')'
-        lmbd_defn += '{'+f'return ({self.expr});'+'}'
-
-        lazy_args = [f'{df.columns[arg].cpp_identifier}' for arg in self.args]
+        # only keep args that exist in df.columns
+        column_args = [arg for arg in self.args if arg in df.columns]
+        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in column_args]
+        lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
+        lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
 
         cppyy.cppdef("""auto {cpp_id} = {df_id}.define(qty::column::expression({expr})).evaluate({args});""".format(
             cpp_id=self.cpp_identifier,
