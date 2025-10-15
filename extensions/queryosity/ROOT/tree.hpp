@@ -241,7 +241,6 @@ inline void queryosity::ROOT::tree::parallelize(unsigned int nslots) {
 inline std::vector<std::pair<unsigned long long, unsigned long long>>
 queryosity::ROOT::tree::partition() {
   ::ROOT::EnableThreadSafety();
-  // ::ROOT::EnableImplicitMT(m_nslots);
 
   TDirectory::TContext c;
   std::vector<std::pair<unsigned long long, unsigned long long>> parts;

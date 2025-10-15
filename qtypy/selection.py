@@ -1,5 +1,7 @@
 import cppyy
 
+from abc import ABC, abstractmethod
+
 from .cpp import cpp_binding 
 from .cpp import parse_cpp_identifiers
 
@@ -33,8 +35,8 @@ class at:
         })
     """
 
-    def __init__(self, preselection_name):
-        self.preselection_name = preselection_name
+    def __init__(self, preselection):
+        self.preselection_name = preselection
 
     def cut(self, expr : str):
         return cut(expr, preselection=self.preselection_name)
@@ -42,7 +44,36 @@ class at:
     def weight(self, expr: str):
         return weight(expr, preselection=self.preselection_name)
 
-class cut(cpp_binding):
+class selection(ABC, cpp_binding):
+
+    def __init__(self, expr: str, preselection : str = None):
+        super().__init__()
+        self.cpp_prefix += '_df_selection_'
+        self.expr = expr
+        self.args = parse_cpp_identifiers(expr)
+        self.preselection_name = preselection
+
+    @property
+    @abstractmethod
+    def dataflow_operation(self):
+        pass
+
+    @property
+    @abstractmethod
+    def value_type(self):
+        pass
+
+    def instantiate(self, df):
+        column_args = [arg for arg in self.args if arg in df.columns]
+        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in column_args]
+        lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
+        lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
+
+        presel = df.current_selection if self.preselection_name is None else df.selections[self.preselection_name]
+        return cppyy.cppdef(f'auto {self.cpp_identifier} = {presel.cpp_identifier}.{self.dataflow_operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)});')
+    
+
+class cut(selection):
     """
     Represents a floating-point weight applied to a row, considered only
     when a cut is passed.
@@ -59,27 +90,17 @@ class cut(cpp_binding):
         Name of a prior selection to use as the base for this cut.
     """
     def __init__(self, expr: str, preselection : str = None):
-        super().__init__()
-        self.expr = expr
-        self.args = parse_cpp_identifiers(expr)
-        self.preselection = preselection
+        super().__init__(expr, preselection)
 
-        self.cpp_prefix = '_df_cut'
-
-    def instantiate(self, df):
-        column_args = [arg for arg in self.args if arg in df.columns]
-        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in column_args]
-        lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
-        lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
-
-        presel = df.current_selection if self.preselection is None else df.selections[self.preselection]
-        cppyy.cppdef(f'auto {self.cpp_identifier} = {presel.cpp_identifier}.filter(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)});')
+    @property
+    def dataflow_operation(self):
+        return 'filter'
 
     @property
     def value_type(self):
-        return f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'
+        return 'bool'
 
-class weight(cpp_binding):
+class weight(selection):
     """
     Represents a floating-point weight applied to a row, considered only when
     a cut is passed.
@@ -96,21 +117,12 @@ class weight(cpp_binding):
         Name of a prior selection (cut) to restrict the weight application.
     """
     def __init__(self, expr: str, preselection : str = None):
-        super().__init__()
-        self.expr = expr
-        self.args = parse_cpp_identifiers(expr)
-        self.preselection = preselection
+        super().__init__(expr, preselection)
 
-        self.cpp_prefix = '_df_weight'
-
-    def instantiate(self, df):
-        column_args = [arg for arg in self.args if arg in df.columns]
-        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in column_args]
-        lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
-        lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
-        presel = df.current_selection if self.preselection is None else df.selections[self.preselection]
-        cppyy.cppdef(f'auto {self.cpp_identifier} = {presel.cpp_identifier}.weight(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)});')
+    @property
+    def dataflow_operation(self):
+        return 'weight'
 
     @property
     def value_type(self):
-        return f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'
+        return f'double'
