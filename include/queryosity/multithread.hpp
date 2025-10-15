@@ -32,15 +32,13 @@ unsigned int check(std::vector<T> const &first,
                    std::vector<Args> const &...args);
 
 template <typename Fn, typename... Args>
-auto invoke(Fn const &fn, std::vector<Args> const &...args)
-    -> std::enable_if_t<
-        !std::is_void_v<typename std::invoke_result_t<Fn, Args...>>,
-        std::vector<typename std::invoke_result_t<Fn, Args...>>>;
+auto invoke(Fn const &fn, std::vector<Args> const &...args) -> std::enable_if_t<
+    !std::is_void_v<typename std::invoke_result_t<Fn, Args...>>,
+    std::vector<typename std::invoke_result_t<Fn, Args...>>>;
 
 template <typename Fn, typename... Args>
-auto invoke(Fn const &fn, std::vector<Args> const &...args)
-    -> std::enable_if_t<
-        std::is_void_v<typename std::invoke_result_t<Fn, Args...>>, void>;
+auto invoke(Fn const &fn, std::vector<Args> const &...args) -> std::enable_if_t<
+    std::is_void_v<typename std::invoke_result_t<Fn, Args...>>, void>;
 
 } // namespace ensemble
 

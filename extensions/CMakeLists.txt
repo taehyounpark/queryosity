@@ -39,11 +39,11 @@ if (QUERYOSITY_ROOT)
       list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*\\.hpp$")
   endif()
   if(NOT BootstrapGenerator_FOUND)
-      list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/Toy.*\\.hpp$")
+      list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*_with_toys\\.hpp$")
   endif()
 else()
   list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*\\.hpp$")
-  list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/Toy.*\\.hpp$")
+  list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*_with_toys\\.hpp$")
 endif()
 
 add_library(
@@ -71,6 +71,10 @@ endif()
 if(TARGET rapidcsv)
   get_target_property(CSV_INCLUDE_DIRS rapidcsv INTERFACE_INCLUDE_DIRECTORIES)
   target_link_libraries(queryosity_extensions PUBLIC rapidcsv)
+endif()
+
+if (BootstrapGenerator_FOUND)
+  target_link_libraries(queryosity_extensions PUBLIC BootstrapGenerator)
 endif()
 
 target_link_libraries(
@@ -131,6 +135,7 @@ if (ROOT_FOUND)
   # Link to ROOT libraries and your backend
   # Start with libraries that are always linked
   set(QUERYOSITY_DICT_LIBS
+      queryosity::extensions
       nlohmann_json::nlohmann_json
       rapidcsv
       ${Boost_LIBRARIES}
@@ -154,7 +159,6 @@ if (ROOT_FOUND)
   target_link_libraries(queryosity_dict
     INTERFACE queryosity::queryosity
     PUBLIC ${QUERYOSITY_DICT_LIBS}
-    PRIVATE queryosity_extensions
   )
 
   # Install the dictionary .so, .pcm, and .rootmap

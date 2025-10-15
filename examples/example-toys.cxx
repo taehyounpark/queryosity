@@ -3,6 +3,8 @@
 #include <queryosity/ROOT/tree.hpp>
 #include <queryosity/ROOT/hist_with_toys.hpp>
 
+#include "BootstrapGenerator/BootstrapGenerator.h"
+
 using dataflow = qty::dataflow;
 namespace multithread = qty::multithread;
 namespace dataset = qty::dataset;
@@ -27,6 +29,9 @@ int main() {
   auto one = df.define(column::constant(1));
 
   auto all = df.filter(one);
+
+  auto bg = BootstrapGenerator();
+  auto bg_copy = bg;  // call copy constructor to test it works
 
   auto htoys = df.get(query::output<hist_with_toys<1,float>>("htoys", std::vector<float>({0,1}),100)).fill(one,one,one,one).at(all);
 

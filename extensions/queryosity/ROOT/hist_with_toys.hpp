@@ -79,28 +79,14 @@ make_hist_with_toys(size_t nxbins, double xmin, double xmax, size_t nybins = 1,
   return hist;
 }
 
-std::shared_ptr<TH1Bootstrap>
-clone_hist_with_toys(std::shared_ptr<TH1Bootstrap> hist) {
-  auto cloned =
-      std::shared_ptr<TH1Bootstrap>(static_cast<TH1Bootstrap *>(hist->Clone()));
-  cloned->SetDirectory(nullptr);
-  return cloned;
-}
-
 class toy_generator {
 
 public:
-  // HACK: cannot have thread-local variables (yet?)
-  // static thread_local std::unique_ptr<BootstrapGenerator> generator; //!
-  // static thread_local unsigned int n_toys; //!
-  // static thread_local unsigned int run_number; //!
-  // static thread_local unsigned int event_number; //!
-  // static thread_local unsigned int channel_number; //!
-  static std::unique_ptr<BootstrapGenerator> generator; //!
-  static unsigned int n_toys; //!
-  static unsigned int run_number; //!
-  static unsigned int event_number; //!
-  static unsigned int channel_number; //!
+  inline static BootstrapGenerator generator{"bg","bg",1};
+  inline static unsigned int n_toys = 0;       
+  inline static unsigned int run_number = 0;   
+  inline static unsigned int event_number = 0;  
+  inline static unsigned int channel_number = 0;
 
 public:
   toy_generator(unsigned int n_toys = 0);
@@ -109,6 +95,14 @@ public:
   void generate(unsigned int run_number, unsigned int event_number,
                 unsigned int channel_number);
 };
+
+std::shared_ptr<TH1Bootstrap>
+clone_hist_with_toys(std::shared_ptr<TH1Bootstrap> hist) {
+  auto cloned =
+      std::shared_ptr<TH1Bootstrap>(static_cast<TH1Bootstrap *>(hist->Clone()));
+  cloned->SetDirectory(nullptr);
+  return cloned;
+}
 
 template <int Dim, typename Prec> class hist_with_toys;
 
@@ -119,8 +113,8 @@ class hist_with_toys<1, Prec>
       public toy_generator {
 
 public:
-  hist_with_toys(const std::string &hname, unsigned int nx, Prec xmin,
-                 Prec xmax, unsigned int n_toys);
+  hist_with_toys(const std::string &hname = "", unsigned int nx = 1,
+                 Prec xmin = 0, Prec xmax = 1, unsigned int n_toys = 0);
   hist_with_toys(const std::string &hname, const std::vector<Prec> &,
                  unsigned int n_toys);
   virtual ~hist_with_toys() = default;
@@ -144,25 +138,9 @@ protected:
 
 } // namespace queryosity
 
-// HACK: cannot have thread-local variables (yet?)
-// inline thread_local std::unique_ptr<BootstrapGenerator>
-//     queryosity::ROOT::toy_generator::generator =
-//         std::make_unique<BootstrapGenerator>("bg", "bg", 0); 
-// inline thread_local unsigned int queryosity::ROOT::toy_generator::n_toys = 0; 
-// inline thread_local unsigned int queryosity::ROOT::toy_generator::run_number = 0; 
-// inline thread_local unsigned int queryosity::ROOT::toy_generator::event_number = 0; 
-// inline thread_local unsigned int queryosity::ROOT::toy_generator::channel_number = 0; 
-inline std::unique_ptr<BootstrapGenerator>
-    queryosity::ROOT::toy_generator::generator =
-        std::make_unique<BootstrapGenerator>("bg", "bg", 0); 
-inline unsigned int queryosity::ROOT::toy_generator::n_toys = 0; 
-inline unsigned int queryosity::ROOT::toy_generator::run_number = 0; 
-inline unsigned int queryosity::ROOT::toy_generator::event_number = 0; 
-inline unsigned int queryosity::ROOT::toy_generator::channel_number = 0; 
-
 queryosity::ROOT::toy_generator::toy_generator(unsigned int n_toys) {
-  if (this->n_toys <= n_toys) {
-    this->generator->Set(n_toys);
+  if (n_toys > this->n_toys) {
+    this->generator.Set(n_toys);
     this->n_toys = n_toys;
   }
 }
@@ -172,7 +150,7 @@ void queryosity::ROOT::toy_generator::generate(unsigned int run_number,
                                                unsigned int channel_number) {
   if (this->run_number != run_number || this->event_number != event_number ||
       this->event_number != channel_number) {
-    this->generator->Generate(run_number, event_number, channel_number);
+    this->generator.Generate(run_number, event_number, channel_number);
     this->run_number = run_number;
     this->event_number = event_number;
     this->channel_number = channel_number;
@@ -186,7 +164,7 @@ queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
     : toy_generator(n_toys),
       m_hist(make_hist_with_toys<1, Prec>(nx, xmin, xmax)) {
   m_hist->SetNameTitle(hname.c_str(), hname.c_str());
-  // m_hist->SetGenerator(this->generator.get());
+  // m_hist->SetGenerator(&this->generator);
 }
 
 template <typename Prec>
@@ -195,7 +173,7 @@ queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
     unsigned int n_toys)
     : toy_generator(n_toys), m_hist(make_hist_with_toys<1, Prec>(xbins)) {
   m_hist->SetNameTitle(hname.c_str(), hname.c_str());
-  // m_hist->SetGenerator(this->generator.get());
+  // m_hist->SetGenerator(&this->generator);
 }
 
 template <typename Prec>
@@ -205,8 +183,8 @@ void queryosity::ROOT::hist_with_toys<1, Prec>::fill(
     qty::column::observable<unsigned int> eventNumber,
     qty::column::observable<unsigned int> channelNumber, double w) {
   // HACK: cannot generate toys thread-locally once per-event (yet?)
-  // this->generate(runNumber.value(), eventNumber.value(),
-  // channelNumber.value()); m_hist->Fill(x.value(), w);
+  // this->generate(runNumber.value(), eventNumber.value(), channelNumber.value());
+  // m_hist->Fill(x.value(), w);
   // generate (same) toys per-event, per-histogram
   m_hist->Fill(x.value(), w, runNumber.value(), eventNumber.value(),
                channelNumber.value());
