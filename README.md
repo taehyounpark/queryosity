@@ -1,6 +1,6 @@
 # Queryosity
 
-![Version](https://img.shields.io/badge/Version-0.9.1-blue.svg)
+![Version](https://img.shields.io/badge/Version-0.9.2-blue.svg)
 ![C++ Standard](https://img.shields.io/badge/C++-17-blue.svg)
 [![Ubuntu](https://github.com/taehyounpark/queryosity/actions/workflows/test-on-ubuntu.yml/badge.svg?branch=master)](https://github.com/taehyounpark/queryosity/actions/workflows/test-on-ubuntu.yml)
 [![macOS](https://github.com/taehyounpark/queryosity/actions/workflows/test-on-macos.yml/badge.svg?branch=master)](https://github.com/taehyounpark/queryosity/actions/workflows/test-on-macos.yml)
@@ -83,7 +83,7 @@ cmake --build .
 cmake --install .
 ```
 ```cmake
-find_package(queryosity 0.9.1 REQUIRED)
+find_package(queryosity 0.9.2 REQUIRED)
 ...
 add_library(Analysis ...)
 ...

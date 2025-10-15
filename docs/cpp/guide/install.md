@@ -35,7 +35,7 @@ cmake --install .
 | `-DQUERYOSITY_EXAMPLES=ON` | `OFF` | Compile examples. |
 
 ```cmake
-find_package(queryosity 0.9.1 REQUIRED)
+find_package(queryosity 0.9.2 REQUIRED)
 ...
 add_library(MyAnalysis ...)
 ...
