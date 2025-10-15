@@ -37,7 +37,7 @@ jobs:
 
     environment:
       name: testpypi
-      url: https://test.pypi.org/p/qtypy
+      url: https://test.pypi.org/p/queryosity
 
     permissions:
       id-token: write  # IMPORTANT: mandatory for trusted publishing
