@@ -1,4 +1,4 @@
-name: Run tests 🔎 on macOS 🍎
+name: macOS
 
 on:
   push:

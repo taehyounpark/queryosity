@@ -9,6 +9,10 @@ option(QUERYOSITY_JSON  "Extension: nlohmann::json" OFF)
 option(QUERYOSITY_CSV   "Extension: rapidcsv" OFF)
 option(QUERYOSITY_BOOST "Extension: boost::histogram" OFF)
 option(QUERYOSITY_ROOT  "Extension: ROOT" OFF)
+set(QUERYOSITY_EXTENSIONS OFF)
+if(QUERYOSITY_JSON OR QUERYOSITY_BOOST OR QUERYOSITY_CSV OR QUERYOSITY_ROOT)
+    set(QUERYOSITY_EXTENSIONS ON)
+endif()
 
 option(QUERYOSITY_TESTS "Tests" OFF)
 option(QUERYOSITY_EXAMPLES "Examples" OFF)
@@ -121,9 +125,7 @@ else()  # ====== BUILD-TREE USAGE ONLY ======
 
 endif()
 
-if(QUERYOSITY_BACKENDS
-   OR QUERYOSITY_TESTS
-   OR QUERYOSITY_EXAMPLES)
+if(QUERYOSITY_EXTENSIONS)
   add_subdirectory("extensions")
 endif()
 

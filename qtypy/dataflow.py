@@ -144,17 +144,17 @@ class dataflow(cpp_binding):
 
         self.dataset.instantiate(self)
 
-        print("=========="*7)
+        print("=========="*8)
         print("Column")
-        print('----------'*7)
+        print('----------'*8)
         for column_name, column_node in self.columns.items():
             print(f'{column_name} = {str(column_node)}')
             column_node.instantiate(self)
 
         # current "selection" is the global dataflow
-        print("=========="*7)
+        print("=========="*8)
         print("Selection")
-        print('----------'*7)
+        print('----------'*8)
         self.current_selection = self
         for selection_name, selection_node in self.selections.items():
             selection_node.instantiate(self)
@@ -163,16 +163,16 @@ class dataflow(cpp_binding):
             self.current_selection = selection_node
 
         # queries
-        print("=========="*7)
+        print("=========="*8)
         print("Query")
-        print('----------'*7)
+        print('----------'*8)
         for query_name, booked_selections in self.queries.items():
             for selection_name, query_node in booked_selections.items():
                 query_node.instantiate(self)
                 result_node = result(query_node)
                 self.results[selection_name][query_name] = result_node
             print(f'{query_name} = {query_node} | {list(booked_selections.keys())}')
-        print("=========="*7)
+        print("=========="*8)
 
         # results
         for selection_name, results_at_selection in self.results.items():

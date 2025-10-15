@@ -64,7 +64,7 @@ public:
                  unsigned int ntoy);
   virtual ~hist_with_toys() = default;
 
-  virtual void initialize(unsigned int, unsigned long long,  unsigned long long);
+  virtual void initialize(unsigned int, unsigned long long,  unsigned long long) override;
   virtual void fill(qty::column::observable<Prec>,
                     qty::column::observable<unsigned int>,
                     qty::column::observable<unsigned int>,
@@ -89,7 +89,7 @@ protected:
 queryosity::ROOT::toy_generator::toy_generator(unsigned int ntoy) :
   m_ntoy(ntoy)
 {
-  ::ROOT::EnableThreadSafety();
+  // ::ROOT::EnableThreadSafety();
   // FIXME: thread-local, per-event, histogram-global generator doesn't work
   // if (ntoy > this->m_ntoy) {
   //   this->generator.Set(ntoy);
@@ -115,27 +115,16 @@ queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
     const std::string &hname, unsigned int nx, Prec xmin, Prec xmax,
     unsigned int ntoy)
     : toy_generator(ntoy),
-      m_hist(nullptr) {
+      m_hist(nullptr),
+      m_hname(hname)
+       {
 
   m_xbins.clear(); m_xbins.reserve(nx+1);
   auto dx = (xmax - xmin) / static_cast<Prec>(nx);
   for (unsigned int ix = 0 ; ix<nx+1 ; ++ix) {
     m_xbins.emplace_back(xmin + ix*dx);
   }
-}
-
-template <typename Prec>
-queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
-    const std::string &hname, const std::vector<Prec> &xbins,
-    unsigned int ntoy)
-    : toy_generator(ntoy), m_hist(nullptr), m_hname(hname), m_xbins(xbins) {
-}
-
-template <typename Prec>
-void queryosity::ROOT::hist_with_toys<1, Prec>::initialize(
-  unsigned int slot,
-  unsigned long long,
-  unsigned long long) {
+   
   if constexpr(std::is_same_v<Prec, float>) {
     using hist_t = TH1FBootstrap;
     m_hist = std::make_shared<hist_t>(
@@ -151,6 +140,37 @@ void queryosity::ROOT::hist_with_toys<1, Prec>::initialize(
       m_ntoy
     );
   }
+  m_hist->SetDirectory(nullptr);
+}
+
+template <typename Prec>
+queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
+    const std::string &hname, const std::vector<Prec> &xbins,
+    unsigned int ntoy)
+    : toy_generator(ntoy), m_hist(nullptr), m_hname(hname), m_xbins(xbins) {
+  if constexpr(std::is_same_v<Prec, float>) {
+    using hist_t = TH1FBootstrap;
+    m_hist = std::make_shared<hist_t>(
+      m_hname.c_str(), m_hname.c_str(),
+      m_xbins.size()-1, &m_xbins[0],
+      m_ntoy
+    );
+  } else if constexpr(std::is_same_v<Prec, double>) {
+    using hist_t = TH1DBootstrap;
+    m_hist = std::make_shared<hist_t>(
+      m_hname.c_str(), m_hname.c_str(),
+      m_xbins.size()-1, &m_xbins[0],
+      m_ntoy
+    );
+  }
+  m_hist->SetDirectory(nullptr);
+}
+
+template <typename Prec>
+void queryosity::ROOT::hist_with_toys<1, Prec>::initialize(
+  unsigned int slot,
+  unsigned long long,
+  unsigned long long) {
   }
 
 template <typename Prec>

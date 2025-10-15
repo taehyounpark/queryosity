@@ -1,5 +1,5 @@
 # collect all headers
-file(GLOB QUERYOSITY_EXT_HEADERS
+file(GLOB EXTENSION_HEADERS
   ${CMAKE_CURRENT_SOURCE_DIR}/queryosity/*.hpp
   ${CMAKE_CURRENT_SOURCE_DIR}/queryosity/*/*.hpp
 )
@@ -10,7 +10,7 @@ if (QUERYOSITY_JSON)
   FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
   FetchContent_MakeAvailable(json)
 else()
-  list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/nlohmann/.*\\.hpp$")
+  list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/nlohmann/.*\\.hpp$")
 endif()
 
 # rapidcsv
@@ -21,14 +21,14 @@ FetchContent_Declare(csv
 )
 FetchContent_MakeAvailable(csv)
 else()
-  list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/rapidcsv/.*\\.hpp$")
+  list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/rapidcsv/.*\\.hpp$")
 endif()
 
 # boost::histogram
 if (QUERYOSITY_BOOST)
   find_package( Boost CONFIG REQUIRED )
 else()
-  list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/boost/.*\\.hpp$")
+  list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/boost/.*\\.hpp$")
 endif()
 
 # ROOT
@@ -36,20 +36,20 @@ if (QUERYOSITY_ROOT)
   find_package(ROOT 6.36.00 QUIET COMPONENTS Core Hist RIO Tree ROOTDataFrame ROOTVecOps)
   find_package(BootstrapGenerator QUIET)
   if(NOT ROOT_FOUND)
-      list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*\\.hpp$")
+      list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*\\.hpp$")
   endif()
   if(NOT BootstrapGenerator_FOUND)
-      list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*_with_toys\\.hpp$")
+      list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*_with_toys\\.hpp$")
   endif()
 else()
-  list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*\\.hpp$")
-  list(FILTER QUERYOSITY_EXT_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*_with_toys\\.hpp$")
+  list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*\\.hpp$")
+  list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*_with_toys\\.hpp$")
 endif()
 
 add_library(
   queryosity_extensions
   SHARED
-  ${QUERYOSITY_EXT_HEADERS}
+  ${EXTENSION_HEADERS}
 )
 add_library(queryosity::extensions ALIAS queryosity_extensions)
 set_target_properties(queryosity_extensions PROPERTIES EXPORT_NAME queryosity_extensions)
@@ -95,11 +95,11 @@ target_include_directories(queryosity_extensions PUBLIC
 
 if (ROOT_FOUND)
   # ROOT Dictionary
-  set(ROOT_DICTIONARY_HEADERS ${PROJECT_SOURCE_DIR}/include/queryosity.hpp)
+  set(ROOT_DICTIONARY_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../include/queryosity.hpp)
   set(ROOT_DICTIONARY_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/queryosity/ROOT/LinkDef.h)
 
   # Start with an empty list
-  set(ROOT_DICTIONARY_OPTIONS)
+  list(APPEND ROOT_DICTIONARY_OPTIONS "-I${CMAKE_CURRENT_SOURCE_DIR}")
 
   # Append include directories
   foreach(dir ${Boost_INCLUDE_DIRS})
@@ -122,6 +122,8 @@ if (ROOT_FOUND)
       list(APPEND ROOT_DICTIONARY_OPTIONS "-DBOOTSTRAP_HISTOGRAM")
   endif()
 
+  message("${ROOT_DICTIONARY_OPTIONS}")
+
   # Generate the dictionary
   ROOT_GENERATE_DICTIONARY(G__queryosity_dict
       ${ROOT_DICTIONARY_HEADERS}
@@ -136,9 +138,9 @@ if (ROOT_FOUND)
   # Start with libraries that are always linked
   set(QUERYOSITY_DICT_LIBS
       queryosity::extensions
-      nlohmann_json::nlohmann_json
-      rapidcsv
-      ${Boost_LIBRARIES}
+      # nlohmann_json::nlohmann_json
+      # rapidcsv
+      # ${Boost_LIBRARIES}
   )
   if(TARGET ROOT::Core)  # or use ROOT_FOUND if you have that
       list(APPEND QUERYOSITY_DICT_LIBS
