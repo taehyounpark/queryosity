@@ -31,18 +31,35 @@ subprocess.call('doxygen Doxyfile', shell=True)
 extensions = [
   "myst_parser",
   'sphinx_design',
-    'sphinx.ext.autodoc',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.autosectionlabel',
-    'sphinx.ext.todo',
-    'sphinx.ext.coverage',
-    'sphinx.ext.mathjax',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx_sitemap',
-    'sphinx.ext.inheritance_diagram',
-    'breathe'
-              ]
+  'sphinx.ext.autodoc',
+  'sphinx.ext.intersphinx',
+  'sphinx.ext.autosectionlabel',
+  'sphinx.ext.todo',
+  'sphinx.ext.coverage',
+  'sphinx.ext.mathjax',
+  'sphinx.ext.ifconfig',
+  'sphinx.ext.viewcode',
+  'sphinx.ext.autodoc',	
+  'sphinx.ext.napoleon',
+  'sphinx.ext.inheritance_diagram',
+  'sphinx_sitemap',
+]
+
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path('..').resolve()))
+
+napoleon_google_docstring = False   # Turn off googledoc strings
+napoleon_numpy_docstring = True     # Turn on numpydoc strings
+napoleon_use_ivar = True 	     # For maths symbology
+
+autodoc_mock_imports = [
+    "ROOT",
+    "cppyy",
+    "numpy",
+    "tree_sitter",
+    "tree_sitter_cpp"
+]
 
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
@@ -52,7 +69,7 @@ highlight_language = 'c++'
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_title = "Queryosity"
+html_title = "queryosity"
 html_theme = "pydata_sphinx_theme"
 html_static_path = ['_static']
 html_context = {
@@ -60,7 +77,7 @@ html_context = {
     "github_user": "taehyounpark",
     "github_repo": "queryosity",
     "github_version": "docs",
-    "doc_path": "docs/cpp/",
+    "doc_path": "docs/",
     "default_mode": "light"
 }
 html_theme_options = {

@@ -1,0 +1,9 @@
+sphinx>=6.2.1
+myst-parser
+linkify-it-py
+sphinx_design
+sphinx-notfound-page
+sphinx-sitemap
+sphinxcontrib-napoleon
+pydata-sphinx-theme>=0.15.2
+breathe

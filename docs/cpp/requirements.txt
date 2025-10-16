@@ -1,7 +1,0 @@
-sphinx>=6.2.1
-pydata-sphinx-theme>=0.15.2
-myst-parser
-sphinx-sitemap
-sphinx-design
-linkify-it-py
-breathe

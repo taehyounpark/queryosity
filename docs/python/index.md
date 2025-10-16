@@ -1,14 +1,19 @@
-# Welcome to qtypy's documentation
-
-:::{card} 
-qtypy is a Python latyer for data analyses written in [queryosity](https://queryosity.readthedocs.io).
-:::
+# Python layer
 
 ```{toctree}
-:hidden: true
+:hidden: false
 :maxdepth: 1
 
-guide/index
+install
+guide
+```
+
+
+```{toctree}
+:caption: API reference
+:hidden: false
+:maxdepth: 1
+
 api/index
 ```
 
