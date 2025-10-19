@@ -363,7 +363,7 @@ public:
 protected:
   template <typename Kwd> void accept_kwarg(Kwd &&kwarg);
 
-  void analyze();
+  void analyze(std::vector<std::atomic<int>>* progress = nullptr, std::vector<std::atomic<int>>* total = nullptr);
   void reset();
 
 public:
@@ -408,7 +408,6 @@ protected:
   long long m_nrows;
 
   std::vector<std::unique_ptr<dataset::source>> m_sources;  //!
-  std::vector<unsigned int> m_dslots;
 
   mutable bool m_analyzed;
 };
@@ -512,7 +511,6 @@ template <typename DS>
 auto queryosity::dataflow::load(queryosity::dataset::input<DS> &&in)
     -> queryosity::dataflow::input<DS> {
 
-  // auto ds = in.ds.get();
   auto ds = in.ds.get();
 
   m_sources.emplace_back(std::move(in.ds));
@@ -695,12 +693,12 @@ auto queryosity::dataflow::_book(todo<query::booker<Qry>> const &bkr,
   return std::array<lazy<Qry>, sizeof...(Sels)>{this->_book(bkr, sels)...};
 }
 
-inline void queryosity::dataflow::analyze() {
+inline void queryosity::dataflow::analyze(std::vector<std::atomic<int>>* progress, std::vector<std::atomic<int>>* total) {
   if (m_analyzed)
     return;
+  m_analyzed = true;
 
   m_processor.process(m_sources, m_weight, m_nrows);
-  m_analyzed = true;
 }
 
 inline void queryosity::dataflow::reset() { m_analyzed = false; }

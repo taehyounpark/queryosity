@@ -21,7 +21,11 @@ dependencies = [
   "numpy",
   "tree-sitter",
   "tree-sitter-cpp",
+  "rich"
 ]
+
+[project.scripts]
+analyze = "qtypy.analyze:main"
 
 [project.urls]
 Homepage = "https://queryosity.readthedocs.io/en/latest/"

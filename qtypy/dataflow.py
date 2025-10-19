@@ -1,5 +1,8 @@
 import cppyy
 
+from rich.live import Live
+from rich.table import Table
+
 from .cpp import cpp_binding
 from .query import lazy, result
 
@@ -57,8 +60,9 @@ class dataflow(cpp_binding):
 
         self.columns = {}
         self.selections = {}
-        self.queries = {}
 
+        self.bookkeepers = {}
+        self.queries = {}
         self.results = {}
 
     def instantiate(self):
@@ -131,6 +135,7 @@ class dataflow(cpp_binding):
 
     def get(self, bookkeepers: dict):
         for query_name, bookkeeper in bookkeepers.items():
+            self.bookkeepers[query_name] = bookkeeper
             self.queries[query_name] = {}
             for selection_name in bookkeeper.booked_selections:
                 query_node = lazy(bookkeeper, self.selections[selection_name])
@@ -140,39 +145,52 @@ class dataflow(cpp_binding):
 
     def analyze(self):
 
+
+
         self.instantiate()
 
         self.dataset.instantiate(self)
 
-        print("=========="*8)
-        print("Column")
-        print('----------'*8)
-        for column_name, column_node in self.columns.items():
-            print(f'{column_name} = {str(column_node)}')
-            column_node.instantiate(self)
+        # print("=========="*8)
+        # print("Column")
+        # print("----------"*8)
 
-        # current "selection" is the global dataflow
-        print("=========="*8)
-        print("Selection")
-        print('----------'*8)
+        table = Table(expand=True)
+        table.add_column("Column")
+        table.add_column("Definition")
+        with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
+            for column_name, column_node in self.columns.items():
+                table.add_row(f"{column_name}", f"{str(column_node)}")
+                column_node.instantiate(self)
+                display.refresh()
+
+        table = Table(expand=True)
+        table.add_column("Selection")
+        table.add_column("Expression")
+        # current selection is the global dataflow
         self.current_selection = self
-        for selection_name, selection_node in self.selections.items():
-            selection_node.instantiate(self)
-            print(f'{selection_name} = {str(selection_node)}')
-            # now the selection is sitting at the last applied
-            self.current_selection = selection_node
+        with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
+            for selection_name, selection_node in self.selections.items():
+                selection_node.instantiate(self)
+                table.add_row(f"{selection_name}", f"{str(selection_node)}")
+                display.refresh()
+                # now the selection is at the latest applied
+                self.current_selection = selection_node
 
         # queries
-        print("=========="*8)
-        print("Query")
-        print('----------'*8)
-        for query_name, booked_selections in self.queries.items():
-            for selection_name, query_node in booked_selections.items():
-                query_node.instantiate(self)
-                result_node = result(query_node)
-                self.results[selection_name][query_name] = result_node
-            print(f'{query_name} = {query_node} | {list(booked_selections.keys())}')
-        print("=========="*8)
+        table = Table(expand=True)
+        table.add_column("Query")
+        table.add_column("Definition")
+        with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
+            for query_name, booked_selections in self.queries.items():
+                table.add_row(f"{query_name}",f"{self.bookkeepers[query_name]}")
+                display.refresh()
+                for selection_name, query_node in booked_selections.items():
+                    query_node.instantiate(self)
+                    result_node = result(query_node)
+                    self.results[selection_name][query_name] = result_node
+                    table.add_row("", f"  @ {selection_name}")
+                    display.refresh()
 
         # results
         for selection_name, results_at_selection in self.results.items():

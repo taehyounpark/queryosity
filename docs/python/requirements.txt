@@ -1,8 +1,0 @@
-sphinx>=3.4.3
-sphinx_design
-pydata-sphinx-theme>=0.15.2
-sphinx-notfound-page
-sphinx-sitemap
-sphinxcontrib-napoleon
-myst-parser
-linkify-it-py

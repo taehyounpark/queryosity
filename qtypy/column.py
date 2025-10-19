@@ -49,6 +49,9 @@ class expression(cpp_binding):
 
         self.cpp_prefix = '_df_column'
 
+    def __str__(self):
+        return self.expr
+
     def instantiate(self, df):
         # only keep args that exist in df.columns
         column_args = [arg for arg in self.args if arg in df.columns]

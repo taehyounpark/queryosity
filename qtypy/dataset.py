@@ -52,6 +52,9 @@ class column(cpp_binding):
         self.cpp_prefix = '_df_column'
         self.name = None
 
+    def __str__(self):
+        return f'column<{self.value_type}>("{self.key}")'
+
     def instantiate(self, df):
         return cppyy.cppdef(
             'auto {cpp_id} = {dataset_id}.read(qty::dataset::column<{value_type}>("{key}"));'.format(

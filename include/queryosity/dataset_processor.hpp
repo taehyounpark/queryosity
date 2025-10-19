@@ -4,6 +4,8 @@
 #include "dataset_player.hpp"
 #include "multithread.hpp"
 
+#include <atomic>
+
 namespace queryosity {
 
 namespace dataset {
@@ -132,7 +134,7 @@ inline void queryosity::dataset::processor::process(
         break;
     }
   }
-  // todo: can intel tbb distribute slots during parallel processing?
+  // TODO: use intel TBB?
 
   // 3. run event loop
   this->run(

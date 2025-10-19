@@ -58,7 +58,8 @@ autodoc_mock_imports = [
     "cppyy",
     "numpy",
     "tree_sitter",
-    "tree_sitter_cpp"
+    "tree_sitter_cpp",
+    "rich"
 ]
 
 templates_path = ['_templates']

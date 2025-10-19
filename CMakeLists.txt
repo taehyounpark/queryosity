@@ -9,10 +9,6 @@ option(QUERYOSITY_JSON  "Extension: nlohmann::json" OFF)
 option(QUERYOSITY_CSV   "Extension: rapidcsv" OFF)
 option(QUERYOSITY_BOOST "Extension: boost::histogram" OFF)
 option(QUERYOSITY_ROOT  "Extension: ROOT" OFF)
-set(QUERYOSITY_EXTENSIONS OFF)
-if(QUERYOSITY_JSON OR QUERYOSITY_BOOST OR QUERYOSITY_CSV OR QUERYOSITY_ROOT)
-    set(QUERYOSITY_EXTENSIONS ON)
-endif()
 
 option(QUERYOSITY_TESTS "Tests" OFF)
 option(QUERYOSITY_EXAMPLES "Examples" OFF)
@@ -39,6 +35,11 @@ if (QUERYOSITY_EXAMPLES)
   set(QUERYOSITY_CSV ON)
   set(QUERYOSITY_BOOST ON)
   set(QUERYOSITY_ROOT ON)
+endif()
+
+set(QUERYOSITY_EXTENSIONS OFF)
+if(QUERYOSITY_JSON OR QUERYOSITY_BOOST OR QUERYOSITY_CSV OR QUERYOSITY_ROOT)
+    set(QUERYOSITY_EXTENSIONS ON)
 endif()
 
 add_library(queryosity INTERFACE)
@@ -101,18 +102,10 @@ if(QUERYOSITY_INSTALL)
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/queryosity
   )
 
-else()  # ====== BUILD-TREE USAGE ONLY ======
+else()
 
   export(PACKAGE queryosity)
 
-  # # 1) Export targets locally
-  # export(
-  #   EXPORT queryosityTargets
-  #   FILE "${PROJECT_BINARY_DIR}/queryosityTargets.cmake"
-  #   NAMESPACE queryosity::
-  # )
-
-  # 2) Configure a local config file that references the above
   set(CONF_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/include")
   set(CONF_LIBRARY_DIRS "${PROJECT_BINARY_DIR}")
   set(CONF_LIBRARIES    queryosity)
@@ -138,12 +131,10 @@ if(QUERYOSITY_EXAMPLES)
   add_subdirectory("examples")
 endif()
 
-# hack-ish solution for ROOT
 if(QUERYOSITY_ROOT)
   set(SETUP ${CMAKE_CURRENT_BINARY_DIR}/setup.sh)
   file(WRITE ${SETUP} "#!/bin/bash\n")
   file(APPEND ${SETUP} "# this is an auto-generated setup script\n" )
-  file(APPEND ${SETUP} "export PYTHONPATH=\${PYTHONPATH}:${CMAKE_CURRENT_SOURCE_DIR}/\n")
   file(APPEND ${SETUP} "export QUERYOSITY_DIR=${CMAKE_CURRENT_SOURCE_DIR}\n")
-  file(APPEND ${SETUP} "source ${CMAKE_CURRENT_BINARY_DIR}/extensions/setup.sh")
+  file(APPEND ${SETUP} "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:${CMAKE_CURRENT_BINARY_DIR}/extensions/\n")
 endif()

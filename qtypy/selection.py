@@ -53,9 +53,12 @@ class selection(ABC, cpp_binding):
         self.args = parse_cpp_identifiers(expr)
         self.preselection_name = preselection
 
+    def __str__(self):
+        return f'{self.node_operation}({self.expr}) @ {self.preselection_name}'
+
     @property
     @abstractmethod
-    def dataflow_operation(self):
+    def node_operation(self):
         pass
 
     @property
@@ -70,8 +73,8 @@ class selection(ABC, cpp_binding):
         lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
 
         presel = df.current_selection if self.preselection_name is None else df.selections[self.preselection_name]
-        return cppyy.cppdef(f'auto {self.cpp_identifier} = {presel.cpp_identifier}.{self.dataflow_operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)});')
-    
+        self.preselection_name = presel.name
+        return cppyy.cppdef(f'auto {self.cpp_identifier} = {presel.cpp_identifier}.{self.node_operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)});')
 
 class cut(selection):
     """
@@ -93,7 +96,7 @@ class cut(selection):
         super().__init__(expr, preselection)
 
     @property
-    def dataflow_operation(self):
+    def node_operation(self):
         return 'filter'
 
     @property
@@ -120,7 +123,7 @@ class weight(selection):
         super().__init__(expr, preselection)
 
     @property
-    def dataflow_operation(self):
+    def node_operation(self):
         return 'weight'
 
     @property

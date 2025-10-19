@@ -31,8 +31,17 @@ def main():
     parser.add_argument('--config', '-c', nargs='+', default=[],
                         help='Configure analysis flags')
 
-    parser.add_argument('--multithread', '-j', nargs='?', const=-1,
-                        default=0, type=int, help='Multithread the analysis')
+    parser.add_argument(
+        '-j', '--multithread',
+        nargs='?', const=-1, default=0, type=int,
+        help='Multithread the analysis'
+    )
+
+    parser.add_argument(
+        '-n', '--entries',
+        nargs='?', const=-1, default=-1, type=int,
+        help='Number of entries to process'
+    )
 
     parser.add_argument('--output', default='analyzed.root',
                         help='Output file name')
@@ -41,6 +50,8 @@ def main():
 
     args = parser.parse_args()
 
+    # ROOT.EnableImplicitMT(args.multithread)
+
     # load analysis module dynamically
     try:
         analysis = importlib.import_module(args.analysis)
@@ -48,7 +59,7 @@ def main():
         raise ImportError(f"Could not import analysis module '{args.analysis}'")
 
     # Set up dataflow & load dataset
-    df = dataflow(n_threads=args.multithread)
+    df = dataflow(multithreaded = args.multithread > 0, n_threads=args.multithread, n_rows = args.entries)
     df.load(dataset.tree(file_paths=args.files, tree_name=args.tree))
 
     # load config files into flags

@@ -33,7 +33,7 @@ endif()
 
 # ROOT
 if (QUERYOSITY_ROOT)
-  find_package(ROOT 6.36.00 QUIET COMPONENTS Core Hist RIO Tree ROOTDataFrame ROOTVecOps)
+  find_package(ROOT 6.36.00 QUIET COMPONENTS Core Physics Hist RIO Tree ROOTDataFrame ROOTVecOps)
   find_package(BootstrapGenerator QUIET)
   if(NOT ROOT_FOUND)
       list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*\\.hpp$")
@@ -122,8 +122,6 @@ if (ROOT_FOUND)
       list(APPEND ROOT_DICTIONARY_OPTIONS "-DBOOTSTRAP_HISTOGRAM")
   endif()
 
-  message("${ROOT_DICTIONARY_OPTIONS}")
-
   # Generate the dictionary
   ROOT_GENERATE_DICTIONARY(G__queryosity_dict
       ${ROOT_DICTIONARY_HEADERS}
@@ -142,18 +140,8 @@ if (ROOT_FOUND)
       # rapidcsv
       # ${Boost_LIBRARIES}
   )
-  if(TARGET ROOT::Core)  # or use ROOT_FOUND if you have that
-      list(APPEND QUERYOSITY_DICT_LIBS
-          ROOT::Core
-          ROOT::RIO
-          ROOT::Hist
-          ROOT::Tree
-          ROOT::TreePlayer
-          ROOT::Imt
-          ROOT::ROOTVecOps
-          ROOT::ROOTDataFrame
-          ROOT::Physics
-      )
+  if(ROOT_FOUND)
+      list(APPEND QUERYOSITY_DICT_LIBS ${ROOT_LIBRARIES})
   endif()
   if(TARGET BootstrapGenerator)
       list(APPEND QUERYOSITY_DICT_LIBS BootstrapGenerator)
@@ -167,13 +155,4 @@ if (ROOT_FOUND)
   install(TARGETS queryosity_dict
       LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
-
-  # setup script
-  set(SETUP ${CMAKE_CURRENT_BINARY_DIR}/setup.sh)
-  file(WRITE ${SETUP} "#!/bin/bash\n")
-  file(APPEND ${SETUP} "# this is an auto-generated setup script\n" )
-  file(APPEND ${SETUP} "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:${CMAKE_INSTALL_PREFIX}/lib\n")
-  file(APPEND ${SETUP} "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:${CMAKE_CURRENT_BINARY_DIR}/\n")
-  file(APPEND ${SETUP} "export PATH=\${PATH}:${CMAKE_CURRENT_SOURCE_DIR}/python\n")
-  file(APPEND ${SETUP} "export QUERYOSITY_EXTENSIONS_DIR=${CMAKE_CURRENT_SOURCE_DIR}\n")
 endif()

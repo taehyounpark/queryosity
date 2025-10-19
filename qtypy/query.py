@@ -92,12 +92,26 @@ class hist(bookkeeper):
         self.dtype = dtype
 
         if xbins is None:
-            self.xbinning = f"{nx},{xmin},{xmax}"
+            self.xbins = f"{nx},{xmin},{xmax}"
+            self.nx = nx
+            self.xmin = xmin
+            self.xmax = xmax
         else:
-            xbins = [str(edge) for edge in xbins]
-            self.xbinning = f"std::vector<{self.dtype}>({{{', '.join(xbins)}}})"
+            self.xbins = f"std::vector<{self.dtype}>({{{', '.join([str(edge) for edge in xbins])}}})"
+            self.nx = len(xbins)-1
+            self.xmin = xbins[0]
+            self.xmax = xbins[-1]
 
         self.n_toys = n_toys
+
+    def __str__(self):
+        # xax = 
+        hdef = f'{self.result_type}("{self.hname}")'
+        toys = f' x ({self.n_toys} toys)' if self.n_toys else ''
+        xax = f' | {self.xmin} < x < {self.xmax}'
+        yax = f' | {self.ybins}' if self.ndim > 1 else ''
+        cols = ' | << ' + ' << '.join(['('+', '.join(colset)+')' for colset in self.filled_columns])
+        return f'{hdef}{toys}{xax}{yax}{cols}'
 
     @property
     def result_type(self):
@@ -117,7 +131,9 @@ class hist(bookkeeper):
             f'get(qty::query::output<qty::ROOT::'
             f'{"hist_with_toys" if self.n_toys > 0 else "hist"}'
             f'<{self.ndim},{self.dtype}>>'
-            f'("{self.hname}",{self.xbinning}'
-            f'{"," + str(self.n_toys) if self.n_toys > 0 else ""}))'
+            f'("{self.hname}"'
+            f',{self.xbins}'
+            f'{"," + str(self.n_toys) if self.n_toys > 0 else ""}'
+            f'))'
         )
 
