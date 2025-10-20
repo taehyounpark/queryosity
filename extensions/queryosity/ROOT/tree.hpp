@@ -223,7 +223,6 @@ inline queryosity::ROOT::tree::tree(std::initializer_list<std::string> file_path
     : m_file_paths(file_paths), m_tree_name(tree_name) {}
 
 inline void queryosity::ROOT::tree::parallelize(unsigned int nslots) {
-  ::ROOT::EnableImplicitMT(nslots);
   m_trees.clear(); m_trees.resize(nslots);
   m_tree_readers.clear(); m_tree_readers.resize(nslots);
   for (unsigned int islot = 0; islot < nslots; ++islot) {
@@ -241,6 +240,7 @@ inline void queryosity::ROOT::tree::parallelize(unsigned int nslots) {
 
 inline std::vector<std::pair<unsigned long long, unsigned long long>>
 queryosity::ROOT::tree::partition() {
+  ::ROOT::EnableThreadSafety();
 
   TDirectory::TContext c;
   std::vector<std::pair<unsigned long long, unsigned long long>> parts;

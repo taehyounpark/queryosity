@@ -54,7 +54,7 @@ class selection(ABC, cpp_binding):
         self.preselection_name = preselection
 
     def __str__(self):
-        return f'{self.node_operation}({self.expr}) @ {self.preselection_name}'
+        return f'{self.node_operation}({self.expr})'
 
     @property
     @abstractmethod
@@ -72,9 +72,15 @@ class selection(ABC, cpp_binding):
         lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
         lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
 
-        presel = df.current_selection if self.preselection_name is None else df.selections[self.preselection_name]
-        self.preselection_name = presel.name
-        return cppyy.cppdef(f'auto {self.cpp_identifier} = {presel.cpp_identifier}.{self.node_operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)});')
+        if self.preselection_name is None:
+            self.preselection = df.current_selection
+            if df.current_selection == df: self.preselection_name = '--'
+            else: self.preselection_name = df.current_selection.name
+        else:
+            self.preselection = df.selections[self.preselection_name]
+            self.preselection_name = self.preselection.name
+
+        return cppyy.cppdef(f'auto {self.cpp_identifier} = {self.preselection.cpp_identifier}.{self.node_operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)});')
 
 class cut(selection):
     """

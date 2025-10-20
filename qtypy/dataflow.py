@@ -151,10 +151,6 @@ class dataflow(cpp_binding):
 
         self.dataset.instantiate(self)
 
-        # print("=========="*8)
-        # print("Column")
-        # print("----------"*8)
-
         table = Table(expand=True)
         table.add_column("Column")
         table.add_column("Definition")
@@ -165,6 +161,7 @@ class dataflow(cpp_binding):
                 display.refresh()
 
         table = Table(expand=True)
+        table.add_column("Preselection")
         table.add_column("Selection")
         table.add_column("Expression")
         # current selection is the global dataflow
@@ -172,7 +169,7 @@ class dataflow(cpp_binding):
         with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
             for selection_name, selection_node in self.selections.items():
                 selection_node.instantiate(self)
-                table.add_row(f"{selection_name}", f"{str(selection_node)}")
+                table.add_row(f"{selection_node.preselection_name}", f"{selection_name}", f"{str(selection_node)}")
                 display.refresh()
                 # now the selection is at the latest applied
                 self.current_selection = selection_node
@@ -180,16 +177,16 @@ class dataflow(cpp_binding):
         # queries
         table = Table(expand=True)
         table.add_column("Query")
+        table.add_column("Selection")
         table.add_column("Definition")
         with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
             for query_name, booked_selections in self.queries.items():
-                table.add_row(f"{query_name}",f"{self.bookkeepers[query_name]}")
                 display.refresh()
                 for selection_name, query_node in booked_selections.items():
                     query_node.instantiate(self)
                     result_node = result(query_node)
                     self.results[selection_name][query_name] = result_node
-                    table.add_row("", f"  @ {selection_name}")
+                    table.add_row(f"{query_name}", f"{selection_name}",f"{self.bookkeepers[query_name]}")
                     display.refresh()
 
         # results

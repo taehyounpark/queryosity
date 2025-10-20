@@ -53,7 +53,7 @@ class column(cpp_binding):
         self.name = None
 
     def __str__(self):
-        return f'column<{self.value_type}>("{self.key}")'
+        return f'{self.value_type} <- "{self.key}"'
 
     def instantiate(self, df):
         return cppyy.cppdef(

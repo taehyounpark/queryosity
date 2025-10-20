@@ -106,12 +106,11 @@ class hist(bookkeeper):
 
     def __str__(self):
         # xax = 
-        hdef = f'{self.result_type}("{self.hname}")'
-        toys = f' x ({self.n_toys} toys)' if self.n_toys else ''
-        xax = f' | {self.xmin} < x < {self.xmax}'
-        yax = f' | {self.ybins}' if self.ndim > 1 else ''
-        cols = ' | << ' + ' << '.join(['('+', '.join(colset)+')' for colset in self.filled_columns])
-        return f'{hdef}{toys}{xax}{yax}{cols}'
+        xax = f', {self.xmin} < x < {self.xmax}'
+        yax = f', {self.ybins}' if self.ndim > 1 else ''
+        toys = f', {self.n_toys} toys' if self.n_toys else ''
+        cols = ''.join(['('+', '.join(colset)+')' for colset in self.filled_columns])
+        return f'{cols} -> {self.result_type}("{self.hname}"{xax}{yax}{toys})'
 
     @property
     def result_type(self):
