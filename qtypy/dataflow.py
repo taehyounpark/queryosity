@@ -176,8 +176,8 @@ class dataflow(cpp_binding):
 
         # queries
         table = Table(expand=True)
-        table.add_column("Query")
         table.add_column("Selection")
+        table.add_column("Query")
         table.add_column("Definition")
         with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
             for query_name, booked_selections in self.queries.items():
@@ -186,7 +186,7 @@ class dataflow(cpp_binding):
                     query_node.instantiate(self)
                     result_node = result(query_node)
                     self.results[selection_name][query_name] = result_node
-                    table.add_row(f"{query_name}", f"{selection_name}",f"{self.bookkeepers[query_name]}")
+                    table.add_row(f"{selection_name}", f"{query_name}", f"{self.bookkeepers[query_name]}")
                     display.refresh()
 
         # results
