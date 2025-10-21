@@ -58,19 +58,19 @@ class bookkeeper(ABC):
     @property
     @abstractmethod
     def result_type(self):
-        """C++ typename of lazy::result()"""
+        """C++ typename of ``lazy::result()``"""
         pass
 
     @property
     @abstractmethod
     def result_call(self):
-        """C++ code string to retrieve lazy::result()"""
+        """C++ code string to retrieve ``lazy::result()``"""
         pass
 
     @property
     @abstractmethod
     def get_call(self):
-        """C++ code string call dataflow::get()"""
+        """C++ code string call ``dataflow::get()``"""
         pass
 
 class hist(bookkeeper):

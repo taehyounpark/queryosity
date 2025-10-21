@@ -1,4 +1,4 @@
-# `qty.column`
+# `column`
 
 ```{eval-rst}
 .. automodule:: qtypy.column

@@ -1,4 +1,4 @@
-# Python layer
+# Python
 
 ```{toctree}
 :hidden: false
@@ -10,11 +10,15 @@ guide
 
 
 ```{toctree}
-:caption: API reference
 :hidden: false
+:caption: API reference
 :maxdepth: 1
 
-api/index
+api/dataflow
+api/dataset
+api/column
+api/selection
+api/query
 ```
 
 ```{code-block}

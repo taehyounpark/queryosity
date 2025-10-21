@@ -43,6 +43,7 @@ extensions = [
   'sphinx.ext.napoleon',
   'sphinx.ext.inheritance_diagram',
   'sphinx_sitemap',
+  'breathe'
 ]
 
 import sys

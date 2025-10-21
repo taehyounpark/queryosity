@@ -1,4 +1,4 @@
-# `qty.dataflow`
+# `dataflow`
 
 ```{eval-rst}
 .. autoclass:: qtypy.dataflow

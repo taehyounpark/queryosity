@@ -1,4 +1,4 @@
-# `qty.selection`
+# `selection`
 
 
 ```{eval-rst}

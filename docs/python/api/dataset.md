@@ -1,4 +1,4 @@
-# `qty.dataset`
+# `dataset`
 
 ```{eval-rst}
 .. automodule:: qtypy.dataset
