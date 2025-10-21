@@ -5,10 +5,11 @@ project(queryosity)
 option(QUERYOSITY_INSTALL "Install target" OFF)
 option(QUERYOSITY_DOCS "Documentation" OFF)
 
-option(QUERYOSITY_JSON  "Extension: nlohmann::json" OFF)
-option(QUERYOSITY_CSV   "Extension: rapidcsv" OFF)
-option(QUERYOSITY_BOOST "Extension: boost::histogram" OFF)
-option(QUERYOSITY_ROOT  "Extension: ROOT" OFF)
+option(QUERYOSITY_JSON   "Extension: nlohmann::json" OFF)
+option(QUERYOSITY_CSV    "Extension: rapidcsv" OFF)
+option(QUERYOSITY_BOOST  "Extension: boost::histogram" OFF)
+option(QUERYOSITY_ROOT   "Extension: ROOT" OFF)
+option(QUERYOSITY_PYTHON "Install Python bindings" OFF)
 
 option(QUERYOSITY_TESTS "Tests" OFF)
 option(QUERYOSITY_EXAMPLES "Examples" OFF)
@@ -131,10 +132,26 @@ if(QUERYOSITY_EXAMPLES)
   add_subdirectory("examples")
 endif()
 
+
+if(QUERYOSITY_PYTHON)
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/
+            pip install -e .
+    RESULT_VARIABLE _pip_result
+  )
+  if(NOT _pip_result EQUAL 0)
+    message(FATAL_ERROR "Python package cannot be installed")
+  endif()
+endif()
+
+# Append PATH update to setup.sh (create if missing)
+set(SETUP ${CMAKE_CURRENT_BINARY_DIR}/setup.sh)
+file(WRITE ${SETUP} "#!/bin/bash\n")
+file(APPEND ${SETUP} "# this is an auto-generated setup script\n" )
 if(QUERYOSITY_ROOT)
-  set(SETUP ${CMAKE_CURRENT_BINARY_DIR}/setup.sh)
-  file(WRITE ${SETUP} "#!/bin/bash\n")
-  file(APPEND ${SETUP} "# this is an auto-generated setup script\n" )
   file(APPEND ${SETUP} "export QUERYOSITY_DIR=${CMAKE_CURRENT_SOURCE_DIR}\n")
   file(APPEND ${SETUP} "export LD_LIBRARY_PATH=\${LD_LIBRARY_PATH}:${CMAKE_CURRENT_BINARY_DIR}/extensions/\n")
+endif()
+if(QUERYOSITY_PYTHON)
+  file(APPEND ${SETUP} "export PATH=\${PATH}:\$HOME/.local/bin\n")
 endif()
