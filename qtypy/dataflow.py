@@ -150,7 +150,7 @@ class dataflow(cpp_instantiable):
 
         return self
 
-    def get(self): 
+    def run(self): 
 
         self.instantiate()
 
@@ -172,6 +172,9 @@ class dataflow(cpp_instantiable):
             for selection_name, query_node in booked_selections.items():
                 query_node.instantiate()
                 results[query_name][selection_name] = lazyresult(query_node).get()
+
+        self.queries.clear()
+        
         return results
 
         # queries
