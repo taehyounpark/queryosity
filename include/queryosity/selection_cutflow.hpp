@@ -14,7 +14,7 @@ class selection::cutflow : public column::computation {
 
 public:
   cutflow() = default;
-  ~cutflow() = default;
+  virtual ~cutflow() = default;
 
 public:
   template <typename Sel, typename Val>
@@ -39,7 +39,7 @@ protected:
   auto add_selection(std::unique_ptr<Sel> selection) -> Sel *;
 
 protected:
-  std::vector<std::unique_ptr<selection::node>> m_selections;
+  std::vector<std::unique_ptr<selection::node>> m_selections;  //!
 };
 
 } // namespace queryosity

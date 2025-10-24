@@ -33,7 +33,7 @@ public:
 
 protected:
   std::vector<unsigned int> m_range_slots;
-  std::vector<dataset::player> m_players;
+  std::vector<dataset::player> m_players;  //!
   std::vector<dataset::player *> m_player_ptrs;
 };
 
@@ -134,9 +134,9 @@ inline void queryosity::dataset::processor::process(
         break;
     }
   }
-  // TODO: use intel TBB?
 
   // 3. run event loop
+  // TODO: use intel TBB?
   this->run(
       [&sources, scale](
           dataset::player *plyr, unsigned int slot,

@@ -4,7 +4,8 @@ import tree_sitter_cpp
 CPP_LANGUAGE = Language(tree_sitter_cpp.language())
 cpp_parser = Parser(CPP_LANGUAGE)
 
-def parse_cpp_identifiers(expr_str) -> list:
+def parse_cpp_expression(expr_str) -> list:
+
     expr_bytes = bytes(expr_str, 'utf8')
     tree = cpp_parser.parse(expr_bytes)
     root = tree.root_node

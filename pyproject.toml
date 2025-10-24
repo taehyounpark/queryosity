@@ -16,13 +16,15 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Operating System :: OS Independent",
 ]
-
 dependencies = [
   "numpy",
   "tree-sitter",
   "tree-sitter-cpp",
   "rich"
 ]
+
+[project.optional-dependencies]
+slurm = ["simple-slurm"]
 
 [project.scripts]
 analyze = "qtypy.analyze:main"

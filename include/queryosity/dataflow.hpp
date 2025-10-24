@@ -363,7 +363,7 @@ public:
 protected:
   template <typename Kwd> void accept_kwarg(Kwd &&kwarg);
 
-  void analyze(std::vector<std::atomic<int>>* progress = nullptr, std::vector<std::atomic<int>>* total = nullptr);
+  void analyze();
   void reset();
 
 public:
@@ -403,8 +403,8 @@ public:
              column::definition<Def> const &defn);
 
 protected:
-  dataset::processor m_processor;
-  dataset::weight m_weight;
+  dataset::processor m_processor;  //!
+  dataset::weight m_weight;  //!
   long long m_nrows;
 
   std::vector<std::unique_ptr<dataset::source>> m_sources;  //!
@@ -624,7 +624,7 @@ template <typename Qry, typename... Args>
 auto queryosity::dataflow::_make(Args &&...args) -> todo<query::booker<Qry>> {
   return todo<query::booker<Qry>>(*this, ensemble::invoke(
                                              [&args...](dataset::player *plyr) {
-                                               return plyr->template make<Qry>(
+                                               return plyr->make<Qry>(
                                                    std::forward<Args>(args)...);
                                              },
                                              m_processor.get_slots()));
@@ -653,7 +653,7 @@ auto queryosity::dataflow::_evaluate(todo<column::evaluator<Def>> const &calc,
   auto act = ensemble::invoke(
       [](dataset::player *plyr, column::evaluator<Def> const *calc,
          Cols const *...cols) {
-        return plyr->template evaluate(*calc, *cols...);
+        return plyr->evaluate(*calc, *cols...);
       },
       m_processor.get_slots(), calc.get_slots(), columns.get_slots()...);
   auto lzy = lazy<Def>(*this, act);
@@ -666,7 +666,7 @@ auto queryosity::dataflow::_apply(
     lazy<Cols> const &...columns) -> lazy<selection::node> {
   auto act = ensemble::invoke(
       [](dataset::player *plyr, selection::applicator<Sel, Def> const *appl,
-         Cols const *...cols) { return plyr->template apply(*appl, *cols...); },
+         Cols const *...cols) { return plyr->apply(*appl, *cols...); },
       m_processor.get_slots(), appl.get_slots(), columns.get_slots()...);
   auto lzy = lazy<selection::node>(*this, act);
   return lzy;
@@ -693,7 +693,7 @@ auto queryosity::dataflow::_book(todo<query::booker<Qry>> const &bkr,
   return std::array<lazy<Qry>, sizeof...(Sels)>{this->_book(bkr, sels)...};
 }
 
-inline void queryosity::dataflow::analyze(std::vector<std::atomic<int>>* progress, std::vector<std::atomic<int>>* total) {
+inline void queryosity::dataflow::analyze() {
   if (m_analyzed)
     return;
   m_analyzed = true;
@@ -771,7 +771,7 @@ template <typename Val>
 auto queryosity::dataflow::_assign(Val const &val)
     -> lazy<column::valued<Val>> {
   auto act = ensemble::invoke(
-      [&val](dataset::player *plyr) { return plyr->template assign<Val>(val); },
+      [&val](dataset::player *plyr) { return plyr->assign<Val>(val); },
       m_processor.get_slots());
   auto lzy = lazy<column::valued<Val>>(*this, act);
   return lzy;
@@ -793,7 +793,7 @@ auto queryosity::dataflow::_convert(lazy<Col> const &col)
     -> lazy<column::conversion<To, column::value_t<Col>>> {
   auto act = ensemble::invoke(
       [](dataset::player *plyr, Col const *from) {
-        return plyr->template convert<To>(*from);
+        return plyr->convert<To>(*from);
       },
       m_processor.get_slots(), col.get_slots());
   auto lzy = lazy<column::conversion<To, column::value_t<Col>>>(*this, act);
@@ -813,7 +813,7 @@ template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
   return todo<column::evaluator<typename column::equation_t<Fn>>>(
       *this,
       ensemble::invoke(
-          [fn](dataset::player *plyr) { return plyr->template equate(fn); },
+          [fn](dataset::player *plyr) { return plyr->equate(fn); },
           m_processor.get_slots()));
 }
 
@@ -821,7 +821,7 @@ template <typename Sel, typename Fn> auto queryosity::dataflow::_select(Fn fn) {
   return todo<selection::applicator<Sel, typename column::equation_t<Fn>>>(
       *this, ensemble::invoke(
                  [fn](dataset::player *plyr) {
-                   return plyr->template select<Sel>(nullptr, fn);
+                   return plyr->select<Sel>(nullptr, fn);
                  },
                  m_processor.get_slots()));
 }
@@ -837,7 +837,7 @@ auto queryosity::dataflow::_select(lazy<selection::node> const &prev, Fn fn) {
   return todo<selection::applicator<Sel, typename column::equation_t<Fn>>>(
       *this, ensemble::invoke(
                  [fn](dataset::player *plyr, selection::node const *prev) {
-                   return plyr->template select<Sel>(prev, fn);
+                   return plyr->select<Sel>(prev, fn);
                  },
                  m_processor.get_slots(), prev.get_slots()));
 }
@@ -883,7 +883,7 @@ auto queryosity::dataflow::_apply(lazy<Col> const &dec)
     -> lazy<selection::node> {
   auto act = ensemble::invoke(
       [](dataset::player *plyr, Col *col) {
-        return plyr->template apply<Sel>(nullptr, *col);
+        return plyr->apply<Sel>(nullptr, *col);
       },
       m_processor.get_slots(), dec.get_slots());
   auto lzy = lazy<selection::node>(*this, act);
@@ -896,7 +896,7 @@ auto queryosity::dataflow::_apply(lazy<selection::node> const &prev,
     -> lazy<selection::node> {
   auto act = ensemble::invoke(
       [](dataset::player *plyr, selection::node const *prev, Col *col) {
-        return plyr->template apply<Sel>(prev, *col);
+        return plyr->apply<Sel>(prev, *col);
       },
       m_processor.get_slots(), prev.get_slots(), dec.get_slots());
   auto lzy = lazy<selection::node>(*this, act);

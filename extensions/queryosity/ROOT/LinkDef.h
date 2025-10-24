@@ -18,7 +18,16 @@
 
 #pragma link C++ namespace queryosity;
 
+#pragma link C++ class queryosity::dataset::processor+;
+#pragma link C++ class queryosity::dataset::weight+;
+#pragma link C++ class queryosity::multithread::core+;
+#pragma link C++ class queryosity::dataset::player+;
+#pragma link C++ class queryosity::ensemble::slotted<queryosity::dataset::player>+;
+#pragma link C++ class queryosity::column::computation+;
+#pragma link C++ class queryosity::selection::cutflow+;
+#pragma link C++ class queryosity::query::experiment+;
 #pragma link C++ class queryosity::dataflow+;
+
 #pragma link C++ class queryosity::column::constant<float>+;
 #pragma link C++ class queryosity::column::expression<float(float)>+;
 #pragma link C++ class queryosity::ROOT::tree+;

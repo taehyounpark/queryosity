@@ -18,19 +18,40 @@ def cpp_name(name: str) -> str:
     hash_digest = hashlib.md5(name_safe.encode()).hexdigest()[:6]
     return f"{name_safe}_{hash_digest}"
 
-class cpp_binding:
+class cpp_instantiable(ABC):
+    _instance_count = 0
 
     def __init__(self):
-        self.name = None
+        self._instantiated = False
+        type(self)._instance_count += 1
+
+        self.cpp_typename = 'auto'
         self.cpp_prefix = '__qtypy__'
+
+        self.name = None
 
     @cached_property
     def cpp_identifier(self):
-        return f'{self.cpp_prefix}{cpp_name(self.name)}'
+        return f'{self.cpp_prefix}{self.name}_{type(self)._instance_count}'
+
+    @property
+    @abstractmethod
+    def cpp_initialization(self) -> str:
+        pass
 
     @property
     def cpp_instance(self):
+        self.instantiate()
         return getattr(cppyy.gbl, self.cpp_identifier, None)
+
+    def instantiate(self):
+        if not self._instantiated:
+            cppyy.cppdef('''{type} {id} = {init};'''.format(
+                type = self.cpp_typename,
+                id = self.cpp_identifier,
+                init = self.cpp_initialization
+            ))
+        self._instantiated = True
 
 # class cpp_instance:
 #     pass

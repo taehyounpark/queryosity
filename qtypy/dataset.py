@@ -1,8 +1,6 @@
-import cppyy
+from .cpputils import cpp_instantiable 
 
-from .cpp import cpp_binding 
-
-class tree(cpp_binding):
+class tree(cpp_instantiable):
     """
     qtypy layer for `qty::dataset::input<qty::ROOT::tree>`.
 
@@ -21,19 +19,18 @@ class tree(cpp_binding):
         self.file_paths = file_paths
         self.tree_name = tree_name
 
-    def instantiate(self, df):
+    @property
+    def cpp_initialization(self) -> str:
         file_paths_braced = '{' + ', '.join(['"{}"'.format(fp) for fp in self.file_paths]) + '}'
         tree_name_quoted = '"{}"'.format(self.tree_name)
-        return cppyy.cppdef(
-            "auto {cpp_id} = {df_id}.load(qty::dataset::input<qty::ROOT::tree>(std::vector<std::string>{file_paths}, std::string({tree_name})));".format(
+        return "{df_id}.load(qty::dataset::input<qty::ROOT::tree>(std::vector<std::string>{file_paths}, std::string({tree_name})))".format(
                 cpp_id=self.cpp_identifier,
-                df_id=df.cpp_identifier,
+                df_id=self.df.cpp_identifier,
                 file_paths=file_paths_braced,
                 tree_name=tree_name_quoted
             )
-        )
 
-class column(cpp_binding):
+class column(cpp_instantiable):
     """
     Read a column from a loaded dataset.
 
@@ -53,14 +50,12 @@ class column(cpp_binding):
         self.name = None
 
     def __str__(self):
-        return f'{self.value_type} <- "{self.key}"'
+        return f'{self.value_type} ← "{self.key}"'
 
-    def instantiate(self, df):
-        return cppyy.cppdef(
-            'auto {cpp_id} = {dataset_id}.read(qty::dataset::column<{value_type}>("{key}"));'.format(
-                cpp_id=self.cpp_identifier,
-                dataset_id=df.dataset.cpp_identifier,
+    @property
+    def cpp_initialization(self):
+        return '{dataset_id}.read(qty::dataset::column<{value_type}>("{key}"))'.format(
+                dataset_id=self.df.dataset.cpp_identifier,
                 value_type=self.value_type,
                 key=self.key
             )
-        )

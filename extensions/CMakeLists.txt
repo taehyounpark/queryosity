@@ -34,16 +34,14 @@ endif()
 # ROOT
 if (QUERYOSITY_ROOT)
   find_package(ROOT 6.36.00 QUIET COMPONENTS Core Physics Hist RIO Tree ROOTDataFrame ROOTVecOps)
-  find_package(BootstrapGenerator QUIET)
   if(NOT ROOT_FOUND)
       list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*\\.hpp$")
+  else()
+    find_package(BootstrapGenerator QUIET)
+    if(NOT BootstrapGenerator_FOUND)
+        list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*_with_toys\\.hpp$")
+    endif()
   endif()
-  if(NOT BootstrapGenerator_FOUND)
-      list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*_with_toys\\.hpp$")
-  endif()
-else()
-  list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*\\.hpp$")
-  list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*_with_toys\\.hpp$")
 endif()
 
 add_library(
@@ -142,10 +140,11 @@ if (ROOT_FOUND)
   )
   if(ROOT_FOUND)
       list(APPEND QUERYOSITY_DICT_LIBS ${ROOT_LIBRARIES})
+    if(BootstrapGenerator_FOUND)
+        list(APPEND QUERYOSITY_DICT_LIBS BootstrapGenerator)
+    endif()
   endif()
-  if(TARGET BootstrapGenerator)
-      list(APPEND QUERYOSITY_DICT_LIBS BootstrapGenerator)
-  endif()
+
   target_link_libraries(queryosity_dict
     INTERFACE queryosity::queryosity
     PUBLIC ${QUERYOSITY_DICT_LIBS}

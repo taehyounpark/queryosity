@@ -36,6 +36,9 @@ public:
        const std::string &tree_name);
   virtual ~tree() = default;
 
+  virtual void initialize() override;
+  virtual void finalize() override;
+
   virtual void parallelize(unsigned int nslots) final override;
 
   virtual std::vector<std::pair<unsigned long long, unsigned long long>>
@@ -58,7 +61,7 @@ protected:
   std::string m_tree_name;
 
   std::vector<std::unique_ptr<TTree>> m_trees;              //!
-  std::vector<std::unique_ptr<TTreeReader>> m_tree_readers;  //!
+  std::vector<std::unique_ptr<TTreeReader>> m_tree_readers; //!
 };
 
 template <typename T>
@@ -222,17 +225,21 @@ inline queryosity::ROOT::tree::tree(std::initializer_list<std::string> file_path
                   const std::string &tree_name)
     : m_file_paths(file_paths), m_tree_name(tree_name) {}
 
+inline void queryosity::ROOT::tree::initialize() {
+  ::ROOT::EnableThreadSafety();
+}
+
 inline void queryosity::ROOT::tree::parallelize(unsigned int nslots) {
   m_trees.clear(); m_trees.resize(nslots);
   m_tree_readers.clear(); m_tree_readers.resize(nslots);
   for (unsigned int islot = 0; islot < nslots; ++islot) {
     auto tree =
-        std::make_unique<TChain>(m_tree_name.c_str(), m_tree_name.c_str());
-    tree->ResetBit(kMustCleanup);
+        std::make_unique<TChain>(m_tree_name.c_str(), m_tree_name.c_str(), TChain::kWithoutGlobalRegistration);
+    tree->ResetBit(TObject::kMustCleanup);
     for (auto const &file_path : m_file_paths) {
       tree->Add(file_path.c_str());
     }
-    auto tree_reader = std::make_unique<TTreeReader>(tree.release());
+    auto tree_reader = std::make_unique<TTreeReader>(tree.get());
     m_trees[islot] = std::move(tree);
     m_tree_readers[islot] = std::move(tree_reader);
   }
@@ -240,8 +247,6 @@ inline void queryosity::ROOT::tree::parallelize(unsigned int nslots) {
 
 inline std::vector<std::pair<unsigned long long, unsigned long long>>
 queryosity::ROOT::tree::partition() {
-  ::ROOT::EnableThreadSafety();
-
   TDirectory::TContext c;
   std::vector<std::pair<unsigned long long, unsigned long long>> parts;
 
@@ -279,16 +284,19 @@ queryosity::ROOT::tree::partition() {
 
 inline void queryosity::ROOT::tree::initialize(unsigned int slot, unsigned long long begin,
                              unsigned long long end) {
-  m_tree_readers[slot]->SetEntriesRange(begin, end);
+  if (m_tree_readers[slot]->SetEntriesRange(begin, end) != TTreeReader::kEntryValid)
+    throw std::logic_error("cannot set tree entry range");
 }
 
 inline void queryosity::ROOT::tree::execute(unsigned int slot, unsigned long long entry) {
   m_tree_readers[slot]->SetEntry(entry);
 }
 
-inline void queryosity::ROOT::tree::finalize(unsigned int) {
-  // m_tree_readers[slot].reset(nullptr);
+inline void queryosity::ROOT::tree::finalize(unsigned int slot) {
+  m_tree_readers[slot]->Restart();
 }
+
+inline void queryosity::ROOT::tree::finalize() {}
 
 template <typename U>
 std::unique_ptr<queryosity::ROOT::tree::branch<U>> queryosity::ROOT::tree::read(unsigned int slot,

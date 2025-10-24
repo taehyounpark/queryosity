@@ -203,7 +203,7 @@ public:
   template <
       typename V = Action,
       std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
-  auto result() const -> decltype(std::declval<V>().result());
+  auto result() const -> decltype(std::declval<V>().result()) const &;
 
   /**
    * @brief Shortcut for `result()`.
@@ -211,7 +211,7 @@ public:
   template <
       typename V = Action,
       std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
-  auto operator->() const -> decltype(std::declval<V>().result()) {
+  auto operator->() const -> decltype(std::declval<V>().result()) const & {
     return this->result();
   }
 
@@ -490,7 +490,7 @@ template <typename Action>
 template <typename V,
           std::enable_if_t<queryosity::query::has_result_v<V>, bool>>
 auto queryosity::lazy<Action>::result() const
-    -> decltype(std::declval<V>().result()) {
+    -> decltype(std::declval<V>().result()) const & {
   this->m_df->analyze();
   this->merge_results();
   return this->m_result;

@@ -43,7 +43,7 @@ protected:
   template <typename Col> auto add_column(std::unique_ptr<Col> col) -> Col *;
 
 protected:
-  std::vector<std::unique_ptr<column::node>> m_columns;
+  std::vector<std::unique_ptr<column::node>> m_columns;  //!
 };
 
 }

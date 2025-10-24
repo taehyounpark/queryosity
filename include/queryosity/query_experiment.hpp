@@ -14,7 +14,7 @@ class query::experiment : public selection::cutflow {
 
 public:
   experiment() = default;
-  ~experiment() = default;
+  virtual ~experiment() = default;
 
 public:
   template <typename Qry, typename... Args>
@@ -28,7 +28,7 @@ protected:
 
 protected:
   std::vector<query::node *> m_queries;
-  std::vector<std::unique_ptr<query::node>> m_queries_history;
+  std::vector<std::unique_ptr<query::node>> m_queries_history;  //!
 };
 
 } // namespace queryosity

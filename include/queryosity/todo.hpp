@@ -211,9 +211,9 @@ public:
       typename... Nodes, typename V = Helper,
       std::enable_if_t<queryosity::selection::is_applicable_v<V>, bool> = false>
   auto apply(Nodes &&...columns) const
-      -> decltype(std::declval<todo<V>>()._apply(
+      -> decltype(std::declval<todo<V>>().template _apply<Nodes...>(
           std::forward<Nodes>(columns)...)) {
-    return this->template _apply(std::forward<Nodes>(columns)...);
+    return this->template _apply<Nodes...>(std::forward<Nodes>(columns)...);
   }
 
   /**

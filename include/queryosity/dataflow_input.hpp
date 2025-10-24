@@ -48,14 +48,14 @@ template <typename DS>
 template <typename Val>
 auto queryosity::dataflow::input<DS>::read(dataset::column<Val> const &col)
     -> lazy<queryosity::column::valued<Val>> {
-  return col.template _read(*this);
+  return col._read(*this);
 }
 
 template <typename DS>
 template <typename... Vals>
 auto queryosity::dataflow::input<DS>::read(
     dataset::column<Vals> const &...cols) -> std::tuple<lazy<queryosity::column::valued<Vals>>...> {
-  return std::make_tuple(cols.template _read(*this)...);
+  return std::make_tuple(cols._read(*this)...);
 }
 
 template <typename DS>

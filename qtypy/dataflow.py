@@ -1,12 +1,13 @@
 import cppyy
 
+from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-from .cpp import cpp_binding
-from .query import lazy, result
+from .cpputils import cpp_instantiable
+from .query import lazyquery, lazyresult
 
-class dataflow(cpp_binding):
+class dataflow(cpp_instantiable):
     """
     qtypy layer for ``qty::dataflow``.
 
@@ -49,6 +50,7 @@ class dataflow(cpp_binding):
 
     def __init__(self, *, multithreaded : bool = False, n_threads: int = -1, n_rows: int = -1):
         super().__init__()
+        self._compiled = False
 
         self.multithreaded = multithreaded
         self.n_threads = 0 if not multithreaded else n_threads
@@ -65,36 +67,16 @@ class dataflow(cpp_binding):
         self.queries = {}
         self.results = {}
 
-    def instantiate(self):
-        return cppyy.cppdef(
-            f"""auto {self.cpp_identifier} = qty::dataflow(qty::multithread::enable({self.n_threads}),qty::dataset::head({self.n_rows}));"""
-        )
+    @property
+    def cpp_initialization(self):
+        return f"""qty::dataflow(qty::multithread::enable({self.n_threads}),qty::dataset::head({self.n_rows}))"""
 
     def load(self, ds):
+        ds.df = self
         self.dataset = ds
         return self
 
-    def read(self, columns: dict):
-        """
-        Read dataset columns into the dataflow.
-
-        Parameters
-        ----------
-        columns : dict
-            A dictionary mapping column names (strings) to their
-            ``qtypy.dataset.column`` specifications.
-
-        Returns
-        -------
-        self
-            Enables method chaining.
-        """
-        for column_name, column_node in columns.items():
-            column_node.name = column_name
-        self.columns.update(columns)
-        return self
-
-    def define(self, definitions: dict):
+    def compute(self, definitions: dict):
         """
         Define additional columns in the dataflow.
 
@@ -103,6 +85,8 @@ class dataflow(cpp_binding):
         definitions : dict
             A dictionary mapping column names (strings) to one of the following:
             
+        - ``qtypy.dataset.column``  
+            Existing quantity in dataset.
 
         - ``qtypy.column.constant``  
             Constant value of any C++ data type.
@@ -119,80 +103,79 @@ class dataflow(cpp_binding):
         self
             Enables method chaining.
         """
-        for column_name, column_node in definitions.items():
-            column_node.name = column_name
-        self.columns.update(definitions)
-        return self
-
-
-    def apply(self, selections: dict):
-        for selection_name, selection_node in selections.items():
-            selection_node.name = selection_name
-            # prepare for potential results at this selection
-            self.results[selection_name] = {}
-        self.selections.update(selections)
-        return self
-
-    def get(self, bookkeepers: dict):
-        for query_name, bookkeeper in bookkeepers.items():
-            self.bookkeepers[query_name] = bookkeeper
-            self.queries[query_name] = {}
-            for selection_name in bookkeeper.booked_selections:
-                query_node = lazy(bookkeeper, self.selections[selection_name])
-                query_node.name = f"{query_name}_at_{selection_name}"
-                self.queries[query_name][selection_name] = query_node
-        return self
-
-    def analyze(self):
-
-
-
-        self.instantiate()
-
-        self.dataset.instantiate(self)
-
         table = Table(expand=True)
         table.add_column("Column")
         table.add_column("Definition")
-        with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
-            for column_name, column_node in self.columns.items():
-                table.add_row(f"{column_name}", f"{str(column_node)}")
-                column_node.instantiate(self)
-                display.refresh()
+        for column_name, column_node in definitions.items():
+            table.add_row(f"{column_name}", f"{str(column_node)}")
+            column_node.name = column_name
+            column_node.df = self
+        console = Console()
+        console.print(table)
+        self.columns.update(definitions)
+        return self
 
+    def apply(self, selections: dict):
         table = Table(expand=True)
         table.add_column("Preselection")
         table.add_column("Selection")
         table.add_column("Expression")
-        # current selection is the global dataflow
-        self.current_selection = self
-        with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
-            for selection_name, selection_node in self.selections.items():
-                selection_node.instantiate(self)
-                table.add_row(f"{selection_node.preselection_name}", f"{selection_name}", f"{str(selection_node)}")
-                display.refresh()
-                # now the selection is at the latest applied
-                self.current_selection = selection_node
+        for selection_name, selection_node in selections.items():
+            table.add_row(f"{selection_node.preselection_name}", f"{selection_name}", f"{str(selection_node)}")
+            selection_node.name = selection_name
+            selection_node.df = self
+        console = Console()
+        console.print(table)
+        self.selections.update(selections)
+        return self
 
-        # queries
+    def get(self, bookkeepers: dict):
+        self._compiled = False
+        lazy_results = {}
         table = Table(expand=True)
         table.add_column("Selection")
         table.add_column("Query")
         table.add_column("Definition")
-        with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
-            for query_name, booked_selections in self.queries.items():
-                display.refresh()
-                for selection_name, query_node in booked_selections.items():
-                    query_node.instantiate(self)
-                    result_node = result(query_node)
-                    self.results[selection_name][query_name] = result_node
-                    table.add_row(f"{selection_name}", f"{query_name}", f"{self.bookkeepers[query_name]}")
-                    display.refresh()
+        for query_name, bookkeeper in bookkeepers.items():
+            lazy_results[query_name] = {}
+            for selection_name in bookkeeper.booked_selections:
+                query_node = lazyquery(self, bookkeeper, self.selections[selection_name])
+                query_node.name = f"{query_name}_at_{selection_name}"
+                lazy_results[query_name][selection_name] = lazyresult(query_node)
+                table.add_row(f"{selection_name}", f"{query_name}", f"{query_node.bkpr}")
+        console = Console()
+        console.print(table)
+        return lazy_results
 
-        # results
-        for selection_name, results_at_selection in self.results.items():
-            for query_name, result_node in results_at_selection.items():
-                result_node.instantiate()
-                self.results[selection_name][query_name] = result_node.get()
+    def compile(self):
 
-        return self.results
+        if self._compiled: return
+        self._compiled = True
+
+        self.instantiate()
+
+        self.dataset.instantiate()
+
+        for column_name, column_node in self.columns.items():
+            column_node.instantiate()
+
+        # current selection is the global dataflow
+        self.current_selection = self
+        for selection_name, selection_node in self.selections.items():
+            selection_node.instantiate()
+            # now the selection is at the latest applied
+            self.current_selection = selection_node
+
+        # # queries
+        # table = Table(expand=True)
+        # table.add_column("Selection")
+        # table.add_column("Query")
+        # table.add_column("Definition")
+        # with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
+        #     for query_name, booked_selections in self.queries.items():
+        #         for selection_name, query_node in booked_selections.items():
+        #             query_node.instantiate()
+        #             result_node = lazyresult(query_node)
+        #             self.results[selection_name][query_name] = result_node
+        #             table.add_row(f"{selection_name}", f"{query_name}", f"{query_node.bookkeeper}")
+        #             display.refresh()

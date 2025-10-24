@@ -1,9 +1,7 @@
-import cppyy
-
 from abc import ABC, abstractmethod
 
-from .cpp import cpp_binding 
-from .cpp import parse_cpp_identifiers
+from . import lazynode 
+from .cpputils import parse_cpp_expression
 
 class at:
     """
@@ -20,45 +18,48 @@ class at:
 
         # compounding cuts, a -> (a && b) -> (a && b && c)
         df.apply({
-            "a": cut("x > 0"),
-            "b": cut("y < 0"),   # a && b
-            "c": cut("z != 0")   # a && b && c
+            "a": filter("x > 0"),
+            "b": filter("y < 0"),   # a && b
+            "c": filter("z != 0")   # a && b && c
         })
 
     .. code-block:: python
 
         # branching cuts, a -> (a && b, a && c)
         df.apply({
-            "a": cut("x > 0"),
-            "b": cut("y < 0"),          # a && b
-            "c": at("a").cut("z != 0")  # a && c
+            "a": filter("x > 0"),
+            "b": filter("y < 0"),          # a && b
+            "c": at("a").filter("z != 0")  # a && c
         })
     """
 
     def __init__(self, preselection):
         self.preselection_name = preselection
 
-    def cut(self, expr : str):
-        return cut(expr, preselection=self.preselection_name)
+    def filter(self, expr : str):
+        return filter(expr, preselection=self.preselection_name)
 
     def weight(self, expr: str):
         return weight(expr, preselection=self.preselection_name)
 
-class selection(ABC, cpp_binding):
+class selection(lazynode):
 
     def __init__(self, expr: str, preselection : str = None):
         super().__init__()
-        self.cpp_prefix += '_df_selection_'
+        self.cpp_prefix += 'selection_'
+        self.cpp_typename = 'auto'
+
         self.expr = expr
-        self.args = parse_cpp_identifiers(expr)
+        self.args = parse_cpp_expression(expr)
+
         self.preselection_name = preselection
 
     def __str__(self):
-        return f'{self.node_operation}({self.expr})'
+        return f'{self.operation}({self.expr})'
 
     @property
     @abstractmethod
-    def node_operation(self):
+    def operation(self):
         pass
 
     @property
@@ -66,23 +67,24 @@ class selection(ABC, cpp_binding):
     def value_type(self):
         pass
 
-    def instantiate(self, df):
-        column_args = [arg for arg in self.args if arg in df.columns]
-        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in column_args]
+    @property
+    def cpp_initialization(self):
+        column_args = [arg for arg in self.args if arg in self.df.columns]
+        lmbd_args = [f'{self.df.columns[arg].value_type} const& {arg}' for arg in column_args]
         lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
-        lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
+        lazy_args = [self.df.columns[arg].cpp_identifier for arg in column_args]
 
         if self.preselection_name is None:
-            self.preselection = df.current_selection
-            if df.current_selection == df: self.preselection_name = '--'
-            else: self.preselection_name = df.current_selection.name
+            if self.df == self.df.current_selection: self.preselection_name = '--'
+            else: self.preselection_name = self.df.current_selection.name
+            self.preselection = self.df.current_selection
         else:
-            self.preselection = df.selections[self.preselection_name]
             self.preselection_name = self.preselection.name
+            self.preselection = self.df.selections[self.preselection_name]
 
-        return cppyy.cppdef(f'auto {self.cpp_identifier} = {self.preselection.cpp_identifier}.{self.node_operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)});')
+        return f'{self.preselection.cpp_identifier}.{self.operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)})'
 
-class cut(selection):
+class filter(selection):
     """
     Represents a floating-point weight applied to a row, considered only
     when a cut is passed.
@@ -102,7 +104,7 @@ class cut(selection):
         super().__init__(expr, preselection)
 
     @property
-    def node_operation(self):
+    def operation(self):
         return 'filter'
 
     @property
@@ -129,7 +131,7 @@ class weight(selection):
         super().__init__(expr, preselection)
 
     @property
-    def node_operation(self):
+    def operation(self):
         return 'weight'
 
     @property
