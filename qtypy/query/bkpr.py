@@ -14,6 +14,9 @@ class bkpr(ABC):
         self.booked_selections.extend(selections)
         return self
 
+    def __matmul__(self, selections):
+        return self.at(*selections)
+
     @property
     @abstractmethod
     def result_type(self):

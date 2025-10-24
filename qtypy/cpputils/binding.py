@@ -18,21 +18,24 @@ def cpp_name(name: str) -> str:
     hash_digest = hashlib.md5(name_safe.encode()).hexdigest()[:6]
     return f"{name_safe}_{hash_digest}"
 
-class cpp_instantiable(ABC):
-    _instance_count = 0
+_global_instance_count = 0
 
+class cpp_instantiable(ABC):
     def __init__(self):
         self._instantiated = False
-        type(self)._instance_count += 1
+        # Use the global counter
+        global _global_instance_count
+        _global_instance_count += 1
+        self._instance_num = _global_instance_count  # Store instance number
 
         self.cpp_typename = 'auto'
         self.cpp_prefix = '__qtypy__'
-
         self.name = None
 
     @cached_property
     def cpp_identifier(self):
-        return f'{self.cpp_prefix}{self.name}_{type(self)._instance_count}'
+        identifier = f'{self.cpp_prefix}{self.name}_{self._instance_num}'
+        return identifier
 
     @property
     @abstractmethod

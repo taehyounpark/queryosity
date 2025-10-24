@@ -3,59 +3,26 @@ from abc import ABC, abstractmethod
 from . import lazynode 
 from .cpputils import parse_cpp_expression
 
-class at:
-    """
-    Apply a selection using a specific preselection.
-
-    By default, selections are applied sequentially, meaning each subsequent
-    call compounds on the previous selection as its preselection. Use
-    ``at(preselection_name)`` to override this behavior and explicitly set the
-    preselection for a cut or weight.
-
-    Examples
-    --------
-    .. code-block:: python
-
-        # compounding cuts, a -> (a && b) -> (a && b && c)
-        df.apply({
-            "a": filter("x > 0"),
-            "b": filter("y < 0"),   # a && b
-            "c": filter("z != 0")   # a && b && c
-        })
-
-    .. code-block:: python
-
-        # branching cuts, a -> (a && b, a && c)
-        df.apply({
-            "a": filter("x > 0"),
-            "b": filter("y < 0"),          # a && b
-            "c": at("a").filter("z != 0")  # a && c
-        })
-    """
-
-    def __init__(self, preselection):
-        self.preselection_name = preselection
-
-    def filter(self, expr : str):
-        return filter(expr, preselection=self.preselection_name)
-
-    def weight(self, expr: str):
-        return weight(expr, preselection=self.preselection_name)
-
 class selection(lazynode):
 
-    def __init__(self, expr: str, preselection : str = None):
+    def __init__(self, expr: str):
         super().__init__()
-        self.cpp_prefix += 'selection_'
         self.cpp_typename = 'auto'
 
         self.expr = expr
         self.args = parse_cpp_expression(expr)
 
-        self.preselection_name = preselection
+        self.preselection_name = None
 
     def __str__(self):
         return f'{self.operation}({self.expr})'
+
+    def at(self, preselection_name):
+        self.preselection_name = preselection_name
+        return self
+
+    def __matmul__(self, preselection_name):
+        return self.at(preselection_name)
 
     @property
     @abstractmethod
@@ -75,11 +42,8 @@ class selection(lazynode):
         lazy_args = [self.df.columns[arg].cpp_identifier for arg in column_args]
 
         if self.preselection_name is None:
-            if self.df == self.df.current_selection: self.preselection_name = '--'
-            else: self.preselection_name = self.df.current_selection.name
             self.preselection = self.df.current_selection
         else:
-            self.preselection_name = self.preselection.name
             self.preselection = self.df.selections[self.preselection_name]
 
         return f'{self.preselection.cpp_identifier}.{self.operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)})'
@@ -100,8 +64,8 @@ class filter(selection):
     preselection : str, optional
         Name of a prior selection to use as the base for this cut.
     """
-    def __init__(self, expr: str, preselection : str = None):
-        super().__init__(expr, preselection)
+    def __init__(self, expr: str):
+        super().__init__(expr)
 
     @property
     def operation(self):
@@ -127,8 +91,8 @@ class weight(selection):
     preselection : str, optional
         Name of a prior selection (cut) to restrict the weight application.
     """
-    def __init__(self, expr: str, preselection : str = None):
-        super().__init__(expr, preselection)
+    def __init__(self, expr: str):
+        super().__init__(expr)
 
     @property
     def operation(self):

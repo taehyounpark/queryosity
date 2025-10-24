@@ -14,7 +14,5 @@ class lazyresult(lazynode):
     def cpp_initialization(self):
         return f'{self.query.cpp_identifier}.{self.query.bkpr.result_call}'
 
-    def result(self):
-        self.query.df.compile()
-        self.query.instantiate()
+    def get(self):
         return self.cpp_instance

@@ -18,7 +18,6 @@ class constant(lazynode):
         self.value = value
         if value_type is None:
             self.value_type = type(value).__name__
-        self.cpp_prefix = '_'
 
     @property
     def cpp_initialization(self):

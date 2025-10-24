@@ -1,6 +1,6 @@
-from .cpputils import cpp_instantiable 
+from . import lazynode 
 
-class tree(cpp_instantiable):
+class tree(lazynode):
     """
     qtypy layer for `qty::dataset::input<qty::ROOT::tree>`.
 
@@ -14,7 +14,7 @@ class tree(cpp_instantiable):
 
     def __init__(self, file_paths, tree_name):
         super().__init__()
-        self.name = 'ds'
+        self.name = f'ds_{tree_name}'
 
         self.file_paths = file_paths
         self.tree_name = tree_name
@@ -30,7 +30,7 @@ class tree(cpp_instantiable):
                 tree_name=tree_name_quoted
             )
 
-class column(cpp_instantiable):
+class column(lazynode):
     """
     Read a column from a loaded dataset.
 
@@ -46,16 +46,23 @@ class column(cpp_instantiable):
         self.key = key
         self.value_type = value_type
 
-        self.cpp_prefix = '_df_column'
-        self.name = None
+        self.dataset_name = None
+
+    def read(self, dataset_name):
+        self.dataset_nname = dataset_name
+        return self
+
+    def __lshift__(self, dataset_name):
+        return self.read(dataset_name)
 
     def __str__(self):
         return f'{self.value_type} ← "{self.key}"'
 
     @property
     def cpp_initialization(self):
+        ds = self.df.datasets[self.dataset_name] if self.dataset_name is not None else self.df.current_dataset
         return '{dataset_id}.read(qty::dataset::column<{value_type}>("{key}"))'.format(
-                dataset_id=self.df.dataset.cpp_identifier,
+                dataset_id=ds.cpp_identifier,
                 value_type=self.value_type,
                 key=self.key
             )

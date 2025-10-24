@@ -20,8 +20,6 @@ class expression(lazynode):
         self.expr = expr
         self.args = parse_cpp_expression(expr)
 
-        self.cpp_prefix = '_df_column'
-
     def __str__(self):
         return self.expr
 

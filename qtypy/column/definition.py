@@ -16,7 +16,6 @@ class definition(cpp_instantiable):
     """
     def __init__(self, defn: str):
         super().__init__()
-        self.cpp_prefix = '_df_column'
         self.defn = defn
 
     def __str__(self):
