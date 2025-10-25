@@ -8,11 +8,11 @@ class lazyresult(lazynode):
         super().__init__()
         self.query = query
         self.name = f'result_{query.name}'
-        self.cpp_typename = f'{self.query.bkpr.result_type} const &'
+        self.cpp_typename = f'{self.query.defn.cpp_result_type} const &'
 
     @property
     def cpp_initialization(self):
-        return f'{self.query.cpp_identifier}.{self.query.bkpr.result_call}'
+        return f'{self.query.cpp_identifier}.{self.query.defn.cpp_result_call}'
 
-    def get(self):
-        return self.cpp_instance
+    def result(self):
+        return self.query.defn.py_result_wrapper(self.cpp_instance)

@@ -1,7 +1,9 @@
 
-from ..query import bkpr
+from ..query import definition
 
-class series(bkpr):
+import numpy as np
+
+class series(definition):
 
     def __init__(self, column, dtype = 'double'):
         super().__init__()
@@ -15,9 +17,13 @@ class series(bkpr):
         return self.filled_columns[0][0] + ' → series'
 
     @property
-    def get_call(self):
+    def cpp_get_call(self):
         return f'get(qty::query::output<qty::query::series<{self.dtype}>>())'
 
     @property
-    def result_type(self):
+    def cpp_result_type(self):
         return f'std::vector<{self.dtype}>'
+
+    @property
+    def py_result_wrapper(self):
+        return np.asarray

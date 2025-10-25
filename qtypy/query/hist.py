@@ -1,9 +1,9 @@
 
 import numpy as np
 
-from .. import bkpr
+from . import definition
 
-class hist(bkpr):
+class hist(definition):
 
     def __init__(self, hname : str, *, 
             dtype : str = 'float', 
@@ -40,22 +40,22 @@ class hist(bkpr):
         yax = f', {self.ybins}' if self.ndim > 1 else ''
         toys = f', {self.n_toys} toys' if self.n_toys else ''
         cols = ''.join(['('+', '.join(colset)+')' for colset in self.filled_columns])
-        return f'{cols} → {self.result_type[:-1]}("{self.hname}"{xax}{yax}{toys})'
+        return f'{cols} → {self.cpp_result_type[:-1]}("{self.hname}"{xax}{yax}{toys})'
 
     @property
-    def result_type(self):
+    def cpp_result_type(self):
         return "TH{}{}*".format(
             self.ndim,
             'Bootstrap' if self.n_toys > 0 else ''
         )
 
     @property
-    def result_call(self):
+    def cpp_result_call(self):
         # std::shared_ptr::get()
         return 'result().get()'
 
     @property
-    def get_call(self):
+    def cpp_get_call(self):
         return (
             f'get(qty::query::output<qty::ROOT::'
             f'{"hist_with_toys" if self.n_toys > 0 else "hist"}'

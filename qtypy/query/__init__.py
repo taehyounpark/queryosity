@@ -1,6 +1,4 @@
-
-from .bkpr import bkpr
-from .query import lazyquery
+from .query import definition, lazyquery
 from .result import lazyresult
 
-from .bookkeepers.hist import hist
+from .hist import hist

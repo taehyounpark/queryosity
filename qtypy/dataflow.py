@@ -62,11 +62,13 @@ class dataflow(cpp_instantiable):
 
         self.columns = {}
         self.selections = {}
-        self.current_selection = None
+        self.current_selection = self
 
         self.bookkeepers = {}
         self.queries = {}
         self.results = {}
+
+        self.instantiate()
 
     @property
     def cpp_initialization(self):
@@ -84,13 +86,14 @@ class dataflow(cpp_instantiable):
         """Pipeline operator for selections: df @ {'sel': filter(...) @ 'presel' }"""
         return self.select(selections)
 
-    def __rshift__(self, bookkeepers: dict):
+    def __rshift__(self, query):
         """Pipeline operator for queries: df >> {'hist': hist(...) @ ['sel_a', 'sel_b']}"""
-        return self.inquire(bookkeepers)
+        return self.get(query)
 
     def load(self, datasets):
         for ds_name, ds in datasets.items():
             ds.df = self
+            ds.instantiate()
             self.datasets[ds_name] = ds
             self.current_dataset = ds
         return self
@@ -125,57 +128,49 @@ class dataflow(cpp_instantiable):
         for column_name, column_node in columns.items():
             column_node.name = column_name
             column_node.df = self
+            column_node.instantiate()
         self.columns.update(columns)
         return self
 
     def select(self, selections: dict):
-
         for selection_name, selection_node in selections.items():
             selection_node.name = selection_name
             selection_node.df = self
+            selection_node.instantiate()
             # self.columns[selection_name] = selection_node
             self.selections[selection_name] = selection_node
-            self.current_selection = selection_name
-        return self
-
-    def inquire(self, bookkeepers: dict):
-        self._compiled = False
-
-        for query_name, bookkeeper in bookkeepers.items():
-            self.queries[query_name] = {}
-            for selection_name in bookkeeper.booked_selections:
-                query_node = lazyquery(self, bookkeeper, self.selections[selection_name])
-                query_node.name = f"{query_name}_at_{selection_name}"
-                self.queries[query_name][selection_name] = query_node
-
-        return self
-
-    def run(self): 
-
-        self.instantiate()
-
-        for dataset_name, dataset_node in self.datasets.items():
-            dataset_node.instantiate()
-
-        for column_name, column_node in self.columns.items():
-            column_node.instantiate()
-
-        # current selection is the global dataflow
-        self.current_selection = self
-        for selection_name, selection_node in self.selections.items():
-            selection_node.instantiate()
             self.current_selection = selection_node
+        return self
 
-        results = {}
-        for query_name, booked_selections in self.queries.items():
-            results[query_name] = {}
-            for selection_name, query_node in booked_selections.items():
-                query_node.instantiate()
-                results[query_name][selection_name] = lazyresult(query_node).get()
+    def get(self, query_node):
+        query_node.df = self
+        query_node.instantiate()
+        return lazyresult(query_node)
 
-        self.queries.clear()
+    # def run(self): 
+
+    #     for dataset_name, dataset_node in self.datasets.items():
+    #         dataset_node.instantiate()
+
+    #     for column_name, column_node in self.columns.items():
+    #         column_node.instantiate()
+
+    #     # current selection is the global dataflow
+    #     self.current_selection = self
+    #     for selection_name, selection_node in self.selections.items():
+    #         selection_node.instantiate()
+    #         self.current_selection = selection_node
+
+    #     results = {}
+    #     for query_name, booked_selections in self.queries.items():
+    #         results[query_name] = {}
+    #         for selection_name, query_node in booked_selections.items():
+    #             query_node.instantiate()
+    #             results[query_name][selection_name] = lazyresult(query_node).get()
+
+    #     self.queries.clear()
         
-        return results
+    #     return results
 
         # queries
         # table = Table(expand=True)
