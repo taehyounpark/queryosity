@@ -52,5 +52,4 @@ class lazyquery(lazynode):
             fill_call += ')'
             cpp_fill_calls.append(fill_call)
         at_call = f'at({self.df.selections[self.booked_selection].cpp_identifier})'
-        print(f'{self.df.cpp_identifier}.{self.defn.cpp_get_call}.{".".join(cpp_fill_calls)}.{at_call}')
         return f'{self.df.cpp_identifier}.{self.defn.cpp_get_call}.{".".join(cpp_fill_calls)}.{at_call}'
