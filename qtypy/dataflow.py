@@ -4,10 +4,10 @@ from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-from .cpputils import cpp_instantiable
+from .cpp import cpp_binding
 from .query import query, result
 
-class dataflow(cpp_instantiable):
+class dataflow(cpp_binding):
     """
     qtypy layer for ``qty::dataflow``.
 

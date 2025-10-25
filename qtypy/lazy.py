@@ -1,6 +1,6 @@
-from .cpputils import cpp_instantiable
+from .cpp import cpp_binding
 
-class lazynode(cpp_instantiable):
+class lazy(cpp_binding):
     def __init__(self):
        super().__init__() 
        self.df = None

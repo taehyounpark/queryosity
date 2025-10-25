@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 
-from . import lazynode 
-from .cpputils import find_cpp_identifiers
+from . import lazy 
+from .cpp import find_cpp_identifiers
 
-class selection(lazynode):
+class selection(lazy):
 
     def __init__(self, expr: str):
         super().__init__()

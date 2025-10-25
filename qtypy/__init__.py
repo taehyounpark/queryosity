@@ -13,10 +13,10 @@ from typing import Any, List
 
 # Names you want to expose from the package (adjust as needed)
 __all__: List[str] = [
+    "analyze",
     "dataflow",
     "dataset",
-    "analyze",
-    "lazynode",
+    "lazy",
     "query",
     "column",
     "cpputils"

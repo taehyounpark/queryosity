@@ -1,6 +1,6 @@
-from .. import lazynode
+from .. import lazy
 
-class query(lazynode):
+class query(lazy):
 
     def __init__(self, definition, booked_selection):
         super().__init__()

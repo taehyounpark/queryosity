@@ -1,8 +1,8 @@
 import cppyy
 
-from .. import lazynode
+from .. import lazy
 
-class constant(lazynode):
+class constant(lazy):
     """
     Column representing a constant value.
 

@@ -1,10 +1,10 @@
 import cppyy
 
-from ..cpputils import cpp_instantiable
+from ..cpp import cpp_binding
 
 from functools import cached_property
 
-class definition(cpp_instantiable):
+class definition(cpp_binding):
     """
     Column defined by a one-line JIT-compiled C++ expression.
 

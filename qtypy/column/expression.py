@@ -1,11 +1,11 @@
 import cppyy
 
-from ..cpputils import find_cpp_identifiers
-from .. import lazynode
+from ..cpp import find_cpp_identifiers
+from .. import lazy
 
 from functools import cached_property
 
-class expression(lazynode):
+class expression(lazy):
     """
     Column defined by a one-line JIT-compiled C++ expression.
 

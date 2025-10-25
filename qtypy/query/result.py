@@ -1,9 +1,9 @@
 import cppyy
 import numpy as np
 
-from ..cpputils import cpp_instantiable
+from ..cpp import cpp_binding
 
-class result(cpp_instantiable):
+class result(cpp_binding):
     def __init__(self, query):
         super().__init__()
         self.query = query

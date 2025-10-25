@@ -1,6 +1,6 @@
-from . import lazynode 
+from . import lazy 
 
-class tree(lazynode):
+class tree(lazy):
     """
     qtypy layer for `qty::dataset::input<qty::ROOT::tree>`.
 
@@ -30,7 +30,7 @@ class tree(lazynode):
                 tree_name=tree_name_quoted
             )
 
-class column(lazynode):
+class column(lazy):
     """
     Read a column from a loaded dataset.
 
