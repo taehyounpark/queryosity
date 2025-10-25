@@ -1,16 +1,15 @@
 from abc import ABC, abstractmethod
 
 from . import lazynode 
-from .cpputils import parse_cpp_expression
+from .cpputils import find_cpp_identifiers
 
 class selection(lazynode):
 
     def __init__(self, expr: str):
         super().__init__()
-        self.cpp_typename = 'auto'
 
         self.expr = expr
-        self.args = parse_cpp_expression(expr)
+        self.args = find_cpp_identifiers(expr)
 
         self.preselection_name = None
 

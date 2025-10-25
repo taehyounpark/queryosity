@@ -1,6 +1,6 @@
 import cppyy
 
-from ..cpputils import parse_cpp_expression
+from ..cpputils import find_cpp_identifiers
 from .. import lazynode
 
 from functools import cached_property
@@ -18,7 +18,7 @@ class expression(lazynode):
     def __init__(self, expr: str):
         super().__init__()
         self.expr = expr
-        self.args = parse_cpp_expression(expr)
+        self.args = find_cpp_identifiers(expr)
 
     def __str__(self):
         return self.expr

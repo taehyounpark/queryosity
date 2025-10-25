@@ -5,7 +5,7 @@ from rich.live import Live
 from rich.table import Table
 
 from .cpputils import cpp_instantiable
-from .query import lazyquery, lazyresult
+from .query import query, result
 
 class dataflow(cpp_instantiable):
     """
@@ -145,38 +145,4 @@ class dataflow(cpp_instantiable):
     def get(self, query_node):
         query_node.df = self
         query_node.instantiate()
-        return lazyresult(query_node)
-
-    # def run(self): 
-
-    #     for dataset_name, dataset_node in self.datasets.items():
-    #         dataset_node.instantiate()
-
-    #     for column_name, column_node in self.columns.items():
-    #         column_node.instantiate()
-
-    #     # current selection is the global dataflow
-    #     self.current_selection = self
-    #     for selection_name, selection_node in self.selections.items():
-    #         selection_node.instantiate()
-    #         self.current_selection = selection_node
-
-    #     results = {}
-    #     for query_name, booked_selections in self.queries.items():
-    #         results[query_name] = {}
-    #         for selection_name, query_node in booked_selections.items():
-    #             query_node.instantiate()
-    #             results[query_name][selection_name] = lazyresult(query_node).get()
-
-    #     self.queries.clear()
-        
-    #     return results
-
-        # queries
-        # table = Table(expand=True)
-        # table.add_column("Selection")
-        # table.add_column("Query")
-        # table.add_column("Definition")
-        # with Live(table, auto_refresh=False, vertical_overflow="visible") as display:
-                    # table.add_row(f"{selection_name}", f"{query_name}", f"{query_node.bookkeeper}")
-                    # display.refresh()
+        return result(query_node)

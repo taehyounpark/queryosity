@@ -19,6 +19,7 @@ __all__: List[str] = [
     "lazynode",
     "query",
     "column",
+    "cpputils"
     # add other package-level exports here
 ]
 

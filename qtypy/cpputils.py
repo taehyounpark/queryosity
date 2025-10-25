@@ -1,12 +1,34 @@
-import ROOT, cppyy
+import cppyy
 
 from abc import ABC, abstractmethod
 from functools import cached_property
+from itertools import count
 
 import re
 import hashlib
 
-def cpp_name(name: str) -> str:
+from tree_sitter import Language, Parser, Query, QueryCursor
+import tree_sitter_cpp
+
+CPP_LANGUAGE = Language(tree_sitter_cpp.language())
+cpp_parser = Parser(CPP_LANGUAGE)
+
+def find_cpp_identifiers(expr_str) -> list:
+
+    expr_bytes = bytes(expr_str, 'utf8')
+    tree = cpp_parser.parse(expr_bytes)
+    root = tree.root_node
+    identifiers = []
+
+    def walk(node):
+        if node.type == "identifier":
+            identifiers.append(expr_bytes[node.start_byte:node.end_byte].decode())
+        for child in node.children:
+            walk(child)
+    walk(root)
+    return list(set([str(name) for name in identifiers]))
+
+def generate_cpp_name(name: str) -> str:
     """
     Convert a string to a valid C++ identifier, with a short hash suffix.
     Example:
@@ -18,31 +40,31 @@ def cpp_name(name: str) -> str:
     hash_digest = hashlib.md5(name_safe.encode()).hexdigest()[:6]
     return f"{name_safe}_{hash_digest}"
 
-_global_instance_count = 0
+_instance_counter = count()
 
 class cpp_instantiable(ABC):
     def __init__(self):
+        self._instance_index = next(_instance_counter)
         self._instantiated = False
-        # Use the global counter
-        global _global_instance_count
-        _global_instance_count += 1
-        self._instance_num = _global_instance_count  # Store instance number
 
-        self.cpp_typename = 'auto'
         self.cpp_prefix = '__qtypy__'
         self.name = None
 
-    @cached_property
-    def cpp_identifier(self):
-        identifier = f'{self.cpp_prefix}{self.name}_{self._instance_num}'
-        return identifier
+    @property
+    def cpp_typename(self) -> str:
+        return 'auto'
 
     @property
     @abstractmethod
     def cpp_initialization(self) -> str:
         pass
 
-    @property
+    @cached_property
+    def cpp_identifier(self) -> str:
+        identifier = f'{self.cpp_prefix}{self.name}_{self._instance_index}'
+        return identifier
+
+    @cached_property
     def cpp_instance(self):
         self.instantiate()
         return getattr(cppyy.gbl, self.cpp_identifier, None)
@@ -55,6 +77,3 @@ class cpp_instantiable(ABC):
                 init = self.cpp_initialization
             ))
         self._instantiated = True
-
-# class cpp_instance:
-#     pass

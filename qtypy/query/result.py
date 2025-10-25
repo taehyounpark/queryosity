@@ -1,14 +1,17 @@
 import cppyy
 import numpy as np
 
-from .. import lazynode
+from ..cpputils import cpp_instantiable
 
-class lazyresult(lazynode):
+class result(cpp_instantiable):
     def __init__(self, query):
         super().__init__()
         self.query = query
         self.name = f'result_{query.name}'
-        self.cpp_typename = f'{self.query.defn.cpp_result_type} const &'
+
+    @property
+    def cpp_typename(self):
+        return f'{self.query.defn.cpp_result_type} const &'
 
     @property
     def cpp_initialization(self):
