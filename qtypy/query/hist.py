@@ -1,7 +1,7 @@
 
 import numpy as np
 
-from . import definition
+from .definition import definition
 
 class hist(definition):
 

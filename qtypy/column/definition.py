@@ -27,7 +27,7 @@ class definition(cpp_binding):
     def instantiate(self, df):
         # only keep args that exist in df.columns
         column_args = [arg for arg in self.args if arg in df.columns]
-        lmbd_args = [f'{df.columns[arg].value_type} const& {arg}' for arg in column_args]
+        lmbd_args = [f'{df.columns[arg].cpp_value_type} const& {arg}' for arg in column_args]
         lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
         lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
 
@@ -38,4 +38,4 @@ class definition(cpp_binding):
             args=', '.join(lazy_args)
         ))
 
-        self.value_type = f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'
+        self.cpp_value_type = f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'

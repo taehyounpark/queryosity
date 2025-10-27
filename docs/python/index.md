@@ -1,4 +1,4 @@
-# Python
+# User guide (Python)
 
 ```{toctree}
 :hidden: false
@@ -7,7 +7,6 @@
 install
 guide
 ```
-
 
 ```{toctree}
 :hidden: false
@@ -21,26 +20,46 @@ api/selection
 api/query
 ```
 
-```{code-block}
-from qtypy import dataflow, dataset
-from qtypy.column import constant, expression, definition
-from qtypy.selection import filter, weight
-from qtypy.query import hist
+The Python interface is intentionally not a one-to-one mirror of the C++ backend. This design enables more idiomatic use of Python’s dynamic typing and flexibility, while maintaining a clear separation between jitted C++ expressions---which are always provided as `str`s---and native Python operations.
+
+
+::::{tab-set}
+:::{tab-item} Method chaining
+from qtypy import dataflow, dataset, column, filter
 
 df = dataflow(n_threads = 8)
+df.input(dataset.tree(file_paths=['data.root'], tree_name='events'))
 
-df << {'events' : dataset.tree(file_paths=['data.root'], tree_name='events')} 
-df | {'x': dataset.column('x', value_type='float')}
-   | {'sqrtx': expression('sqrt(x)')}
-
-df @ {'xpos': filter('x >= 0')}
-
-q = (
-    df >> {'h_sqrtx': hist('h', nx=100, xmin=0.0, xmax=1.0).fill('sqrtx') @ ['xpos']}
-).get()
-
-print(q['h_sqrtx'])
+df.compute(
+    {'x': dataset.column('x', value_type='float')},
+    {'sqrtx': column.expression('sqrt(x)')},
+    {'x_geq_0': filter('x >= 0')}
 )
 
-print(df.results['x_valid']['h_y'])
+sqrtx = df.output(column.to_numpy('sqrtx')).result()
+)
+
+q.result()
+:::
+
+:::{tab-item} Pipe operator
+```{code-block}
+from qtypy import dataflow, dataset, column, filter
+
+df = dataflow(n_threads = 8)
+df << dataset.tree(file_paths=['data.root'], tree_name='events')
+
+(
+df
+| {'x': dataset.column('x', value_type='float')}
+| {'sqrtx': column.expression('sqrt(x)')}
+| {'x_geq_0': filter('x >= 0')}
+)
+
+q = df >> column.to_numpy('sqrtx')
+q.result()
+)
+
+q.result()
 ```
+:::

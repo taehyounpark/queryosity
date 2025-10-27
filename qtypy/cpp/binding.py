@@ -15,7 +15,7 @@ class cpp_binding(ABC):
         self.name = None
 
     @property
-    def cpp_typename(self) -> str:
+    def cpp_type(self) -> str:
         return 'auto'
 
     @property
@@ -35,9 +35,9 @@ class cpp_binding(ABC):
 
     def instantiate(self):
         if not self._instantiated:
-            cppyy.cppdef('''{type} {id} = {init};'''.format(
-                type = self.cpp_typename,
+            self._instantiated = True
+            return cppyy.cppdef('''{type} {id} = {init};'''.format(
+                type = self.cpp_type,
                 id = self.cpp_identifier,
                 init = self.cpp_initialization
             ))
-        self._instantiated = True

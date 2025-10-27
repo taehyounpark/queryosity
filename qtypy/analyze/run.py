@@ -22,7 +22,7 @@ def run_analysis(args):
 
     # Set up dataflow & load dataset
     df = dataflow(multithreaded = args.multithread > 0, n_threads=args.multithread, n_rows = args.entries)
-    df << {args.tree : dataset.tree(file_paths=args.files, tree_name=args.tree)}
+    df << dataset.tree(file_paths=args.files, tree_name=args.tree)
 
     # load config files into flags
     flags = {}

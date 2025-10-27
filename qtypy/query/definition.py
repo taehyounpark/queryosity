@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from .query import query
+from ..node import query
 
 class definition(ABC):
 
@@ -19,19 +19,19 @@ class definition(ABC):
         return self.at(selection)
 
     @property
-    def cpp_result_call(self):
-        return 'result()'
-
-    @property
     def py_result_wrapper(self):
         return lambda x: x
-
-    @property
-    def cpp_result_type(self):
-        return 'auto'
 
     @property
     @abstractmethod
     def cpp_get_call(self):
         """C++ code string to call ``dataflow::get()``"""
         pass
+
+    @property
+    def cpp_result_type(self):
+        return 'auto'
+
+    @property
+    def cpp_result_call(self):
+        return 'result()'

@@ -1,12 +1,14 @@
 from ..cpp import cpp_binding
-from ..lazy import lazy
+from .lazy import lazy
 
 class query(lazy):
 
-    def __init__(self, definition, booked_selection):
+    def __init__(self, defn):
         super().__init__()
-        self.defn = definition
-        self.booked_selection = booked_selection
+        self.defn = defn
+
+    def contextualize(self, df):
+        self.df = df
 
     @property
     def cpp_initialization(self) -> str:
@@ -16,7 +18,7 @@ class query(lazy):
             fill_call += ', '.join([f'{self.df.columns[column_name].cpp_identifier}' for column_name in column_names])
             fill_call += ')'
             cpp_fill_calls.append(fill_call)
-        at_call = f'at({self.df.selections[self.booked_selection].cpp_identifier})'
+        at_call = f'at({self.df.current_selection.cpp_identifier})'
         return f'{self.df.cpp_identifier}.{self.defn.cpp_get_call}.{".".join(cpp_fill_calls)}.{at_call}'
 
 class result(cpp_binding):
@@ -26,7 +28,7 @@ class result(cpp_binding):
         self.name = f'result_{query.name}'
 
     @property
-    def cpp_typename(self):
+    def cpp_type(self):
         return f'{self.query.defn.cpp_result_type} const &'
 
     @property

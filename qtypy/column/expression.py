@@ -1,11 +1,9 @@
 import cppyy
 
 from ..cpp import find_cpp_identifiers
-from .. import lazy
+from ..node import column
 
-from functools import cached_property
-
-class expression(lazy):
+class expression(column):
     """
     Column defined by a one-line JIT-compiled C++ expression.
 
@@ -27,15 +25,17 @@ class expression(lazy):
     def cpp_initialization(self):
         # only keep args that exist in columns
         column_args = [arg for arg in self.args if arg in self.df.columns]
-        lmbd_args = [f'{self.df.columns[arg].value_type} const& {arg}' for arg in column_args]
+        lmbd_args = [f'{self.df.columns[arg].cpp_value_type} const & {arg}' for arg in column_args]
         lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
         lazy_args = [self.df.columns[arg].cpp_identifier for arg in column_args]
 
-        self.value_type = f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'
-
-        return """{df_id}.define(qty::column::expression({expr})).evaluate({args});""".format(
+        return """{df_id}.define(qty::column::expression({expr})).evaluate({args})""".format(
             cpp_id=self.cpp_identifier,
             df_id=self.df.cpp_identifier,
             expr=lmbd_defn,
             args=', '.join(lazy_args)
         )
+
+    @property
+    def cpp_value_type(self):
+        return f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'

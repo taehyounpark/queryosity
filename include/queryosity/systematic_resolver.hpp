@@ -1,8 +1,9 @@
 #pragma once
 
+#include <map>
 #include <set>
 #include <string>
-#include <type_traits>
+#include <functional>
 
 #include "systematic.hpp"
 
@@ -35,6 +36,30 @@ public:
 
   virtual bool has_variation(const std::string &var_name) const = 0;
   virtual std::set<std::string> get_variation_names() const = 0;
+
+  std::map<std::string, std::reference_wrapper<U>> variations();
+  std::map<std::string, std::reference_wrapper<U const>> variations() const;
+
 };
 
 } // namespace queryosity
+
+template <typename U>
+std::map<std::string, std::reference_wrapper<U>>
+queryosity::systematic::resolver<U>::variations() {
+    std::map<std::string, std::reference_wrapper<U>> out;
+    for (auto const& name : this->get_variation_names()) {
+        out.emplace(name, this->variation(name));
+    }
+    return out;
+}
+
+template <typename U>
+std::map<std::string, std::reference_wrapper<U const>>
+queryosity::systematic::resolver<U>::variations() const {
+    std::map<std::string, std::reference_wrapper<U const>> out;
+    for (auto const& name : this->get_variation_names()) {
+        out.emplace(name, this->variation(name));  // calls const variation(name) const
+    }
+    return out;
+}

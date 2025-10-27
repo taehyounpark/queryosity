@@ -3,15 +3,15 @@ from ..query import definition
 
 import numpy as np
 
-class series(definition):
+class to_numpy(definition):
 
     def __init__(self, column, dtype = 'double'):
         super().__init__()
         self.filled_columns = [[column]]
         self.dtype = dtype
 
-    def fill(self, *columns):
-        raise ValueError("series must be exactly one column")
+    def fill(self, *_):
+        raise ValueError("array takes exactly one column")
 
     def __str__(self):
         return self.filled_columns[0][0] + ' → series'

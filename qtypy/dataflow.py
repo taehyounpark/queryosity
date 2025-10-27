@@ -5,7 +5,7 @@ from rich.live import Live
 from rich.table import Table
 
 from .cpp import cpp_binding
-from .query import query, result
+from .node import query, result
 
 class dataflow(cpp_binding):
     """
@@ -31,10 +31,6 @@ class dataflow(cpp_binding):
         Mapping of column names to column definitions.
     selections : dict
         Mapping of selection names to selection objects.
-    queries : dict
-        Mapping of query names to query objects.
-    results : dict
-        Lazily evaluated results of queries. Computation occurs only upon property access.
 
     Notes
     -----
@@ -57,16 +53,11 @@ class dataflow(cpp_binding):
 
         self.name = "df"
 
-        self.datasets = {}
-        self.current_dataet = None
+        self.dataset = None
 
         self.columns = {}
         self.selections = {}
         self.current_selection = self
-
-        self.bookkeepers = {}
-        self.queries = {}
-        self.results = {}
 
         self.instantiate()
 
@@ -76,26 +67,21 @@ class dataflow(cpp_binding):
 
     def __lshift__(self, ds):
         """Pipeline operator for input dataset: df << {'events' : dataset.tree(...)}"""
-        return self.load(ds)
+        return self.input(ds)
 
     def __or__(self, columns: dict):
         """Pipeline operator for column definitions: df | {'col': column(...) << 'events' }"""
         return self.compute(columns)
 
-    def __matmul__(self, selections: dict):
-        """Pipeline operator for selections: df @ {'sel': filter(...) @ 'presel' }"""
-        return self.select(selections)
+    def __matmul__(self, selection: str):
+        return self.at(selection)
 
     def __rshift__(self, query):
-        """Pipeline operator for queries: df >> {'hist': hist(...) @ ['sel_a', 'sel_b']}"""
-        return self.get(query)
+        return self.output(query)
 
-    def load(self, datasets):
-        for ds_name, ds in datasets.items():
-            ds.df = self
-            ds.instantiate()
-            self.datasets[ds_name] = ds
-            self.current_dataset = ds
+    def input(self, ds):
+        ds.contextualize(self)
+        ds.instantiate()
         return self
 
     def compute(self, columns: dict):
@@ -120,29 +106,58 @@ class dataflow(cpp_binding):
             Compiled C++ implementation of
             ``qty::column::definition<Ret(Args...)>``.
 
+        - ``qtypy.selection.filter``  
+            Cut expression
+
+        - ``qtypy.selection.weight``  
+            Weight expression
+
         Returns
         -------
         self
             Enables method chaining.
         """
         for column_name, column_node in columns.items():
-            column_node.name = column_name
-            column_node.df = self
+            column_node.contextualize(self, column_name)
             column_node.instantiate()
-        self.columns.update(columns)
         return self
 
-    def select(self, selections: dict):
-        for selection_name, selection_node in selections.items():
-            selection_node.name = selection_name
-            selection_node.df = self
-            selection_node.instantiate()
-            # self.columns[selection_name] = selection_node
-            self.selections[selection_name] = selection_node
-            self.current_selection = selection_node
-        return self
+    def at(self, selection: str):
+        return dataflow_at_selection(self, selection)
 
-    def get(self, query_node):
-        query_node.df = self
+    def output(self, query_defn):
+        # issue new lazy<query> node everytime so existing definitions can be recycled later
+        query_node = query(query_defn)
+        query_node.contextualize(self)
         query_node.instantiate()
+        # return the (not yet instantiated) result node
         return result(query_node)
+
+class dataflow_at_selection:
+
+    def __init__(self, df, sel_name):
+        self.df = df
+        self.sel_name = sel_name
+
+    def dataflow_has_selection(self) -> bool:
+        return (self.sel_name in self.df.selections)
+
+    def compute(self, selections: dict):
+        if not self.dataflow_has_selection():
+            raise KeyError("selection not defined in dataflow (yet?)")
+        # start from specified selection
+        self.df.current_selection = self.df.selections[self.sel_name]
+        return self.df.compute(selections)
+
+    def output(self, query_defn):
+        if not self.dataflow_has_selection():
+            raise KeyError("selection not defined in dataflow (yet?)")
+        # book at specified selection
+        self.df.current_selection = self.df.selections[self.sel_name]  
+        return self.df.output(query_defn)
+
+    def __rshift__(self, query):
+        return self.output(query)
+
+    def __or__(self, selection: str):
+        return self.compute(selection)
