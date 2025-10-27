@@ -1,12 +1,12 @@
-# Welcome to Queryosity
+# Welcome to Queryosity's documentation
 
 :::{card} 
 Queryosity is a row-wise data analysis library for (semi-)structured data.
 
-- Dataflow interface.
-- Arbitrary data types.
-- Lazy, multithreaded actions.
-- Sensitivity analysis.
+- Lazy dataflow interface.
+- Multithreaded processing.
+- Support for arbitrary input/output data.
+- Automatic propagation of systematic variations.
 
 ![Version](https://img.shields.io/badge/Version-0.9.2-blue.svg)
 ![C++ Standard](https://img.shields.io/badge/C++-17-blue.svg)
@@ -20,9 +20,9 @@ Queryosity is a row-wise data analysis library for (semi-)structured data.
 :maxdepth: 1
 
 guide/index
+python/index
 examples/index
 reference/index
-python/index
 ```
 
 ## Getting in touch

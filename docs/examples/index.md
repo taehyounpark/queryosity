@@ -2,6 +2,7 @@
 
 ```{toctree}
 :maxdepth: 1
+:caption: C++
 :hidden:
 
 hello.md
@@ -9,6 +10,8 @@ iris.md
 hww.md
 xaod.md
 ```
+
+## Examples written in C++
 
 ::::{grid} 2
 :gutter: 2

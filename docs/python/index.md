@@ -1,4 +1,4 @@
-# User guide (Python)
+# (Python)
 
 ```{toctree}
 :hidden: false
@@ -25,25 +25,25 @@ The Python interface is intentionally not a one-to-one mirror of the C++ backend
 
 ::::{tab-set}
 :::{tab-item} Method chaining
+
+```{code-block} python
 from qtypy import dataflow, dataset, column, filter
 
 df = dataflow(n_threads = 8)
 df.input(dataset.tree(file_paths=['data.root'], tree_name='events'))
 
 df.compute(
-    {'x': dataset.column('x', value_type='float')},
+    {'x': dataset.column('x', dtype='float')},
     {'sqrtx': column.expression('sqrt(x)')},
     {'x_geq_0': filter('x >= 0')}
 )
 
 sqrtx = df.output(column.to_numpy('sqrtx')).result()
-)
-
-q.result()
+```
 :::
 
 :::{tab-item} Pipe operator
-```{code-block}
+```{code-block} python
 from qtypy import dataflow, dataset, column, filter
 
 df = dataflow(n_threads = 8)
@@ -51,15 +51,12 @@ df << dataset.tree(file_paths=['data.root'], tree_name='events')
 
 (
 df
-| {'x': dataset.column('x', value_type='float')}
+| {'x': dataset.column('x', dtype='float')}
 | {'sqrtx': column.expression('sqrt(x)')}
 | {'x_geq_0': filter('x >= 0')}
 )
 
 q = df >> column.to_numpy('sqrtx')
-q.result()
-)
-
-q.result()
+sqrtx = q.result()
 ```
 :::

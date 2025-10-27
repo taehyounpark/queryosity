@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'queryosity'
+project = 'Queryosity'
 copyright = '2024, Tae Hyoun Park'
 author = 'Tae Hyoun Park'
 
@@ -71,7 +71,7 @@ highlight_language = 'c++'
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_title = "queryosity"
+html_title = "Queryosity"
 html_theme = "pydata_sphinx_theme"
 html_static_path = ['_static']
 html_context = {

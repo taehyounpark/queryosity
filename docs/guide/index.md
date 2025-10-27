@@ -1,4 +1,4 @@
-# User guide
+# User guide (C++) 
 
 ```{toctree}
 :maxdepth: 2
