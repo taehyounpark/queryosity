@@ -46,13 +46,13 @@
                 bool>::type = true>                                            \
   auto operator op_symbol(Arg const &arg)                                      \
       const->queryosity::lazy<queryosity::column::valued<                      \
-          decltype(std::declval<column::value_t<V>>() op_symbol std::declval<  \
-                   column::value_t<typename Arg::action_type>>())>> {          \
+          decltype(std::declval<column::value_t<V>>() op_symbol                \
+                   std::declval<column::value_t<typename Arg::action_type>>())>> { \
     return this->m_df                                                          \
         ->define(queryosity::column::expression(                               \
-            [](column::value_t<V> const &me,                                   \
-               column::value_t<typename Arg::action_type> const &you) {        \
-              return me op_symbol you;                                         \
+            [](queryosity::column::observable<column::value_t<V>> me,   \
+               queryosity::column::observable<column::value_t<typename Arg::action_type>> you) { \
+              return me.value() op_symbol you.value();                         \
             }))                                                                \
         .evaluate(*this, arg);                                                 \
   }
@@ -78,7 +78,9 @@
   auto operator op_symbol() const {                                            \
     return this->m_df                                                          \
         ->define(queryosity::column::expression(                               \
-            [](column::value_t<V> const &me) { return (op_symbol me); }))      \
+            [](queryosity::column::observable<column::value_t<V>> me) { \
+              return (op_symbol me.value());                                   \
+            }))                                                                \
         .evaluate(*this);                                                      \
   }
 
@@ -109,9 +111,9 @@
   auto operator[](Arg const &arg) const {                                      \
     return this->m_df                                                          \
         ->define(queryosity::column::expression(                               \
-            [](column::value_t<V> me,                                          \
-               column::value_t<typename Arg::action_type> index) {             \
-              return me[index];                                                \
+            [](queryosity::column::observable<column::value_t<V>> me,   \
+               queryosity::column::observable<column::value_t<typename Arg::action_type>> index) { \
+              return me.value()[index.value()];                                \
             }))                                                                \
         .evaluate(*this, arg);                                                 \
   }

@@ -117,6 +117,9 @@ protected:
 template <typename Val> class observable {
 
 public:
+  using value_type = typename view<Val>::value_type;
+
+public:
   /**
    * @brief Constructor out of a variable.
    */
@@ -234,10 +237,13 @@ struct deduce_equation {
     using type = column::constant<T>;
 };
 
+template <typename T>
+using value_t = std::decay_t<decltype(std::declval<T>().value())>;
+
 // targeted specialization for std::functions
-template <typename Ret, typename... Args>
-struct deduce_equation<std::function<Ret(Args...)>> {
-  using type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
+template <typename Ret, typename... Obs>
+struct deduce_equation<std::function<Ret(Obs...)>> {
+  using type = column::equation<std::decay_t<Ret>(column::value_t<Obs>...)>;
 };
 
 template <typename Fn>
@@ -245,9 +251,6 @@ using equation_t = typename deduce_equation<
     typename column::expression<Fn>::function_type>::type;
 
 template <typename T> using evaluated_t = typename T::evaluated_type;
-
-template <typename T>
-using value_t = std::decay_t<decltype(std::declval<T>().value())>;
 
 } // namespace column
 

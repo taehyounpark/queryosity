@@ -14,7 +14,7 @@ class equation<Out(Ins...)> : public definition<Out(Ins...)> {
 public:
   using vartuple_type = typename definition<Out(Ins...)>::vartuple_type;
   using function_type =
-      std::function<std::decay_t<Out>(std::decay_t<Ins> const &...)>;
+      std::function<std::decay_t<Out>(observable<std::decay_t<Ins>>...)>;
 
 public:
   template <typename Fn> equation(Fn&& fn);
@@ -43,7 +43,7 @@ queryosity::column::equation<Out(Ins...)>::equation(Fn&& fn) : m_evaluate(std::f
 template <typename Out, typename... Ins>
 Out queryosity::column::equation<Out(Ins...)>::evaluate(
     observable<Ins>... args) const {
-  return this->m_evaluate(args.value()...);
+  return this->m_evaluate(args...);
 }
 
 template <typename Out, typename... Ins>

@@ -74,8 +74,8 @@ TEST_CASE("propagation of systematic variations")
     auto two = df.define(column::constant<unsigned int>(2));
     auto one_or_two = df.vary(column::nominal(one), {{"two", two}});
 
-    auto two_or_two = df.vary(column::expression([](unsigned long long a) { return a*2; }),
-                               {{"two", [](long long a) { return a; }}})(one_or_two);
+    auto two_or_two = df.vary(column::expression([](column::observable<unsigned long long> a) { return a.value()*2; }),
+                               {{"two", [](column::observable<unsigned long long> a) { return a.value(); }}})(one_or_two);
 
     auto all = df.filter(column::constant(true));
     auto no_or_yes = df.get(column::series(one_or_two == two_or_two)).at(all);

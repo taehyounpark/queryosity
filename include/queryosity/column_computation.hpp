@@ -32,9 +32,9 @@ public:
   auto define(Args const &...vars) const
       -> std::unique_ptr<evaluator<Def>>;
 
-  template <typename Ret, typename... Args>
-  auto equate(std::function<Ret(Args...)> fn) const -> std::unique_ptr<
-      evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>;
+  template <typename Ret, typename... Obs>
+  auto equate(std::function<Ret(Obs...)> fn) const -> std::unique_ptr<
+      evaluator<equation<std::decay_t<Ret>(value_t<Obs>...)>>>;
 
   template <typename Def, typename... Cols>
   auto evaluate(evaluator<Def> const&calc, Cols const &...cols) -> Def *;
@@ -85,12 +85,12 @@ auto queryosity::column::computation::define(Args const &...args) const
   return std::make_unique<evaluator<Def>>(args...);
 }
 
-template <typename Ret, typename... Args>
-auto queryosity::column::computation::equate(std::function<Ret(Args...)> fn)
+template <typename Ret, typename... Obs>
+auto queryosity::column::computation::equate(std::function<Ret(Obs...)> fn)
     const -> std::unique_ptr<
-      evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>> {
+      evaluator<equation<std::decay_t<Ret>(value_t<Obs>...)>>> {
   return std::make_unique<
-      evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>(
+      evaluator<equation<std::decay_t<Ret>(value_t<Obs>...)>>>(
       fn);
 }
 

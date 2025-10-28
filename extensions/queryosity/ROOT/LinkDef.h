@@ -30,7 +30,7 @@
 
 #pragma link C++ class queryosity::column::observable<float>+;
 #pragma link C++ class queryosity::column::constant<float>+;
-#pragma link C++ class queryosity::column::expression<float(float)>+;
+#pragma link C++ class queryosity::column::expression<float(queryosity::observable<float>)>+;
 #pragma link C++ class queryosity::column::nominal<queryosity::column::fixed<float>>+;
 #pragma link C++ class queryosity::column::variation<float>+;
 #pragma link C++ class queryosity::ROOT::tree+;

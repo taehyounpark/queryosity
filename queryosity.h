@@ -437,8 +437,8 @@ template <typename T> constexpr bool is_evaluatable_v = is_evaluator<T>::value;
 template <typename Fn> struct deduce_equation;
 
 template <typename Ret, typename... Args>
-struct deduce_equation<std::function<Ret(Args...)>> {
-  using type = column::equation<std::decay_t<Ret>(std::decay_t<Args>...)>;
+struct deduce_equation<std::function<Ret(observable<Args>...)>> {
+  using type = column::equation<std::decay_t<Ret>(observable<std::decay_t<Args>>...)>;
 };
 
 template <typename Fn>

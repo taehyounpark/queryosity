@@ -30,8 +30,8 @@ int main() {
   auto sel =
       df.weight(w)
           .filter(column::expression(
-              [](std::vector<double> const &v) { return v.size(); }))(v)
-          .filter(column::expression([](double x) { return x > 100.0; }))(x);
+              [](column::observable<std::vector<double>> v) { return v->size(); }))(v)
+          .filter(column::expression([](column::observable<double> x) { return x.value() > 100.0; }))(x);
 
   auto h_x0_w = df.get(query::output<hist1d>(linbin(20, 0.0, 200.0)))
                     .fill(v0)

@@ -95,20 +95,20 @@ int main() {
   auto mu_type = lep_type[mu_sel];
 
   // vary the energy scale by +/-1(2)% for electrons(muons)
-  auto el_scale = df.vary(column::expression([](VecF const &E) { return E; }),
-                          {{"el_up", [](VecF const &E) { return E * 1.01; }},
-                           {"el_dn", [](VecF const &E) { return E * 0.99; }}});
-  auto mu_scale = df.vary(column::expression([](VecF const &E) { return E; }),
-                          {{"mu_up", [](VecF const &E) { return E * 1.02; }},
-                           {"mu_dn", [](VecF const &E) { return E * 0.98; }}});
+  auto el_scale = df.vary(column::expression([](column::observable<VecF> E) { return E.value(); }),
+                          {{"el_up", [](column::observable<VecF> E) { return E.value() * 1.01; }},
+                           {"el_dn", [](column::observable<VecF> E) { return E.value() * 0.99; }}});
+  auto mu_scale = df.vary(column::expression([](column::observable<VecF> E) { return E.value(); }),
+                          {{"mu_up", [](column::observable<VecF> E) { return E.value() * 1.02; }},
+                           {"mu_dn", [](column::observable<VecF> E) { return E.value() * 0.98; }}});
   auto el_pT = el_scale(el_pT_nom);
   auto el_E = el_scale(el_E_nom);
   auto mu_pT = mu_scale(mu_pT_nom);
   auto mu_E = mu_scale(mu_E_nom);
 
   // re-concatenate into el+mu arrays
-  auto concat = [](VecF const &v1, VecF const &v2) {
-    return ROOT::VecOps::Concatenate(v1, v2);
+  auto concat = [](column::observable<VecF> v1, column::observable<VecF> v2) {
+    return ROOT::VecOps::Concatenate(*v1, *v2);
   };
   auto el_mu_pT = df.define(column::expression(concat))(el_pT, mu_pT);
   auto el_mu_eta = df.define(column::expression(concat))(el_eta, mu_eta);
@@ -118,11 +118,11 @@ int main() {
   auto el_mu_type = df.define(column::expression(concat))(el_type, mu_type);
 
   // take sorted lepton arrays
-  auto take = df.define(column::expression([](VecF const &v, VecUI const &is) {
-    return ROOT::VecOps::Take(v, is);
+  auto take = df.define(column::expression([](column::observable<VecF> v, column::observable<VecUI> is) {
+    return ROOT::VecOps::Take(*v, *is);
   }));
   auto lep_indices = df.define(column::expression(
-      [](VecF const &v) { return ROOT::VecOps::Argsort(v); }))(el_mu_pT);
+      [](column::observable<VecF> v) { return ROOT::VecOps::Argsort(*v); }))(el_mu_pT);
   auto lep_pT_syst = take(el_mu_pT, lep_indices);
   auto lep_eta_syst = take(el_mu_eta, lep_indices);
   auto lep_phi_syst = take(el_mu_phi, lep_indices);
@@ -151,39 +151,37 @@ int main() {
   // compute dilepton invariant mass & higgs transverse momentum
   auto llp4 = l1p4 + l2p4;
   auto mll =
-      df.define(column::expression([](const P4 &p4) { return p4.M(); }))(llp4);
+      df.define(column::expression([](column::observable<P4> p4) { return p4->M(); }))(llp4);
   auto higgs_pT =
-      df.define(column::expression([](const P4 &p4, float q, float q_phi) {
-        TVector2 p2;
-        p2.SetMagPhi(p4.Pt(), p4.Phi());
-        TVector2 q2;
-        q2.SetMagPhi(q, q_phi);
+      df.define(column::expression([](column::observable<P4> p4, column::observable<float> q, column::observable<float> q_phi) {
+        TVector2 p2; p2.SetMagPhi(p4->Pt(), p4->Phi());
+        TVector2 q2; q2.SetMagPhi(q.value(), q_phi.value());
         return (p2 + q2).Mod();
       }))(llp4, met, met_phi);
 
   // compute number of leptons
   auto nlep_req = df.define(column::constant<unsigned int>(2));
   auto nlep_sel = df.define(column::expression(
-      [](VecF const &lep) { return lep.size(); }))(lep_pT_sel);
+      [](column::observable<VecF> lep) { return lep->size(); }))(lep_pT_sel);
 
   // apply MC event weight * electron & muon scale factors
   auto weighted = df.weight(mc_weight * el_SF * mu_SF);
 
   // require 2 opoosite-signed leptons
   auto cut_2l = weighted.filter(nlep_sel == nlep_req);
-  auto cut_2los = cut_2l.filter(column::expression([](const VecF &lep_charge) {
-    return lep_charge[0] + lep_charge[1] == 0;
+  auto cut_2los = cut_2l.filter(column::expression([](column::observable<VecF> lep_charge) {
+    return lep_charge.value()[0] + lep_charge.value()[1] == 0;
   }))(lep_Q_sel);
 
   // branch out into differet/same-flavour channels
-  auto cut_df = cut_2los.filter(column::expression([](const VecI &lep_type) {
-    return lep_type[0] + lep_type[1] == 24;
+  auto cut_df = cut_2los.filter(column::expression([](column::observable<VecI> lep_type) {
+    return lep_type.value()[0] + lep_type.value()[1] == 24;
   }))(lep_type_sel);
-  auto cut_ee = cut_2los.filter(column::expression([](const VecI &lep_type) {
-    return (lep_type[0] + lep_type[1] == 22);
+  auto cut_ee = cut_2los.filter(column::expression([](column::observable<VecI> lep_type) {
+    return (lep_type.value()[0] + lep_type.value()[1] == 22);
   }))(lep_type_sel);
-  auto cut_mm = cut_2los.filter(column::expression([](const VecI &lep_type) {
-    return (lep_type[0] + lep_type[1] == 26);
+  auto cut_mm = cut_2los.filter(column::expression([](column::observable<VecI> lep_type) {
+    return (lep_type.value()[0] + lep_type.value()[1] == 26);
   }))(lep_type_sel);
 
   // apply (different) cuts for each channel

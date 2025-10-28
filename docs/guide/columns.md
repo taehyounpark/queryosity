@@ -53,26 +53,31 @@ two = three - one;
 
 ## Custom expressions
 
-Any C++ Callable object (function, functor, lambda, etc.) can be used to evaluate a column. Input columns to be used as arguments to the function should be provided separately.
+User must provie a C++ callable (function, labmda, etc.) with `column::observable<T>` arguments, for example: 
 
 ```cpp
 auto s_length = df.define(
-    column::expression([](const std::string &txt) { return txt.length(); }))(s);
+    column::expression([](column::observable<std::string> txt) { return txt.length(); }))(s);
 ```
+
 :::{tip}
-Pass large values by `const &` to avoid expensive copies.
+There are two important reasons behind the `column::observable<T>` requirement:
+
+- Enforce that the user only has access to the value as a read-only reference (`const &`).
+- The actual value of the argument is not actually computed until `.value()` is explicitly called!
+
+The second point is especially important when e.g. there are expensive computation operations that the user may wish to defer on a case-by-case basis.
+As still guaranteed across the global computation graph, any values previously computed are accessed without copying by virtue of the first point.
 :::
 
 ## Custom definitions
 
-A column can also be computed through a custom column definition, which enables full control over its
-
-- Customization: user-defined constructor arguments and member variables/functions.
-- Optimization: the computation of each input column is deferred until its value is invoked.
+A column can also be computed through a custom column definition, which mainly enables full control over its constructor arguments.
+The user is free to implement any member variables and/or methods to the class of course, however their usage is primarily limited to the class' behviour during the entry loop since the user will not have direct access to the class instances, rather their lazy nodes.
 
 :::{admonition} Thread-safety requirements
 :class: caution
-- Each instance of a custom definition remain in a thread-safe state.
+- Each instance of a custom definition operate in a thread-safe manner.
 - Its constructor arguments must be {{CopyConstructible}}.
 :::
 
@@ -101,15 +106,15 @@ using h1d = qty::boost::histogram::histogram<double>;
 using linax = qty::boost::histogram::axis::regular;
 
 using ull_t = unsigned long long;
-auto factorial(ull_t n) {
+auto factorial(column::observable<ull_t> n) {
   ull_t result = 1;
-  while (n > 1)
-    result *= n--;
+  auto n_factorial = n.value();
+  while (n_factorial > 1)
+    result *= n_factorial--;
   return result;
 }
-
-auto stirling = [](ull_t n) {
-  return std::round(std::sqrt(2 * M_PI * n) * std::pow(n / std::exp(1), n));
+auto stirling = [](column::observable<ull_t> n) {
+  return std::round(std::sqrt(2 * M_PI * n.value()) * std::pow(n.value() / std::exp(1), n.value()));
 };
 
 class Factorial : public column::definition<double(ull_t, double, ull_t)> {
@@ -136,21 +141,11 @@ int main() {
 
   auto n_f_fast = df.define(column::expression(stirling))(n);
   auto n_f_full = df.define(column::expression(factorial))(n);
-
-  ull_t n_threshold = 10;
-  auto n_f_slow = df.define(
-      column::expression([n_threshold](ull_t n, double fast, ull_t slow) -> double {
-        return n >= std::min<ull_t>(n_threshold,20) ? fast : slow;
-      }))(n, n_f_fast, n_f_full);
-  // time elapsed = t(n) + t(fast) + t(slow)
-  // :(
-
   auto n_f_best =
       df.define(column::definition<Factorial>(/*20*/))(n, n_f_fast, n_f_full);
-  // time elapsed = t(n) + { t(n_fast) if n >= 10, t(n_slow) if n < 10 }
-  // :)
 
   // advanced: access per-thread instance
+  ull_t n_threshold = 10;
   dataflow::node::invoke([n_threshold](Factorial *n_f) { n_f->adjust_threshold(n_threshold); },
                          n_f_best);
 }

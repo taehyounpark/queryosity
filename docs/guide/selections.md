@@ -52,7 +52,7 @@ a cut simply passes through the weight decision of its previous selection (if on
 auto w = ds.read(dataset::column<double>("weight"));
 
 auto sel = all.weight(w).filter(
-    column::expression([](double w) { return (w >= 0;); }))(w);
+    column::expression([](column::observable<double> w) { return (w.value() >= 0;); }))(w);
 // cut    = (true) && (true) && (w>=0);
 // weight = (1.0)   *    (w)  *  (1.0);
 ```
