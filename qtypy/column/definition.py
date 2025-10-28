@@ -23,18 +23,16 @@ class definition(cpp_binding):
 
     def __call__(self, *args):
         self.args = args
+        return self
 
     def instantiate(self, df):
         # only keep args that exist in df.columns
         column_args = [arg for arg in self.args if arg in df.columns]
-        lmbd_args = [f'{df.columns[arg].cpp_value_type} const& {arg}' for arg in column_args]
-        lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
         lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
 
-        cppyy.cppdef("""auto {cpp_id} = {df_id}.define(qty::column::expression({expr})).evaluate({args});""".format(
+        cppyy.cppdef("""auto {cpp_id} = {df_id}.define(qty::column::definition<{defn}>()).evaluate({args});""".format(
             cpp_id=self.cpp_identifier,
             df_id=df.cpp_identifier,
-            expr=lmbd_defn,
             args=', '.join(lazy_args)
         ))
 

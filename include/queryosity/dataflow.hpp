@@ -317,12 +317,6 @@ public:
   template <typename Val>
   auto _assign(Val const &val) -> lazy<column::valued<Val>>;
 
-  template <typename Col>
-  auto _cut(lazy<Col> const &column) -> lazy<selection::node>;
-
-  template <typename Lzy>
-  auto _cut(varied<Lzy> const &column) -> varied<lazy<selection::node>>;
-
   template <typename Def>
   auto
   _define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
@@ -775,17 +769,6 @@ auto queryosity::dataflow::_assign(Val const &val)
       m_processor.get_slots());
   auto lzy = lazy<column::valued<Val>>(*this, act);
   return lzy;
-}
-
-template <typename Col>
-auto queryosity::dataflow::_cut(lazy<Col> const &col) -> lazy<selection::node> {
-  return this->filter(col);
-}
-
-template <typename Lzy>
-auto queryosity::dataflow::_cut(varied<Lzy> const &col)
-    -> varied<lazy<selection::node>> {
-  return this->filter(col);
 }
 
 template <typename To, typename Col>

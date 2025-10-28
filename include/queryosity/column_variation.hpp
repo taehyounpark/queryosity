@@ -19,6 +19,9 @@ public:
   variation(lazy<Col> const& var);
   ~variation() = default;
 
+  variation(variation const& other) = default;        // copy constructor
+  variation& operator=(variation const& other) = default; // copy assignment
+
   auto get() const -> lazy<valued<Val>> const &;
 
 protected:

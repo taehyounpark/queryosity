@@ -28,8 +28,11 @@
 #pragma link C++ class queryosity::query::experiment+;
 #pragma link C++ class queryosity::dataflow+;
 
+#pragma link C++ class queryosity::column::observable<float>+;
 #pragma link C++ class queryosity::column::constant<float>+;
 #pragma link C++ class queryosity::column::expression<float(float)>+;
+#pragma link C++ class queryosity::column::nominal<queryosity::column::fixed<float>>+;
+#pragma link C++ class queryosity::column::variation<float>+;
 #pragma link C++ class queryosity::ROOT::tree+;
 #pragma link C++ class queryosity::ROOT::hist<1,float>+;
 #ifdef BOOTSTRAP_HISTOGRAM
