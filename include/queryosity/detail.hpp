@@ -176,18 +176,50 @@ namespace queryosity {
 template <typename T> class lazy;
 template <typename T> class todo;
 
-template <typename U>
-static constexpr std::true_type check_lazy(lazy<U> const &);
-static constexpr std::false_type check_lazy(...) { return std::false_type{}; }
-template <typename U>
-static constexpr std::true_type check_todo(todo<U> const &);
-static constexpr std::false_type check_todo(...) { return std::false_type{}; }
+template <typename V, typename = void>
+struct is_nominal_impl : std::false_type {};
 
 template <typename V>
-static constexpr bool is_nominal_v =
-    (decltype(check_lazy(std::declval<V>()))::value ||
-     decltype(check_todo(std::declval<V>()))::value);
-template <typename V> static constexpr bool is_varied_v = !is_nominal_v<V>;
+struct is_nominal_impl<
+    V,
+    std::void_t<
+        decltype(std::declval<std::decay_t<V>&>().nominal())
+    >
+>
+  : std::bool_constant<
+        std::is_same_v<
+            decltype(std::declval<std::decay_t<V>&>().nominal()),
+            std::decay_t<V>&
+        >
+    >
+{};
+
+// const case
+template <typename V, typename = void>
+struct is_nominal_const_impl : std::false_type {};
+
+template <typename V>
+struct is_nominal_const_impl<
+    V,
+    std::void_t<
+        decltype(std::declval<std::decay_t<V> const&>().nominal())
+    >
+>
+  : std::bool_constant<
+        std::is_same_v<
+            decltype(std::declval<std::decay_t<V> const&>().nominal()),
+            std::decay_t<V> const&
+        >
+    >
+{};
+
+template <typename V>
+inline constexpr bool is_nominal_v =
+    is_nominal_impl<V>::value ||
+    is_nominal_const_impl<V>::value;
+
+template <typename V>
+inline constexpr bool is_varied_v = !is_nominal_v<V>;
 
 template <typename... Args>
 static constexpr bool has_no_variation_v = (is_nominal_v<Args> && ...);

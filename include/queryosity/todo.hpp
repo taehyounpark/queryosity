@@ -197,9 +197,9 @@ public:
       typename... Nodes, typename V = Helper,
       std::enable_if_t<queryosity::column::is_evaluatable_v<V>, bool> = false>
   auto evaluate(Nodes &&...columns) const
-      -> decltype(std::declval<todo<V>>()._evaluate(
+      -> decltype(std::declval<todo<V>>().template _evaluate<std::decay_t<Nodes>...>(
           std::forward<Nodes>(columns)...)) {
-    return this->_evaluate(std::forward<Nodes>(columns)...);
+    return this->template _evaluate<std::decay_t<Nodes>...>(std::forward<Nodes>(columns)...);
   }
 
   /**
@@ -211,9 +211,9 @@ public:
       typename... Nodes, typename V = Helper,
       std::enable_if_t<queryosity::selection::is_applicable_v<V>, bool> = false>
   auto apply(Nodes &&...columns) const
-      -> decltype(std::declval<todo<V>>().template _apply<Nodes...>(
+      -> decltype(std::declval<todo<V>>().template _apply<std::decay_t<Nodes>...>(
           std::forward<Nodes>(columns)...)) {
-    return this->template _apply<Nodes...>(std::forward<Nodes>(columns)...);
+    return this->template _apply<std::decay_t<Nodes>...>(std::forward<Nodes>(columns)...);
   }
 
   /**
@@ -224,8 +224,8 @@ public:
   template <typename... Nodes, typename V = Helper,
             std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>>, bool> = false>
   auto fill(Nodes &&...columns) const
-      -> decltype(std::declval<todo<V>>()._fill(std::declval<Nodes>()...)) {
-    return this->_fill(std::forward<Nodes>(columns)...);
+      -> decltype(std::declval<todo<V>>().template _fill<std::decay_t<Nodes>...>(std::declval<Nodes>()...)) {
+    return this->template _fill<std::decay_t<Nodes>...>(std::forward<Nodes>(columns)...);
   }
 
   /**
