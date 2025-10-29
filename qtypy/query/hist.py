@@ -27,10 +27,17 @@ class hist(definition):
             self.xmin = xmin
             self.xmax = xmax
         else:
-            self.xbins = f"std::vector<{self.dtype}>({{{', '.join([str(edge) for edge in xbins])}}})"
-            self.nx = len(xbins)-1
-            self.xmin = xbins[0]
-            self.xmax = xbins[-1]
+            if dtype == 'std::string':
+                bin_items = ', '.join(f'"{b}"' for b in xbins)
+                self.xbins = f"std::vector<{self.dtype}>{{{ {bin_items} }}}"
+                self.nx = len(xbins)-1
+                self.xmin = xbins[0]
+                self.xmax = xbins[-1]
+            else:
+                self.xbins = f"std::vector<{self.dtype}>({{{', '.join([str(edge) for edge in xbins])}}})"
+                self.nx = len(xbins)-1
+                self.xmin = xbins[0]
+                self.xmax = xbins[-1]
 
         if all([arg is None for arg in (ybins, ny, ymin, ymax)]):
             self.ybins = None
@@ -39,11 +46,18 @@ class hist(definition):
             self.ny = ny
             self.ymin = ymin
             self.ymax = ymax
-        elif all([arg is not None for arg in (ny, ymin, ymax)]):
-            self.ybins = f"std::vector<{self.dtype}>({{{', '.join([str(edge) for edge in ybins])}}})"
-            self.ny = len(ybins)-1
-            self.ymin = ybins[0]
-            self.ymax = ybins[-1]
+        elif all([arg is None for arg in (ny, ymin, ymax)]):
+            if dtype == 'std::string':
+                bin_items = ', '.join(f'"{b}"' for b in ybins)
+                self.ybins = f"std::vector<{self.dtype}>{{{ {bin_items} }}}"
+                self.ny = len(ybins)-1
+                self.ymin = ybins[0]
+                self.ymax = ybins[-1]
+            else:
+                self.ybins = f"std::vector<{self.dtype}>({{{', '.join([str(edge) for edge in ybins])}}})"
+                self.ny = len(ybins)-1
+                self.ymin = ybins[0]
+                self.ymax = ybins[-1]
         else:
             raise ValueError("invalid y-axis configuration")
 
@@ -54,7 +68,7 @@ class hist(definition):
             self.nz = nz
             self.zmin = zmin
             self.zmax = zmax
-        elif all([arg is not None for arg in (nz, zmin, zmax)]):
+        elif all([arg is None for arg in (nz, zmin, zmax)]):
             self.zbins = f"std::vector<{self.dtype}>({{{', '.join([str(edge) for edge in zbins])}}})"
             self.nz = len(zbins)-1
             self.zmin = zbins[0]
