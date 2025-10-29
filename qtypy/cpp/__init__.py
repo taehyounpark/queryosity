@@ -1,2 +1,2 @@
 from .binding import cpp_binding
-from .utils import find_cpp_identifiers
+from .utils import find_cpp_identifiers_and_replace_with_values

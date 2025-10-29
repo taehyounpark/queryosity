@@ -9,9 +9,9 @@
 
 #ifdef __CLING__
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+// #pragma link off all globals;
+// #pragma link off all classes;
+// #pragma link off all functions;
 
 #pragma link C++ nestedclasses;
 #pragma link C++ nestedtypedefs;
@@ -30,7 +30,6 @@
 
 #pragma link C++ class queryosity::column::observable<float>+;
 #pragma link C++ class queryosity::column::constant<float>+;
-#pragma link C++ class queryosity::column::expression<float(queryosity::observable<float>)>+;
 #pragma link C++ class queryosity::column::nominal<queryosity::column::fixed<float>>+;
 #pragma link C++ class queryosity::column::variation<float>+;
 #pragma link C++ class queryosity::ROOT::tree+;

@@ -33,7 +33,7 @@ endif()
 
 # ROOT
 if (QUERYOSITY_ROOT)
-  find_package(ROOT 6.36.00 QUIET COMPONENTS Core Physics Hist RIO Tree ROOTDataFrame ROOTVecOps)
+  find_package(ROOT 6.36.00 QUIET COMPONENTS RIO Core Physics Hist Tree ROOTDataFrame ROOTVecOps)
   if(NOT ROOT_FOUND)
       list(FILTER EXTENSION_HEADERS EXCLUDE REGEX ".*/queryosity/ROOT/.*\\.hpp$")
   else()

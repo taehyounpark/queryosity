@@ -1,6 +1,6 @@
 import cppyy
 
-from ..cpp import find_cpp_identifiers
+from ..cpp import find_cpp_identifiers_and_replace_with_values
 from ..node import column
 
 class expression(column):
@@ -13,10 +13,10 @@ class expression(column):
         A string containing a C++ expression. Identifiers within the expression
         will be parsed to determine the required arguments.
     """
-    def __init__(self, expr: str):
+    def __init__(self, expr: str, return_type : str = 'auto'):
         super().__init__()
         self.expr = expr
-        self.args = find_cpp_identifiers(expr)
+        self.return_type = return_type
 
     def __str__(self):
         return self.expr
@@ -24,9 +24,13 @@ class expression(column):
     @property
     def cpp_initialization(self):
         # only keep args that exist in columns
-        column_args = [arg for arg in self.args if arg in self.df.columns]
-        lmbd_args = [f'{self.df.columns[arg].cpp_value_type} const & {arg}' for arg in column_args]
-        lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + self.expr + ');}'
+        column_args, expr = find_cpp_identifiers_and_replace_with_values(self.expr, set(self.df.columns))
+        lmbd_args = [
+            f'qty::column::observable<{self.df.columns[arg].cpp_value_type}> {arg}'
+            for arg in column_args
+        ]
+
+        lmbd_defn = '[](' + ', '.join(lmbd_args) + f') -> {self.return_type} {{return ( {expr} );}}'
         lazy_args = [self.df.columns[arg].cpp_identifier for arg in column_args]
 
         return """{df_id}.define(qty::column::expression({expr})).evaluate({args})""".format(

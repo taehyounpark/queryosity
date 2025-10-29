@@ -1,18 +1,17 @@
 import cppyy
 
-from ..cpp import cpp_binding
+from ..node import column
 
 from functools import cached_property
 
-class definition(cpp_binding):
+class definition(column):
     """
     Column defined by a one-line JIT-compiled C++ expression.
 
     Parameters
     ----------
-    expr : str
-        A string containing a C++ expression. Identifiers within the expression
-        will be parsed to determine the required arguments.
+    defn: str
+    Name of the C++ function with observable arguments
     """
     def __init__(self, defn: str):
         super().__init__()
@@ -25,15 +24,17 @@ class definition(cpp_binding):
         self.args = args
         return self
 
-    def instantiate(self, df):
-        # only keep args that exist in df.columns
-        column_args = [arg for arg in self.args if arg in df.columns]
-        lazy_args = [df.columns[arg].cpp_identifier for arg in column_args]
+    @property
+    def cpp_value_type(self):
+        return f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'
 
-        cppyy.cppdef("""auto {cpp_id} = {df_id}.define(qty::column::definition<{defn}>()).evaluate({args});""".format(
-            cpp_id=self.cpp_identifier,
-            df_id=df.cpp_identifier,
+    @property
+    def cpp_initialization(self):
+        lazy_args = [self.df.columns[col_name].cpp_identifier for col_name in self.args]
+
+        return """{df_id}.define(qty::column::expression({defn})).evaluate({args})""".format(
+            this_id=self.cpp_identifier,
+            df_id=self.df.cpp_identifier,
+            defn=self.defn,
             args=', '.join(lazy_args)
-        ))
-
-        self.cpp_value_type = f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'
+        )
