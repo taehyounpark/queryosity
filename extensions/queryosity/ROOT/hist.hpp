@@ -1,8 +1,17 @@
 #pragma once
 
+#include "TH1C.h"
+#include "TH1D.h"
 #include "TH1F.h"
+#include "TH1I.h"
+#include "TH2C.h"
+#include "TH2D.h"
 #include "TH2F.h"
+#include "TH2I.h"
+#include "TH3C.h"
+#include "TH3D.h"
 #include "TH3F.h"
+#include "TH3I.h"
 
 #include <ROOT/RVec.hxx>
 
@@ -18,8 +27,8 @@ namespace ROOT {
 
 template <unsigned int Dim, typename Prec>
 std::shared_ptr<TH1> make_hist(std::vector<Prec> const &xbins = {0.0, 1.0},
-                              std::vector<Prec> const &ybins = {0.0, 1.0},
-                              std::vector<Prec> const &zbins = {0.0, 1.0}) {
+                               std::vector<Prec> const &ybins = {0.0, 1.0},
+                               std::vector<Prec> const &zbins = {0.0, 1.0}) {
   std::shared_ptr<TH1> hist;
   if constexpr (Dim == 1) {
     (void)ybins;
@@ -79,9 +88,9 @@ std::shared_ptr<TH1> make_hist(std::vector<Prec> const &xbins = {0.0, 1.0},
 // columns. e.g. make_hist<1,float> -> TH1F
 template <unsigned int Dim, typename Prec>
 std::shared_ptr<TH1> make_hist(size_t nxbins, double xmin, double xmax,
-                              size_t nybins = 1, double ymin = 0,
-                              double ymax = 1, size_t nzbins = 1,
-                              double zmin = 0, double zmax = 1) {
+                               size_t nybins = 1, double ymin = 0,
+                               double ymax = 1, size_t nzbins = 1,
+                               double zmin = 0, double zmax = 1) {
   std::shared_ptr<TH1> hist = nullptr;
   if constexpr (Dim == 1) {
     (void)nybins;
@@ -171,6 +180,9 @@ class hist<2, Prec>
 public:
   hist(const std::string &hname, std::vector<Prec> const &,
        std::vector<Prec> const &);
+  hist(const std::string &hname = "", unsigned int nx = 1, double xmin = 0.0,
+       double xmax = 1.0, unsigned int ny = 1, double ymin = 0,
+       double ymax = 1.0);
   virtual ~hist() = default;
 
   virtual void fill(qty::column::observable<Prec>,
@@ -329,7 +341,7 @@ std::shared_ptr<TH1> queryosity::ROOT::hist<1, Prec>::merge(
       merged_result->GetXaxis()->SetBinLabel(i + 1, m_xbins[i].c_str());
     }
   }
-  merged_result->SetDirectory(0);
+  merged_result->SetDirectory(nullptr);
   return merged_result;
 }
 
@@ -338,6 +350,15 @@ queryosity::ROOT::hist<2, Prec>::hist(const std::string &hname,
                                       std::vector<Prec> const &xbins,
                                       std::vector<Prec> const &ybins) {
   m_hist = std::static_pointer_cast<TH2>(make_hist<2, Prec>(xbins, ybins));
+  m_hist->SetNameTitle(hname.c_str(), hname.c_str());
+}
+
+template <typename Prec>
+queryosity::ROOT::hist<2, Prec>::hist(const std::string &hname, unsigned int nx,
+                                      double xmin, double xmax, unsigned int ny,
+                                      double ymin, double ymax) {
+  m_hist = std::static_pointer_cast<TH2>(
+      make_hist<2, Prec>(nx, xmin, xmax, ny, ymin, ymax));
   m_hist->SetNameTitle(hname.c_str(), hname.c_str());
 }
 
@@ -356,6 +377,7 @@ std::shared_ptr<TH2> queryosity::ROOT::hist<2, Prec>::merge(
   for (size_t islot = 1; islot < results.size(); ++islot) {
     merged_result->Add(results[islot].get());
   }
+  merged_result->SetDirectory(nullptr);
   return merged_result;
 }
 
@@ -391,6 +413,7 @@ std::shared_ptr<TH3> queryosity::ROOT::hist<3, Prec>::merge(
   for (size_t islot = 1; islot < results.size(); ++islot) {
     merged_result->Add(results[islot].get());
   }
+  merged_result->SetDirectory(nullptr);
   return merged_result;
 }
 
@@ -432,6 +455,7 @@ std::shared_ptr<TH1> queryosity::ROOT::hist<1, ::ROOT::RVec<Prec>>::merge(
   for (size_t islot = 1; islot < results.size(); ++islot) {
     merged_result->Add(results[islot].get());
   }
+  merged_result->SetDirectory(nullptr);
   return merged_result;
 }
 
@@ -469,6 +493,7 @@ std::shared_ptr<TH2> queryosity::ROOT::hist<2, ::ROOT::RVec<Prec>>::merge(
   for (size_t islot = 1; islot < results.size(); ++islot) {
     merged_result->Add(results[islot].get());
   }
+  merged_result->SetDirectory(nullptr);
   return merged_result;
 }
 
@@ -511,6 +536,7 @@ std::shared_ptr<TH3> queryosity::ROOT::hist<3, ::ROOT::RVec<Prec>>::merge(
   for (size_t islot = 1; islot < results.size(); ++islot) {
     merged_result->Add(results[islot].get());
   }
+  merged_result->SetDirectory(nullptr);
   return merged_result;
 }
 

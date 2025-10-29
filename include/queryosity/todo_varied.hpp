@@ -56,7 +56,9 @@ public:
    * @return A new todo query node with input columns filled.
    */
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::is_fillable_v<queryosity::query::booked_t<V>>, bool> = false>
+            std::enable_if_t<queryosity::query::is_fillable_v<
+                                 queryosity::query::booked_t<V>>,
+                             bool> = false>
   auto fill(Nodes const &...columns) -> varied;
 
   /**
@@ -181,8 +183,10 @@ auto queryosity::varied<queryosity::todo<Helper>>::apply(Cols &&...cols)
 }
 
 template <typename Helper>
-template <typename... Nodes, typename V,
-          std::enable_if_t<queryosity::query::is_fillable_v<queryosity::query::booked_t<V>>, bool>>
+template <
+    typename... Nodes, typename V,
+    std::enable_if_t<
+        queryosity::query::is_fillable_v<queryosity::query::booked_t<V>>, bool>>
 auto queryosity::varied<queryosity::todo<Helper>>::fill(Nodes const &...columns)
     -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));

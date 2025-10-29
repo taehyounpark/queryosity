@@ -24,9 +24,9 @@ class toy_generator {
 public:
   // FIXME: thread-local, per-event, histogram-global generator doesn't work
   // inline static thread_local BootstrapGenerator generator{"bg","bg",1};
-  // inline static thread_local unsigned int ntoy = 0;       
-  // inline static thread_local unsigned int run_number = 0;   
-  // inline static thread_local unsigned int event_number = 0;  
+  // inline static thread_local unsigned int ntoy = 0;
+  // inline static thread_local unsigned int run_number = 0;
+  // inline static thread_local unsigned int event_number = 0;
   // inline static thread_local unsigned int channel_number = 0;
 
 public:
@@ -64,7 +64,8 @@ public:
                  unsigned int ntoy);
   virtual ~hist_with_toys() = default;
 
-  virtual void initialize(unsigned int, unsigned long long,  unsigned long long) override;
+  virtual void initialize(unsigned int, unsigned long long,
+                          unsigned long long) override;
   virtual void fill(qty::column::observable<Prec>,
                     qty::column::observable<unsigned int>,
                     qty::column::observable<unsigned int>,
@@ -86,9 +87,8 @@ protected:
 
 } // namespace queryosity
 
-queryosity::ROOT::toy_generator::toy_generator(unsigned int ntoy) :
-  m_ntoy(ntoy)
-{
+queryosity::ROOT::toy_generator::toy_generator(unsigned int ntoy)
+    : m_ntoy(ntoy) {
   // ::ROOT::EnableThreadSafety();
   // FIXME: thread-local, per-event, histogram-global generator doesn't work
   // if (ntoy > this->m_ntoy) {
@@ -114,64 +114,48 @@ template <typename Prec>
 queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
     const std::string &hname, unsigned int nx, Prec xmin, Prec xmax,
     unsigned int ntoy)
-    : toy_generator(ntoy),
-      m_hist(nullptr),
-      m_hname(hname)
-       {
+    : toy_generator(ntoy), m_hist(nullptr), m_hname(hname) {
 
-  m_xbins.clear(); m_xbins.reserve(nx+1);
+  m_xbins.clear();
+  m_xbins.reserve(nx + 1);
   auto dx = (xmax - xmin) / static_cast<Prec>(nx);
-  for (unsigned int ix = 0 ; ix<nx+1 ; ++ix) {
-    m_xbins.emplace_back(xmin + ix*dx);
+  for (unsigned int ix = 0; ix < nx + 1; ++ix) {
+    m_xbins.emplace_back(xmin + ix * dx);
   }
-   
-  if constexpr(std::is_same_v<Prec, float>) {
+
+  if constexpr (std::is_same_v<Prec, float>) {
     using hist_t = TH1FBootstrap;
-    m_hist = std::make_shared<hist_t>(
-      m_hname.c_str(), m_hname.c_str(),
-      m_xbins.size()-1, &m_xbins[0],
-      m_ntoy
-    );
-  } else if constexpr(std::is_same_v<Prec, double>) {
+    m_hist = std::make_shared<hist_t>(m_hname.c_str(), m_hname.c_str(),
+                                      m_xbins.size() - 1, &m_xbins[0], m_ntoy);
+  } else if constexpr (std::is_same_v<Prec, double>) {
     using hist_t = TH1DBootstrap;
-    m_hist = std::make_shared<hist_t>(
-      m_hname.c_str(), m_hname.c_str(),
-      m_xbins.size()-1, &m_xbins[0],
-      m_ntoy
-    );
+    m_hist = std::make_shared<hist_t>(m_hname.c_str(), m_hname.c_str(),
+                                      m_xbins.size() - 1, &m_xbins[0], m_ntoy);
   }
   m_hist->SetDirectory(nullptr);
 }
 
 template <typename Prec>
 queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
-    const std::string &hname, const std::vector<Prec> &xbins,
-    unsigned int ntoy)
+    const std::string &hname, const std::vector<Prec> &xbins, unsigned int ntoy)
     : toy_generator(ntoy), m_hist(nullptr), m_hname(hname), m_xbins(xbins) {
-  if constexpr(std::is_same_v<Prec, float>) {
+  if constexpr (std::is_same_v<Prec, float>) {
     using hist_t = TH1FBootstrap;
-    m_hist = std::make_shared<hist_t>(
-      m_hname.c_str(), m_hname.c_str(),
-      m_xbins.size()-1, &m_xbins[0],
-      m_ntoy
-    );
-  } else if constexpr(std::is_same_v<Prec, double>) {
+    m_hist = std::make_shared<hist_t>(m_hname.c_str(), m_hname.c_str(),
+                                      m_xbins.size() - 1, &m_xbins[0], m_ntoy);
+  } else if constexpr (std::is_same_v<Prec, double>) {
     using hist_t = TH1DBootstrap;
-    m_hist = std::make_shared<hist_t>(
-      m_hname.c_str(), m_hname.c_str(),
-      m_xbins.size()-1, &m_xbins[0],
-      m_ntoy
-    );
+    m_hist = std::make_shared<hist_t>(m_hname.c_str(), m_hname.c_str(),
+                                      m_xbins.size() - 1, &m_xbins[0], m_ntoy);
   }
   m_hist->SetDirectory(nullptr);
 }
 
 template <typename Prec>
-void queryosity::ROOT::hist_with_toys<1, Prec>::initialize(
-  unsigned int slot,
-  unsigned long long,
-  unsigned long long) {
-  }
+void queryosity::ROOT::hist_with_toys<1, Prec>::initialize(unsigned int slot,
+                                                           unsigned long long,
+                                                           unsigned long long) {
+}
 
 template <typename Prec>
 void queryosity::ROOT::hist_with_toys<1, Prec>::fill(
@@ -181,8 +165,8 @@ void queryosity::ROOT::hist_with_toys<1, Prec>::fill(
     qty::column::observable<unsigned int> channelNumber, double w) {
 
   // FIXME: thread-local, per-event, histogram-global generator doesn't work
-  // this->generate(runNumber.value(), eventNumber.value(), channelNumber.value());
-  // m_hist->Fill(x.value(), w);
+  // this->generate(runNumber.value(), eventNumber.value(),
+  // channelNumber.value()); m_hist->Fill(x.value(), w);
 
   // generate per-thread, per-event, per-histogram
   m_hist->Fill(x.value(), w, runNumber.value(), eventNumber.value(),

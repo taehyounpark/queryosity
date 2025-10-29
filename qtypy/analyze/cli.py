@@ -4,13 +4,11 @@ import re
 
 def add_common_arguments(parser):
     parser.add_argument('analysis', type=str, help='Analysis to run (Python module path)')
-    parser.add_argument('--files', nargs='+', required=True, help='Input file path(s)')
-    parser.add_argument('--tree', default='events', help='Input tree name')
+    parser.add_argument('-i', '--files', nargs='+', required=True, help='Input file path(s)')
+    parser.add_argument('-t', '--tree', default='events', help='Input tree name')
     parser.add_argument('-c', '--config', nargs='+', default=[], help='Configure analysis flags')
     parser.add_argument('-j', '--multithread', nargs='?', const=-1, default=0, type=int, help='Multithread the analysis')
     parser.add_argument('-n', '--entries', nargs='?', const=-1, default=-1, type=int, help='Number of entries to process')
-    parser.add_argument('--output', default='analyzed.root', help='Output file name')
-    parser.add_argument('--force', action='store_true', help='Force overwrite the output')
 
 def make_top_parser():
     parser = argparse.ArgumentParser(description='Perform a queryosity analysis')

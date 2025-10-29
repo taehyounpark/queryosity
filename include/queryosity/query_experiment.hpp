@@ -28,7 +28,7 @@ protected:
 
 protected:
   std::vector<query::node *> m_queries;
-  std::vector<std::unique_ptr<query::node>> m_queries_history;  //!
+  std::vector<std::unique_ptr<query::node>> m_queries_history; //!
 };
 
 } // namespace queryosity

@@ -14,9 +14,9 @@ namespace queryosity {
 namespace column {
 
 class node : public action {
-  public:
-    node() = default;
-    virtual ~node() = default;
+public:
+  node() = default;
+  virtual ~node() = default;
 };
 
 //---------------------------------------------------
@@ -232,9 +232,8 @@ template <typename T> constexpr bool is_evaluatable_v = is_evaluator<T>::value;
 template <typename Fn> struct deduce_equation;
 
 // generic fallback for constants / non-function types
-template <typename T>
-struct deduce_equation {
-    using type = column::constant<T>;
+template <typename T> struct deduce_equation {
+  using type = column::constant<T>;
 };
 
 template <typename T>

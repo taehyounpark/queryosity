@@ -81,15 +81,13 @@ public:
 
   template <typename Expr, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
-  auto filter(column::expression<Expr> const &expr)
-      -> varied<todo<
-          selection::applicator<selection::cut, column::equation_t<Expr>>>>;
+  auto filter(column::expression<Expr> const &expr) -> varied<
+      todo<selection::applicator<selection::cut, column::equation_t<Expr>>>>;
 
   template <typename Expr, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
-  auto weight(column::expression<Expr> const &expr)
-      -> varied<todo<
-          selection::applicator<selection::weight, column::equation_t<Expr>>>>;
+  auto weight(column::expression<Expr> const &expr) -> varied<
+      todo<selection::applicator<selection::weight, column::equation_t<Expr>>>>;
 
   template <typename Agg, typename V = Act,
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
@@ -99,13 +97,11 @@ public:
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
   auto book(Aggs &&...aggs);
 
-  template <
-      typename V = Act,
-      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
+  template <typename V = Act,
+            std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto operator[](const std::string &variation_name) -> lazy<V> &;
-  template <
-      typename V = Act,
-      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
+  template <typename V = Act,
+            std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto operator[](const std::string &variation_name) const -> lazy<V> const &;
 
   DECLARE_LAZY_VARIED_UNARY_OP(-)

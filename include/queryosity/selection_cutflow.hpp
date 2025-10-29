@@ -24,10 +24,11 @@ public:
   template <typename Sel, typename Ret, typename... Args>
   auto select(selection::node const *prev, std::function<Ret(Args...)> fn) const
       -> std::unique_ptr<applicator<
-        Sel, column::equation<std::decay_t<Ret>(column::value_t<Args>...)>>>;
+          Sel, column::equation<std::decay_t<Ret>(column::value_t<Args>...)>>>;
 
   template <typename Sel, typename Def>
-  auto select(selection::node const *prev, std::unique_ptr<column::evaluator<Def>> eval) const
+  auto select(selection::node const *prev,
+              std::unique_ptr<column::evaluator<Def>> eval) const
       -> std::unique_ptr<applicator<Sel, Def>>;
 
   template <typename Sel, typename Def, typename... Cols>
@@ -39,7 +40,7 @@ protected:
   auto add_selection(std::unique_ptr<Sel> selection) -> Sel *;
 
 protected:
-  std::vector<std::unique_ptr<selection::node>> m_selections;  //!
+  std::vector<std::unique_ptr<selection::node>> m_selections; //!
 };
 
 } // namespace queryosity
@@ -63,11 +64,13 @@ auto queryosity::selection::cutflow::select(
         Sel, column::equation<std::decay_t<Ret>(column::value_t<Args>...)>>> {
   return std::make_unique<applicator<
       Sel, column::equation<std::decay_t<Ret>(column::value_t<Args>...)>>>(prev,
-                                                                        fn);
+                                                                           fn);
 }
 
 template <typename Sel, typename Def>
-auto queryosity::selection::cutflow::select(selection::node const *prev, std::unique_ptr<column::evaluator<Def>> eval) const
+auto queryosity::selection::cutflow::select(
+    selection::node const *prev,
+    std::unique_ptr<column::evaluator<Def>> eval) const
     -> std::unique_ptr<applicator<Sel, Def>> {
   return std::make_unique<applicator<Sel, Def>>(prev, std::move(*eval));
 }

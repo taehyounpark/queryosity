@@ -18,7 +18,8 @@ public:
 
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) final override;
-  virtual void execute(unsigned int slot, unsigned long long entry) final override;
+  virtual void execute(unsigned int slot,
+                       unsigned long long entry) final override;
   virtual void finalize(unsigned int slot) final override;
 
 protected:
@@ -41,13 +42,15 @@ const Val &queryosity::column::fixed<Val>::value() const {
 }
 
 template <typename Val>
-void queryosity::column::fixed<Val>::initialize(unsigned int slot, unsigned long long begin,
-                                               unsigned long long end) {
+void queryosity::column::fixed<Val>::initialize(unsigned int slot,
+                                                unsigned long long begin,
+                                                unsigned long long end) {
   valued<Val>::initialize(slot, begin, end);
-                                               }
+}
 
 template <typename Val>
-void queryosity::column::fixed<Val>::execute(unsigned int slot, unsigned long long entry) {
+void queryosity::column::fixed<Val>::execute(unsigned int slot,
+                                             unsigned long long entry) {
   valued<Val>::execute(slot, entry);
 }
 

@@ -18,8 +18,8 @@ class hist(definition):
         super().__init__()
 
         self.hname = hname
-        self.ndim = 1 if ybins is None and zbins is None else 2 if zbins is None else 3
         self.dtype = dtype
+        self.n_toys = n_toys
 
         if xbins is None:
             self.xbins = f"{nx},{xmin},{xmax}"
@@ -32,7 +32,37 @@ class hist(definition):
             self.xmin = xbins[0]
             self.xmax = xbins[-1]
 
-        self.n_toys = n_toys
+        if all([arg is None for arg in (ybins, ny, ymin, ymax)]):
+            self.ybins = None
+        elif ybins is None:
+            self.ybins = f"{ny},{ymin},{ymax}"
+            self.ny = ny
+            self.ymin = ymin
+            self.ymax = ymax
+        elif all([arg is not None for arg in (ny, ymin, ymax)]):
+            self.ybins = f"std::vector<{self.dtype}>({{{', '.join([str(edge) for edge in ybins])}}})"
+            self.ny = len(ybins)-1
+            self.ymin = ybins[0]
+            self.ymax = ybins[-1]
+        else:
+            raise ValueError("invalid y-axis configuration")
+
+        if all([arg is None for arg in (zbins, nz, zmin, zmax)]):
+            self.zbins = None
+        elif zbins is None:
+            self.zbins = f"{nz},{zmin},{zmax}"
+            self.nz = nz
+            self.zmin = zmin
+            self.zmax = zmax
+        elif all([arg is not None for arg in (nz, zmin, zmax)]):
+            self.zbins = f"std::vector<{self.dtype}>({{{', '.join([str(edge) for edge in zbins])}}})"
+            self.nz = len(zbins)-1
+            self.zmin = zbins[0]
+            self.zmax = zbins[-1]
+        else:
+            raise ValueError("invalid z-axis configuration")
+
+        self.ndim = 1 if self.ybins is None else 2 if self.zbins is None else 3
 
     def __str__(self):
         # xax = 
@@ -62,6 +92,7 @@ class hist(definition):
             f'<{self.ndim},{self.dtype}>>'
             f'("{self.hname}"'
             f',{self.xbins}'
+            f'{"," + self.ybins if self.ndim > 1 else ""}'
             f'{"," + str(self.n_toys) if self.n_toys > 0 else ""}'
             f'))'
         )

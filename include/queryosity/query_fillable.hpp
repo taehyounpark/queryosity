@@ -12,15 +12,14 @@ template <typename T> class variable;
 
 template <typename T> class view;
 
-}
+} // namespace column
 
 /**
  * @brief Query filled with column value(s) per-entry.
  * @tparam Out Output result type.
  * @tparam Ins Input column data types.
  */
-template <typename... Ins>
-class query::fillable {
+template <typename... Ins> class query::fillable {
 
 public:
   using vartup_type = std::tuple<column::variable<Ins>...>;

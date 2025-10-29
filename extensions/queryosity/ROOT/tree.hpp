@@ -18,7 +18,7 @@
 #include <queryosity.hpp>
 
 namespace queryosity {
-  
+
 namespace ROOT {
 
 class tree : public queryosity::dataset::reader<tree> {
@@ -31,7 +31,8 @@ public:
   template <typename... Ts> class snapshot;
 
 public:
-  tree(const std::vector<std::string> &file_paths, const std::string &tree_name);
+  tree(const std::vector<std::string> &file_paths,
+       const std::string &tree_name);
   tree(std::initializer_list<std::string> file_paths,
        const std::string &tree_name);
   virtual ~tree() = default;
@@ -100,7 +101,7 @@ public:
                           unsigned long long) final override {}
 
   virtual ::ROOT::RVec<T> const &read(unsigned int,
-                                    unsigned long long) const final override {
+                                      unsigned long long) const final override {
     if (auto arraySize = m_tree_reader_array->GetSize()) {
       ::ROOT::RVec<T> readArray(&m_tree_reader_array->At(0), arraySize);
       std::swap(m_readArray, readArray);
@@ -113,8 +114,8 @@ public:
 
 protected:
   std::string m_branchName;
-  std::unique_ptr<TTreeReaderArray<T>> m_tree_reader_array;  //!
-  mutable ::ROOT::RVec<T> m_readArray;  //!
+  std::unique_ptr<TTreeReaderArray<T>> m_tree_reader_array; //!
+  mutable ::ROOT::RVec<T> m_readArray;                      //!
 };
 
 template <>
@@ -133,7 +134,7 @@ public:
   read(unsigned int, unsigned long long) const final override {
     if (m_tree_reader_array->GetSize()) {
       ::ROOT::RVec<bool> readArray(m_tree_reader_array->begin(),
-                                 m_tree_reader_array->end());
+                                   m_tree_reader_array->end());
       std::swap(m_readArray, readArray);
     } else {
       ::ROOT::RVec<bool> emptyVector{};
@@ -145,7 +146,7 @@ public:
 protected:
   std::string m_branchName;
   std::unique_ptr<TTreeReaderArray<bool>> m_tree_reader_array; //!
-  mutable ::ROOT::RVec<bool> m_readArray;  //!
+  mutable ::ROOT::RVec<bool> m_readArray;                      //!
 };
 
 template <typename... ColumnTypes>
@@ -174,7 +175,7 @@ private:
   // Helper function to convert a vector to a tuple (for known size at runtime)
   template <std::size_t... I>
   auto make_branchNamesTupleImpl(const std::vector<std::string> &v,
-                                std::index_sequence<I...>) {
+                                 std::index_sequence<I...>) {
     return std::make_tuple(v[I]...);
   }
 
@@ -198,7 +199,7 @@ private:
   // expand the packs ColumnTypes, Indices, and branchNames simultaneously
   template <std::size_t... Is, typename... Names>
   branch_array_t make_branches(std::index_sequence<Is...>,
-                             Names const &...branchNames) {
+                               Names const &...branchNames) {
     return {{make_branch<ColumnTypes, Is>(branchNames)...}};
   }
 
@@ -213,16 +214,16 @@ protected:
   column_tuple_t m_columns;
 };
 
-}
+} // namespace ROOT
 
-}
+} // namespace queryosity
 
 inline queryosity::ROOT::tree::tree(const std::vector<std::string> &file_paths,
-                  const std::string &tree_name)
+                                    const std::string &tree_name)
     : m_file_paths(file_paths), m_tree_name(tree_name) {}
 
-inline queryosity::ROOT::tree::tree(std::initializer_list<std::string> file_paths,
-                  const std::string &tree_name)
+inline queryosity::ROOT::tree::tree(
+    std::initializer_list<std::string> file_paths, const std::string &tree_name)
     : m_file_paths(file_paths), m_tree_name(tree_name) {}
 
 inline void queryosity::ROOT::tree::initialize() {
@@ -230,16 +231,20 @@ inline void queryosity::ROOT::tree::initialize() {
 }
 
 inline void queryosity::ROOT::tree::parallelize(unsigned int nslots) {
-  m_trees.clear(); m_trees.resize(nslots);
-  m_tree_readers.clear(); m_tree_readers.resize(nslots);
+  m_trees.clear();
+  m_trees.resize(nslots);
+  m_tree_readers.clear();
+  m_tree_readers.resize(nslots);
   for (unsigned int islot = 0; islot < nslots; ++islot) {
     auto tree =
-        std::make_unique<TChain>(m_tree_name.c_str(), m_tree_name.c_str(), TChain::kWithoutGlobalRegistration);
+        std::make_unique<TChain>(m_tree_name.c_str(), m_tree_name.c_str(),
+                                 TChain::kWithoutGlobalRegistration);
     tree->ResetBit(TObject::kMustCleanup);
     for (auto const &file_path : m_file_paths) {
       tree->Add(file_path.c_str());
     }
-    auto tree_reader = std::make_unique<TTreeReader>(tree.get());
+    // auto tree_reader = std::make_unique<TTreeReader>(tree.get());
+    auto tree_reader = std::make_unique<TTreeReader>(tree.release());
     m_trees[islot] = std::move(tree);
     m_tree_readers[islot] = std::move(tree_reader);
   }
@@ -264,6 +269,7 @@ queryosity::ROOT::tree::partition() {
     // check tree
     auto tree = file->Get<TTree>(m_tree_name.c_str());
     if (!tree) {
+      throw std::runtime_error("tree does not exist in file(s)");
       continue;
     }
 
@@ -282,13 +288,16 @@ queryosity::ROOT::tree::partition() {
   return parts;
 }
 
-inline void queryosity::ROOT::tree::initialize(unsigned int slot, unsigned long long begin,
-                             unsigned long long end) {
-  if (m_tree_readers[slot]->SetEntriesRange(begin, end) != TTreeReader::kEntryValid)
+inline void queryosity::ROOT::tree::initialize(unsigned int slot,
+                                               unsigned long long begin,
+                                               unsigned long long end) {
+  if (m_tree_readers[slot]->SetEntriesRange(begin, end) !=
+      TTreeReader::kEntryValid)
     throw std::logic_error("cannot set tree entry range");
 }
 
-inline void queryosity::ROOT::tree::execute(unsigned int slot, unsigned long long entry) {
+inline void queryosity::ROOT::tree::execute(unsigned int slot,
+                                            unsigned long long entry) {
   m_tree_readers[slot]->SetEntry(entry);
 }
 
@@ -299,18 +308,18 @@ inline void queryosity::ROOT::tree::finalize(unsigned int slot) {
 inline void queryosity::ROOT::tree::finalize() {}
 
 template <typename U>
-std::unique_ptr<queryosity::ROOT::tree::branch<U>> queryosity::ROOT::tree::read(unsigned int slot,
-                                            const std::string &branchName) {
+std::unique_ptr<queryosity::ROOT::tree::branch<U>>
+queryosity::ROOT::tree::read(unsigned int slot, const std::string &branchName) {
   return std::make_unique<branch<U>>(branchName, *m_tree_readers[slot]);
 }
 
 template <typename... ColumnTypes>
 template <typename... Names>
-queryosity::ROOT::tree::snapshot<ColumnTypes...>::snapshot(const std::string &tree_name,
-                                         Names const &...branchNames)
+queryosity::ROOT::tree::snapshot<ColumnTypes...>::snapshot(
+    const std::string &tree_name, Names const &...branchNames)
     : m_snapshot(std::make_shared<TTree>(tree_name.c_str(), tree_name.c_str())),
       m_branches(make_branches(std::index_sequence_for<ColumnTypes...>(),
-                              branchNames...)) {
+                               branchNames...)) {
   m_snapshot->SetDirectory(0);
 }
 
@@ -321,7 +330,7 @@ queryosity::ROOT::tree::snapshot<ColumnTypes...>::snapshot(
       m_branches(std::apply(
           [this](auto &&...args) {
             return make_branches(std::index_sequence_for<ColumnTypes...>(),
-                                args...);
+                                 args...);
           },
           make_branchNamesTuple(branchNames))) {
   m_snapshot->SetDirectory(0);
@@ -335,7 +344,8 @@ void queryosity::ROOT::tree::snapshot<ColumnTypes...>::fill(
 }
 
 template <typename... ColumnTypes>
-std::shared_ptr<TTree> queryosity::ROOT::tree::snapshot<ColumnTypes...>::result() const {
+std::shared_ptr<TTree>
+queryosity::ROOT::tree::snapshot<ColumnTypes...>::result() const {
   return m_snapshot;
 }
 
