@@ -6,32 +6,33 @@ import os
 import importlib
 import yaml
 
-def make_parser(subparsers):
-    parser = subparsers.add_parser("run", help="Run analysis locally")
-    from .cli import add_common_arguments
-    add_common_arguments(parser)
-    return parser
 
 def run_analysis(args):
-
-    # load analysis module dynamically
+    """
+    Execute a queryosity analysis based on parsed arguments.
+    """
+    # Load analysis module dynamically
     try:
         analysis = importlib.import_module(args.analysis)
     except ModuleNotFoundError:
         raise ImportError(f"Could not import analysis module '{args.analysis}'")
 
     # Set up dataflow & load dataset
-    df = dataflow(multithreaded = args.multithread > 0, n_threads=args.multithread, n_rows = args.entries)
+    df = dataflow(
+        multithreaded=args.multithread > 0,
+        n_threads=args.multithread,
+        n_rows=args.entries
+    )
     df << dataset.tree(file_paths=args.files, tree_name=args.tree)
 
-    # load config files into flags
+    # Load config files into flags
     flags = {}
     for cfg_file_path in args.config:
-        with open(cfg_file_path, "r") as f:  # YAML files are text, not binary
+        with open(cfg_file_path, "r") as f:
             kvs = yaml.safe_load(f)
         flags.update(kvs)
 
-    # run user-defined analysis
+    # Run user-defined analysis
     if hasattr(analysis, "analyze"):
         analysis.analyze(df, flags)
     else:
