@@ -46,14 +46,14 @@
                 bool>::type = true>                                            \
   auto operator op_symbol(Arg const &arg)                                      \
       const->queryosity::lazy<queryosity::column::valued<                      \
-          decltype(std::declval<column::value_t<V>>() op_symbol                \
-                   std::declval<column::value_t<typename Arg::action_type>>())>> { \
+          decltype(std::declval<column::value_t<V>>() op_symbol std::declval<  \
+                   column::value_t<typename Arg::action_type>>())>> {          \
     return this->m_df                                                          \
         ->define(queryosity::column::expression(                               \
-            [](queryosity::column::observable<column::value_t<V>> me,   \
-               queryosity::column::observable<column::value_t<typename Arg::action_type>> you) { \
-              return me.value() op_symbol you.value();                         \
-            }))                                                                \
+            [](queryosity::column::observable<column::value_t<V>> me,          \
+               queryosity::column::observable<                                 \
+                   column::value_t<typename Arg::action_type>>                 \
+                   you) { return me.value() op_symbol you.value(); }))         \
         .evaluate(*this, arg);                                                 \
   }
 
@@ -78,7 +78,7 @@
   auto operator op_symbol() const {                                            \
     return this->m_df                                                          \
         ->define(queryosity::column::expression(                               \
-            [](queryosity::column::observable<column::value_t<V>> me) { \
+            [](queryosity::column::observable<column::value_t<V>> me) {        \
               return (op_symbol me.value());                                   \
             }))                                                                \
         .evaluate(*this);                                                      \
@@ -111,10 +111,10 @@
   auto operator[](Arg const &arg) const {                                      \
     return this->m_df                                                          \
         ->define(queryosity::column::expression(                               \
-            [](queryosity::column::observable<column::value_t<V>> me,   \
-               queryosity::column::observable<column::value_t<typename Arg::action_type>> index) { \
-              return me.value()[index.value()];                                \
-            }))                                                                \
+            [](queryosity::column::observable<column::value_t<V>> me,          \
+               queryosity::column::observable<                                 \
+                   column::value_t<typename Arg::action_type>>                 \
+                   index) { return me.value()[index.value()]; }))              \
         .evaluate(*this, arg);                                                 \
   }
 
@@ -183,18 +183,10 @@ struct is_nominal_impl : std::false_type {};
 
 template <typename V>
 struct is_nominal_impl<
-    V,
-    std::void_t<
-        decltype(std::declval<std::decay_t<V>&>().nominal())
-    >
->
-  : std::bool_constant<
-        std::is_same_v<
-            decltype(std::declval<std::decay_t<V>&>().nominal()),
-            std::decay_t<V>&
-        >
-    >
-{};
+    V, std::void_t<decltype(std::declval<std::decay_t<V> &>().nominal())>>
+    : std::bool_constant<
+          std::is_same_v<decltype(std::declval<std::decay_t<V> &>().nominal()),
+                         std::decay_t<V> &>> {};
 
 // const case
 template <typename V, typename = void>
@@ -202,26 +194,16 @@ struct is_nominal_const_impl : std::false_type {};
 
 template <typename V>
 struct is_nominal_const_impl<
-    V,
-    std::void_t<
-        decltype(std::declval<std::decay_t<V> const&>().nominal())
-    >
->
-  : std::bool_constant<
-        std::is_same_v<
-            decltype(std::declval<std::decay_t<V> const&>().nominal()),
-            std::decay_t<V> const&
-        >
-    >
-{};
+    V, std::void_t<decltype(std::declval<std::decay_t<V> const &>().nominal())>>
+    : std::bool_constant<std::is_same_v<
+          decltype(std::declval<std::decay_t<V> const &>().nominal()),
+          std::decay_t<V> const &>> {};
 
 template <typename V>
 inline constexpr bool is_nominal_v =
-    is_nominal_impl<V>::value ||
-    is_nominal_const_impl<V>::value;
+    is_nominal_impl<V>::value || is_nominal_const_impl<V>::value;
 
-template <typename V>
-inline constexpr bool is_varied_v = !is_nominal_v<V>;
+template <typename V> inline constexpr bool is_varied_v = !is_nominal_v<V>;
 
 template <typename... Args>
 static constexpr bool has_no_variation_v = (is_nominal_v<Args> && ...);

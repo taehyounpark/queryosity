@@ -40,6 +40,7 @@ public:
   template <typename> friend class lazy;
   template <typename> friend class todo;
   template <typename> friend class varied;
+
 public:
   /**
    * @brief Default constructor.
@@ -133,8 +134,8 @@ public:
    * @return Evaluator.
    */
   template <typename Def>
-  auto
-  define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
+  auto define(column::definition<Def> const &defn)
+      -> todo<column::evaluator<Def>>;
 
   /**
    * @brief Initiate a cutflow.
@@ -318,8 +319,8 @@ public:
   auto _assign(Val const &val) -> lazy<column::valued<Val>>;
 
   template <typename Def>
-  auto
-  _define(column::definition<Def> const &defn) -> todo<column::evaluator<Def>>;
+  auto _define(column::definition<Def> const &defn)
+      -> todo<column::evaluator<Def>>;
 
   template <typename Fn> auto _equate(Fn fn);
   template <typename Fn>
@@ -362,15 +363,15 @@ protected:
 
 public:
   template <typename DS, typename Val>
-  auto _read(dataset::reader<DS> &ds,
-             const std::string &name) -> lazy<read_column_t<DS, Val>>;
+  auto _read(dataset::reader<DS> &ds, const std::string &name)
+      -> lazy<read_column_t<DS, Val>>;
 
   template <typename Sel, typename Col>
   auto _apply(lazy<Col> const &col) -> lazy<selection::node>;
 
   template <typename Sel, typename Col>
-  auto _apply(lazy<selection::node> const &prev,
-              lazy<Col> const &col) -> lazy<selection::node>;
+  auto _apply(lazy<selection::node> const &prev, lazy<Col> const &col)
+      -> lazy<selection::node>;
 
   template <typename Sel, typename Def, typename... Cols>
   auto _apply(todo<selection::applicator<Sel, Def>> const &calc,
@@ -397,11 +398,11 @@ public:
              column::definition<Def> const &defn);
 
 protected:
-  dataset::processor m_processor;  //!
-  dataset::weight m_weight;  //!
+  dataset::processor m_processor; //!
+  dataset::weight m_weight;       //!
   long long m_nrows;
 
-  std::vector<std::unique_ptr<dataset::source>> m_sources;  //!
+  std::vector<std::unique_ptr<dataset::source>> m_sources; //!
 
   mutable bool m_analyzed;
 };
@@ -414,12 +415,10 @@ public:
 
 public:
   template <typename Fn, typename... Nodes>
-  static auto invoke(Fn fn, Nodes const &...nodes)
-      -> std::enable_if_t<
-          !std::is_void_v<
-              std::invoke_result_t<Fn, typename Nodes::action_type *...>>,
-          std::vector<
-              std::invoke_result_t<Fn, typename Nodes::action_type *...>>>;
+  static auto invoke(Fn fn, Nodes const &...nodes) -> std::enable_if_t<
+      !std::is_void_v<
+          std::invoke_result_t<Fn, typename Nodes::action_type *...>>,
+      std::vector<std::invoke_result_t<Fn, typename Nodes::action_type *...>>>;
 
   template <typename Fn, typename... Nodes>
   static auto invoke(Fn fn, Nodes const &...nodes)
@@ -646,9 +645,7 @@ auto queryosity::dataflow::_evaluate(todo<column::evaluator<Def>> const &calc,
     -> lazy<Def> {
   auto act = ensemble::invoke(
       [](dataset::player *plyr, column::evaluator<Def> const *calc,
-         Cols const *...cols) {
-        return plyr->evaluate(*calc, *cols...);
-      },
+         Cols const *...cols) { return plyr->evaluate(*calc, *cols...); },
       m_processor.get_slots(), calc.get_slots(), columns.get_slots()...);
   auto lzy = lazy<Def>(*this, act);
   return lzy;
@@ -774,11 +771,10 @@ auto queryosity::dataflow::_assign(Val const &val)
 template <typename To, typename Col>
 auto queryosity::dataflow::_convert(lazy<Col> const &col)
     -> lazy<column::conversion<To, column::value_t<Col>>> {
-  auto act = ensemble::invoke(
-      [](dataset::player *plyr, Col const *from) {
-        return plyr->convert<To>(*from);
-      },
-      m_processor.get_slots(), col.get_slots());
+  auto act =
+      ensemble::invoke([](dataset::player *plyr,
+                          Col const *from) { return plyr->convert<To>(*from); },
+                       m_processor.get_slots(), col.get_slots());
   auto lzy = lazy<column::conversion<To, column::value_t<Col>>>(*this, act);
   return lzy;
 }
@@ -795,9 +791,8 @@ auto queryosity::dataflow::_define(column::definition<Def> const &defn)
 template <typename Fn> auto queryosity::dataflow::_equate(Fn fn) {
   return todo<column::evaluator<typename column::equation_t<Fn>>>(
       *this,
-      ensemble::invoke(
-          [fn](dataset::player *plyr) { return plyr->equate(fn); },
-          m_processor.get_slots()));
+      ensemble::invoke([fn](dataset::player *plyr) { return plyr->equate(fn); },
+                       m_processor.get_slots()));
 }
 
 template <typename Sel, typename Fn> auto queryosity::dataflow::_select(Fn fn) {
@@ -864,11 +859,10 @@ auto queryosity::dataflow::_select(lazy<selection::node> const &prev,
 template <typename Sel, typename Col>
 auto queryosity::dataflow::_apply(lazy<Col> const &dec)
     -> lazy<selection::node> {
-  auto act = ensemble::invoke(
-      [](dataset::player *plyr, Col *col) {
-        return plyr->apply<Sel>(nullptr, *col);
-      },
-      m_processor.get_slots(), dec.get_slots());
+  auto act =
+      ensemble::invoke([](dataset::player *plyr,
+                          Col *col) { return plyr->apply<Sel>(nullptr, *col); },
+                       m_processor.get_slots(), dec.get_slots());
   auto lzy = lazy<selection::node>(*this, act);
   return lzy;
 }

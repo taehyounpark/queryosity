@@ -17,7 +17,7 @@ public:
       std::function<std::decay_t<Out>(observable<std::decay_t<Ins>>...)>;
 
 public:
-  template <typename Fn> equation(Fn&& fn);
+  template <typename Fn> equation(Fn &&fn);
   virtual ~equation() = default;
 
 public:
@@ -25,7 +25,8 @@ public:
 
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) final override;
-  virtual void execute(unsigned int slot, unsigned long long entry) final override;
+  virtual void execute(unsigned int slot,
+                       unsigned long long entry) final override;
   virtual void finalize(unsigned int slot) final override;
 
 protected:
@@ -38,7 +39,8 @@ protected:
 
 template <typename Out, typename... Ins>
 template <typename Fn>
-queryosity::column::equation<Out(Ins...)>::equation(Fn&& fn) : m_evaluate(std::forward<Fn>(fn)) {}
+queryosity::column::equation<Out(Ins...)>::equation(Fn &&fn)
+    : m_evaluate(std::forward<Fn>(fn)) {}
 
 template <typename Out, typename... Ins>
 Out queryosity::column::equation<Out(Ins...)>::evaluate(
@@ -47,13 +49,14 @@ Out queryosity::column::equation<Out(Ins...)>::evaluate(
 }
 
 template <typename Out, typename... Ins>
-void queryosity::column::equation<Out(Ins...)>::initialize(unsigned int slot, unsigned long long begin,
-                                               unsigned long long end) {
+void queryosity::column::equation<Out(Ins...)>::initialize(
+    unsigned int slot, unsigned long long begin, unsigned long long end) {
   calculation<Out>::initialize(slot, begin, end);
-                                               }
+}
 
 template <typename Out, typename... Ins>
-void queryosity::column::equation<Out(Ins...)>::execute(unsigned int slot, unsigned long long entry) {
+void queryosity::column::equation<Out(Ins...)>::execute(
+    unsigned int slot, unsigned long long entry) {
   calculation<Out>::execute(slot, entry);
 }
 

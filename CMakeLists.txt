@@ -132,16 +132,26 @@ if(QUERYOSITY_EXAMPLES)
   add_subdirectory("examples")
 endif()
 
-
 if(QUERYOSITY_PYTHON)
+
+  execute_process(
+    COMMAND python3 -m pip install --upgrade pip
+    RESULT_VARIABLE _pip_upgrade_result
+  )
+  if(NOT _pip_upgrade_result EQUAL 0)
+    message(FATAL_ERROR "Could not upgrade pip")
+  endif()
+
   execute_process(
     COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_SOURCE_DIR}/
-            pip install -e .
-    RESULT_VARIABLE _pip_result
+            python3 -m pip install --user -e .
+    RESULT_VARIABLE _pip_install_result
   )
-  if(NOT _pip_result EQUAL 0)
+
+  if(NOT _pip_install_result EQUAL 0)
     message(FATAL_ERROR "Python package cannot be installed")
   endif()
+
 endif()
 
 # Append PATH update to setup.sh (create if missing)

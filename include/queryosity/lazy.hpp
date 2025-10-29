@@ -79,7 +79,9 @@ public:
    * prerequisites must pass in order for a downstream selection to pass.
    * @return Compounded lazy weight.
    */
-  template <typename Col> auto filter(lazy<Col> const &column) const -> queryosity::lazy<selection::node>;
+  template <typename Col>
+  auto filter(lazy<Col> const &column) const
+      -> queryosity::lazy<selection::node>;
 
   /**
    * @brief Compound a weight to from this selection.
@@ -87,7 +89,9 @@ public:
    * @param[in] column Input lazy column used as weight decision.
    * @return Compounded lazy weight.
    */
-  template <typename Col> auto weight(lazy<Col> const &column) const -> queryosity::lazy<selection::node>;
+  template <typename Col>
+  auto weight(lazy<Col> const &column) const
+      -> queryosity::lazy<selection::node>;
 
   /**
    * @brief Compound a varied cut to this selection.
@@ -200,17 +204,15 @@ public:
    * @return Query result.
    * @attention Invoking this turns *all* lazy actions in the dataflow *eager*.
    */
-  template <
-      typename V = Action,
-      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
+  template <typename V = Action,
+            std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto result() const -> decltype(std::declval<V>().result()) const &;
 
   /**
    * @brief Shortcut for `result()`.
    */
-  template <
-      typename V = Action,
-      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
+  template <typename V = Action,
+            std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto operator->() const -> decltype(std::declval<V>().result()) const & {
     return this->result();
   }
@@ -234,9 +236,8 @@ public:
   DEFINE_LAZY_INDEX_OP()
 
 protected:
-  template <
-      typename V = Action,
-      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
+  template <typename V = Action,
+            std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   void merge_results() const;
 
 protected:
@@ -343,7 +344,8 @@ auto queryosity::lazy<Action>::to() const -> lazy<column::valued<To>> {
 
 template <typename Action>
 template <typename Col>
-auto queryosity::lazy<Action>::filter(lazy<Col> const &col) const -> queryosity::lazy<selection::node> {
+auto queryosity::lazy<Action>::filter(lazy<Col> const &col) const
+    -> queryosity::lazy<selection::node> {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     return this->m_df->template _apply<selection::cut>(*this, col);
   } else {
@@ -354,7 +356,8 @@ auto queryosity::lazy<Action>::filter(lazy<Col> const &col) const -> queryosity:
 
 template <typename Action>
 template <typename Col>
-auto queryosity::lazy<Action>::weight(lazy<Col> const &col) const -> queryosity::lazy<selection::node> {
+auto queryosity::lazy<Action>::weight(lazy<Col> const &col) const
+    -> queryosity::lazy<selection::node> {
   if constexpr (std::is_base_of_v<selection::node, Action>) {
     return this->m_df->template _apply<selection::weight>(*this, col);
   } else {
