@@ -6,7 +6,6 @@ class lazy(cpp_binding):
 
     def __init__(self):
         super().__init__()
-        self.cpp_prefix += 'lazy_'
         self._df = None
 
     @property
