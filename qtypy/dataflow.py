@@ -51,8 +51,6 @@ class dataflow(cpp_binding):
         self.n_threads = 0 if not multithreaded else n_threads
         self.n_rows = n_rows
 
-        self.name = "df"
-
         self.dataset = None
 
         self.columns = {}
@@ -65,23 +63,8 @@ class dataflow(cpp_binding):
     def cpp_initialization(self):
         return f"""qty::dataflow(qty::multithread::enable({self.n_threads}),qty::dataset::head({self.n_rows}))"""
 
-    def __lshift__(self, ds):
-        """Pipeline operator for input dataset: df << {'events' : dataset.tree(...)}"""
-        return self.input(ds)
-
-    def __or__(self, columns: dict):
-        """Pipeline operator for column definitions: df | {'col': column(...) << 'events' }"""
-        return self.compute(columns)
-
-    def __matmul__(self, selection: str):
-        return self.at(selection)
-
-    def __rshift__(self, query):
-        return self.output(query)
-
     def input(self, ds):
         ds.contextualize(self)
-        ds.instantiate()
         return self
 
     def compute(self, columns: dict):
@@ -106,12 +89,6 @@ class dataflow(cpp_binding):
             Compiled C++ implementation of
             ``qty::column::definition<Ret(Args...)>``.
 
-        - ``qtypy.selection.filter``  
-            Cut expression
-
-        - ``qtypy.selection.weight``  
-            Weight expression
-
         Returns
         -------
         self
@@ -122,6 +99,24 @@ class dataflow(cpp_binding):
             column_node.instantiate()
         return self
 
+    def select(self, selections: dict):
+        """Define selections in order and return a branch at the last one."""
+        it = iter(selections.items())
+
+        # First selection
+        first_name, first_node = next(it)
+        first_node.contextualize(self, first_name)
+        first_node.instantiate()
+        df_at_sel = self.at(first_name)
+
+        # Remaining selections
+        for sel_name, sel_node in it:
+            sel_node.contextualize(self, sel_name)
+            sel_node.instantiate()
+            df_at_sel = self.at(sel_name)
+
+        return df_at_sel
+
     def at(self, selection: str):
         return dataflow_at_selection(self, selection)
 
@@ -129,35 +124,40 @@ class dataflow(cpp_binding):
         # issue new lazy<query> node everytime so existing definitions can be recycled later
         query_node = query(query_defn)
         query_node.contextualize(self)
-        query_node.instantiate()
         # return the (not yet instantiated) result node
         return result(query_node)
+
+    # DSL syntax
+    __lshift__ = input
+    __or__ = compute
+    __matmul__ = at
+    __truediv__ = select
+    __rshift__ = output
 
 class dataflow_at_selection:
 
     def __init__(self, df, sel_name):
         self.df = df
         self.sel_name = sel_name
+        if sel_name not in self.df.selections:
+            raise KeyError(f"selection '{sel_name}' not defined in dataflow")
 
-    def dataflow_has_selection(self) -> bool:
-        return (self.sel_name in self.df.selections)
+    def compute(self, columns: dict):
+        raise RuntimeError(
+            "compute columns from the main dataflow"
+        )
 
-    def compute(self, selections: dict):
-        if not self.dataflow_has_selection():
-            raise KeyError("selection not defined in dataflow (yet?)")
-        # start from specified selection
+    def select(self, selections: dict):
+        """Apply further selections starting from this branch"""
         self.df.current_selection = self.df.selections[self.sel_name]
-        return self.df.compute(selections)
+        return self.df.select(selections)
 
     def output(self, query_defn):
-        if not self.dataflow_has_selection():
-            raise KeyError("selection not defined in dataflow (yet?)")
-        # book at specified selection
-        self.df.current_selection = self.df.selections[self.sel_name]  
+        """Book query at this selection"""
+        self.df.current_selection = self.df.selections[self.sel_name]
         return self.df.output(query_defn)
 
-    def __rshift__(self, query):
-        return self.output(query)
-
-    def __or__(self, selection: str):
-        return self.compute(selection)
+    # DSL syntax
+    __or__ = compute     # not supported
+    __truediv__ = select # sel / {...}
+    __rshift__ = output  # sel >> query

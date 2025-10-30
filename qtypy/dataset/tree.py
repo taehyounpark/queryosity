@@ -14,14 +14,15 @@ class tree(lazy):
 
     def __init__(self, file_paths, tree_name):
         super().__init__()
-        self.name = f'ds_{tree_name}'
 
         self.file_paths = file_paths
         self.tree_name = tree_name
 
     def contextualize(self, df):
-        self.df = df
         df.dataset = self
+
+        self.df = df
+        self.instantiate()
 
     @property
     def cpp_initialization(self) -> str:

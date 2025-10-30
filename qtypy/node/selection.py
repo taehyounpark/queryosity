@@ -37,15 +37,18 @@ class selection(lazy):
         return f'{self.df.current_selection.cpp_identifier}.{self.operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)})'
 
     def contextualize(self, df, name):
-        # registered also as a column
+
+        # register also as a column (which it is)
         if name in df.columns:
             raise ValueError("column already exists")
         df.columns[name] = self
-        # register as a selection
+
+        # register as a selection (its main job)
         if name in df.selections:
             raise ValueError("selection already exists")
         df.selections[name] = self
 
+        # link to dataflow and JIT
         self.df = df
         self.instantiate()
 

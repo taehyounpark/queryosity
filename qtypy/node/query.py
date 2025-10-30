@@ -9,6 +9,7 @@ class query(lazy):
 
     def contextualize(self, df):
         self.df = df
+        self.instantiate()
 
     @property
     def cpp_initialization(self) -> str:
@@ -25,7 +26,6 @@ class result(cpp_binding):
     def __init__(self, query):
         super().__init__()
         self.query = query
-        self.name = f'result_{query.name}'
 
     @property
     def cpp_type(self):

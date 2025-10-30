@@ -5,9 +5,9 @@ from abc import abstractmethod
 class lazy(cpp_binding):
 
     def __init__(self):
-       super().__init__() 
-       self.cpp_prefix += 'lazy_'
-       self._df = None
+        super().__init__()
+        self.cpp_prefix += 'lazy_'
+        self._df = None
 
     @property
     def df(self):
@@ -20,7 +20,3 @@ class lazy(cpp_binding):
         if self._df is not None:
             raise RuntimeError("lazy node already assigned to a dataflow graph")
         self._df = value
-
-    @abstractmethod
-    def contextualize(self, df, name):
-        pass

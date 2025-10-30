@@ -15,7 +15,6 @@ class column(lazy):
         return f'qty::column::value_t<typename decltype({self.cpp_identifier})::action_type>'
 
     def contextualize(self, df, name):
-        self.name = name
         self.df = df
         self.instantiate()
         df.columns[name] = self

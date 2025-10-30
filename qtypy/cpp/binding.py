@@ -12,7 +12,8 @@ class cpp_binding(ABC):
         self._instantiated = False
 
         self.cpp_prefix = '__qtypy__'
-        self.name = None
+
+        self._name = None  # add internal storage for the name
 
     @property
     def cpp_type(self) -> str:
@@ -25,7 +26,7 @@ class cpp_binding(ABC):
 
     @cached_property
     def cpp_identifier(self) -> str:
-        identifier = f'{self.cpp_prefix}{self.name}_{self._instance_index}'
+        identifier = f'{self.cpp_prefix}{self.__class__.__name__}_{self._instance_index}'
         return identifier
 
     @cached_property

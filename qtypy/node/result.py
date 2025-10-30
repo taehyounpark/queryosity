@@ -4,7 +4,6 @@ class result(cpp_binding):
     def __init__(self, query):
         super().__init__()
         self.query = query
-        self.name = f'result_{query.name}'
 
     @property
     def cpp_type(self):
@@ -30,7 +29,6 @@ class nominal_result(result):
 
     def __init__(self, query):
         super().__init__(query)
-        self.name += f'_nominal'
 
     @property
     def cpp_initialization(self):
@@ -40,7 +38,6 @@ class varied_result(result):
 
     def __init__(self, query, variation : str):
         super().__init__(query)
-        self.name += f'_nominal'
         self.variation_name = variation
 
     @property
