@@ -17,12 +17,14 @@ def run_analysis(args):
     except ModuleNotFoundError:
         raise ImportError(f"Could not import analysis module '{args.analysis}'")
 
-    # Set up dataflow & load dataset
+    # Set up dataflow
     df = dataflow(
         multithreaded=args.multithread > 0,
         n_threads=args.multithread,
         n_rows=args.entries
     )
+
+    # Load input dataset
     df << dataset.tree(file_paths=args.files, tree_name=args.tree)
 
     # Load config files into flags
@@ -32,10 +34,26 @@ def run_analysis(args):
             kvs = yaml.safe_load(f)
         flags.update(kvs)
 
+    results = None
+
     # Run user-defined analysis
     if hasattr(analysis, "analyze"):
-        analysis.analyze(df, flags)
+        results = analysis.analyze(df, flags)
     else:
         raise AttributeError(
-            f"'{args.analysis}' module must define an 'analyze(df, flags)' function"
+            f"'{args.analysis}' must define an 'analyze(df, flags)' function"
         )
+
+    if args.output is not None:
+
+        if results is None:
+            raise ValueError(f"'{args.analysis}' did not return any results")
+
+        # Output results
+        if hasattr(analysis, "output"):
+            analysis.output(results, args.output)
+        else:
+            raise AttributeError(
+                f"'{args.analysis}' must define an 'output(results, output_path)' function"
+            )
+
