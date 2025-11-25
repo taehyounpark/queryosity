@@ -1,5 +1,3 @@
-import cppyy
-
 from rich.console import Console
 from rich.live import Live
 from rich.table import Table
@@ -16,7 +14,7 @@ class dataflow(cpp_binding):
 
     Parameters
     ----------
-    multithreaded : bool, optional
+    multithread : bool, optional
         Enable multithreading (default is False).
     n_threads : int, optional
         Number of threads to use for processing (default is -1, meaning all available threads).
@@ -40,15 +38,15 @@ class dataflow(cpp_binding):
 
     Examples
     --------
-    >>> df = dataflow(multithreaded=True)  # use all available threads
-    >>> df = dataflow(multithreaded=True, n_threads=64)  # use up to 64 threads
+    >>> df = dataflow(multithread=True)  # use all available threads
+    >>> df = dataflow(multithread=True, n_threads=64)  # use up to 64 threads
     """
 
-    def __init__(self, *, multithreaded : bool = False, n_threads: int = -1, n_rows: int = -1):
+    def __init__(self, *, multithread : bool = False, n_threads: int = -1, n_rows: int = -1):
         super().__init__()
 
-        self.multithreaded = multithreaded
-        self.n_threads = 0 if not multithreaded else n_threads
+        self.multithread = multithread
+        self.n_threads = 0 if not multithread else n_threads
         self.n_rows = n_rows
 
         self.dataset = None

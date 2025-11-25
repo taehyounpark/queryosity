@@ -19,7 +19,7 @@ def run_analysis(args):
 
     # Set up dataflow
     df = dataflow(
-        multithreaded=args.multithread > 0,
+        multithread=args.multithread > 0,
         n_threads=args.multithread,
         n_rows=args.entries
     )

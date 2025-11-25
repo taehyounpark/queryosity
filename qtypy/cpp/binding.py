@@ -1,4 +1,4 @@
-import cppyy
+import ROOT
 
 from abc import ABC, abstractmethod
 from functools import cached_property
@@ -32,12 +32,12 @@ class cpp_binding(ABC):
     @cached_property
     def cpp_instance(self):
         self.instantiate()
-        return getattr(cppyy.gbl, self.cpp_identifier, None)
+        return getattr(ROOT, self.cpp_identifier, None)
 
     def instantiate(self):
         if not self._instantiated:
             self._instantiated = True
-            return cppyy.cppdef('''{type} {id} = {init};'''.format(
+            return ROOT.gInterpreter.ProcessLine('''{type} {id} = {init};'''.format(
                 type = self.cpp_type,
                 id = self.cpp_identifier,
                 init = self.cpp_initialization

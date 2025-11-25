@@ -1,6 +1,5 @@
 import ROOT
-import cppyy
-cppyy.cppdef("""
+ROOT.gInterpreter.ProcessLine("""
 #pragma GCC push_options
 #pragma GCC optimize ("-O3")
 #pragma GCC pop_options

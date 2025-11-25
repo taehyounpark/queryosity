@@ -1,5 +1,3 @@
-import cppyy
-
 from ..node import column
 
 class constant(column):

@@ -1,5 +1,3 @@
-import cppyy
-
 from ..node import column
 
 from functools import cached_property

@@ -1,5 +1,34 @@
 from ..node import lazy
 
+import ROOT
+
+def get_branch_types(tfile):
+    """
+    Returns a dictionary where keys are branch names and values are their C++ types in the TTree.
+    
+    :param tfile: Opened TFile containing the TTree
+    :return: Dictionary with branch names as keys and their C++ types as values
+    """
+    # Ensure that we have a valid file and TTree
+    if not tfile or not tfile.IsOpen():
+        raise ValueError("File not open or invalid TFile.")
+    
+    # Assuming the TTree is the first object in the file
+    tree = tfile.GetListOfKeys()[0].ReadObj()  # or replace with your TTree's name if needed
+    if not isinstance(tree, ROOT.TTree):
+        raise TypeError("Object in file is not a TTree.")
+    
+    branch_types = {}
+    
+    # Loop over each branch in the TTree
+    for branch in tree.GetListOfBranches():
+        branch_name = branch.GetName()
+        # Get the branch's class name (C++ type)
+        branch_type = branch.GetClassName()
+        branch_types[branch_name] = branch_type
+    
+    return branch_types
+
 class tree(lazy):
     """
     qtypy layer for `qty::dataset::input<qty::ROOT::tree>`.
@@ -12,7 +41,7 @@ class tree(lazy):
         Name of the tree inside the ROOT file(s) to access.
     """
 
-    def __init__(self, file_paths, tree_name):
+    def __init__(self, file_paths, tree_name, columns : list[str] = []):
         super().__init__()
 
         self.file_paths = file_paths
