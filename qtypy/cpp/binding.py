@@ -1,4 +1,5 @@
 import ROOT
+import cppyy
 
 from abc import ABC, abstractmethod
 from functools import cached_property
@@ -37,8 +38,10 @@ class cpp_binding(ABC):
     def instantiate(self):
         if not self._instantiated:
             self._instantiated = True
-            return ROOT.gInterpreter.ProcessLine('''{type} {id} = {init};'''.format(
+            cpp_line = '''{type} {id} = {init};'''.format(
                 type = self.cpp_type,
                 id = self.cpp_identifier,
                 init = self.cpp_initialization
-            ))
+            )
+            result = ROOT.gInterpreter.ProcessLine(cpp_line)
+            return result

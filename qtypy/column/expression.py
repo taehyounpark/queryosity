@@ -1,7 +1,6 @@
 from ..cpp import find_cpp_identifiers_and_replace_with_values
 from ..node import column
 
-
 class expression(column):
     """
     Column defined by a one-line JIT-compiled C++ expression.

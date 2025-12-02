@@ -7,6 +7,7 @@ ROOT.gInterpreter.ProcessLine("""
 ROOT.queryosity.dataflow()
 
 from .dataflow import dataflow
+from . import column
 from .selection import filter, weight
 from .query import hist
 

@@ -647,8 +647,7 @@ auto queryosity::dataflow::_evaluate(todo<column::evaluator<Def>> const &calc,
       [](dataset::player *plyr, column::evaluator<Def> const *calc,
          Cols const *...cols) { return plyr->evaluate(*calc, *cols...); },
       m_processor.get_slots(), calc.get_slots(), columns.get_slots()...);
-  auto lzy = lazy<Def>(*this, act);
-  return lzy;
+  return lazy<Def>(*this, act);
 }
 
 template <typename Sel, typename Def, typename... Cols>
