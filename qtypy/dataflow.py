@@ -151,8 +151,7 @@ class dataflow_at_selection:
 
     def output(self, query_defn):
         """Book query at this selection"""
-        self.df.current_selection = self.df.selections[self.sel_name]
-        return self.df.output(query_defn)
+        return self.df.output(query_defn @ self.sel_name)
 
     # DSL syntax
     __or__ = compute     # not supported

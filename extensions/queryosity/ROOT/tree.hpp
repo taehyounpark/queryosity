@@ -269,7 +269,7 @@ queryosity::ROOT::tree::partition() {
     // check tree
     auto tree = file->Get<TTree>(m_tree_name.c_str());
     if (!tree) {
-      throw std::runtime_error("tree does not exist in file(s)");
+      // throw std::runtime_error("tree does not exist in file(s)");
       continue;
     }
 
