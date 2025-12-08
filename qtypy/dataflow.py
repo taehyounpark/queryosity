@@ -118,9 +118,8 @@ class dataflow(cpp_binding):
     def at(self, selection: str):
         return dataflow_at_selection(self, selection)
 
-    def output(self, query_defn):
+    def output(self, query_node):
         # issue new lazy<query> node everytime so existing definitions can be recycled later
-        query_node = query(query_defn)
         query_node.contextualize(self)
         # return the (not yet instantiated) result node
         return result(query_node)

@@ -17,9 +17,6 @@ public:
   calculation();
   virtual ~calculation() = default;
 
-protected:
-  template <typename... Args> calculation(Args &&...args);
-
 public:
   virtual const Val &value() const final override;
 
@@ -44,11 +41,6 @@ protected:
 template <typename Val>
 queryosity::column::calculation<Val>::calculation()
     : m_value(), m_updated(false) {}
-
-template <typename Val>
-template <typename... Args>
-queryosity::column::calculation<Val>::calculation(Args &&...args)
-    : m_value(std::forward<Args>(args)...) {}
 
 template <typename Val>
 const Val &queryosity::column::calculation<Val>::value() const {

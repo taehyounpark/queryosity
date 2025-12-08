@@ -6,6 +6,7 @@ class definition(ABC):
 
     def __init__(self):
         self.filled_columns : list[list[str]] = []
+        self.booked_selection : str = None
         pass
 
     def fill(self, *columns):
@@ -13,7 +14,8 @@ class definition(ABC):
         return self
 
     def at(self, selection):
-        return query(self, selection)
+        self.booked_selection = selection
+        return query(self)
 
     def __matmul__(self, selection):
         return self.at(selection)

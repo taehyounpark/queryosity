@@ -50,7 +50,6 @@ public:
   */
   virtual void finalize(unsigned int slot) = 0;
 
-protected:
 };
 
 } // namespace queryosity
