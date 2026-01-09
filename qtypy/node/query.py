@@ -19,7 +19,7 @@ class query(lazy):
             fill_call += ', '.join([f'{self.df.columns[column_name].cpp_identifier}' for column_name in column_names])
             fill_call += ')'
             cpp_fill_calls.append(fill_call)
-        at_call = f'at({self.df.selections[self.defn.booked_selection].cpp_identifier})'
+        at_call = f'at({self.df.current_selection.cpp_identifier})'
         return f'{self.df.cpp_identifier}.{self.defn.cpp_get_call}.{".".join(cpp_fill_calls)}.{at_call}'
 
 class result(cpp_binding):

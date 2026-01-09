@@ -152,7 +152,7 @@ class hist<1, Val> : public qty::query::definition<std::shared_ptr<TH1>(Val)> {
 public:
   hist(const std::string &hname = "", unsigned int = 1, double = 0.0,
        double = 1.0);
-  hist(const std::string &hname, const std::vector<Val> &);
+  hist(const std::string &hname, const std::vector<double> &);
   virtual ~hist() = default;
 
   virtual void fill(qty::column::observable<Val>, double) final override;
@@ -170,8 +170,8 @@ class hist<2, Val>
     : public qty::query::definition<std::shared_ptr<TH2>(Val, Val)> {
 
 public:
-  hist(const std::string &hname, std::vector<Val> const &,
-       std::vector<Val> const &);
+  hist(const std::string &hname, std::vector<double> const &,
+       std::vector<double> const &);
   hist(const std::string &hname = "", unsigned int nx = 1, double xmin = 0.0,
        double xmax = 1.0, unsigned int ny = 1, double ymin = 0,
        double ymax = 1.0);
@@ -192,8 +192,8 @@ class hist<3, Val>
     : public qty::query::definition<std::shared_ptr<TH3>(Val, Val, Val)> {
 
 public:
-  hist(const std::string &hname, std::vector<Val> const &,
-       std::vector<Val> const &, std::vector<Val> const &);
+  hist(const std::string &hname, std::vector<double> const &,
+       std::vector<double> const &, std::vector<double> const &);
   virtual ~hist() = default;
 
   virtual void fill(qty::column::observable<Val>, qty::column::observable<Val>,
@@ -286,15 +286,8 @@ queryosity::ROOT::hist<1, Val>::hist(const std::string &hname,
 
 template <typename Val>
 queryosity::ROOT::hist<1, Val>::hist(const std::string &hname,
-                                     const std::vector<Val> &xbins) {
-  if constexpr (std::is_same_v<Val, std::string>) {
-    m_hist = make_hist<1, float>(xbins.size(), 0, xbins.size());
-    for (unsigned int ix = 0; ix < xbins.size(); ++ix) {
-      m_hist->GetXaxis()->SetBinLabel(ix + 1, xbins[ix].c_str());
-    }
-  } else {
-    m_hist = make_hist<1, float>(xbins);
-  }
+                                     const std::vector<double> &xbins) {
+  m_hist = make_hist<1, float>(xbins);
   m_hist->SetNameTitle(hname.c_str(), hname.c_str());
 }
 
@@ -323,21 +316,10 @@ std::shared_ptr<TH1> queryosity::ROOT::hist<1, Val>::merge(
 
 template <typename Val>
 queryosity::ROOT::hist<2, Val>::hist(const std::string &hname,
-                                     std::vector<Val> const &xbins,
-                                     std::vector<Val> const &ybins) {
-  if constexpr (std::is_same_v<Val, std::string>) {
-    m_hist = std::static_pointer_cast<TH2>(make_hist<2, float>(
-        xbins.size(), 0, xbins.size(), ybins.size(), 0, ybins.size()));
-    for (unsigned int ix = 0; ix < xbins.size(); ++ix) {
-      m_hist->GetXaxis()->SetBinLabel(ix + 1, xbins[ix].c_str());
-    }
-    for (unsigned int iy = 0; iy < xbins.size(); ++iy) {
-      m_hist->GetYaxis()->SetBinLabel(iy + 1, ybins[iy].c_str());
-    }
-  } else {
-    m_hist = std::static_pointer_cast<TH2>(make_hist<2, Val>(xbins, ybins));
-    m_hist->SetNameTitle(hname.c_str(), hname.c_str());
-  }
+                                     std::vector<double> const &xbins,
+                                     std::vector<double> const &ybins) {
+  m_hist = std::static_pointer_cast<TH2>(make_hist<2, Val>(xbins, ybins));
+  m_hist->SetNameTitle(hname.c_str(), hname.c_str());
 }
 
 template <typename Val>
@@ -375,9 +357,9 @@ std::shared_ptr<TH2> queryosity::ROOT::hist<2, Val>::result() const {
 
 template <typename Val>
 queryosity::ROOT::hist<3, Val>::hist(const std::string &hname,
-                                     std::vector<Val> const &xbins,
-                                     std::vector<Val> const &ybins,
-                                     std::vector<Val> const &zbins)
+                                     std::vector<double> const &xbins,
+                                     std::vector<double> const &ybins,
+                                     std::vector<double> const &zbins)
     : qty::query::definition<std::shared_ptr<TH3>(Val, Val, Val)>() {
   m_hist =
       std::static_pointer_cast<TH3>(make_hist<3, Val>(xbins, ybins, zbins));

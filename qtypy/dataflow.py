@@ -38,15 +38,16 @@ class dataflow(cpp_binding):
 
     Examples
     --------
-    >>> df = dataflow(multithread=True)  # use all available threads
-    >>> df = dataflow(multithread=True, n_threads=64)  # use up to 64 threads
+    >>> df = dataflow()                 # use all available threads
+    >>> df = dataflow(n_threads=8)      # use (up to) 8 threads
+    >>> df = dataflow(enable_mt=False)  # single-threaded
     """
 
-    def __init__(self, *, multithread : bool = False, n_threads: int = -1, n_rows: int = -1):
+    def __init__(self, *, n_threads: int = -1, n_rows: int = -1, enable_mt : bool = True):
         super().__init__()
 
-        self.multithread = multithread
-        self.n_threads = 0 if not multithread else n_threads
+        self.enable_mt = enable_mt
+        self.n_threads = n_threads
         self.n_rows = n_rows
 
         self.dataset = None
@@ -59,7 +60,7 @@ class dataflow(cpp_binding):
 
     @property
     def cpp_initialization(self):
-        return f"""qty::dataflow(qty::multithread::enable({self.n_threads}),qty::dataset::head({self.n_rows}))"""
+        return f"""qty::dataflow(qty::multithread::enable({self.enable_mt * self.n_threads}),qty::dataset::head({self.n_rows}))"""
 
     def input(self, ds):
         ds.contextualize(self)
@@ -99,27 +100,22 @@ class dataflow(cpp_binding):
 
     def select(self, selections: dict):
         """Define selections in order and return a branch at the last one."""
-        it = iter(selections.items())
 
-        # First selection
-        first_name, first_node = next(it)
-        first_node.contextualize(self, first_name)
-        first_node.instantiate()
-        df_at_sel = self.at(first_name)
-
-        # Remaining selections
-        for sel_name, sel_node in it:
+        for sel_name, sel_node in selections.items():
             sel_node.contextualize(self, sel_name)
             sel_node.instantiate()
-            df_at_sel = self.at(sel_name)
 
-        return df_at_sel
+        return self
 
     def at(self, selection: str):
-        return dataflow_at_selection(self, selection)
+        if selection not in self.selections:
+            raise KeyError(f"selection '{selection}' not found in dataflow.")
+        self.current_selection = self.selections[selection]
+        return self
 
-    def output(self, query_node):
+    def output(self, query_defn):
         # issue new lazy<query> node everytime so existing definitions can be recycled later
+        query_node = query(query_defn)
         query_node.contextualize(self)
         # return the (not yet instantiated) result node
         return result(query_node)
@@ -130,30 +126,3 @@ class dataflow(cpp_binding):
     __matmul__ = at
     __truediv__ = select
     __rshift__ = output
-
-class dataflow_at_selection:
-
-    def __init__(self, df, sel_name):
-        self.df = df
-        self.sel_name = sel_name
-        if sel_name not in self.df.selections:
-            raise KeyError(f"selection '{sel_name}' not defined in dataflow")
-
-    def compute(self, columns: dict):
-        raise RuntimeError(
-            "compute columns from the main dataflow"
-        )
-
-    def select(self, selections: dict):
-        """Apply further selections starting from this branch"""
-        self.df.current_selection = self.df.selections[self.sel_name]
-        return self.df.select(selections)
-
-    def output(self, query_defn):
-        """Book query at this selection"""
-        return self.df.output(query_defn @ self.sel_name)
-
-    # DSL syntax
-    __or__ = compute     # not supported
-    __truediv__ = select # sel / {...}
-    __rshift__ = output  # sel >> query

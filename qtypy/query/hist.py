@@ -29,12 +29,12 @@ class hist(definition):
         else:
             if dtype == 'std::string':
                 bin_items = ', '.join(f'"{b}"' for b in xbins)
-                self.xbins = f"std::vector<{self.dtype}>{{{ {bin_items} }}}"
+                self.xbins = f"std::vector<std::string>{{{ {bin_items} }}}"
                 self.nx = len(xbins)-1
                 self.xmin = xbins[0]
                 self.xmax = xbins[-1]
             else:
-                self.xbins = f"std::vector<{self.dtype}>({{{', '.join([str(edge) for edge in xbins])}}})"
+                self.xbins = f"std::vector<double>({{{', '.join([str(edge) for edge in xbins])}}})"
                 self.nx = len(xbins)-1
                 self.xmin = xbins[0]
                 self.xmax = xbins[-1]
@@ -49,12 +49,12 @@ class hist(definition):
         elif all([arg is None for arg in (ny, ymin, ymax)]):
             if dtype == 'std::string':
                 bin_items = ', '.join(f'"{b}"' for b in ybins)
-                self.ybins = f"std::vector<{self.dtype}>{{{ {bin_items} }}}"
+                self.ybins = f"std::vector<std::string>{{{ {bin_items} }}}"
                 self.ny = len(ybins)-1
                 self.ymin = ybins[0]
                 self.ymax = ybins[-1]
             else:
-                self.ybins = f"std::vector<{self.dtype}>({{{', '.join([str(edge) for edge in ybins])}}})"
+                self.ybins = f"std::vector<double>({{{', '.join([str(edge) for edge in ybins])}}})"
                 self.ny = len(ybins)-1
                 self.ymin = ybins[0]
                 self.ymax = ybins[-1]
