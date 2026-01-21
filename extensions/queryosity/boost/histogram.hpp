@@ -3,7 +3,7 @@
 #include <boost/histogram.hpp> // make_histogram, regular, weight, indexed
 #include <boost/histogram/ostream.hpp>
 
-#include <functional>          // std::ref
+#include <functional> // std::ref
 #include <utility>
 
 namespace queryosity {
@@ -47,7 +47,8 @@ using histogram_t = ::boost::histogram::histogram<axes_t>;
  */
 template <typename... Vals>
 class histogram
-    : public queryosity::query::definition<std::shared_ptr<histogram_t>(Vals...)> {
+    : public queryosity::query::definition<std::shared_ptr<histogram_t>(
+          Vals...)> {
 
 public:
 public:
@@ -80,7 +81,8 @@ public:
    * @return Merged histogram.
    */
   virtual std::shared_ptr<histogram_t>
-  merge(std::vector<std::shared_ptr<histogram_t>> const &results) const final override;
+  merge(std::vector<std::shared_ptr<histogram_t>> const &results)
+      const final override;
 
 protected:
   std::shared_ptr<histogram_t> m_histogram;
@@ -88,16 +90,16 @@ protected:
 
 } // namespace histogram
 
-
-}
+} // namespace boost
 
 } // namespace queryosity
 
 template <typename... Vals>
 template <typename... Axes>
 queryosity::boost::histogram::histogram<Vals...>::histogram(Axes &&...axes) {
-  m_histogram = std::make_shared<histogram_t>(std::move(
-      ::boost::histogram::make_weighted_histogram(std::forward<Axes>(axes)...)));
+  m_histogram = std::make_shared<histogram_t>(
+      std::move(::boost::histogram::make_weighted_histogram(
+          std::forward<Axes>(axes)...)));
 }
 
 template <typename... Vals>

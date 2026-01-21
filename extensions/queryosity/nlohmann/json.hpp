@@ -80,8 +80,7 @@ protected:
   const std::string m_key;
 };
 
-
-}
+} // namespace nlohmann
 
 } // namespace queryosity
 
@@ -92,10 +91,12 @@ queryosity::nlohmann::json::json(std::ifstream &data)
 
 template <typename T>
 queryosity::nlohmann::json::item<T>::item(::nlohmann::json const &data,
-                                const std::string &name)
+                                          const std::string &name)
     : m_data(data), m_key(name) {}
 
-void queryosity::nlohmann::json::parallelize(unsigned int nslots) { m_nslots = nslots; }
+void queryosity::nlohmann::json::parallelize(unsigned int nslots) {
+  m_nslots = nslots;
+}
 
 std::vector<std::pair<unsigned long long, unsigned long long>>
 queryosity::nlohmann::json::partition() {
@@ -127,8 +128,9 @@ queryosity::nlohmann::json::read(unsigned int, const std::string &name) const {
 }
 
 template <typename T>
-const T &queryosity::nlohmann::json::item<T>::read(unsigned int,
-                                         unsigned long long item) const {
+const T &
+queryosity::nlohmann::json::item<T>::read(unsigned int,
+                                          unsigned long long item) const {
   m_value = this->m_data[item][m_key].template get<T>();
   return m_value;
 }
