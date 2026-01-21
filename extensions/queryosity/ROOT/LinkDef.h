@@ -4,6 +4,7 @@
 
 #include "queryosity/ROOT/tree.hpp"
 #include "queryosity/ROOT/hist.hpp"
+#include "queryosity/ROOT/hist_categorized.hpp"
 
 #include <queryosity.hpp>
 
@@ -34,6 +35,7 @@
 #pragma link C++ class queryosity::column::variation<float>+;
 #pragma link C++ class queryosity::ROOT::tree+;
 #pragma link C++ class queryosity::ROOT::hist<1,float>+;
+#pragma link C++ class queryosity::ROOT::hist_categorized<std::string,float>+;
 #ifdef BOOTSTRAP_HISTOGRAM
 #pragma link C++ class queryosity::ROOT::toy_generator+;
 #pragma link C++ class queryosity::ROOT::hist_with_toys<1,float>+;
