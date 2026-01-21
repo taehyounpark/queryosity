@@ -1,9 +1,9 @@
 #pragma once
 
+#include <functional>
 #include <map>
 #include <set>
 #include <string>
-#include <functional>
 
 #include "systematic.hpp"
 
@@ -39,7 +39,6 @@ public:
 
   std::map<std::string, std::reference_wrapper<U>> variations();
   std::map<std::string, std::reference_wrapper<U const>> variations() const;
-
 };
 
 } // namespace queryosity
@@ -47,19 +46,20 @@ public:
 template <typename U>
 std::map<std::string, std::reference_wrapper<U>>
 queryosity::systematic::resolver<U>::variations() {
-    std::map<std::string, std::reference_wrapper<U>> out;
-    for (auto const& name : this->get_variation_names()) {
-        out.emplace(name, this->variation(name));
-    }
-    return out;
+  std::map<std::string, std::reference_wrapper<U>> out;
+  for (auto const &name : this->get_variation_names()) {
+    out.emplace(name, this->variation(name));
+  }
+  return out;
 }
 
 template <typename U>
 std::map<std::string, std::reference_wrapper<U const>>
 queryosity::systematic::resolver<U>::variations() const {
-    std::map<std::string, std::reference_wrapper<U const>> out;
-    for (auto const& name : this->get_variation_names()) {
-        out.emplace(name, this->variation(name));  // calls const variation(name) const
-    }
-    return out;
+  std::map<std::string, std::reference_wrapper<U const>> out;
+  for (auto const &name : this->get_variation_names()) {
+    out.emplace(name,
+                this->variation(name)); // calls const variation(name) const
+  }
+  return out;
 }

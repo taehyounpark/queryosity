@@ -43,7 +43,8 @@ public:
 
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) final override;
-  virtual void execute(unsigned int slot, unsigned long long entry) final override;
+  virtual void execute(unsigned int slot,
+                       unsigned long long entry) final override;
   virtual void finalize(unsigned int slot) final override;
 
 protected:
@@ -53,12 +54,11 @@ protected:
 
 template <typename T> struct is_applicable : std::false_type {};
 template <typename T, typename U>
-struct is_applicable<selection::applicator<T,U>> : std::true_type {};
+struct is_applicable<selection::applicator<T, U>> : std::true_type {};
 template <typename T>
 static constexpr bool is_applicable_v = is_applicable<T>::value;
 
-template <typename T>
-using applied_t = typename T::selection_type;
+template <typename T> using applied_t = typename T::selection_type;
 
 } // namespace selection
 
@@ -82,12 +82,14 @@ queryosity::selection::node::get_previous() const noexcept {
   return m_preselection;
 }
 
-inline void queryosity::selection::node::initialize(unsigned int slot, unsigned long long begin,
-                                               unsigned long long end) {
+inline void queryosity::selection::node::initialize(unsigned int slot,
+                                                    unsigned long long begin,
+                                                    unsigned long long end) {
   column::calculation<double>::initialize(slot, begin, end);
-                                               }
+}
 
-inline void queryosity::selection::node::execute(unsigned int slot, unsigned long long entry) {
+inline void queryosity::selection::node::execute(unsigned int slot,
+                                                 unsigned long long entry) {
   column::calculation<double>::execute(slot, entry);
 }
 

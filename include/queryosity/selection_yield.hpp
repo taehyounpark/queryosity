@@ -30,7 +30,8 @@ public:
   virtual void count(double w) final override;
   virtual count_t result() const final override;
   virtual void finalize(unsigned int) final override;
-  virtual count_t merge(std::vector<count_t> const &results) const final override;
+  virtual count_t
+  merge(std::vector<count_t> const &results) const final override;
 
 protected:
   count_t m_cnt;
@@ -67,12 +68,13 @@ inline void queryosity::selection::counter::finalize(unsigned int) {
   m_cnt.error = std::sqrt(m_cnt.error);
 }
 
-inline queryosity::selection::count_t queryosity::selection::counter::result() const {
+inline queryosity::selection::count_t
+queryosity::selection::counter::result() const {
   return m_cnt;
 }
 
 inline queryosity::selection::count_t
-queryosity::selection::counter::merge(std::vector<count_t> const& cnts) const {
+queryosity::selection::counter::merge(std::vector<count_t> const &cnts) const {
   count_t sum;
   for (auto const &cnt : cnts) {
     sum.entries += cnt.entries;
