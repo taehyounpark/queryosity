@@ -71,15 +71,17 @@ if(TARGET rapidcsv)
   target_link_libraries(queryosity_extensions PUBLIC rapidcsv)
 endif()
 
-if (BootstrapGenerator_FOUND)
-  target_link_libraries(queryosity_extensions PUBLIC BootstrapGenerator)
-endif()
-
 target_link_libraries(
   queryosity_extensions
   INTERFACE queryosity::queryosity
   PUBLIC ${Boost_LIBRARIES} ${ROOT_LIBRARIES}
 )
+
+if (BootstrapGenerator_FOUND)
+  target_link_libraries(queryosity_extensions PUBLIC BootstrapGenerator)
+  # target_link_libraries(queryosity_extensions PUBLIC ${BootstrapGenerator_LIBRARIES})
+  # target_include_directories(queryosity_extensions PUBLIC ${BootstrapGenerator_INCLUDE_DIRS})
+endif()
 
 target_include_directories(queryosity_extensions PUBLIC
   ${PROJECT_SOURCE_DIR}/include
@@ -90,6 +92,9 @@ target_include_directories(queryosity_extensions PUBLIC
   ${ROOT_INCLUDE_DIRS}
   ${BootstrapGenerator_INCLUDE_DIRS}
 )
+
+message(${BootstrapGenerator_FOUND})
+message(${BootstrapGenerator_INCLUDE_DIRS})
 
 if (ROOT_FOUND)
   # ROOT Dictionary

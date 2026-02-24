@@ -7,7 +7,7 @@ class systematic(column):
         self.nominal = nominal
         self.variations = variations
 
-    def contextualize(self, df, name):
+    def _contextualize(self, df, name):
         if name in df.columns:
             raise ValueError("column already exists")
         df.columns[name] = self
@@ -18,13 +18,13 @@ class systematic(column):
         for variation in self.variations.values():
             variation.df = df
 
-    def instantiate(self):
+    def _instantiate(self):
         # instantiate lazy<column> nodes first
-        self.nominal.instantiate()
+        self.nominal._instantiate()
         for variation in self.variations.values():
-            variation.instantiate()
+            variation._instantiate()
         # instantiate varied<lazy> node
-        super().instantiate()
+        super()._instantiate()
 
     @property
     def cpp_initialization(self):

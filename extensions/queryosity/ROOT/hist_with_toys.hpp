@@ -60,7 +60,7 @@ class hist_with_toys<1, Prec>
 public:
   hist_with_toys(const std::string &hname = "", unsigned int nx = 1,
                  Prec xmin = 0, Prec xmax = 1, unsigned int ntoy = 0);
-  hist_with_toys(const std::string &hname, const std::vector<Prec> &,
+  hist_with_toys(const std::string &hname, const std::vector<double> &,
                  unsigned int ntoy);
   virtual ~hist_with_toys() = default;
 
@@ -80,7 +80,7 @@ protected:
   // histogram
   std::shared_ptr<TH1Bootstrap> m_hist; //!
   std::string m_hname;
-  std::vector<Prec> m_xbins;
+  std::vector<double> m_xbins;
 };
 
 } // namespace ROOT
@@ -137,7 +137,8 @@ queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
 
 template <typename Prec>
 queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
-    const std::string &hname, const std::vector<Prec> &xbins, unsigned int ntoy)
+    const std::string &hname, const std::vector<double> &xbins,
+    unsigned int ntoy)
     : toy_generator(ntoy), m_hist(nullptr), m_hname(hname), m_xbins(xbins) {
   if constexpr (std::is_same_v<Prec, float>) {
     using hist_t = TH1FBootstrap;

@@ -8,7 +8,7 @@ ROOT.queryosity.dataflow()
 
 from .dataflow import dataflow
 from . import column
-from .selection import filter, weight
+from .selection import cut, weight
 from .query import hist
 
 __all__: list[str] = [
@@ -16,7 +16,5 @@ __all__: list[str] = [
     "dataflow",
     "dataset",
     "column",
-    "filter",
-    "weight"
     "hist"
 ]

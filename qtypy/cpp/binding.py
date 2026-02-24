@@ -32,10 +32,10 @@ class cpp_binding(ABC):
 
     @cached_property
     def cpp_instance(self):
-        self.instantiate()
+        self._instantiate()
         return getattr(ROOT, self.cpp_identifier, None)
 
-    def instantiate(self):
+    def _instantiate(self):
         if not self._instantiated:
             self._instantiated = True
             cpp_line = '''{type} {id} = {init};'''.format(

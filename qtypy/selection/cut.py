@@ -1,6 +1,6 @@
 from ..node import selection 
 
-class filter(selection):
+class cut(selection):
     """
     Represents a floating-point weight applied to a row, considered only
     when a cut is passed.

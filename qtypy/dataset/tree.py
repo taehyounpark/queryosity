@@ -47,11 +47,10 @@ class tree(lazy):
         self.file_paths = file_paths
         self.tree_name = tree_name
 
-    def contextualize(self, df):
+    def _contextualize(self, df):
         df.dataset = self
-
         self.df = df
-        self.instantiate()
+        self._instantiate()
 
     @property
     def cpp_initialization(self) -> str:

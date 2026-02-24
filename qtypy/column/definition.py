@@ -24,7 +24,10 @@ class Definition(column):
 
     def __init__(self, defn: str, args: List[str]):
         super().__init__()
-        self.defn: str = defn
+        if isinstance(defn, str):
+            self.defn = defn
+        else:
+            self.defn = type(defn).__cpp_name__
         self.args: List[str] = args
         self.slot_hook: Callable[[Any], None] | None = None
 
@@ -40,7 +43,7 @@ class Definition(column):
             f".evaluate({', '.join(lazy_args)})"
         )
 
-    def contextualize(self, df: Any, name: str):
+    def _contextualize(self, df: Any, name: str):
         """
         Inject the DataFrame/graph and instantiate the C++ slot.
 
@@ -48,7 +51,7 @@ class Definition(column):
         """
         self.df = df
 
-        self.instantiate()
+        self._instantiate()
         
         cppyy.cppdef('''
             auto {id}_slots = {id}.get_slots();
@@ -61,32 +64,50 @@ class Definition(column):
 
         df.columns[name] = self
 
-def definition_decorator(cpp_class: str, column_args: List[str]):
+def definition_decorator(cpp_class: str, cpp_ctor_args=()):
     """
-    Decorator for attaching a single slot_hook function to a C++-backed column.
+    Decorator for attaching a slot_hook to a C++-backed column.
 
-    Example:
+    Usage:
 
-        @column.definition("OptimalCombinedTrigger", ["dijet_pTavg"])
-        def set_triggers(slot, triggers, thresholds):
-            slot.m_offlinePt99.push_back((thresholds[0], triggers[0]))
+        @column.definition("CppClass", (arg1, arg2))("col1", "col2")
+        def f(slot, ...):
+            ...
 
-        df | {"optimalCombinedTrigger": set_triggers(triggers, thresholds)}
+    If no C++ ctor args:
+
+        @column.definition("CppClass")("col1")
     """
-    def decorator(user_func: Callable):
-        @wraps(user_func)
-        def factory(*user_args, **user_kwargs) -> "definition":
-            col = Definition(cpp_class, column_args)
 
-            if col.slot_hook is not None:
-                raise RuntimeError("Column already has an slot_hook assigned")
+    # Normalize None → empty tuple
+    if cpp_ctor_args is None:
+        cpp_ctor_args = ()
 
-            def slot_hook(slot: Any):
-                user_func(slot, *user_args, **user_kwargs)
+    def column_args_decorator(*column_args):
 
-            col.slot_hook = slot_hook
-            return col
+        def decorator(user_func):
 
-        return factory
+            @wraps(user_func)
+            def factory(*user_args, **user_kwargs):
 
-    return decorator
+                # Pass ctor args into Definition
+                col = Definition(
+                    cpp_class,
+                    list(column_args),
+                    *cpp_ctor_args
+                )
+
+                if col.slot_hook is not None:
+                    raise RuntimeError("Column already has a slot_hook assigned")
+
+                def slot_hook(slot):
+                    user_func(slot, *user_args, **user_kwargs)
+
+                col.slot_hook = slot_hook
+                return col
+
+            return factory
+
+        return decorator
+
+    return column_args_decorator

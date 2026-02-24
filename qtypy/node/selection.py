@@ -36,7 +36,7 @@ class selection(lazy):
 
         return f'{self.df.current_selection.cpp_identifier}.{self.operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)})'
 
-    def contextualize(self, df, name):
+    def _contextualize(self, df, name):
 
         # register also as a column (which it is)
         if name in df.columns:
@@ -50,7 +50,7 @@ class selection(lazy):
 
         # link to dataflow and JIT
         self.df = df
-        self.instantiate()
+        self._instantiate()
 
         # move dataflow to current selection
         df.current_selection = self

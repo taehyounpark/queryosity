@@ -7,9 +7,9 @@ class query(lazy):
         super().__init__()
         self.defn = defn
 
-    def contextualize(self, df):
+    def _contextualize(self, df):
         self.df = df
-        self.instantiate()
+        self._instantiate()
 
     @property
     def cpp_initialization(self) -> str:
