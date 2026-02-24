@@ -6,7 +6,6 @@ build-backend = "setuptools.build_meta"
 name = "queryosity"
 version = "0.9.3"
 description = "Python frontend for ROOT data analyses written in queryosity"
-license-files = ["LICENSE"]
 readme = "README.md"
 requires-python = ">=3.9"
 authors = [
@@ -35,6 +34,7 @@ Issues = "https://github.com/taehyounpark/queryosity/issues"
 
 [tool.setuptools]
 include-package-data = true
+license-files = ["LICENSE"]
 
 [tool.setuptools.packages.find]
 exclude = ["tests", "tests.*"]
