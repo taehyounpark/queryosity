@@ -50,7 +50,8 @@ queryosity::query::booker<T>::booker(Args... args)
 template <typename T>
 template <typename... Vals>
 auto queryosity::query::booker<T>::add_columns(
-    column::valued<Vals> const &...columns) const -> std::unique_ptr<booker<T>> {
+    column::valued<Vals> const &...columns) const
+    -> std::unique_ptr<booker<T>> {
   // use a fresh one with its current fills
   auto filled = std::make_unique<booker<T>>(*this);
   // add fills
@@ -72,8 +73,8 @@ void queryosity::query::booker<T>::fill_query(
 }
 
 template <typename T>
-auto queryosity::query::booker<T>::set_selection(const selection::node &sel) const
-    -> std::unique_ptr<T> {
+auto queryosity::query::booker<T>::set_selection(
+    const selection::node &sel) const -> std::unique_ptr<T> {
   // call constructor
   auto cnt = m_make_unique_query();
   // fill columns (if set)

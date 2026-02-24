@@ -7,15 +7,14 @@ namespace queryosity {
 /**
  * @ingroup ext
  * @brief CSV dataset for queryosity.
-*/
+ */
 class csv : public dataset::reader<csv> {
 
 public:
-  template <typename T>
-  class cell;
+  template <typename T> class cell;
 
 public:
-  csv(std::ifstream& data);
+  csv(std::ifstream &data);
   virtual ~csv() = default;
 
   /**
@@ -68,10 +67,12 @@ protected:
 
 } // namespace queryosity
 
-inline queryosity::csv::csv(std::ifstream& data)
+inline queryosity::csv::csv(std::ifstream &data)
     : m_document(data), m_nslots(1) {}
 
-inline void queryosity::csv::parallelize(unsigned int nslots) { m_nslots = nslots; }
+inline void queryosity::csv::parallelize(unsigned int nslots) {
+  m_nslots = nslots;
+}
 
 inline std::vector<std::pair<unsigned long long, unsigned long long>>
 queryosity::csv::partition() {
@@ -102,7 +103,9 @@ queryosity::csv::read(unsigned int, const std::string &column_name) const {
 }
 
 template <typename T>
-T const &queryosity::csv::cell<T>::read(unsigned int, unsigned long long entry) const {
-  this->m_value = this->m_document.template GetCell<T>(this->m_column_name, entry);
+T const &queryosity::csv::cell<T>::read(unsigned int,
+                                        unsigned long long entry) const {
+  this->m_value =
+      this->m_document.template GetCell<T>(this->m_column_name, entry);
   return this->m_value;
 }

@@ -29,8 +29,8 @@ public:
 
   auto make(lazy<selection::node> &sel) const;
 
-  auto make(varied<lazy<selection::node>> &sel) const ->
-      varied<lazy<query::series<value_type>>>;
+  auto make(varied<lazy<selection::node>> &sel) const
+      -> varied<lazy<query::series<value_type>>>;
 
 protected:
   Col m_column;

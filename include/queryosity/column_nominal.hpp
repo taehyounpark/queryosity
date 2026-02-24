@@ -23,7 +23,7 @@ protected:
   lazy<valued<value_t<Col>>> const &m_nom;
 };
 
-} // namespace systematic
+} // namespace column
 
 } // namespace queryosity
 
@@ -33,6 +33,7 @@ template <typename Col>
 queryosity::column::nominal<Col>::nominal(lazy<Col> const &nom) : m_nom(nom) {}
 
 template <typename Col>
-auto queryosity::column::nominal<Col>::get() const -> lazy<valued<value_t<Col>>> const & {
+auto queryosity::column::nominal<Col>::get() const
+    -> lazy<valued<value_t<Col>>> const & {
   return m_nom;
 }

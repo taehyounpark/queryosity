@@ -68,7 +68,8 @@ public:
 
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) override;
-  virtual void execute(unsigned int slot, unsigned long long entry) final override;
+  virtual void execute(unsigned int slot,
+                       unsigned long long entry) final override;
   virtual void finalize(unsigned int slot) override;
 
   virtual void count(double w) = 0;
@@ -83,8 +84,7 @@ constexpr std::true_type check_aggregation(query::aggregation<T> const &);
 constexpr std::false_type check_aggregation(...);
 
 template <typename... Vals>
-constexpr std::true_type
-check_fillable(query::fillable<Vals...> const &);
+constexpr std::true_type check_fillable(query::fillable<Vals...> const &);
 constexpr std::false_type check_fillable(...);
 
 template <typename T> struct is_bookable : std::false_type {};
