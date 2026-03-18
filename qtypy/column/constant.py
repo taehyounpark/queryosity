@@ -30,3 +30,6 @@ class constant(column):
             cpp_value_type=self.cpp_value_type,
             value=self.value
         )
+
+    def __str__(self):
+        return str(self.value)

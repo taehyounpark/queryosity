@@ -1,10 +1,12 @@
 #ifdef BOOTSTRAP_HISTOGRAM
+#include "queryosity/ROOT/hgrid_with_toys.hpp"
 #include "queryosity/ROOT/hist_with_toys.hpp"
 #endif
 
-#include "queryosity/ROOT/tree.hpp"
+#include "queryosity/ROOT/hgrid.hpp"
 #include "queryosity/ROOT/hist.hpp"
 #include "queryosity/ROOT/hist_categorized.hpp"
+#include "queryosity/ROOT/tree.hpp"
 
 #include <queryosity.hpp>
 
@@ -19,26 +21,36 @@
 
 #pragma link C++ namespace queryosity;
 
-#pragma link C++ class queryosity::dataset::processor+;
-#pragma link C++ class queryosity::dataset::weight+;
-#pragma link C++ class queryosity::multithread::core+;
-#pragma link C++ class queryosity::dataset::player+;
-#pragma link C++ class queryosity::ensemble::slotted<queryosity::dataset::player>+;
-#pragma link C++ class queryosity::column::computation+;
-#pragma link C++ class queryosity::selection::cutflow+;
-#pragma link C++ class queryosity::query::experiment+;
-#pragma link C++ class queryosity::dataflow+;
+#pragma link C++ class queryosity::dataset::processor + ;
+#pragma link C++ class queryosity::dataset::weight + ;
+#pragma link C++ class queryosity::multithread::core + ;
+#pragma link C++ class queryosity::dataset::player + ;
+#pragma link C++ class queryosity::ensemble::slotted <                         \
+    queryosity::dataset::player> +                                             \
+    ;
+#pragma link C++ class queryosity::column::computation + ;
+#pragma link C++ class queryosity::selection::cutflow + ;
+#pragma link C++ class queryosity::query::experiment + ;
+#pragma link C++ class queryosity::dataflow + ;
 
-#pragma link C++ class queryosity::column::observable<float>+;
-#pragma link C++ class queryosity::column::constant<float>+;
-#pragma link C++ class queryosity::column::nominal<queryosity::column::fixed<float>>+;
-#pragma link C++ class queryosity::column::variation<float>+;
-#pragma link C++ class queryosity::ROOT::tree+;
-#pragma link C++ class queryosity::ROOT::hist<1,float>+;
-#pragma link C++ class queryosity::ROOT::hist_categorized<std::string,float>+;
+#pragma link C++ class queryosity::column::observable < float> + ;
+#pragma link C++ class queryosity::column::constant < float> + ;
+#pragma link C++ class queryosity::column::nominal <                           \
+    queryosity::column::fixed < float>> +                                      \
+    ;
+#pragma link C++ class queryosity::column::variation < float> + ;
+#pragma link C++ class queryosity::ROOT::tree + ;
+#pragma link C++ class queryosity::ROOT::hist < 1, float> + ;
+#pragma link C++ class queryosity::ROOT::hist_categorized < std::string,       \
+    float> +                                                                   \
+    ;
+#pragma link C++ class queryosity::ROOT::hgrid < 2, float> + ;
+#pragma link C++ class queryosity::ROOT::hgrid < 3, float> + ;
 #ifdef BOOTSTRAP_HISTOGRAM
-#pragma link C++ class queryosity::ROOT::toy_generator+;
-#pragma link C++ class queryosity::ROOT::hist_with_toys<1,float>+;
+#pragma link C++ class queryosity::ROOT::toy_generator + ;
+#pragma link C++ class queryosity::ROOT::hist_with_toys < 1, float> + ;
+#pragma link C++ class queryosity::ROOT::hgrid_with_toys < 2, float> + ;
+#pragma link C++ class queryosity::ROOT::hgrid_with_toys < 3, float> + ;
 #endif
 
 #endif

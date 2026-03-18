@@ -8,6 +8,7 @@ class selection(lazy):
     def __init__(self, expr: str):
         super().__init__()
         self.expr = expr
+        self.prev_name = None
 
     def __str__(self):
         return f'{self.operation}({self.expr})'
@@ -38,6 +39,10 @@ class selection(lazy):
 
     def _contextualize(self, df, name):
 
+        # remember previous selection
+        self.name = name
+        self.prev_name = df.current_selection_name
+
         # register also as a column (which it is)
         if name in df.columns:
             raise ValueError("column already exists")
@@ -53,4 +58,5 @@ class selection(lazy):
         self._instantiate()
 
         # move dataflow to current selection
+        df.current_selection_name = name
         df.current_selection = self

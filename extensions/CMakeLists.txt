@@ -93,9 +93,6 @@ target_include_directories(queryosity_extensions PUBLIC
   ${BootstrapGenerator_INCLUDE_DIRS}
 )
 
-message(${BootstrapGenerator_FOUND})
-message(${BootstrapGenerator_INCLUDE_DIRS})
-
 if (ROOT_FOUND)
   # ROOT Dictionary
   set(ROOT_DICTIONARY_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/../include/queryosity.hpp)

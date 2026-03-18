@@ -52,6 +52,9 @@ class tree(lazy):
         self.df = df
         self._instantiate()
 
+    def __str__(self):
+        return f'TTree : "{self.tree_name}"\n' + "\n".join(f"  {fp}" for fp in self.file_paths)
+
     @property
     def cpp_initialization(self) -> str:
         file_paths_braced = '{' + ', '.join(['"{}"'.format(fp) for fp in self.file_paths]) + '}'

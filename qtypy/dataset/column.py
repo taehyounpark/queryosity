@@ -30,7 +30,7 @@ class column(column):
         return self.read(dataset_name)
 
     def __str__(self):
-        return f'{self.cpp_value_type} ← "{self.key}"'
+        return f' : {self.cpp_value_type} ← "{self.key}"'
 
     @property
     def cpp_initialization(self):

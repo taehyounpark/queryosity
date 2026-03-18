@@ -43,6 +43,9 @@ class Definition(column):
             f".evaluate({', '.join(lazy_args)})"
         )
 
+    def __str__(self):
+        return self.defn + "(" + ", ".join(self.args) + ")"
+
     def _contextualize(self, df: Any, name: str):
         """
         Inject the DataFrame/graph and instantiate the C++ slot.

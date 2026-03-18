@@ -12,9 +12,6 @@ class definition(ABC):
         self.filled_columns.append(columns)
         return self
 
-    def __matmul__(self, selection):
-        return self.at(selection)
-
     @property
     def py_result_wrapper(self):
         return lambda x: x

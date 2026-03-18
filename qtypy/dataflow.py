@@ -1,105 +1,35 @@
 from .cpp import cpp_binding
+from . import dataset
 from . import column
 from . import selection
 from .node import query, result
 
-# ==========================================
-# Restricted DataFrame Views (Runtime Safety)
-# ==========================================
-
-class _dataflow_analysis:
-    """
-    Analysis context:
-    - Mutation allowed
-    - Queries (>>) forbidden
-    """
-
-    def __init__(self, df):
-        self._df = df
-
-    # Forward normal attribute access
-    def __getattr__(self, name):
-        return getattr(self._df, name)
-
-    def __setitem__(self, key, value):
-        self._df[key] = value
-
-    def __and__(self, cut):
-        return self._df & cut
-
-    def __mul__(self, wgt):
-        return self._df & wgt
-
-    def __matmul__(self, sel):
-        return self._df @ sel
-
-    # Forbid queries inside analysis
-    def __rrshift__(self, other):
-        raise RuntimeError(
-            "Query operator (>>) is not allowed inside @dataflow.analysis blocks."
-        )
-
-
-class _dataflow_output:
-    """
-    Query context:
-    - Mutation forbidden
-    - Queries allowed
-    """
-
-    def __init__(self, df):
-        self._df = df
-
-    def __getattr__(self, name):
-        return getattr(self._df, name)
-
-    # Allow read
-    def __getitem__(self, key):
-        return self._df[key]
-
-    # Forbid mutation
-    def __setitem__(self, key, value):
-        raise RuntimeError(
-            "Mutation (df[...] = ...) is not allowed inside @dataflow.query blocks."
-        )
-
-    # If you overload &, *, etc. for mutation, block them:
-    def __and__(self, other):
-        raise RuntimeError("Mutation via & is not allowed inside @dataflow.query.")
-
-    def __mul__(self, other):
-        raise RuntimeError("Mutation via * is not allowed inside @dataflow.query.")
-
-
-# ==========================================
-# Base Configured Step
-# ==========================================
-
-class _configured_step:
-    def __init__(self, func, args, kwargs):
-        self.func = func
-        self.args = args
-        self.kwargs = kwargs
-
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+from rich.tree import Tree
+from rich.rule import Rule
+from rich.text import Text
 
 # ==========================================
 # Configured Analysis
 # ==========================================
 
-class _custom_analysis(_configured_step):
+class _custom_analysis:
+
+    def __init__(self, func, args, kwargs):
+        self.func = func
+        self.args = args
+        self.kwargs = kwargs
+
     def __ror__(self, df):
-        safe_df = _dataflow_analysis(df)
-        self.func(safe_df, *self.args, **self.kwargs)
+        # ignore returned, always return df
+        self.func(df, *self.args, **self.kwargs)
         return df
 
-# ==========================================
-# Configured Query
-# ==========================================
-
-class _configured_output(_configured_step):
-    def __rrshift__(self, df):
-        safe_df = _dataflow_output(df)
-        return self.func(safe_df, *self.args, **self.kwargs)
+    def output(self, df):
+        # transparently return back out whatever the results are
+        return self.func(df, *self.args, **self.kwargs)
 
 # ==========================================
 # Definition Objects (Decorators)
@@ -111,23 +41,6 @@ class _analysis:
 
     def __call__(self, *args, **kwargs):
         return _custom_analysis(self.func, args, kwargs)
-
-    def __ror__(self, df):
-        # allow df | analysis without args
-        safe_df = _dataflow_analysis(df)
-        self.func(safe_df)
-        return df
-
-class _output:
-    def __init__(self, func):
-        self.func = func
-
-    def __call__(self, *args, **kwargs):
-        return _configured_output(self.func, args, kwargs)
-
-    def __rrshift__(self, df):
-        safe_df = _dataflow_output(df)
-        return self.func(safe_df)
 
 class dataflow(cpp_binding):
     """
@@ -173,6 +86,8 @@ class dataflow(cpp_binding):
         self.columns = {}
         self.selections = {}
         self.current_selection = self
+        self.current_selection_name = None
+        self.queries = []
 
         self._instantiate()
 
@@ -264,7 +179,161 @@ class dataflow(cpp_binding):
     __rshift__ = get
 
     analysis = _analysis
-    output = _output
+
+    def output(self, custom_analysis):
+        return custom_analysis.output(self)
+
+    def explain(self):
+
+        console = Console()
+
+        # ------------------------------------------------
+        # DATASET BLOCK
+        # ------------------------------------------------
+
+        dataset_panel = Table.grid(padding=(0,1))
+
+        dataset_panel.add_row(f"[grey]{self.dataset}[/grey]")
+
+        # horizontal divider
+        dataset_panel.add_row(Rule(style="dim"))
+
+        # show dataset columns if they exist
+        dataset_columns = {
+            name : col 
+            for name, col in self.columns.items()
+            if isinstance(col, dataset.column)
+        }
+
+        if dataset_columns:
+            for name, col in dataset_columns.items():
+                dataset_panel.add_row(f"[grey]{name}{col}[/grey]")
+
+        console.print(
+            Panel(
+                dataset_panel,
+                title="[bold]dataset[/bold]",
+                title_align="left",
+                expand=False
+            )
+        )
+
+        # ------------------------------------------------
+        # COLUMN COMPUTATION BLOCK
+        # ------------------------------------------------
+
+        computation_panel = Table.grid(padding=(0,1))
+
+        for name, col in self.columns.items():
+
+            # skip dataset-native columns
+            if isinstance(col, dataset.column):
+                continue
+
+            if name in self.selections:
+                continue
+
+            computation_panel.add_row(Text(f"{name} := {col}", style="blue"))
+
+        console.print(
+            Panel(
+                computation_panel,
+                title="[bold]observable[/bold]",
+                title_align="left",
+                expand=False
+            )
+        )
+
+        # ------------------------------------------------
+        # SELECTION TREE BLOCK
+        # ------------------------------------------------
+
+        # root node with a neutral symbol '*'
+        cutflow_tree = Tree("[blue]*[/blue]")
+
+        if not self.selections:
+            cutflow_tree.add("[dim]none[/dim]")
+            console.print(
+                Panel(
+                    cutflow_tree,
+                    title="[bold]cutflow[/bold]",
+                    title_align="left",
+                    expand=False
+                )
+            )
+            return
+
+        # --------------------------------------------
+        # Build parent → children map
+        # --------------------------------------------
+
+        children = {}
+        roots = []
+
+        for name, sel in self.selections.items():
+            prev_name = getattr(sel, "prev_name", None)
+            if prev_name is None:
+                roots.append(name)
+            else:
+                children.setdefault(prev_name, []).append(name)
+
+        # --------------------------------------------
+        # Recursive builder
+        # --------------------------------------------
+
+        def build(node, name):
+            sel = self.selections[name]
+            branch = node.add(f"@ {name} → {sel}")
+            for child in children.get(name, []):
+                build(branch, child)
+
+        for root in roots:
+            build(cutflow_tree, root)
+
+        # wrap the tree in a panel
+        console.print(
+            Panel(
+                cutflow_tree,
+                title="[bold]cutflow[/bold]",
+                title_align="left",
+                expand=False
+            )
+        )
+
+        # ------------------------------------------------
+        # QUERY TREE BLOCK
+        # ------------------------------------------------
+
+        # container grid (like your dataset block)
+        query_panel = Table.grid(padding=(0, 1))
+        # group queries by booked_selection_name
+        queries_by_selection = {}
+
+        for q in self.queries:
+            sel_name = getattr(q, "booked_selection_name", None)
+            queries_by_selection.setdefault(sel_name, []).append(q)
+
+        # create flat roots (no hierarchy)
+        for sel_name in self.selections.keys():
+
+            sel_tree = Tree(f"[blue]@ {sel_name}[/blue]")
+
+            queries = queries_by_selection.get(sel_name, [])
+            if not queries:
+                continue
+            for q in queries:
+                sel_tree.add(Text(f"{q.defn}", style="red"))  # relies on __str__()
+
+            query_panel.add_row(sel_tree)
+
+        console.print(
+            Panel(
+                query_panel,
+                title="[bold]query[/bold]",
+                title_align="left",
+                expand=False
+            )
+        )
 
 class _dataflow_at_selection:
     """
@@ -280,10 +349,11 @@ class _dataflow_at_selection:
 
     def __init__(self, df, selection):
         self._df = df
-        self._selection = selection
+        self._selection_name = selection
 
     def _activate(self):
-        self._df.current_selection = self._df.selections[self._selection]
+        self._df.current_selection_name = self._selection_name
+        self._df.current_selection = self._df.selections[self._selection_name]
 
     # Explicitly allow only specific methods
     def __getattr__(self, name):

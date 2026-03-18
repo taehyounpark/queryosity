@@ -10,11 +10,13 @@ from .dataflow import dataflow
 from . import column
 from .selection import cut, weight
 from .query import hist
+from .query import hgrid
 
 __all__: list[str] = [
     "analyze",
     "dataflow",
     "dataset",
     "column",
-    "hist"
+    "hist",
+    "hgrid"
 ]

@@ -67,7 +67,8 @@ class hist(definition):
     def __str__(self):
         # xax = 
         xax = f', {self.xmin} < x < {self.xmax}'
-        yax = f', {self.ybins}' if self.ndim > 1 else ''
+        yax = f', {self.ymin} < y < {self.ymax}' if self.ndim > 1 else ''
+        zax = f', {self.zmin} < z < {self.zmax}' if self.ndim > 2 else ''
         toys = f', {self.n_toys} toys' if self.n_toys else ''
         cols = ''.join(['('+', '.join(colset)+')' for colset in self.filled_columns])
         return f'{cols} → {self.cpp_result_type[:-1]}("{self.hname}"{xax}{yax}{toys})'

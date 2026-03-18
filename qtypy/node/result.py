@@ -7,7 +7,7 @@ class result(cpp_binding):
 
     @property
     def cpp_type(self):
-        return f'{self.query.defn.cpp_result_type} const &'
+        return f'{self.query.defn.cpp_result_type}'
 
     @property
     def cpp_initialization(self):
