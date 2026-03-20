@@ -31,9 +31,11 @@ class hgrid(definition):
         self.xbins = xbins
 
         self.xvec = f"std::vector<double>({{{', '.join([str(edge) for edge in grid_x])}}})"
-        self.yvec = f"std::vector<double>({{{', '.join([str(edge) for edge in grid_y])}}})"
 
-        if grid_z is not None:
+        if self.ndim >= 2:
+            self.yvec = f"std::vector<double>({{{', '.join([str(edge) for edge in grid_y])}}})"
+
+        if self.ndim == 3:
             self.zvec = f"std::vector<double>({{{', '.join([str(edge) for edge in grid_z])}}})"
 
         if all([arg is None for arg in (xbins, xmin, xmax)]):
@@ -103,7 +105,7 @@ class hgrid(definition):
                     hg.append(row)
                 return hg
 
-            else:  # ndim == 3
+            elif self.ndim == 3:
                 hg = []
                 for i in range(len(self.grid_x)-1):
                     plane = []

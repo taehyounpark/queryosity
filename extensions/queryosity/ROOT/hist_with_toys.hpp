@@ -153,7 +153,7 @@ queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
 }
 
 template <typename Prec>
-void queryosity::ROOT::hist_with_toys<1, Prec>::initialize(unsigned int slot,
+void queryosity::ROOT::hist_with_toys<1, Prec>::initialize(unsigned int,
                                                            unsigned long long,
                                                            unsigned long long) {
 }

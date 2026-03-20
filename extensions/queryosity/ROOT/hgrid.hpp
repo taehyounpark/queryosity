@@ -29,8 +29,31 @@ namespace ROOT {
 
 template <int Dim, typename Val> class hgrid;
 
+using hgrid_1d_t = std::vector<std::shared_ptr<TH1>>;
 using hgrid_2d_t = std::vector<std::vector<std::shared_ptr<TH1>>>;
 using hgrid_3d_t = std::vector<std::vector<std::vector<std::shared_ptr<TH1>>>>;
+
+template <typename Val>
+class hgrid<1, Val> : public qty::query::definition<hgrid_1d_t(double, Val)> {
+
+public:
+  hgrid(const std::string &hname, const std::vector<double> &, unsigned int,
+        double, double);
+  hgrid(const std::string &hname, const std::vector<double> &,
+        const std::vector<double> &);
+  virtual ~hgrid() = default;
+
+  virtual void fill(qty::column::observable<double>,
+                    qty::column::observable<Val>, double) final override;
+  virtual hgrid_1d_t result() const final override;
+  virtual hgrid_1d_t
+  merge(std::vector<hgrid_1d_t> const &results) const final override;
+
+protected:
+  // grid histogram
+  std::vector<double> m_grid_x;
+  hgrid_1d_t m_hgrid; //!
+};
 
 template <typename Val>
 class hgrid<2, Val>
@@ -90,6 +113,86 @@ protected:
 } // namespace queryosity
 
 template <typename Val>
+queryosity::ROOT::hgrid<1, Val>::hgrid(const std::string &hname,
+                                       std::vector<double> const &grid_x,
+                                       std::vector<double> const &bins)
+    : m_grid_x(grid_x) {
+
+  const size_t nx = m_grid_x.size() > 0 ? m_grid_x.size() - 1 : 0;
+
+  m_hgrid.resize(nx);
+
+  for (size_t i = 0; i < nx; ++i) {
+    m_hgrid[i] = make_hist<1, Val>(bins);
+    m_hgrid[i]->SetDirectory(nullptr);
+    m_hgrid[i]->SetName(hname.c_str());
+  }
+}
+
+template <typename Val>
+queryosity::ROOT::hgrid<1, Val>::hgrid(const std::string &hname,
+                                       std::vector<double> const &grid_x,
+                                       unsigned int n, double min, double max)
+    : m_grid_x(grid_x) {
+
+  const size_t nx = m_grid_x.size() > 0 ? m_grid_x.size() - 1 : 0;
+
+  m_hgrid.resize(nx);
+  for (size_t i = 0; i < nx; ++i) {
+    m_hgrid[i] = make_hist<1, Val>(n, min, max);
+    m_hgrid[i]->SetDirectory(nullptr);
+    m_hgrid[i]->SetName(hname.c_str());
+  }
+}
+
+template <typename Val>
+void queryosity::ROOT::hgrid<1, Val>::fill(qty::column::observable<double> x,
+                                           qty::column::observable<Val> y,
+                                           double w) {
+  auto itx = std::upper_bound(m_grid_x.begin(), m_grid_x.end(), x.value());
+  if (itx == m_grid_x.begin() || itx == m_grid_x.end())
+    return;
+
+  size_t i = std::distance(m_grid_x.begin(), itx) - 1;
+
+  m_hgrid[i]->Fill(y.value(), w);
+}
+
+template <typename Val>
+queryosity::ROOT::hgrid_1d_t queryosity::ROOT::hgrid<1, Val>::merge(
+    std::vector<hgrid_1d_t> const &results) const {
+
+  if (results.empty())
+    return {};
+
+  hgrid_1d_t merged_result;
+
+  // clone grid structure & first result
+  merged_result.resize(results[0].size());
+  for (size_t i = 0; i < results[0].size(); ++i) {
+    const auto &h = results[0][i];
+    merged_result[i] = std::shared_ptr<TH1>(static_cast<TH1 *>(h->Clone()));
+    merged_result[i]->SetDirectory(nullptr);
+  }
+
+  // add remaining slots
+  for (size_t t = 1; t < results.size(); ++t) {
+    for (size_t i = 0; i < merged_result.size(); ++i) {
+      const auto &src = results[t][i];
+      auto &dst = merged_result[i];
+      dst->Add(src.get());
+    }
+  }
+
+  return merged_result;
+}
+
+template <typename Val>
+queryosity::ROOT::hgrid_1d_t queryosity::ROOT::hgrid<1, Val>::result() const {
+  return m_hgrid;
+}
+
+template <typename Val>
 queryosity::ROOT::hgrid<2, Val>::hgrid(const std::string &hname,
                                        std::vector<double> const &grid_x,
                                        std::vector<double> const &grid_y,
@@ -106,10 +209,8 @@ queryosity::ROOT::hgrid<2, Val>::hgrid(const std::string &hname,
 
     for (size_t j = 0; j < ny; ++j) {
       m_hgrid[i][j] = make_hist<1, Val>(bins);
-
-      if (m_hgrid[i][j]) {
-        m_hgrid[i][j]->SetDirectory(nullptr);
-      }
+      m_hgrid[i][j]->SetDirectory(nullptr);
+      m_hgrid[i][j]->SetName(hname.c_str());
     }
   }
 }

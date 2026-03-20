@@ -21,10 +21,39 @@ namespace ROOT {
 
 template <int Dim, typename Val> class hgrid_with_toys;
 
+using hgrid_1d_with_toys_t = std::vector<std::shared_ptr<TH1Bootstrap>>;
 using hgrid_2d_with_toys_t =
     std::vector<std::vector<std::shared_ptr<TH1Bootstrap>>>;
 using hgrid_3d_with_toys_t =
     std::vector<std::vector<std::vector<std::shared_ptr<TH1Bootstrap>>>>;
+
+template <typename Val>
+class hgrid_with_toys<1, Val>
+    : public qty::query::definition<hgrid_1d_with_toys_t(
+          double, Val, unsigned int, unsigned int, unsigned int)> {
+
+public:
+  hgrid_with_toys(const std::string &hname, const std::vector<double> &,
+                  unsigned int, double, double, unsigned int);
+  hgrid_with_toys(const std::string &hname, const std::vector<double> &,
+                  const std::vector<double> &, unsigned int);
+  virtual ~hgrid_with_toys() = default;
+
+  virtual void fill(qty::column::observable<double>,
+                    qty::column::observable<Val>,
+                    qty::column::observable<unsigned int>,
+                    qty::column::observable<unsigned int>,
+                    qty::column::observable<unsigned int>,
+                    double) final override;
+  virtual hgrid_1d_with_toys_t result() const final override;
+  virtual hgrid_1d_with_toys_t
+  merge(std::vector<hgrid_1d_with_toys_t> const &results) const final override;
+
+protected:
+  // grid histogram
+  std::vector<double> m_grid_x;
+  hgrid_1d_with_toys_t m_hgrid_with_toys; //!
+};
 
 template <typename Val>
 class hgrid_with_toys<2, Val>
@@ -91,6 +120,103 @@ protected:
 } // namespace ROOT
 
 } // namespace queryosity
+
+template <typename Val>
+queryosity::ROOT::hgrid_with_toys<1, Val>::hgrid_with_toys(
+    const std::string &hname, const std::vector<double> &grid_x,
+    const std::vector<double> &bins, unsigned int ntoys)
+    : m_grid_x(grid_x) {
+
+  const size_t nx = m_grid_x.size() > 0 ? m_grid_x.size() - 1 : 0;
+
+  m_hgrid_with_toys.resize(nx);
+
+  for (size_t i = 0; i < nx; ++i) {
+    m_hgrid_with_toys[i] = std::make_shared<TH1FBootstrap>(
+        hname.c_str(), hname.c_str(), bins.size() - 1, &bins[0], ntoys);
+    m_hgrid_with_toys[i]->SetDirectory(nullptr);
+    m_hgrid_with_toys[i]->SetName(hname.c_str());
+  }
+}
+
+template <typename Val>
+queryosity::ROOT::hgrid_with_toys<1, Val>::hgrid_with_toys(
+    const std::string &hname, const std::vector<double> &grid_x,
+    unsigned int nbins, double min, double max, unsigned int ntoys)
+    : m_grid_x(grid_x) {
+
+  const size_t nx = m_grid_x.size() > 0 ? m_grid_x.size() - 1 : 0;
+
+  m_hgrid_with_toys.resize(nx);
+
+  for (size_t i = 0; i < nx; ++i) {
+    m_hgrid_with_toys[i] = std::make_shared<TH1FBootstrap>(
+        hname.c_str(), hname.c_str(), nbins, min, max, ntoys);
+    m_hgrid_with_toys[i]->SetDirectory(nullptr);
+    m_hgrid_with_toys[i]->SetName(hname.c_str());
+  }
+}
+
+template <typename Val>
+void queryosity::ROOT::hgrid_with_toys<1, Val>::fill(
+    qty::column::observable<double> x, qty::column::observable<Val> y,
+    qty::column::observable<unsigned int> run,
+    qty::column::observable<unsigned int> event,
+    qty::column::observable<unsigned int> channel, double w) {
+
+  auto itx = std::upper_bound(m_grid_x.begin(), m_grid_x.end(), x.value());
+  if (itx == m_grid_x.begin() || itx == m_grid_x.end())
+    return;
+
+  size_t i = std::distance(m_grid_x.begin(), itx) - 1;
+
+  m_hgrid_with_toys[i]->Fill(y.value(), w, run.value(), event.value(),
+                             channel.value());
+}
+
+template <typename Val>
+queryosity::ROOT::hgrid_1d_with_toys_t
+queryosity::ROOT::hgrid_with_toys<1, Val>::result() const {
+  return m_hgrid_with_toys;
+}
+
+template <typename Val>
+queryosity::ROOT::hgrid_1d_with_toys_t
+queryosity::ROOT::hgrid_with_toys<1, Val>::merge(
+    std::vector<hgrid_1d_with_toys_t> const &results) const {
+
+  if (results.empty())
+    return {};
+
+  hgrid_1d_with_toys_t merged_result;
+
+  // clone structure & first result
+  merged_result.resize(results[0].size());
+  for (size_t i = 0; i < results[0].size(); ++i) {
+
+    const auto &h = results[0][i];
+    if (h) {
+      merged_result[i] = std::shared_ptr<TH1Bootstrap>(
+          static_cast<TH1Bootstrap *>(h->Clone()));
+      merged_result[i]->SetDirectory(nullptr);
+    }
+  }
+
+  // add remaining
+  for (size_t t = 1; t < results.size(); ++t) {
+    for (size_t i = 0; i < merged_result.size(); ++i) {
+
+      const auto &src = results[t][i];
+      auto &dst = merged_result[i];
+
+      if (src && dst) {
+        dst->Add(src.get());
+      }
+    }
+  }
+
+  return merged_result;
+}
 
 template <typename Val>
 queryosity::ROOT::hgrid_with_toys<2, Val>::hgrid_with_toys(

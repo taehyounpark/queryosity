@@ -44,6 +44,7 @@
 #pragma link C++ class queryosity::ROOT::hist_categorized < std::string,       \
     float> +                                                                   \
     ;
+#pragma link C++ class queryosity::ROOT::hgrid < 1, float> + ;
 #pragma link C++ class queryosity::ROOT::hgrid < 2, float> + ;
 #pragma link C++ class queryosity::ROOT::hgrid < 3, float> + ;
 #ifdef BOOTSTRAP_HISTOGRAM

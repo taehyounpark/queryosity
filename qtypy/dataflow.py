@@ -155,7 +155,7 @@ class dataflow(cpp_binding):
 
     def at(self, selection_name: str):
         if selection_name not in self.selections:
-            raise KeyError(f"selection '{selection}' not found in dataflow.")
+            raise KeyError(f"selection '{selection_name}' not found in dataflow.")
         return _dataflow_at_selection(self, selection_name)
 
     def get(self, query_defn):
