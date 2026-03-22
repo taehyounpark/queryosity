@@ -22,3 +22,15 @@ queries
 :caption: Advanced usage
 variations
 ```
+
+```{toctree}
+:maxdepth: 2
+:caption: API reference
+reference/api/index
+```
+
+```{toctree}
+:maxdepth: 2
+:caption: ABC reference
+reference/abc/index
+```

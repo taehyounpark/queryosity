@@ -12,7 +12,7 @@ namespace queryosity {
 /**
  * @ingroup api
  * @brief Complete the instantiation of a lazy action.
- * @details A todo node is an intermediate state between the dataflow graph and
+ * @details A todo node is an intermediate state between the dataflow and
  * a lazy node, when additional methods must be chained in order to instantiate
  * the action.
  * @tparam Helper Helper class to instantiate the lazy action.

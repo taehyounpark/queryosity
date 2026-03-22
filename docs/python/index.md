@@ -20,43 +20,53 @@ api/selection
 api/query
 ```
 
-The Python interface is intentionally not a one-to-one mirror of the C++ backend. This design enables more idiomatic use of Python’s dynamic typing and flexibility, while maintaining a clear separation between jitted C++ expressions---which are always provided as `str`s---and native Python operations.
+The Python interface aims to enable a more idiomatic use of Python’s dynamic typing and flexibility, while maintaining a clear separation between C++ expressions—which must always be provided as str—and native Python operations.
 
+There are two equivalent ways to express a dataflow:
+
+1. Methods
+2. Operators
+
+These two approaches are fully interchangeable. Users are free to use either—or mix both—depending on their preferred syntax.
 
 ::::{tab-set}
-:::{tab-item} Method chaining
+:::{tab-item} Methods
 
 ```{code-block} python
 from qtypy import dataflow, dataset, column, filter
 
-df = dataflow(n_threads = 8)
-df.input(dataset.tree(file_paths=['data.root'], tree_name='events'))
+df = dataflow(multithread=True, n_threads = 8)
+df.input(dataset.tree(file_paths=["data.root"], tree_name="events"))
 
 df.compute(
-    {'x': dataset.column('x', dtype='float')},
-    {'sqrtx': column.expression('sqrt(x)')},
-    {'x_geq_0': filter('x >= 0')}
+    {
+        "x": dataset.column("x", dtype="float"),
+        "sqrtx": column.expression("sqrt(x)"),
+    }
 )
 
-sqrtx = df.output(column.to_numpy('sqrtx')).result()
+df_sqrtx_valid = df.filter({"sqrtx_valid": "x >= 0"})
+assert(df_sqrtx_valid == df.at("sqrtx_valid"))
+
+q_sqrtx = df_sqrtx_valid.get(column.to_numpy("sqrtx")).result()
+sqrt_x = q_sqrtx.result()
 ```
 :::
 
-:::{tab-item} Pipe operator
+:::{tab-item} Operators
 ```{code-block} python
 from qtypy import dataflow, dataset, column, filter
 
-df = dataflow(n_threads = 8)
-df << dataset.tree(file_paths=['data.root'], tree_name='events')
+df = dataflow(multithread=True, n_threads = 8)
+df << dataset.tree(file_paths=["data.root"], tree_name="events")
 
-(
-df
-| {'x': dataset.column('x', dtype='float')}
-| {'sqrtx': column.expression('sqrt(x)')}
-| {'x_geq_0': filter('x >= 0')}
-)
+df["x"] = dataset.column("x", dtype="float")
+df["sqrtx"] = "sqrt(x)"
 
-q = df >> column.to_numpy('sqrtx')
+df_sqrtx_valid = df & {"sqrtx_valid" : "x >= 0"}
+assert(df_sqrtx_valid == (df @ "sqrtx_valid"))
+
+q_sqrtx = df_sqrtx_valid >> column.to_numpy("sqrtx")
 sqrtx = q.result()
 ```
 :::

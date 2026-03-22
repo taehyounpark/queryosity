@@ -8,11 +8,5 @@
    :members:
    :no-show-inheritance:
 
-.. autoclass:: qtypy.column.expression
-   :members:
-   :no-show-inheritance:
-
-.. autoclass:: qtypy.column.definition
-   :members:
-   :no-show-inheritance:
+.. autofunction:: qtypy.column.definition
 ```

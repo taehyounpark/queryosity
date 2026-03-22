@@ -1,5 +1,3 @@
-(api)=
-
 # References
 
 ```{toctree}

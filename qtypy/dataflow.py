@@ -134,8 +134,8 @@ class dataflow(cpp_binding):
     def filter(self, cuts: dict):
         last_selection = None
 
-        for cut_name, cut_expr in cuts.items():
-            cut_node = selection.cut(cut_expr)
+        for cut_name, cut_expression in cuts.items():
+            cut_node = selection.cut(cut_expression)
             cut_node._contextualize(self, cut_name)
             cut_node._instantiate()
             last_selection = cut_name
@@ -145,8 +145,8 @@ class dataflow(cpp_binding):
     def weight(self, weights: dict):
         last_selection = None
 
-        for wgt_name, wgt_expr in weights.items():
-            wgt_node = selection.weight(wgt_expr)
+        for wgt_name, wgt_expression in weights.items():
+            wgt_node = selection.weight(wgt_expression)
             wgt_node._contextualize(self, wgt_name)
             wgt_node._instantiate()
             last_selection = wgt_name
@@ -158,12 +158,13 @@ class dataflow(cpp_binding):
             raise KeyError(f"selection '{selection_name}' not found in dataflow.")
         return _dataflow_at_selection(self, selection_name)
 
-    def get(self, query_defn):
-        # issue new lazy<query> node everytime so existing definitions can be recycled later
-        query_node = query(query_defn)
-        query_node._contextualize(self)
-        # return the (not yet instantiated) result node
-        return result(query_node)
+    def get(self, query_definition_or_custom_analysis):
+        # # issue new lazy<query> node everytime so existing definitions can be recycled later
+        # query_node = query(query_definition)
+        # query_node._contextualize(self)
+        # # return the (not yet instantiated) result node
+        # return result(query_node)
+        return query_definition_or_custom_analysis.output(self)
 
     def __setitem__(self, column_name, column_node):
         if isinstance(column_node, str):
@@ -377,5 +378,5 @@ class _dataflow_at_selection:
     def __mul__(self, weights):
         return self.weight(weights)
 
-    def __rshift__(self, query_defn):
-        return self.get(query_defn)
+    def __rshift__(self, query_definition):
+        return self.get(query_definition)

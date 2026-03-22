@@ -63,6 +63,13 @@ autodoc_mock_imports = [
     "rich"
 ]
 
+autodoc_typehints = "description"
+autodoc_default_options = {
+    "members": True,
+}
+autodoc_inherit_docstrings = False
+autodoc_type_aliases = {}
+
 templates_path = ['_templates']
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 

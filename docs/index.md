@@ -19,10 +19,9 @@ Queryosity is a row-wise data analysis library for (semi-)structured data.
 :hidden: true
 :maxdepth: 1
 
-guide/index
+cpp/index
 python/index
 examples/index
-reference/index
 ```
 
 ## Getting in touch

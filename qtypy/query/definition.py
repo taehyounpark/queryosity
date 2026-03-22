@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from ..node import query
+from ..node import query, result
 
 class definition(ABC):
 
@@ -29,3 +29,10 @@ class definition(ABC):
     @property
     def cpp_result_call(self):
         return 'result()'
+
+    def output(self, df):
+        # issue new lazy<query> node everytime so existing definitions can be recycled later
+        query_node = query(self)
+        query_node._contextualize(df)
+        # return the (not yet instantiated) result node
+        return result(query_node)

@@ -38,15 +38,13 @@ unsigned int check(std::vector<T> const &first,
                    std::vector<Args> const &...args);
 
 template <typename Fn, typename... Args>
-auto invoke(Fn const &fn, std::vector<Args> const &...args)
-    -> std::enable_if_t<
-        !std::is_void_v<typename std::invoke_result_t<Fn, Args...>>,
-        std::vector<typename std::invoke_result_t<Fn, Args...>>>;
+auto invoke(Fn const &fn, std::vector<Args> const &...args) -> std::enable_if_t<
+    !std::is_void_v<typename std::invoke_result_t<Fn, Args...>>,
+    std::vector<typename std::invoke_result_t<Fn, Args...>>>;
 
 template <typename Fn, typename... Args>
-auto invoke(Fn const &fn, std::vector<Args> const &...args)
-    -> std::enable_if_t<
-        std::is_void_v<typename std::invoke_result_t<Fn, Args...>>, void>;
+auto invoke(Fn const &fn, std::vector<Args> const &...args) -> std::enable_if_t<
+    std::is_void_v<typename std::invoke_result_t<Fn, Args...>>, void>;
 
 } // namespace ensemble
 
@@ -222,9 +220,9 @@ namespace queryosity {
 namespace column {
 
 class node : public action {
-  public:
-    node() = default;
-    virtual ~node() = default;
+public:
+  node() = default;
+  virtual ~node() = default;
 };
 
 //---------------------------------------------------
@@ -438,7 +436,8 @@ template <typename Fn> struct deduce_equation;
 
 template <typename Ret, typename... Args>
 struct deduce_equation<std::function<Ret(observable<Args>...)>> {
-  using type = column::equation<std::decay_t<Ret>(observable<std::decay_t<Args>>...)>;
+  using type =
+      column::equation<std::decay_t<Ret>(observable<std::decay_t<Args>>...)>;
 };
 
 template <typename Fn>
@@ -1063,15 +1062,14 @@ public:
   auto convert(Col const &col) -> conversion<To, value_t<Col>> *;
 
   template <typename Def, typename... Args>
-  auto define(Args const &...vars) const
-      -> std::unique_ptr<evaluator<Def>>;
+  auto define(Args const &...vars) const -> std::unique_ptr<evaluator<Def>>;
 
   template <typename Ret, typename... Args>
   auto equate(std::function<Ret(Args...)> fn) const -> std::unique_ptr<
       evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>;
 
   template <typename Def, typename... Cols>
-  auto evaluate(evaluator<Def> const&calc, Cols const &...cols) -> Def *;
+  auto evaluate(evaluator<Def> const &calc, Cols const &...cols) -> Def *;
 
 protected:
   template <typename Col> auto add_column(std::unique_ptr<Col> col) -> Col *;
@@ -1126,7 +1124,7 @@ public:
       std::function<std::decay_t<Out>(std::decay_t<Ins> const &...)>;
 
 public:
-  template <typename Fn> equation(Fn&& fn);
+  template <typename Fn> equation(Fn &&fn);
   virtual ~equation() = default;
 
 public:
@@ -1134,7 +1132,8 @@ public:
 
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) final override;
-  virtual void execute(unsigned int slot, unsigned long long entry) final override;
+  virtual void execute(unsigned int slot,
+                       unsigned long long entry) final override;
   virtual void finalize(unsigned int slot) final override;
 
 protected:
@@ -1147,7 +1146,8 @@ protected:
 
 template <typename Out, typename... Ins>
 template <typename Fn>
-queryosity::column::equation<Out(Ins...)>::equation(Fn&& fn) : m_evaluate(std::forward<Fn>(fn)) {}
+queryosity::column::equation<Out(Ins...)>::equation(Fn &&fn)
+    : m_evaluate(std::forward<Fn>(fn)) {}
 
 template <typename Out, typename... Ins>
 Out queryosity::column::equation<Out(Ins...)>::evaluate(
@@ -1156,13 +1156,14 @@ Out queryosity::column::equation<Out(Ins...)>::evaluate(
 }
 
 template <typename Out, typename... Ins>
-void queryosity::column::equation<Out(Ins...)>::initialize(unsigned int slot, unsigned long long begin,
-                                               unsigned long long end) {
+void queryosity::column::equation<Out(Ins...)>::initialize(
+    unsigned int slot, unsigned long long begin, unsigned long long end) {
   calculation<Out>::initialize(slot, begin, end);
-                                               }
+}
 
 template <typename Out, typename... Ins>
-void queryosity::column::equation<Out(Ins...)>::execute(unsigned int slot, unsigned long long entry) {
+void queryosity::column::equation<Out(Ins...)>::execute(
+    unsigned int slot, unsigned long long entry) {
   calculation<Out>::execute(slot, entry);
 }
 
@@ -1187,7 +1188,8 @@ public:
 
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) final override;
-  virtual void execute(unsigned int slot, unsigned long long entry) final override;
+  virtual void execute(unsigned int slot,
+                       unsigned long long entry) final override;
   virtual void finalize(unsigned int slot) final override;
 
 protected:
@@ -1210,13 +1212,15 @@ const Val &queryosity::column::fixed<Val>::value() const {
 }
 
 template <typename Val>
-void queryosity::column::fixed<Val>::initialize(unsigned int slot, unsigned long long begin,
-                                               unsigned long long end) {
+void queryosity::column::fixed<Val>::initialize(unsigned int slot,
+                                                unsigned long long begin,
+                                                unsigned long long end) {
   valued<Val>::initialize(slot, begin, end);
-                                               }
+}
 
 template <typename Val>
-void queryosity::column::fixed<Val>::execute(unsigned int slot, unsigned long long entry) {
+void queryosity::column::fixed<Val>::execute(unsigned int slot,
+                                             unsigned long long entry) {
   valued<Val>::execute(slot, entry);
 }
 
@@ -1257,10 +1261,9 @@ auto queryosity::column::computation::define(Args const &...args) const
 template <typename Ret, typename... Args>
 auto queryosity::column::computation::equate(std::function<Ret(Args...)> fn)
     const -> std::unique_ptr<
-      evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>> {
+        evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>> {
   return std::make_unique<
-      evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>(
-      fn);
+      evaluator<equation<std::decay_t<Ret>(std::decay_t<Args>...)>>>(fn);
 }
 
 template <typename Def, typename... Cols>
@@ -1325,7 +1328,8 @@ public:
 
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) final override;
-  virtual void execute(unsigned int slot, unsigned long long entry) final override;
+  virtual void execute(unsigned int slot,
+                       unsigned long long entry) final override;
   virtual void finalize(unsigned int slot) final override;
 
 protected:
@@ -1335,12 +1339,11 @@ protected:
 
 template <typename T> struct is_applicable : std::false_type {};
 template <typename T, typename U>
-struct is_applicable<selection::applicator<T,U>> : std::true_type {};
+struct is_applicable<selection::applicator<T, U>> : std::true_type {};
 template <typename T>
 static constexpr bool is_applicable_v = is_applicable<T>::value;
 
-template <typename T>
-using applied_t = typename T::selection_type;
+template <typename T> using applied_t = typename T::selection_type;
 
 } // namespace selection
 
@@ -1412,7 +1415,8 @@ public:
 
   virtual void initialize(unsigned int slot, unsigned long long begin,
                           unsigned long long end) override;
-  virtual void execute(unsigned int slot, unsigned long long entry) final override;
+  virtual void execute(unsigned int slot,
+                       unsigned long long entry) final override;
   virtual void finalize(unsigned int slot) override;
 
   virtual void count(double w) = 0;
@@ -1427,8 +1431,7 @@ constexpr std::true_type check_implemented(query::aggregation<T> const &);
 constexpr std::false_type check_implemented(...);
 
 template <typename... Vals>
-constexpr std::true_type
-check_fillable(query::fillable<Vals...> const &);
+constexpr std::true_type check_fillable(query::fillable<Vals...> const &);
 constexpr std::false_type check_fillable(...);
 
 template <typename T> struct is_bookable : std::false_type {};
@@ -1509,12 +1512,14 @@ queryosity::selection::node::get_previous() const noexcept {
   return m_preselection;
 }
 
-inline void queryosity::selection::node::initialize(unsigned int slot, unsigned long long begin,
-                                               unsigned long long end) {
+inline void queryosity::selection::node::initialize(unsigned int slot,
+                                                    unsigned long long begin,
+                                                    unsigned long long end) {
   column::calculation<double>::initialize(slot, begin, end);
-                                               }
+}
 
-inline void queryosity::selection::node::execute(unsigned int slot, unsigned long long entry) {
+inline void queryosity::selection::node::execute(unsigned int slot,
+                                                 unsigned long long entry) {
   column::calculation<double>::execute(slot, entry);
 }
 
@@ -1751,7 +1756,8 @@ queryosity::query::booker<T>::booker(Args... args)
 template <typename T>
 template <typename... Vals>
 auto queryosity::query::booker<T>::add_columns(
-    column::valued<Vals> const &...columns) const -> std::unique_ptr<booker<T>> {
+    column::valued<Vals> const &...columns) const
+    -> std::unique_ptr<booker<T>> {
   // use a fresh one with its current fills
   auto filled = std::make_unique<booker<T>>(*this);
   // add fills
@@ -1773,8 +1779,8 @@ void queryosity::query::booker<T>::fill_query(
 }
 
 template <typename T>
-auto queryosity::query::booker<T>::set_selection(const selection::node &sel) const
-    -> std::unique_ptr<T> {
+auto queryosity::query::booker<T>::set_selection(
+    const selection::node &sel) const -> std::unique_ptr<T> {
   // call constructor
   auto cnt = m_make_unique_query();
   // fill columns (if set)
@@ -1963,7 +1969,8 @@ inline queryosity::dataset::processor queryosity::multithread::disable() {
 }
 
 inline queryosity::dataset::processor::processor(int suggestion)
-    : multithread::core::core(suggestion), m_range_slots(), m_players(), m_player_ptrs() {
+    : multithread::core::core(suggestion), m_range_slots(), m_players(),
+      m_player_ptrs() {
   const auto nslots = this->concurrency();
   m_players = std::vector<player>(nslots);
   m_player_ptrs = std::vector<player *>(nslots, nullptr);
@@ -2584,7 +2591,7 @@ auto queryosity::dataset::column<Val>::_read(
       : std::true_type {};                                                     \
                                                                                \
   template <typename T, typename Arg>                                          \
-  auto operator op_symbol(const T &, const Arg &) -> priority_tag<0>;          \
+  auto operator op_symbol(const T &, const Arg &)->priority_tag<0>;            \
                                                                                \
   template <typename T, typename Arg> struct has_custom_only_##op_name {       \
   private:                                                                     \
@@ -2643,9 +2650,10 @@ auto queryosity::dataset::column<Val>::_read(
                            detail::has_##op_name##_v<column::value_t<V>>,      \
                        bool> = false>                                          \
   auto operator op_symbol() const {                                            \
-    return queryosity::column::expression(                               \
-            [](column::value_t<V> const &me) { return (op_symbol me); })._equate(*this->m_df).                                                          \
-        .template evaluate(*this);                                             \
+    return queryosity::column::expression(                                     \
+               [](column::value_t<V> const &me) { return (op_symbol me); })    \
+        ._equate(*this->m_df)                                                  \
+        ..template evaluate(*this);                                            \
     // return this->m_df                                                          \
     //     ->define(queryosity::column::expression(                               \
     //         [](column::value_t<V> const &me) { return (op_symbol me); }))      \
@@ -2692,7 +2700,7 @@ auto queryosity::dataset::column<Val>::_read(
       std::enable_if_t<queryosity::is_column_v<V> &&                           \
                            queryosity::is_column_v<typename Arg::action_type>, \
                        bool> = false>                                          \
-  auto operator op_symbol(Arg const &b) const -> varied<                       \
+  auto operator op_symbol(Arg const &b) const->varied<                         \
       lazy<typename decltype(std::declval<queryosity::lazy<Act>>().            \
                              operator op_symbol(b.nominal()))::action_type>>;
 
@@ -2704,8 +2712,8 @@ auto queryosity::dataset::column<Val>::_read(
                            queryosity::is_column_v<typename Arg::action_type>, \
                        bool>>                                                  \
   auto queryosity::varied<queryosity::lazy<Act>>::operator op_symbol(          \
-      Arg const &b) const                                                      \
-      -> varied<                                                               \
+      Arg const &b)                                                            \
+      const->varied<                                                           \
           lazy<typename decltype(std::declval<lazy<Act>>().operator op_symbol( \
               b.nominal()))::action_type>> {                                   \
     auto syst = varied<                                                        \
@@ -2722,18 +2730,18 @@ auto queryosity::dataset::column<Val>::_read(
 #define DECLARE_LAZY_VARIED_UNARY_OP(op_symbol)                                \
   template <typename V = Act,                                                  \
             std::enable_if_t<queryosity::is_column_v<V>, bool> = false>        \
-  auto operator op_symbol() const -> varied<                                   \
+  auto operator op_symbol() const->varied<                                     \
       queryosity::lazy<typename decltype(std::declval<lazy<V>>().              \
                                          operator op_symbol())::action_type>>;
 #define DEFINE_LAZY_VARIED_UNARY_OP(op_name, op_symbol)                        \
   template <typename Act>                                                      \
   template <typename V, std::enable_if_t<queryosity::is_column_v<V>, bool>>    \
   auto queryosity::varied<queryosity::lazy<Act>>::operator op_symbol() const   \
-      -> varied<lazy<typename decltype(std::declval<lazy<V>>().                \
-                                       operator op_symbol())::action_type>> {  \
+      ->varied<lazy<typename decltype(std::declval<lazy<V>>().                 \
+                                      operator op_symbol())::action_type>> {   \
     auto syst = varied<queryosity::lazy<                                       \
-        typename decltype(std::declval<lazy<V>>().                             \
-                          operator op_symbol())::action_type>>(                \
+        typename decltype(std::declval<lazy<V>>()                              \
+                              .operator op_symbol())::action_type>>(           \
         this->nominal().operator op_symbol());                                 \
     for (auto const &var_name : systematic::get_variation_names(*this)) {      \
       syst.set_variation(var_name, variation(var_name).operator op_symbol());  \
@@ -2990,17 +2998,15 @@ public:
    * @return Query result.
    * @attention Invoking this turns *all* lazy actions in the dataflow *eager*.
    */
-  template <
-      typename V = Action,
-      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
+  template <typename V = Action,
+            std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto result() -> decltype(std::declval<V>().result());
 
   /**
    * @brief Shortcut for `result()`.
    */
-  template <
-      typename V = Action,
-      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
+  template <typename V = Action,
+            std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto operator->() -> decltype(std::declval<V>().result()) {
     return this->result();
   }
@@ -3024,9 +3030,8 @@ public:
   DEFINE_LAZY_INDEX_OP()
 
 protected:
-  template <
-      typename V = Action,
-      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
+  template <typename V = Action,
+            std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   void merge_results();
 
 protected:
@@ -3126,13 +3131,11 @@ public:
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
   auto book(Aggs &&...aggs);
 
-  template <
-      typename V = Act,
-      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
+  template <typename V = Act,
+            std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto operator[](const std::string &var_name) -> lazy<V> &;
-  template <
-      typename V = Act,
-      std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
+  template <typename V = Act,
+            std::enable_if_t<queryosity::query::has_result_v<V>, bool> = false>
   auto operator[](const std::string &var_name) const -> lazy<V> const &;
 
   DECLARE_LAZY_VARIED_UNARY_OP(-)
@@ -3416,8 +3419,7 @@ template <typename T> class view;
  * @tparam Out Output result type.
  * @tparam Ins Input column data types.
  */
-template <typename... Ins>
-class query::fillable {
+template <typename... Ins> class query::fillable {
 
 public:
   using vartup_type = std::tuple<column::variable<Ins>...>;
@@ -3498,27 +3500,27 @@ void queryosity::query::definition<Out(Ins...)>::count(double w) {
 
 #include <vector>
 
-namespace queryosity
-{
+namespace queryosity {
 
-namespace query
-{
+namespace query {
 
-template <typename T> class series : public queryosity::query::definition<std::vector<T>(T)>
-{
+template <typename T>
+class series : public queryosity::query::definition<std::vector<T>(T)> {
 
-  public:
-    series() = default;
-    ~series() = default;
+public:
+  series() = default;
+  ~series() = default;
 
-    virtual void initialize(unsigned int, unsigned long long, unsigned long long) final override;
-    virtual void fill(column::observable<T>, double) final override;
-    virtual void finalize(unsigned int) final override;
-    virtual std::vector<T> result() const final override;
-    virtual std::vector<T> merge(std::vector<std::vector<T>> const &results) const final override;
+  virtual void initialize(unsigned int, unsigned long long,
+                          unsigned long long) final override;
+  virtual void fill(column::observable<T>, double) final override;
+  virtual void finalize(unsigned int) final override;
+  virtual std::vector<T> result() const final override;
+  virtual std::vector<T>
+  merge(std::vector<std::vector<T>> const &results) const final override;
 
-  protected:
-    std::vector<T> m_result;
+protected:
+  std::vector<T> m_result;
 };
 
 } // namespace query
@@ -3526,41 +3528,40 @@ template <typename T> class series : public queryosity::query::definition<std::v
 } // namespace queryosity
 
 template <typename T>
-void queryosity::query::series<T>::initialize(unsigned int, unsigned long long begin, unsigned long long end)
-{
-    m_result.reserve(end - begin);
-}
-
-template <typename T> void queryosity::query::series<T>::fill(column::observable<T> x, double)
-{
-    m_result.push_back(x.value());
-}
-
-template <typename T> void queryosity::query::series<T>::finalize(unsigned int)
-{
-    m_result.resize(m_result.size());
-}
-
-template <typename T> std::vector<T> queryosity::query::series<T>::result() const
-{
-    return m_result;
+void queryosity::query::series<T>::initialize(unsigned int,
+                                              unsigned long long begin,
+                                              unsigned long long end) {
+  m_result.reserve(end - begin);
 }
 
 template <typename T>
-std::vector<T> queryosity::query::series<T>::merge(std::vector<std::vector<T>> const &results) const
-{
-    std::vector<T> merged;
-    size_t merged_size = 0;
-    for (auto const &result : results)
-    {
-        merged_size += result.size();
-    }
-    merged.reserve(merged_size);
-    for (auto const &result : results)
-    {
-        merged.insert(merged.end(), result.begin(), result.end());
-    }
-    return merged;
+void queryosity::query::series<T>::fill(column::observable<T> x, double) {
+  m_result.push_back(x.value());
+}
+
+template <typename T>
+void queryosity::query::series<T>::finalize(unsigned int) {
+  m_result.resize(m_result.size());
+}
+
+template <typename T>
+std::vector<T> queryosity::query::series<T>::result() const {
+  return m_result;
+}
+
+template <typename T>
+std::vector<T> queryosity::query::series<T>::merge(
+    std::vector<std::vector<T>> const &results) const {
+  std::vector<T> merged;
+  size_t merged_size = 0;
+  for (auto const &result : results) {
+    merged_size += result.size();
+  }
+  merged.reserve(merged_size);
+  for (auto const &result : results) {
+    merged.insert(merged.end(), result.begin(), result.end());
+  }
+  return merged;
 }
 
 namespace queryosity {
@@ -3585,8 +3586,8 @@ public:
 
   auto make(lazy<selection::node> &sel) const;
 
-  auto make(varied<lazy<selection::node>> &sel) const ->
-      varied<lazy<query::series<value_type>>>;
+  auto make(varied<lazy<selection::node>> &sel) const
+      -> varied<lazy<query::series<value_type>>>;
 
 protected:
   Col m_column;
@@ -4029,7 +4030,8 @@ template <typename Col>
 queryosity::column::nominal<Col>::nominal(lazy<Col> const &nom) : m_nom(nom) {}
 
 template <typename Col>
-auto queryosity::column::nominal<Col>::get() const -> lazy<valued<value_t<Col>>> const & {
+auto queryosity::column::nominal<Col>::get() const
+    -> lazy<valued<value_t<Col>>> const & {
   return m_nom;
 }
 
@@ -4044,8 +4046,7 @@ namespace column {
 template <typename Val> struct variation {
 
 public:
-  template <typename Col>
-  variation(lazy<Col> const& var);
+  template <typename Col> variation(lazy<Col> const &var);
   ~variation() = default;
 
   auto get() const -> lazy<valued<Val>> const &;
@@ -4060,7 +4061,8 @@ protected:
 
 template <typename Val>
 template <typename Col>
-queryosity::column::variation<Val>::variation(queryosity::lazy<Col> const& var) : m_var(var.template to<Val>()) {}
+queryosity::column::variation<Val>::variation(queryosity::lazy<Col> const &var)
+    : m_var(var.template to<Val>()) {}
 
 template <typename Val>
 auto queryosity::column::variation<Val>::get() const
@@ -4126,7 +4128,8 @@ queryosity::dataflow::dataflow(Kwd &&kwarg) : dataflow() {
 
 template <typename Kwd1, typename Kwd2>
 queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2) : dataflow() {
-  static_assert(!std::is_same_v<Kwd1, Kwd2>, "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd1, Kwd2>,
+                "each keyword argument must be unique");
   this->accept_kwarg(std::forward<Kwd1>(kwarg1));
   this->accept_kwarg(std::forward<Kwd2>(kwarg2));
 }
@@ -4134,9 +4137,12 @@ queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2) : dataflow() {
 template <typename Kwd1, typename Kwd2, typename Kwd3>
 queryosity::dataflow::dataflow(Kwd1 &&kwarg1, Kwd2 &&kwarg2, Kwd3 &&kwarg3)
     : dataflow() {
-  static_assert(!std::is_same_v<Kwd1, Kwd2>, "each keyword argument must be unique");
-  static_assert(!std::is_same_v<Kwd1, Kwd3>, "each keyword argument must be unique");
-  static_assert(!std::is_same_v<Kwd2, Kwd3>, "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd1, Kwd2>,
+                "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd1, Kwd3>,
+                "each keyword argument must be unique");
+  static_assert(!std::is_same_v<Kwd2, Kwd3>,
+                "each keyword argument must be unique");
   this->accept_kwarg(std::forward<Kwd1>(kwarg1));
   this->accept_kwarg(std::forward<Kwd2>(kwarg2));
   this->accept_kwarg(std::forward<Kwd3>(kwarg3));
@@ -4570,7 +4576,7 @@ namespace queryosity {
 /**
  * @ingroup api
  * @brief Complete the instantiation of a lazy action.
- * @details A todo node is an intermediate state between the dataflow graph and
+ * @details A todo node is an intermediate state between the dataflow and
  * a lazy node, when additional methods must be chained in order to instantiate
  * the action.
  * @tparam Helper Helper class to instantiate the lazy action.
@@ -4634,8 +4640,10 @@ public:
    * @param[in] columns Input columns.
    * @returns Updated query plan filled with input columns.
    */
-  template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>>, bool> = false>
+  template <
+      typename... Nodes, typename V = Helper,
+      std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>>,
+                       bool> = false>
   auto fill(Nodes &&...columns) const
       -> decltype(std::declval<todo<V>>()._fill(std::declval<Nodes>()...)) {
     return this->_fill(std::forward<Nodes>(columns)...);
@@ -4694,8 +4702,7 @@ protected:
   auto _evaluate(Nodes const &...columns) const
       -> varied<lazy<column::evaluated_t<V>>> {
 
-    using varied_type =
-        varied<lazy<column::evaluated_t<V>>>;
+    using varied_type = varied<lazy<column::evaluated_t<V>>>;
 
     auto nom = this->m_df->_evaluate(*this, columns.nominal()...);
     auto sys = varied_type(std::move(nom));
@@ -4756,7 +4763,7 @@ protected:
     auto sys = varied_type(this->m_df->_book(*this, sel.nominal()));
     for (auto const &var_name : systematic::get_variation_names(sel)) {
       sys.set_variation(var_name,
-                         this->m_df->_book(*this, sel.variation(var_name)));
+                        this->m_df->_book(*this, sel.variation(var_name)));
     }
     return sys;
   }
@@ -4793,10 +4800,11 @@ protected:
     return array_of_varied_type{_book_varied(sels)...};
   }
 
-  template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>> &&
-                                 queryosity::has_no_variation_v<Nodes...>,
-                             bool> = false>
+  template <
+      typename... Nodes, typename V = Helper,
+      std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>> &&
+                           queryosity::has_no_variation_v<Nodes...>,
+                       bool> = false>
   auto _fill(Nodes const &...columns) const -> todo<V> {
     return todo<V>(*this->m_df,
                    ensemble::invoke(
@@ -4806,16 +4814,17 @@ protected:
                        this->get_slots(), columns.get_slots()...));
   }
 
-  template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>> &&
-                                 has_variation_v<Nodes...>,
-                             bool> = false>
+  template <
+      typename... Nodes, typename V = Helper,
+      std::enable_if_t<queryosity::query::is_fillable_v<query::booked_t<V>> &&
+                           has_variation_v<Nodes...>,
+                       bool> = false>
   auto _fill(Nodes const &...columns) const -> varied<todo<Helper>> {
     using varied_type = varied<todo<V>>;
     auto sys = varied_type(std::move(this->_fill(columns.nominal()...)));
     for (auto const &var_name : systematic::get_variation_names(columns...)) {
-      sys.set_variation(
-          var_name, std::move(this->_fill(columns.variation(var_name)...)));
+      sys.set_variation(var_name,
+                        std::move(this->_fill(columns.variation(var_name)...)));
     }
     return sys;
   }
@@ -5004,7 +5013,8 @@ public:
   virtual void count(double w) final override;
   virtual count_t result() const final override;
   virtual void finalize(unsigned int) final override;
-  virtual count_t merge(std::vector<count_t> const &results) const final override;
+  virtual count_t
+  merge(std::vector<count_t> const &results) const final override;
 
 protected:
   count_t m_cnt;
@@ -5041,12 +5051,13 @@ inline void queryosity::selection::counter::finalize(unsigned int) {
   m_cnt.error = std::sqrt(m_cnt.error);
 }
 
-inline queryosity::selection::count_t queryosity::selection::counter::result() const {
+inline queryosity::selection::count_t
+queryosity::selection::counter::result() const {
   return m_cnt;
 }
 
 inline queryosity::selection::count_t
-queryosity::selection::counter::merge(std::vector<count_t> const& cnts) const {
+queryosity::selection::counter::merge(std::vector<count_t> const &cnts) const {
   count_t sum;
   for (auto const &cnt : cnts) {
     sum.entries += cnt.entries;
@@ -5124,7 +5135,9 @@ public:
    * @return A new todo query node with input columns filled.
    */
   template <typename... Nodes, typename V = Helper,
-            std::enable_if_t<queryosity::query::is_fillable_v<queryosity::query::booked_t<V>>, bool> = false>
+            std::enable_if_t<queryosity::query::is_fillable_v<
+                                 queryosity::query::booked_t<V>>,
+                             bool> = false>
   auto fill(Nodes const &...columns) -> varied;
 
   /**
@@ -5245,8 +5258,10 @@ auto queryosity::varied<queryosity::todo<Helper>>::apply(Cols &&...cols)
 }
 
 template <typename Helper>
-template <typename... Nodes, typename V,
-          std::enable_if_t<queryosity::query::is_fillable_v<queryosity::query::booked_t<V>>, bool>>
+template <
+    typename... Nodes, typename V,
+    std::enable_if_t<
+        queryosity::query::is_fillable_v<queryosity::query::booked_t<V>>, bool>>
 auto queryosity::varied<queryosity::todo<Helper>>::fill(Nodes const &...columns)
     -> varied {
   auto syst = varied(std::move(this->nominal().fill(columns.nominal()...)));
