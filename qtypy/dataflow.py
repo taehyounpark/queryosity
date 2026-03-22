@@ -380,3 +380,6 @@ class _dataflow_at_selection:
 
     def __rshift__(self, query_definition):
         return self.get(query_definition)
+
+    def __eq__(self, other):
+        return (self._df == other._df) and (self._selection_name == other._selection_name)
