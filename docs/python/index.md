@@ -2,7 +2,7 @@
 
 ```{toctree}
 :hidden: false
-:maxdepth: 1
+:maxdepth: 2
 
 install
 guide

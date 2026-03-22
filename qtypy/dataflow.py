@@ -132,7 +132,7 @@ class dataflow(cpp_binding):
         return self
 
     def filter(self, cuts: dict):
-        last_selection = None
+        last_selection = self.current_selection_name
 
         for cut_name, cut_expression in cuts.items():
             cut_node = selection.cut(cut_expression)
