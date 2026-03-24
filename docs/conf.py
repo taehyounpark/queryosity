@@ -111,6 +111,7 @@ html_theme_options = {
 #    "pygment_dark_style": "solarized-dark"
 }
 html_show_sourcelink = False
+html_baseurl = "https://queryosity.readthedocs.io/en/latest/"
 
 myst_enable_extensions = [
     "amsmath",

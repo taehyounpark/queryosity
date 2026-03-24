@@ -5,7 +5,9 @@
 :maxdepth: 2
 
 install
-guide
+basics
+column_definition
+dataflow_analysis
 ```
 
 ```{toctree}
@@ -27,7 +29,7 @@ There are two equivalent ways to express a dataflow:
 1. Methods
 2. Operators
 
-These two approaches are fully interchangeable. Users are free to use either—or mix both—depending on their preferred syntax.
+Users are free to choose either—or mix both—depending on their preferred syntax.
 
 ::::{tab-set}
 :::{tab-item} Methods
