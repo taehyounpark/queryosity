@@ -1,9 +1,10 @@
-from ..cpp import cpp_binding
+from ..node import lazy
 
-class result(cpp_binding):
+class result(lazy):
     def __init__(self, query):
         super().__init__()
         self.query = query
+        self.df = query.df
 
     @property
     def cpp_type(self):
@@ -23,6 +24,8 @@ class result(cpp_binding):
         return {variation_name : varied_result(self.query, variation_name) for variation_name in variation_names}
 
     def result(self):
+        self._instantiate()
+        self.query.df._compile()
         return self.query.defn.py_result_wrapper(self.cpp_instance)
 
 class nominal_result(result):

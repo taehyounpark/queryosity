@@ -69,6 +69,8 @@ public:
             std::enable_if_t<queryosity::is_selection_v<V>, bool> = false>
   auto filter(Col const &col) -> varied<lazy<selection::node>>;
 
+  auto get_slots() const -> std::vector<Act *>;
+
   /**
    * @brief Compound a weight to this selection.
    * @Col (Varied) lazy input column type.
@@ -201,6 +203,21 @@ template <typename Act>
 std::set<std::string>
 queryosity::varied<queryosity::lazy<Act>>::get_variation_names() const {
   return m_variation_names;
+}
+
+template <typename Act>
+std::vector<Act *>
+queryosity::varied<queryosity::lazy<Act>>::get_slots() const {
+  std::vector<Act *> all_slots;
+  for (auto const &slot : m_nominal.get_slots()) {
+    all_slots.push_back(slot);
+  }
+  for (auto const &[name, lazy_action] : m_variation_map) {
+    for (auto const &slot : lazy_action.get_slots()) {
+      all_slots.push_back(slot);
+    }
+  }
+  return all_slots;
 }
 
 template <typename Act>

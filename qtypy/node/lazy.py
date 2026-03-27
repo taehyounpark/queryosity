@@ -19,3 +19,13 @@ class lazy(cpp_binding):
         if self._df is not None:
             raise RuntimeError("lazy node already assigned to a dataflow")
         self._df = value
+
+    def _instantiate(self):
+        if not self._instantiated:
+            self._instantiated = True
+            cpp_line = '''{type} {id} = {init};'''.format(
+                type = self.cpp_type,
+                id = self.cpp_identifier,
+                init = self.cpp_initialization
+            )
+            self.df.cpp_lines.append(cpp_line)

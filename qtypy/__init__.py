@@ -9,6 +9,7 @@ ROOT.queryosity.dataflow()
 from .dataflow import dataflow
 from . import column
 from .selection import cut, weight
+from .query import counter
 from .query import hist
 from .query import hgrid
 
@@ -17,6 +18,7 @@ __all__: list[str] = [
     "dataflow",
     "dataset",
     "column",
+    "counter",
     "hist",
     "hgrid"
 ]

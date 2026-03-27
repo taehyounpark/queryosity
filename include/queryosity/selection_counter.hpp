@@ -12,10 +12,9 @@ namespace queryosity {
 namespace selection {
 
 /**
- * @brief Yield (sum of weights and squared error) at a selection.
+ * @brief cutbookkeeper (sum of weights and squared error) at a selection.
  */
 struct count_t {
-
   unsigned long long entries;
   double value;
   double error;
@@ -38,15 +37,15 @@ protected:
 };
 
 /**
- * @brief Argumnet for column yield.
+ * @brief Argument for column cutbookkeeper.
  * @tparam Sel (Varied) lazy column node.
  * @todo C++20: Use concept to require lazy<column<Val>(::varied)>.
  */
-template <typename... Sels> struct yield {
+template <typename... Sels> struct cutbookkeeper {
 
 public:
-  yield(Sels const &...sels);
-  ~yield() = default;
+  cutbookkeeper(Sels const &...sels);
+  ~cutbookkeeper() = default;
 
   auto make(dataflow &df) const;
 
@@ -86,11 +85,12 @@ queryosity::selection::counter::merge(std::vector<count_t> const &cnts) const {
 }
 
 template <typename... Sels>
-queryosity::selection::yield<Sels...>::yield(Sels const &...sels)
+queryosity::selection::cutbookkeeper<Sels...>::cutbookkeeper(
+    Sels const &...sels)
     : m_selections(sels...) {}
 
 template <typename... Sels>
-auto queryosity::selection::yield<Sels...>::make(dataflow &df) const {
+auto queryosity::selection::cutbookkeeper<Sels...>::make(dataflow &df) const {
   return std::apply(
       [&df](Sels const &...sels) {
         return df.get(query::output<counter>()).at(sels...);

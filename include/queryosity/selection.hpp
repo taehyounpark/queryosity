@@ -26,7 +26,7 @@ struct count_t;
 
 class counter;
 
-template <typename... Ts> struct yield;
+template <typename... Ts> struct cutbookkeeper;
 
 class node : public column::calculation<double> {
 

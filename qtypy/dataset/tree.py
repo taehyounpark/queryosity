@@ -50,7 +50,6 @@ class tree(lazy):
     def _contextualize(self, df):
         df.dataset = self
         self.df = df
-        self._instantiate()
 
     def __str__(self):
         return f'TTree : "{self.tree_name}"\n' + "\n".join(f"  {fp}" for fp in self.file_paths)

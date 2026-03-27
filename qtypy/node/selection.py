@@ -5,13 +5,13 @@ from .lazy import lazy
 
 class selection(lazy):
 
-    def __init__(self, expr: str):
+    def __init__(self, column_spec):
         super().__init__()
-        self.expr = expr
-        self.prev_name = None
+        self.column_spec = column_spec
+        self.previous_selection_name = None
 
     def __str__(self):
-        return f'{self.operation}({self.expr})'
+        return f'{self.operation}({self.column_spec})'
 
     @property
     @abstractmethod
@@ -25,37 +25,26 @@ class selection(lazy):
 
     @property
     def cpp_initialization(self):
-        # only keep args that exist in columns
-        column_args, expr = find_cpp_identifiers_and_replace_with_values(self.expr, set(self.df.columns))
-        lmbd_args = [
-            f'qty::column::observable<{self.df.columns[arg].cpp_value_type}> {arg}'
-            for arg in column_args
-        ]
+        self.df.columns[self.name].cpp_identifier
 
-        lmbd_defn = '[](' + ', '.join(lmbd_args) + '){return (' + expr + ');}'
-        lazy_args = [self.df.columns[arg].cpp_identifier for arg in column_args]
-
-        return f'{self.df.current_selection.cpp_identifier}.{self.operation}(qty::column::expression({lmbd_defn})).apply({", ".join(lazy_args)})'
+        return f'{self.df.current_selection.cpp_identifier}.{self.operation}({self.df.columns[self.name].cpp_identifier})'
 
     def _contextualize(self, df, name):
 
         # remember previous selection
         self.name = name
-        self.prev_name = df.current_selection_name
+        self.previous_selection_name = df.current_selection_name
 
-        # register also as a column (which it is)
-        if name in df.columns:
-            raise ValueError("column already exists")
-        df.columns[name] = self
+        # link to dataflow and JIT
+        self.df = df
 
+        self.df.compute({self.name : self.column_spec})
+
+        self._instantiate()
         # register as a selection (its main job)
         if name in df.selections:
             raise ValueError("selection already exists")
         df.selections[name] = self
-
-        # link to dataflow and JIT
-        self.df = df
-        self._instantiate()
 
         # move dataflow to current selection
         df.current_selection_name = name

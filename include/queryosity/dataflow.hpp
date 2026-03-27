@@ -258,7 +258,8 @@ public:
   //  * @param[in] sel Selection(s) as yield constructor argument(s).
   //  * @return (Varied) lazy selection yield query(ies).
   //  */
-  template <typename... Sels> auto get(selection::yield<Sels...> const &sels);
+  template <typename... Sels>
+  auto get(selection::cutbookkeeper<Sels...> const &sels);
 
   /**
    * @brief Vary a column constant.
@@ -635,7 +636,7 @@ auto queryosity::dataflow::get(queryosity::column::series<Col> const &col) {
 }
 
 template <typename... Sels>
-auto queryosity::dataflow::get(selection::yield<Sels...> const &sels) {
+auto queryosity::dataflow::get(selection::cutbookkeeper<Sels...> const &sels) {
   return sels.make(*this);
 }
 

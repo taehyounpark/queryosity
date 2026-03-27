@@ -92,12 +92,12 @@ These can (and should) be re-applied at any point in the new cutflow.
 
 ```cpp
 // single selection
-auto yield_tot = df.get(selection::yield(all));
+auto yield_tot = df.get(selection::cutbookkeeper(all));
 unsigned long long yield_tot_entries = yield_tot.entries; // number of entries
 double yield_tot_value = yield_tot.value; // sum(weights)
 double yield_tot_error = yield_tot.error; // sqrt(sum(weights squared))
 
 // multiple selections 
 auto [yield_a, yield_b, yield_c] =
-    df.get(selection::yield(sel_a, sel_b, sel_c));
+    df.get(selection::cutbookkeeper(sel_a, sel_b, sel_c));
 ```

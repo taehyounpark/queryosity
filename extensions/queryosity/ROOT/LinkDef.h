@@ -12,9 +12,9 @@
 
 #ifdef __CLING__
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+// #pragma link off all globals;
+// #pragma link off all classes;
+// #pragma link off all functions;
 
 #pragma link C++ nestedclasses;
 #pragma link C++ nestedtypedefs;
@@ -40,6 +40,9 @@
     ;
 #pragma link C++ class queryosity::column::variation < float> + ;
 #pragma link C++ class queryosity::ROOT::tree + ;
+
+#pragma link C++ class queryosity::selection::count_t + ;
+
 #pragma link C++ class queryosity::ROOT::hist < 1, float> + ;
 #pragma link C++ class queryosity::ROOT::hist_categorized < std::string,       \
     float> +                                                                   \

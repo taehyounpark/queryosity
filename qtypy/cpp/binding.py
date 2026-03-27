@@ -34,14 +34,3 @@ class cpp_binding(ABC):
     def cpp_instance(self):
         self._instantiate()
         return getattr(ROOT, self.cpp_identifier, None)
-
-    def _instantiate(self):
-        if not self._instantiated:
-            self._instantiated = True
-            cpp_line = '''{type} {id} = {init};'''.format(
-                type = self.cpp_type,
-                id = self.cpp_identifier,
-                init = self.cpp_initialization
-            )
-            result = ROOT.gInterpreter.ProcessLine(cpp_line)
-            return result

@@ -54,17 +54,20 @@ class Definition(column):
         self.df = df
 
         self._instantiate()
-        
-        cppyy.cppdef('''
-            auto {id}_slots = {id}.get_slots();
-                                      '''.format(id=self.cpp_identifier))
-        slots = getattr(cppyy.gbl, f'{self.cpp_identifier}_slots')
 
-        if self.slot_hook is not None:
-            for slot in slots:
-                self.slot_hook(slot)
+        def apply_slot_hook():
+            # need to separately get its slots for user-block
+            cppyy.cppdef('''
+                auto {id}_slots = {id}.get_slots();
+                                        '''.format(id=self.cpp_identifier))
+            slots = getattr(cppyy.gbl, f'{self.cpp_identifier}_slots')
+
+            if self.slot_hook is not None:
+                for slot in slots:
+                    self.slot_hook(slot)
 
         df.columns[name] = self
+        df.py_slot_hooks[len(df.cpp_lines)] = apply_slot_hook
 
 def definition_decorator(cpp_class: str, cpp_ctor_args=()):
     """

@@ -1,3 +1,5 @@
+import ROOT
+
 from .cpp import cpp_binding
 from . import dataset
 from . import column
@@ -30,6 +32,8 @@ class _custom_analysis:
     def output(self, df):
         # transparently return back out whatever the results are
         return self.func(df, *self.args, **self.kwargs)
+
+    __rshift__ = output
 
 # ==========================================
 # Definition Objects (Decorators)
@@ -89,7 +93,44 @@ class dataflow(cpp_binding):
         self.current_selection_name = None
         self.queries = []
 
+        self.cpp_lines = []
+        self.py_slot_hooks = {}
         self._instantiate()
+
+    def _instantiate(self):
+        cpp_line = '''{type} {id} = {init};'''.format(
+            type = self.cpp_type,
+            id = self.cpp_identifier,
+            init = self.cpp_initialization
+        )
+        self.cpp_lines.append(cpp_line)
+
+    def _compile(self):
+        if not self.cpp_lines:
+            return
+
+        # Sort hook positions
+        hooks = sorted(self.py_slot_hooks.items())  # [(line_number, func), ...]
+
+        start = 0
+
+        for line_idx, hook_fn in hooks:
+            # Compile lines up to this hook point
+            chunk = self.cpp_lines[start:line_idx]
+            if chunk:
+                ROOT.gInterpreter.ProcessLine('\n'.join(chunk))
+
+            # Execute the Python hook
+            hook_fn()
+
+            start = line_idx
+
+        # Compile remaining lines after last hook
+        if start < len(self.cpp_lines):
+            ROOT.gInterpreter.ProcessLine('\n'.join(self.cpp_lines[start:]))
+
+        self.py_slot_hooks.clear()
+        self.cpp_lines.clear()
 
     @property
     def cpp_initialization(self):
@@ -97,6 +138,7 @@ class dataflow(cpp_binding):
 
     def input(self, ds):
         ds._contextualize(self)
+        ds._instantiate()
         return self
 
     def compute(self, columns: dict):
@@ -127,9 +169,15 @@ class dataflow(cpp_binding):
             Enables method chaining.
         """
         for column_name, column_node in columns.items():
+            # Convert string into column.expression
+            if isinstance(column_node, str):
+                column_node = column.expression(column_node)
+
             column_node._contextualize(self, column_name)
             column_node._instantiate()
+
         return self
+
 
     def filter(self, cuts: dict):
         last_selection = self.current_selection_name
@@ -167,10 +215,7 @@ class dataflow(cpp_binding):
         return query_definition_or_custom_analysis.output(self)
 
     def __setitem__(self, column_name, column_node):
-        if isinstance(column_node, str):
-            column_node = column.expression(column_node)
-        column_node._contextualize(self, column_name)
-        column_node._instantiate()
+        return self.compute({column_name : column_node})
 
     # DSL syntax
     __lshift__ = input
@@ -272,11 +317,11 @@ class dataflow(cpp_binding):
         roots = []
 
         for name, sel in self.selections.items():
-            prev_name = getattr(sel, "prev_name", None)
-            if prev_name is None:
+            previous_selection_name = getattr(sel, "previous_selection_name", None)
+            if previous_selection_name is None:
                 roots.append(name)
             else:
-                children.setdefault(prev_name, []).append(name)
+                children.setdefault(previous_selection_name, []).append(name)
 
         # --------------------------------------------
         # Recursive builder

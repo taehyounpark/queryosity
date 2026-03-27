@@ -38,7 +38,7 @@ class systematic(column):
         variations_part = f"{{{variations_part}}}"  # wrap in outer braces
 
         # combine into df.vary call
-        return f"{df_id}.vary({nominal_part}, {variations_part});"
+        return f"{df_id}.vary({nominal_part}, {variations_part})"
 
     @property
     def cpp_value_type(self) -> str:

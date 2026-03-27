@@ -1,5 +1,5 @@
-#include <queryosity/nlohmann/json.hpp>
 #include <nlohmann/json.hpp>
+#include <queryosity/nlohmann/json.hpp>
 
 using json = qty::nlohmann::json;
 
@@ -83,9 +83,11 @@ TEST_CASE("correctness & consistency of selections") {
   auto cut_a2 = weighted.filter(cut_ab && cut_a);
   auto cut_b2 = weighted.filter(cut_ab && cut_b);
 
-  auto [sumw_a, sumw_b, sumw_c] = df.get(selection::yield(cut_a, cut_b, cut_c));
-  auto [sumw_ab, sumw_bc] = df.get(selection::yield(cut_ab, cut_bc));
-  auto [sumw_none, sumw_abc] = df.get(selection::yield(cut_none, cut_abc));
+  auto [sumw_a, sumw_b, sumw_c] =
+      df.get(selection::cutbookkeeper(cut_a, cut_b, cut_c));
+  auto [sumw_ab, sumw_bc] = df.get(selection::cutbookkeeper(cut_ab, cut_bc));
+  auto [sumw_none, sumw_abc] =
+      df.get(selection::cutbookkeeper(cut_none, cut_abc));
 
   SUBCASE("branching") {
     CHECK(sumw_a.result().value == correct_sumw_a);
