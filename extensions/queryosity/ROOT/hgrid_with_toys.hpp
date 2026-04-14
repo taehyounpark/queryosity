@@ -136,6 +136,7 @@ queryosity::ROOT::hgrid_with_toys<1, Val>::hgrid_with_toys(
         hname.c_str(), hname.c_str(), bins.size() - 1, &bins[0], ntoys);
     m_hgrid_with_toys[i]->SetDirectory(nullptr);
     m_hgrid_with_toys[i]->SetName(hname.c_str());
+    m_hgrid_with_toys[i]->Sumw2();
   }
 }
 
@@ -154,6 +155,7 @@ queryosity::ROOT::hgrid_with_toys<1, Val>::hgrid_with_toys(
         hname.c_str(), hname.c_str(), nbins, min, max, ntoys);
     m_hgrid_with_toys[i]->SetDirectory(nullptr);
     m_hgrid_with_toys[i]->SetName(hname.c_str());
+    m_hgrid_with_toys[i]->Sumw2();
   }
 }
 
@@ -195,14 +197,12 @@ queryosity::ROOT::hgrid_with_toys<1, Val>::merge(
   for (size_t i = 0; i < results[0].size(); ++i) {
 
     const auto &h = results[0][i];
-    if (h) {
-      merged_result[i] = std::shared_ptr<TH1Bootstrap>(
-          static_cast<TH1Bootstrap *>(h->Clone()));
-      merged_result[i]->SetDirectory(nullptr);
-    }
+    merged_result[i] =
+        std::shared_ptr<TH1Bootstrap>(static_cast<TH1Bootstrap *>(h->Clone()));
+    merged_result[i]->SetDirectory(nullptr);
   }
 
-  // add remaining
+  // add remaining slots
   for (size_t t = 1; t < results.size(); ++t) {
     for (size_t i = 0; i < merged_result.size(); ++i) {
 
@@ -238,6 +238,7 @@ queryosity::ROOT::hgrid_with_toys<2, Val>::hgrid_with_toys(
           hname.c_str(), hname.c_str(), bins.size() - 1, &bins[0], ntoys);
       m_hgrid_with_toys[i][j]->SetDirectory(nullptr);
       m_hgrid_with_toys[i][j]->SetName(hname.c_str());
+      m_hgrid_with_toys[i][j]->Sumw2();
     }
   }
 }
@@ -262,6 +263,7 @@ queryosity::ROOT::hgrid_with_toys<2, Val>::hgrid_with_toys(
           hname.c_str(), hname.c_str(), nbins, min, max, ntoys);
       m_hgrid_with_toys[i][j]->SetDirectory(nullptr);
       m_hgrid_with_toys[i][j]->SetName(hname.c_str());
+      m_hgrid_with_toys[i][j]->Sumw2();
     }
   }
 }
@@ -304,11 +306,9 @@ queryosity::ROOT::hgrid_with_toys<2, Val>::merge(
     for (size_t j = 0; j < results[0][i].size(); ++j) {
 
       const auto &h = results[0][i][j];
-      if (h) {
-        merged_result[i][j] = std::shared_ptr<TH1Bootstrap>(
-            static_cast<TH1Bootstrap *>(h->Clone()));
-        merged_result[i][j]->SetDirectory(nullptr);
-      }
+      merged_result[i][j] = std::shared_ptr<TH1Bootstrap>(
+          static_cast<TH1Bootstrap *>(h->Clone()));
+      merged_result[i][j]->SetDirectory(nullptr);
     }
   }
 
@@ -360,6 +360,7 @@ queryosity::ROOT::hgrid_with_toys<3, Val>::hgrid_with_toys(
             hname.c_str(), hname.c_str(), bins.size() - 1, &bins[0], ntoys);
         m_hgrid_with_toys[i][j][k]->SetDirectory(nullptr);
         m_hgrid_with_toys[i][j][k]->SetName(hname.c_str());
+        m_hgrid_with_toys[i][j][k]->Sumw2();
       }
     }
   }
@@ -389,6 +390,7 @@ queryosity::ROOT::hgrid_with_toys<3, Val>::hgrid_with_toys(
             hname.c_str(), hname.c_str(), nbins, min, max, ntoys);
         m_hgrid_with_toys[i][j][k]->SetDirectory(nullptr);
         m_hgrid_with_toys[i][j][k]->SetName(hname.c_str());
+        m_hgrid_with_toys[i][j][k]->Sumw2();
       }
     }
   }
@@ -446,11 +448,9 @@ queryosity::ROOT::hgrid_with_toys<3, Val>::merge(
       for (size_t k = 0; k < results[0][i][j].size(); ++k) {
 
         const auto &h = results[0][i][j][k];
-        if (h) {
-          merged_result[i][j][k] = std::shared_ptr<TH1Bootstrap>(
-              static_cast<TH1Bootstrap *>(h->Clone()));
-          merged_result[i][j][k]->SetDirectory(nullptr);
-        }
+        merged_result[i][j][k] = std::shared_ptr<TH1Bootstrap>(
+            static_cast<TH1Bootstrap *>(h->Clone()));
+        merged_result[i][j][k]->SetDirectory(nullptr);
       }
     }
   }

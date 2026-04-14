@@ -6,6 +6,8 @@
 #include "queryosity/ROOT/hgrid.hpp"
 #include "queryosity/ROOT/hist.hpp"
 #include "queryosity/ROOT/hist_categorized.hpp"
+#include "queryosity/ROOT/profile.hpp"
+
 #include "queryosity/ROOT/tree.hpp"
 
 #include <queryosity.hpp>
@@ -44,6 +46,10 @@
 #pragma link C++ class queryosity::ROOT::hist_categorized < std::string,       \
     float> +                                                                   \
     ;
+
+#pragma link C++ class queryosity::ROOT::prof < 1, float> + ;
+#pragma link C++ class queryosity::ROOT::prof < 2, float> + ;
+
 #pragma link C++ class queryosity::ROOT::hgrid < 1, float> + ;
 #pragma link C++ class queryosity::ROOT::hgrid < 2, float> + ;
 #pragma link C++ class queryosity::ROOT::hgrid < 3, float> + ;

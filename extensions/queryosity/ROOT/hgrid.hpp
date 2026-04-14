@@ -124,7 +124,6 @@ queryosity::ROOT::hgrid<1, Val>::hgrid(const std::string &hname,
 
   for (size_t i = 0; i < nx; ++i) {
     m_hgrid[i] = make_hist<1, Val>(bins);
-    m_hgrid[i]->SetDirectory(nullptr);
     m_hgrid[i]->SetName(hname.c_str());
   }
 }
@@ -140,7 +139,6 @@ queryosity::ROOT::hgrid<1, Val>::hgrid(const std::string &hname,
   m_hgrid.resize(nx);
   for (size_t i = 0; i < nx; ++i) {
     m_hgrid[i] = make_hist<1, Val>(n, min, max);
-    m_hgrid[i]->SetDirectory(nullptr);
     m_hgrid[i]->SetName(hname.c_str());
   }
 }
@@ -209,7 +207,6 @@ queryosity::ROOT::hgrid<2, Val>::hgrid(const std::string &hname,
 
     for (size_t j = 0; j < ny; ++j) {
       m_hgrid[i][j] = make_hist<1, Val>(bins);
-      m_hgrid[i][j]->SetDirectory(nullptr);
       m_hgrid[i][j]->SetName(hname.c_str());
     }
   }
@@ -232,7 +229,6 @@ queryosity::ROOT::hgrid<2, Val>::hgrid(const std::string &hname,
 
     for (size_t j = 0; j < ny; ++j) {
       m_hgrid[i][j] = make_hist<1, Val>(n, min, max);
-      m_hgrid[i][j]->SetDirectory(nullptr);
       m_hgrid[i][j]->SetName(hname.c_str());
     }
   }
@@ -273,11 +269,9 @@ queryosity::ROOT::hgrid_2d_t queryosity::ROOT::hgrid<2, Val>::merge(
     for (size_t j = 0; j < results[0][i].size(); ++j) {
 
       const auto &h = results[0][i][j];
-      if (h) {
-        merged_result[i][j] =
-            std::shared_ptr<TH1>(static_cast<TH1 *>(h->Clone()));
-        merged_result[i][j]->SetDirectory(nullptr);
-      }
+      merged_result[i][j] =
+          std::shared_ptr<TH1>(static_cast<TH1 *>(h->Clone()));
+      merged_result[i][j]->SetDirectory(nullptr);
     }
   }
 
@@ -326,7 +320,6 @@ queryosity::ROOT::hgrid<3, Val>::hgrid(const std::string &hname,
 
       for (size_t k = 0; k < nz; ++k) {
         m_hgrid[i][j][k] = make_hist<1, Val>(bins);
-        m_hgrid[i][j][k]->SetDirectory(nullptr);
         m_hgrid[i][j][k]->SetName(hname.c_str());
       }
     }
@@ -355,7 +348,6 @@ queryosity::ROOT::hgrid<3, Val>::hgrid(const std::string &hname,
 
       for (size_t k = 0; k < nz; ++k) {
         m_hgrid[i][j][k] = make_hist<1, Val>(n, min, max);
-        m_hgrid[i][j][k]->SetDirectory(nullptr);
         m_hgrid[i][j][k]->SetName(hname.c_str());
       }
     }
@@ -410,11 +402,9 @@ queryosity::ROOT::hgrid_3d_t queryosity::ROOT::hgrid<3, Val>::merge(
       for (size_t k = 0; k < results[0][i][j].size(); ++k) {
 
         const auto &h = results[0][i][j][k];
-        if (h) {
-          merged_result[i][j][k] =
-              std::shared_ptr<TH1>(static_cast<TH1 *>(h->Clone()));
-          merged_result[i][j][k]->SetDirectory(nullptr);
-        }
+        merged_result[i][j][k] =
+            std::shared_ptr<TH1>(static_cast<TH1 *>(h->Clone()));
+        merged_result[i][j][k]->SetDirectory(nullptr);
       }
     }
   }

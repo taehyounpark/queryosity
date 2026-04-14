@@ -133,6 +133,7 @@ queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
                                       m_xbins.size() - 1, &m_xbins[0], m_ntoy);
   }
   m_hist->SetDirectory(nullptr);
+  m_hist->Sumw2();
 }
 
 template <typename Prec>
@@ -150,6 +151,7 @@ queryosity::ROOT::hist_with_toys<1, Prec>::hist_with_toys(
                                       m_xbins.size() - 1, &m_xbins[0], m_ntoy);
   }
   m_hist->SetDirectory(nullptr);
+  m_hist->Sumw2();
 }
 
 template <typename Prec>

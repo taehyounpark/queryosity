@@ -81,6 +81,7 @@ std::shared_ptr<TH1> make_hist(std::vector<double> const &xbins = {0.0, 1.0},
     }
   }
   hist->SetDirectory(nullptr);
+  hist->Sumw2();
   return hist;
 }
 
@@ -141,6 +142,7 @@ std::shared_ptr<TH1> make_hist(size_t nxbins, double xmin, double xmax,
     }
   }
   hist->SetDirectory(nullptr);
+  hist->Sumw2();
   return hist;
 }
 
