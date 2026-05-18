@@ -235,8 +235,8 @@ class hist<2, ::ROOT::RVec<Val>>
                                                          ::ROOT::RVec<Val>)> {
 
 public:
-  hist(const std::string &hname, std::vector<Val> const &,
-       std::vector<Val> const &);
+  hist(const std::string &hname, std::vector<double> const &,
+       std::vector<double> const &);
   virtual ~hist() = default;
 
   virtual void fill(qty::column::observable<::ROOT::RVec<Val>>,
@@ -438,8 +438,8 @@ queryosity::ROOT::hist<1, ::ROOT::RVec<Val>>::result() const {
 
 template <typename Val>
 queryosity::ROOT::hist<2, ::ROOT::RVec<Val>>::hist(
-    const std::string &hname, std::vector<Val> const &xbins,
-    std::vector<Val> const &ybins) {
+    const std::string &hname, std::vector<double> const &xbins,
+    std::vector<double> const &ybins) {
   m_hist = std::static_pointer_cast<TH2>(make_hist<2, Val>(xbins, ybins));
   m_hist->SetNameTitle(hname.c_str(), hname.c_str());
 }
