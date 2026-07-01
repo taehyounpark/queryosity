@@ -209,9 +209,7 @@ queryosity::ROOT::hgrid_with_toys<1, Val>::merge(
       const auto &src = results[t][i];
       auto &dst = merged_result[i];
 
-      if (src && dst) {
-        dst->Add(src.get());
-      }
+      dst->Add(src.get());
     }
   }
 
@@ -320,9 +318,7 @@ queryosity::ROOT::hgrid_with_toys<2, Val>::merge(
         const auto &src = results[t][i][j];
         auto &dst = merged_result[i][j];
 
-        if (src && dst) {
-          dst->Add(src.get());
-        }
+        dst->Add(src.get());
       }
     }
   }
@@ -464,9 +460,7 @@ queryosity::ROOT::hgrid_with_toys<3, Val>::merge(
           const auto &src = results[t][i][j][k];
           auto &dst = merged_result[i][j][k];
 
-          if (src && dst) {
-            dst->Add(src.get());
-          }
+          dst->Add(src.get());
         }
       }
     }
