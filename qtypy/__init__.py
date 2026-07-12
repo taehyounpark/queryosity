@@ -6,6 +6,7 @@ ROOT.gInterpreter.ProcessLine("""
 """)
 ROOT.queryosity.dataflow()
 
+from ._version import __version__
 from .dataflow import dataflow
 from . import column
 from .query import hist, prof, hgrid

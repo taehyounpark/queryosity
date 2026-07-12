@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "queryosity"
-version = "0.9.4"
+dynamic = ["version"]
 description = "Python frontend for ROOT data analyses written in queryosity"
 readme = "README.md"
 requires-python = ">=3.9"
@@ -28,6 +28,9 @@ slurm = ["simple-slurm"]
 [project.urls]
 Homepage = "https://queryosity.readthedocs.io/en/latest/"
 Issues = "https://github.com/taehyounpark/queryosity/issues"
+
+[tool.setuptools.dynamic]
+version = { attr = "qtypy._version.__version__" }
 
 [tool.setuptools]
 include-package-data = true
